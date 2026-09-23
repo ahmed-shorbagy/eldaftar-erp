@@ -1,0 +1,17 @@
+*.docx
+*.pdf
+.env
+.env.*
+!.env.example
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+node_modules/
+dist/
+.next/
+*.log
+.idea/
+.vscode/
