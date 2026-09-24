@@ -4,18 +4,22 @@ import 'package:flutter/material.dart';
 
 import '../../../config/supabase_startup.dart';
 import '../../../shell/home_shell.dart';
-import '../../auth/domain/auth_gateway.dart';
+import '../../shop_accounts/domain/shop_account_gateway.dart';
+import '../../shop_accounts/presentation/shop_accounts_gate.dart';
+import '../domain/auth_gateway.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
     required this.supabaseStatus,
     required this.authGateway,
+    required this.shopAccountGateway,
     required this.onToggleTheme,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final AuthGateway? authGateway;
+  final ShopAccountGateway? shopAccountGateway;
   final Future<void> Function(Brightness) onToggleTheme;
 
   @override
@@ -62,9 +66,11 @@ class _AuthGateState extends State<AuthGate> {
         onToggleTheme: widget.onToggleTheme,
       );
     }
-    if (_status == AuthStatus.signedIn && widget.authGateway != null) {
-      return HomeShell(
-        supabaseStatus: widget.supabaseStatus,
+    if (_status == AuthStatus.signedIn &&
+        widget.authGateway != null &&
+        widget.shopAccountGateway != null) {
+      return ShopAccountsGate(
+        gateway: widget.shopAccountGateway!,
         onToggleTheme: widget.onToggleTheme,
         onSignOut: () async {
           await widget.authGateway!.signOut();
@@ -73,7 +79,8 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
     return SignInScreen(
-      unavailable: widget.authGateway == null,
+      unavailable:
+          widget.authGateway == null || widget.shopAccountGateway == null,
       unverified: _status == AuthStatus.unverifiedEmail,
       onSubmit: (email, password) async {
         await widget.authGateway!.signIn(email, password);

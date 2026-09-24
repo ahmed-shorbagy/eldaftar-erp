@@ -10,11 +10,15 @@ class HomeShell extends StatelessWidget {
     required this.supabaseStatus,
     required this.onToggleTheme,
     this.onSignOut,
+    this.shopName,
+    this.onChangeShop,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final Future<void> Function(Brightness resolvedBrightness) onToggleTheme;
   final Future<void> Function()? onSignOut;
+  final String? shopName;
+  final VoidCallback? onChangeShop;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +32,12 @@ class HomeShell extends StatelessWidget {
       appBar: AppBar(
         title: const Text(ShellCopy.appTitle),
         actions: [
+          if (onChangeShop != null)
+            IconButton(
+              tooltip: 'اختيار متجر آخر',
+              onPressed: onChangeShop,
+              icon: const Icon(Icons.storefront_outlined),
+            ),
           if (onSignOut != null)
             IconButton(
               tooltip: 'تسجيل الخروج',
@@ -58,6 +68,10 @@ class HomeShell extends StatelessWidget {
                 vertical: wide ? 32 : 20,
               ),
               children: [
+                if (shopName != null) ...[
+                  Text(shopName!, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 12),
+                ],
                 const _PrototypeBanner(),
                 const SizedBox(height: 16),
                 _StatusCard(status: supabaseStatus),

@@ -6,18 +6,18 @@ This matrix is the long-lived work register derived from the local source docume
 
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
-| ID-01 | Authenticate before any shop data | PAGES, AGREEMENT | 1 | Implemented in client gates; live session test pending |
+| ID-01 | Authenticate before any shop data | PAGES, AGREEMENT | 1 | Verified-email gate and shop selection wired in Flutter; widget session-expiry test passes; live session test pending |
 | ID-02 | Shop membership and independent owner, partner, employee permissions | PAGES | 1 | SQL/RPC deployed and command tests passed on dev; staff UI pending, D10 |
 | ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Dev RLS and command tests passed; staging and client acceptance pending |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
 | ONB-01 | Guided path through first sale, ledger, inventory, CRM and staff controls | PAGES | 1, 4 | Planned, D22 |
 | ONB-02 | First-operation guide must distinguish a safe practice draft from a real posting | PAGES | 1, 2 | Planned, D22 |
-| SET-01 | Shop name, phone, owner display name and time zone | PAGES | 1 | Dev RPC tested; shop setup UI pending |
+| SET-01 | Shop name, phone, owner display name and time zone | PAGES | 1 | Flutter Arabic setup/selector implemented and widget-tested (pending, active, expired, failure, retry); new server-status RPC migration and live acceptance pending |
 | SET-02 | Rename/archive payment methods while preserving historical identity | PAGES | 1, 2 | Planned, D24 |
 | SET-03 | Invoice logo, slogan, address, color and template choices | LEDGER mockups, PAGES | 4 | Planned, D12 |
 | SET-04 | Custom invoice/WhatsApp message text with validated placeholders | PAGES | 4 | Planned |
 | NAV-01 | Home, ledger, customers, reports and more navigation in Arabic RTL | LEDGER mockups | 1 | Planned |
-| ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Starter theme plus Arabic sign-in; visual baselines and prototype approval pending, D12 |
+| ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Arabic sign-in and shop setup/selector reviewed at 320/1440 px in light/dark widget captures; live platform visual baselines and prototype approval pending, D12 |
 | LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Planned, D08 |
 | LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Planned, D24 |
 | LED-03 | Sale/purchase grams and count by applicable karat, configurable card order/visibility | LEDGER | 2 | Planned |

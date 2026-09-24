@@ -118,3 +118,7 @@ Backups must cover Postgres and R2 object references consistently enough to rest
 Define command schemas and generated client types from the backend contract. Version incompatible request/response changes. Contract tests exercise each command's success, validation error, permission denial, timeout/idempotent replay, concurrent submission, closed-day race, and cross-shop reference. Property tests assert journal balance and projection equality over generated sequences. RLS tests run as real authenticated roles against an isolated database. Restore and retention tests use synthetic tenants. UI tests verify Arabic errors and pending/reconciliation states, with no mock-only claim of financial correctness.
 
 See architecture.md for runtime boundaries and decisions.md for unresolved policy choices.
+
+## Shop account selection contract
+
+`public.list_my_shop_accounts()` is the verified-email, non-revoked membership lookup used after Auth. Migration `20260924140000_list_my_shop_accounts_status.sql` adds `entitlement_status` to the existing shop id, name, role and expiry response. PostgreSQL computes `pending` for no entitlement or a future start, `active` for `starts_at <= now() < expires_at`, and `expired` after expiry. This avoids using a client clock to decide shop access. The Flutter adapter treats missing or unknown status as an invalid response and closes the selected shop view on access failure. The migration is committed as a local artifact only until a separate authorized environment rollout.

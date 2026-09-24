@@ -1,6 +1,8 @@
 import 'package:eldafttar/src/app.dart';
 import 'package:eldafttar/src/config/supabase_startup.dart';
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
+import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
+import 'package:eldafttar/src/features/shop_accounts/domain/shop_account_gateway.dart';
 import 'package:eldafttar/src/shell/shell_copy.dart';
 import 'package:eldafttar/src/theme/app_tokens.dart';
 import 'package:eldafttar/src/theme/theme_controller.dart';
@@ -28,6 +30,22 @@ class FakeAuthGateway implements AuthGateway {
   Future<void> signOut() async {
     current = AuthStatus.signedOut;
   }
+}
+
+class FakeShopAccountGateway implements ShopAccountGateway {
+  @override
+  Future<List<ShopAccount>> listMyShopAccounts() async => const [
+    ShopAccount(
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'متجر الاختبار',
+      role: 'owner',
+      entitlement: ShopEntitlement.active,
+    ),
+  ];
+
+  @override
+  Future<String> createShopAccount(ShopSetupRequest request) async =>
+      '11111111-1111-4111-8111-111111111111';
 }
 
 class MemoryThemePreferenceStore implements ThemePreferenceStore {
@@ -65,6 +83,7 @@ Future<ThemeController> pumpShell(
       supabaseStatus: status,
       themeController: controller,
       authGateway: FakeAuthGateway(authStatus),
+      shopAccountGateway: FakeShopAccountGateway(),
     ),
   );
   await tester.pumpAndSettle();
@@ -100,6 +119,11 @@ void main() {
     tester,
   ) async {
     await pumpShell(tester, status: SupabaseStartupStatus.ready);
+    expect(find.text('اختر المتجر'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('shop-11111111-1111-4111-8111-111111111111')),
+    );
+    await tester.pumpAndSettle();
     expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
     expect(find.text(ShellCopy.readyTitle), findsOneWidget);
     expect(find.text(ShellCopy.readyBody), findsOneWidget);
@@ -146,7 +170,11 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('sign-in-submit')));
     await tester.pumpAndSettle();
-
+    expect(find.text('اختر المتجر'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('shop-11111111-1111-4111-8111-111111111111')),
+    );
+    await tester.pumpAndSettle();
     expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
     await tester.tap(find.byTooltip('تسجيل الخروج'));
     await tester.pumpAndSettle();

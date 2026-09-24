@@ -6,6 +6,7 @@ import 'src/app.dart';
 import 'src/config/supabase_public_config.dart';
 import 'src/config/supabase_startup.dart';
 import 'src/features/auth/data/supabase_auth_gateway.dart';
+import 'src/features/shop_accounts/data/supabase_shop_account_gateway.dart';
 import 'src/theme/theme_controller.dart';
 import 'src/theme/theme_preference_store.dart';
 
@@ -25,6 +26,9 @@ Future<void> main() async {
           ? SupabaseAuthGateway(Supabase.instance.client)
           : null,
       themeController: themeController,
+      shopAccountGateway: supabaseStatus == SupabaseStartupStatus.ready
+          ? SupabaseShopAccountGateway(Supabase.instance.client)
+          : null,
     ),
   );
 }
