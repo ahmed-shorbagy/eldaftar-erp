@@ -1,11 +1,34 @@
 import 'package:eldafttar/src/app.dart';
 import 'package:eldafttar/src/config/supabase_startup.dart';
+import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
 import 'package:eldafttar/src/shell/shell_copy.dart';
 import 'package:eldafttar/src/theme/app_tokens.dart';
 import 'package:eldafttar/src/theme/theme_controller.dart';
 import 'package:eldafttar/src/theme/theme_preference_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class FakeAuthGateway implements AuthGateway {
+  FakeAuthGateway(this.current);
+
+  AuthStatus current;
+
+  @override
+  AuthStatus get status => current;
+
+  @override
+  Stream<AuthStatus> get changes => const Stream.empty();
+
+  @override
+  Future<void> signIn(String email, String password) async {
+    current = AuthStatus.signedIn;
+  }
+
+  @override
+  Future<void> signOut() async {
+    current = AuthStatus.signedOut;
+  }
+}
 
 class MemoryThemePreferenceStore implements ThemePreferenceStore {
   String? value;
@@ -24,6 +47,7 @@ Future<ThemeController> pumpShell(
   required SupabaseStartupStatus status,
   ThemeMode initial = ThemeMode.system,
   MemoryThemePreferenceStore? store,
+  AuthStatus authStatus = AuthStatus.signedIn,
   Size size = const Size(390, 844),
   double textScale = 1,
 }) async {
@@ -37,7 +61,11 @@ Future<ThemeController> pumpShell(
   final themeStore = store ?? MemoryThemePreferenceStore();
   final controller = ThemeController(store: themeStore, initial: initial);
   await tester.pumpWidget(
-    ElDafttarApp(supabaseStatus: status, themeController: controller),
+    ElDafttarApp(
+      supabaseStatus: status,
+      themeController: controller,
+      authGateway: FakeAuthGateway(authStatus),
+    ),
   );
   await tester.pumpAndSettle();
   return controller;
@@ -83,6 +111,48 @@ void main() {
     expect(find.text(ShellCopy.missingTitle), findsNothing);
   });
 
+  testWidgets('signed-out users see Arabic sign-in before shop content', (
+    tester,
+  ) async {
+    await pumpShell(
+      tester,
+      status: SupabaseStartupStatus.ready,
+      authStatus: AuthStatus.signedOut,
+    );
+
+    expect(find.text('تسجيل الدخول'), findsOneWidget);
+    expect(find.text(ShellCopy.prototypeLabel), findsNothing);
+    expect(find.byKey(const Key('sign-in-email')), findsOneWidget);
+    expect(find.byKey(const Key('sign-in-password')), findsOneWidget);
+    final context = tester.element(find.text('تسجيل الدخول'));
+    expect(Directionality.of(context), TextDirection.rtl);
+  });
+  testWidgets('verified sign-in opens shell and sign-out closes it', (
+    tester,
+  ) async {
+    await pumpShell(
+      tester,
+      status: SupabaseStartupStatus.ready,
+      authStatus: AuthStatus.signedOut,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('sign-in-email')),
+      'staff@example.test',
+    );
+    await tester.enterText(
+      find.byKey(const Key('sign-in-password')),
+      'example-password',
+    );
+    await tester.tap(find.byKey(const Key('sign-in-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
+    await tester.tap(find.byTooltip('تسجيل الخروج'));
+    await tester.pumpAndSettle();
+    expect(find.text('تسجيل الدخول'), findsOneWidget);
+    expect(find.text(ShellCopy.prototypeLabel), findsNothing);
+  });
   testWidgets('theme toggle switches light and dark and persists the choice', (
     tester,
   ) async {

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test } from 'vitest'
 import { App } from '../App.tsx'
+import type { AdminAccess, AdminAuthGateway } from '../auth/AdminAuthGateway.ts'
 import type { SupabaseStartupStatus } from '../config/supabaseStartup.ts'
 import { ThemeController } from '../theme/themeController.ts'
 import {
@@ -10,6 +11,21 @@ import {
 } from '../theme/themePreference.ts'
 import { shellCopy } from './copy.ts'
 
+class FakeAdminAuthGateway implements AdminAuthGateway {
+  status: AdminAccess
+
+  constructor(status: AdminAccess = 'admin') {
+    this.status = status
+  }
+
+  subscribe(): () => void {
+    return () => {}
+  }
+
+  async refresh(): Promise<void> {}
+  async signIn(): Promise<void> {}
+  async signOut(): Promise<void> {}
+}
 class MemoryThemePreferenceStore implements ThemePreferenceStore {
   value: string | null
 
@@ -31,7 +47,7 @@ function renderShell(
   store = new MemoryThemePreferenceStore(),
 ) {
   const themeController = new ThemeController(store)
-  render(<App supabaseStatus={status} themeController={themeController} />)
+  render(<App supabaseStatus={status} themeController={themeController} authGateway={new FakeAdminAuthGateway()} />)
   return store
 }
 
@@ -59,6 +75,7 @@ test('ready and failed states stay labeled as a prototype', () => {
   const { unmount } = render(
     <App
       supabaseStatus="ready"
+      authGateway={new FakeAdminAuthGateway()}
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,
   )
@@ -76,6 +93,18 @@ test('ready and failed states stay labeled as a prototype', () => {
   expect(screen.queryByText(/public-key/)).not.toBeInTheDocument()
 })
 
+test('signed-out visitors see the Arabic admin sign-in form', () => {
+  render(
+    <App
+      supabaseStatus="ready"
+      authGateway={new FakeAdminAuthGateway('signedOut')}
+      themeController={new ThemeController(new MemoryThemePreferenceStore())}
+    />,
+  )
+  expect(screen.getByRole('heading', { name: 'إدارة الدفتر' })).toBeInTheDocument()
+  expect(screen.getByRole('textbox', { name: /البريد الإلكتروني/ })).toBeInTheDocument()
+  expect(screen.queryByText(shellCopy.prototypeLabel)).not.toBeInTheDocument()
+})
 test('theme toggle switches light and dark and persists the choice', async () => {
   const user = userEvent.setup()
   const store = renderShell('missingConfiguration')

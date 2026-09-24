@@ -1,5 +1,6 @@
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
@@ -14,10 +15,12 @@ export function HomeShell({
   supabaseStatus,
   themeMode,
   onToggleTheme,
+  onSignOut,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeMode: ResolvedTheme
   onToggleTheme: () => void
+  onSignOut?: () => void
 }) {
   const isDark = themeMode === 'dark'
   const toggleLabel = isDark ? shellCopy.toggleToLight : shellCopy.toggleToDark
@@ -59,6 +62,7 @@ export function HomeShell({
           >
             {shellCopy.appTitle}
           </Typography>
+          {onSignOut && <IconButton aria-label="تسجيل الخروج" color="inherit" onClick={onSignOut}><LogoutOutlinedIcon /></IconButton>}
           <IconButton aria-label={toggleLabel} color="inherit" onClick={onToggleTheme}>
             {isDark ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
           </IconButton>

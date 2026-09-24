@@ -4,7 +4,7 @@ This private monorepo contains the Flutter client in app/, the React admin start
 
 The long-term product scope, architecture, database design, roadmap, engineering practices, and decision register are indexed in [docs/README.md](docs/README.md).
 
-Both clients currently provide an Arabic RTL starter, light/dark theme, and public Supabase client initialization. Authentication, onboarding, ERP workflows, database schema/RLS, and file upload endpoints are next milestones; the starter does not present them as working features.
+Both clients currently provide an Arabic RTL starter, light/dark theme, and public Supabase client initialization. Verified-email sign-in gates are now in both clients. Identity migrations and transactional RLS/command tests are under supabase/ and passed on the owner-confirmed development project `xchapwvmvoefriqcxtvn`; local replay and staging acceptance remain pending. Onboarding, financial workflows, subscription redemption, and file upload endpoints are not operational; the visible ERP shell remains labeled as a prototype.
 
 Copy app/config/local.example.json to app/config/local.json, then enter the public Supabase values. Local configuration is stored in ignored files:
 - app/config/local.json, used with: flutter run -d windows --dart-define-from-file=config/local.json (from app/)
@@ -18,4 +18,3 @@ Build checks:
 R2 access keys must stay server-side. Use a token scoped to the eldaftar bucket in supabase/.env.local for the read-only bucket check. Do not put R2 keys in Flutter, Vite variables, or Git. Future uploads should use an authenticated Supabase Edge Function to grant short-lived R2 presigned URLs. No upload endpoint has been deployed yet.
 
 All work follows AGENTS.md. Commit and push this entire monorepo to one private GitHub repository.
-

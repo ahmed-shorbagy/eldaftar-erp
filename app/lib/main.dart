@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/app.dart';
 import 'src/config/supabase_public_config.dart';
 import 'src/config/supabase_startup.dart';
+import 'src/features/auth/data/supabase_auth_gateway.dart';
 import 'src/theme/theme_controller.dart';
 import 'src/theme/theme_preference_store.dart';
 
@@ -20,6 +21,9 @@ Future<void> main() async {
   runApp(
     ElDafttarApp(
       supabaseStatus: supabaseStatus,
+      authGateway: supabaseStatus == SupabaseStartupStatus.ready
+          ? SupabaseAuthGateway(Supabase.instance.client)
+          : null,
       themeController: themeController,
     ),
   );

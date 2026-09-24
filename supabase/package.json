@@ -5,7 +5,8 @@
   "scripts": {
     "verify:supabase": "node verify-connections.mjs --supabase-only",
     "verify:r2": "node verify-connections.mjs --r2-only",
-    "verify:all": "node verify-connections.mjs"
+    "verify:all": "node verify-connections.mjs",
+    "test:rls": "node run-rls-tests.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",

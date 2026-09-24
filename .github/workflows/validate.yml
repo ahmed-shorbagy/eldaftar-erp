@@ -1,0 +1,82 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+        working-directory: admin
+      - run: npm run lint
+        working-directory: admin
+      - run: npm test
+        working-directory: admin
+      - run: npm run build
+        working-directory: admin
+
+  flutter:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: apk
+          - runner: windows-latest
+            target: windows
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.38.5
+          cache: true
+      - run: flutter pub get
+        working-directory: app
+      - run: dart format --output=none --set-exit-if-changed lib test
+        working-directory: app
+      - run: flutter analyze
+        working-directory: app
+      - run: flutter test
+        working-directory: app
+      - run: flutter build apk
+        if: matrix.target == 'apk'
+        working-directory: app
+      - run: flutter build windows
+        if: matrix.target == 'windows'
+        working-directory: app
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+      - run: supabase start
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Check identity RLS
+        run: npm run test:rls
+        working-directory: supabase
+        env:
+          SUPABASE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Scan committed history
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo

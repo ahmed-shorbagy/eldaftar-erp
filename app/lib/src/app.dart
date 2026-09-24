@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'config/supabase_startup.dart';
-import 'shell/home_shell.dart';
+import 'features/auth/domain/auth_gateway.dart';
+import 'features/auth/presentation/auth_gate.dart';
 import 'shell/shell_copy.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
@@ -12,10 +13,12 @@ class ElDafttarApp extends StatelessWidget {
     super.key,
     required this.supabaseStatus,
     required this.themeController,
+    this.authGateway,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final ThemeController themeController;
+  final AuthGateway? authGateway;
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +39,9 @@ class ElDafttarApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeController.mode,
-          home: HomeShell(
+          home: AuthGate(
             supabaseStatus: supabaseStatus,
+            authGateway: authGateway,
             onToggleTheme: themeController.toggle,
           ),
         );

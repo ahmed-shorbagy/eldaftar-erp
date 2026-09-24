@@ -1,0 +1,14 @@
+project_id = "eldafttar-local"
+
+[db]
+port = 54322
+
+[auth]
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_confirmations = true
+double_confirm_changes = true
+
+[auth.sms]
+enable_signup = false

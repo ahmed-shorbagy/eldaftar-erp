@@ -9,10 +9,12 @@ class HomeShell extends StatelessWidget {
     super.key,
     required this.supabaseStatus,
     required this.onToggleTheme,
+    this.onSignOut,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final Future<void> Function(Brightness resolvedBrightness) onToggleTheme;
+  final Future<void> Function()? onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,12 @@ class HomeShell extends StatelessWidget {
       appBar: AppBar(
         title: const Text(ShellCopy.appTitle),
         actions: [
+          if (onSignOut != null)
+            IconButton(
+              tooltip: 'تسجيل الخروج',
+              onPressed: onSignOut,
+              icon: const Icon(Icons.logout),
+            ),
           IconButton(
             key: const Key('theme-toggle'),
             tooltip: isDark ? ShellCopy.toggleToLight : ShellCopy.toggleToDark,

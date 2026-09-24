@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App.tsx'
+import { SupabaseAdminAuthGateway } from './auth/SupabaseAdminAuthGateway.ts'
+import { getSupabaseClient } from './config/supabaseClient.ts'
 import { startSupabase } from './config/supabaseClient.ts'
 import { readSupabasePublicConfig } from './config/supabasePublicConfig.ts'
 import { prepareSupabase } from './config/supabaseStartup.ts'
@@ -13,6 +15,8 @@ async function start(): Promise<void> {
     startSupabase,
   )
   const themeController = new ThemeController(new LocalStorageThemeStore())
+  const client = getSupabaseClient()
+  const authGateway = client === null ? null : new SupabaseAdminAuthGateway(client)
   const root = document.getElementById('root')
   if (root === null) {
     throw new Error('Root element was not found')
@@ -20,7 +24,7 @@ async function start(): Promise<void> {
 
   createRoot(root).render(
     <StrictMode>
-      <App supabaseStatus={supabaseStatus} themeController={themeController} />
+      <App supabaseStatus={supabaseStatus} themeController={themeController} authGateway={authGateway} />
     </StrictMode>,
   )
 }
