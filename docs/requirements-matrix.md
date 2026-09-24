@@ -12,7 +12,7 @@ This matrix is the long-lived work register derived from the local source docume
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
 | ONB-01 | Guided path through first sale, ledger, inventory, CRM and staff controls | PAGES | 1, 4 | Planned, D22 |
 | ONB-02 | First-operation guide must distinguish a safe practice draft from a real posting | PAGES | 1, 2 | Planned, D22 |
-| SET-01 | Shop name, phone, owner display name and time zone | PAGES | 1 | Flutter Arabic setup/selector implemented and widget-tested (pending, active, expired, failure, retry); new server-status RPC migration and live acceptance pending |
+| SET-01 | Shop name, phone, owner display name and time zone | PAGES | 1 | Flutter Arabic setup/selector implemented and widget-tested (pending, active, expired, failure, retry); server-status RPC applied and rollback-tested on development; live Flutter acceptance pending |
 | SET-02 | Rename/archive payment methods while preserving historical identity | PAGES | 1, 2 | Planned, D24 |
 | SET-03 | Invoice logo, slogan, address, color and template choices | LEDGER mockups, PAGES | 4 | Planned, D12 |
 | SET-04 | Custom invoice/WhatsApp message text with validated placeholders | PAGES | 4 | Planned |
