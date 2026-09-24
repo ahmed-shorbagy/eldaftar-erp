@@ -12,6 +12,8 @@ Flutter follows Clean Architecture per feature. Domain value objects validate gr
 
 React admin uses independent feature modules and API adapters. It never imports Flutter code. It needs its own platform-admin session boundary and safe handling of token expiry. Shared contracts should be generated from a reviewed backend schema where possible; generated code is committed only when reproducible and reviewed.
 
+Before every UI change, read docs/design-system.md and use the existing Flutter/React theme tokens. Do not hard-code feature colors or silently change the brown, cream and dark palette. Map any new semantic status color in both modes and both clients, then review Arabic RTL screens at mobile and desktop widths.
+
 Keep Arabic strings in localization resources or a coherent copy module, including errors, accessibility labels, empty states and exports. Use RTL-aware layout and logical paddings/alignment. Store theme preference and honor it in both clients. Use the shared token specification while allowing platform-native interaction patterns. UI defaults can speed sale entry but cannot change domain validation.
 
 ## Backend command checklist

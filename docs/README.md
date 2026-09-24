@@ -7,12 +7,13 @@ This directory is the working architecture baseline for the Flutter application,
 1. [Product scope](product-scope.md) — complete component map, workflow acceptance, source traceability, and unresolved product behavior.
 2. [Requirements matrix](requirements-matrix.md) — stable IDs, milestone targets and evidence status for every major component.
 3. [System architecture](architecture.md) — runtime boundaries, client structure, security, synchronization, and operations.
-4. [Database design](database-design.md) — tenancy, transactional ledger, entity model, RLS, retention, and migration rules.
-5. [Delivery plan](delivery-plan.md) — milestones, dependencies, verification gates, risk controls, and long-term evolution.
-6. [Engineering playbook](engineering-playbook.md) — day-to-day design, implementation, test, UI, and release practices.
-7. [Decisions](decisions.md) — questions to settle before their dependent work begins and the decision record process.
-8. [Architecture decision template](adr/0000-template.md) — the format for lasting product and technical choices.
-9. [Release and recovery runbook](operations/release-and-recovery.md) — production readiness, rollout, incident and restore steps.
+4. [UI theme contract](design-system.md) — required light/dark colors, token sources, RTL and visual review rules.
+5. [Database design](database-design.md) — tenancy, transactional ledger, entity model, RLS, retention, and migration rules.
+6. [Delivery plan](delivery-plan.md) — milestones, dependencies, verification gates, risk controls, and long-term evolution.
+7. [Engineering playbook](engineering-playbook.md) — day-to-day design, implementation, test, UI, and release practices.
+8. [Decisions](decisions.md) — questions to settle before their dependent work begins and the decision record process.
+9. [Architecture decision template](adr/0000-template.md) — the format for lasting product and technical choices.
+10. [Release and recovery runbook](operations/release-and-recovery.md) — production readiness, rollout, incident and restore steps.
 
 ## Status and authority
 

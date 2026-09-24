@@ -6,6 +6,7 @@ These rules apply to all work in this repository, including Codex and Grok Build
 - Keep one monorepo: `app/` for Flutter on Android, iOS, and Windows; `admin/` for the React administration dashboard; shared backend schema and policies under `supabase/`; architecture and decisions under `docs/`.
 - All user-facing copy, navigation, validation, accessibility labels, onboarding, invoices, and reports must be in Arabic. Use right-to-left layout throughout both clients. English is acceptable in code identifiers and internal developer documentation only.
 - Provide complete light and dark themes using shared design tokens. Check readability and contrast in both themes at mobile and desktop widths. Persist the user's theme choice.
+- For every new or edited Flutter or React UI, read docs/design-system.md and use the existing theme tokens and semantic color roles. Preserve the current brown, cream, and dark palette across both clients; do not add hard-coded component colors or silently replace the palette. If the user explicitly changes the theme, update the Flutter tokens, React tokens, design guide, and affected UI together. Review the screen in Arabic RTL, light and dark modes, and relevant mobile/desktop widths before calling it complete.
 - The daily ledger is the main workflow. Preserve gram precision to three decimal places, support karats 14, 18, 21, 22, and 24 where the source requirements allow, and emphasize gold weight alongside cash. Never use binary floating-point arithmetic for stored money or gold weights.
 
 ## Required entry experience
