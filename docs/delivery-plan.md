@@ -31,6 +31,8 @@ The first production release should contain a trustworthy end-to-end vertical sl
 
 ## Milestone 0 — discovery and baseline
 
+The [Milestone 0 discovery packet](discovery/README.md) records the repository and source baseline, unverified deployed-app parity, pending annex comparison, and unsigned worked examples. It is preparation for G0, not G0 approval.
+
 Inventory the currently deployed/legacy application because the page requirements call for preserving existing functions while the repository is only a starter. Record each existing workflow, data source, export path, user role and screen. Compare it with product-scope.md. Confirm which embedded mockups are approved design targets. Resolve the highest-impact decisions in decisions.md: currency/price/workmanship, custody and financing, business day, stock valuation/tracking, WhatsApp evidence and data deletion. Produce synthetic sample sales, purchases, trader receipts and close-day cases with expected cash and grams.
 
 Acceptance: a signed scope matrix maps every requirement to an owner, screen, server command, permission and test. A screen-by-screen legacy parity matrix labels keep, replace, migrate or retire, and reconciled opening balances are designed. No private source document is copied to Git. A shop-domain expert signs worked examples for one sale, one three-party financed purchase, one trader receipt and one day close, showing cash by method, grams by karat, count, custody, ownership and obligations.
