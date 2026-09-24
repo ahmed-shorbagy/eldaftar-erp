@@ -2,6 +2,8 @@
 
 This private monorepo contains the Flutter client in app/, the React admin starter in admin/, and connection tooling in supabase/. The source requirement DOCX/PDF files stay outside Git.
 
+The long-term product scope, architecture, database design, roadmap, engineering practices, and decision register are indexed in [docs/README.md](docs/README.md).
+
 Both clients currently provide an Arabic RTL starter, light/dark theme, and public Supabase client initialization. Authentication, onboarding, ERP workflows, database schema/RLS, and file upload endpoints are next milestones; the starter does not present them as working features.
 
 Copy app/config/local.example.json to app/config/local.json, then enter the public Supabase values. Local configuration is stored in ignored files:
