@@ -1,8 +1,6 @@
 # Source reconciliation
 
-Annex comparison: **PENDING**. This file does not treat the hosted annex as equal to the local Word files, or as equal to the agreement body.
-
-The agreement says its detailed requirements annex is part of the contract. That annex is an external document. This session did not open it. A later revision could differ from the files on disk. D27 stays open until a named person compares a named revision in private and records the differences without committing the source.
+The product owner confirmed that the three local Word files are the agreed initial working requirements for a greenfield build. The hosted agreement annex was not compared with them. D27 tracks a private comparison of any supplied named revision for the contract record; it does not block engineering from the agreed local baseline. Future scope changes use the decision register and requirements matrix.
 
 ## Method
 
@@ -67,7 +65,7 @@ The body commits the build to the annex and also lists the following, described 
 | Debts both ways, reminders, PDF | Notebook must be linked | — | Partial pay, stock/cash question, alarm-style reminder, PDF | DEBT-01–DEBT-03 | Match. Unit conversion is ambiguous |
 | CRM record, weights, notes, requests, call, WhatsApp | — | Customer capture feeds CRM | Full CRM page, including 14 and 22 and VIP | CRM-01–CRM-06 | Match. Drawing coverage is narrower than PAGES |
 | Roles and independent permissions; pending WhatsApp list | — | Dispatch permission and pending list | Same, plus the permission examples | ID-02, DOC-02 | Match. Employee “own operations only” is in PAGES and is not restated in the agreement ledger bullet |
-| Analytics by period and by employee, PDF | — | — | Same, plus “fix the current analytics page” | RPT-02, D01, D18 | Match on the new reports. The legacy defect is a local addition and is undescribed |
+| Analytics by period and by employee, PDF | — | — | Same, plus “fix the current analytics page” | RPT-02, D01, D18 | Match on the new reports. The described earlier defect has no deployed app to verify; treat the requested analytics behavior as greenfield scope |
 | Daily and weekly books, invoice template, WhatsApp text | — | Template and message drawings | Books page and settings text | RPT-01, RPT-04, SET-03, SET-04 | Match |
 | Help, search, in-context guide, admin-edited articles | Users should learn without a visit | — | Full help center and support fallback | HELP-01, HELP-02, ONB-01, D22 | Match. Onboarding detail is a PAGES addition |
 | Audit of edit, delete, deduction with actor and time | A log of operations | Actor on the ledger row | Tamper-resistant audit page | AUD-01 | Match. Tension with deletion and reset; see Conflicts |
@@ -108,11 +106,11 @@ PAGES says an employee sees their own operations, not the whole ledger. The agre
 
 ### C6 — Stage-1 prototype versus a documented deferral
 
-The agreement body asks for an interactive prototype of the screens in stage 1. [The delivery plan](../delivery-plan.md) allows the design gate to pass by an explicit D12 deferral. A deferral is a process exception to the body text. It needs an owner decision if it is used. D12 also covers whether any current drawing is a pixel target. Several required screens have no drawing at all; see [legacy parity](legacy-parity.md).
+The agreement body asks for an interactive prototype of the screens in stage 1. [The delivery plan](../delivery-plan.md) allows the design gate to pass by an explicit D12 deferral. A deferral is a process exception to the body text. It needs an owner decision if it is used. D12 also covers whether any current drawing is a pixel target. Several required screens have no drawing at all; see [greenfield scope inventory](greenfield-scope-inventory.md).
 
 ## Local additions relative to the agreement body
 
-These are in the Word files and are not restated in the agreement body. Annex status remains PENDING, so they are not excluded scope.
+These are in the Word files and are not restated in the agreement body. These remain in the agreed local working scope. A later annex comparison may lead to a documented change.
 
 | Addition | Where | Why it matters |
 | --- | --- | --- |
@@ -122,7 +120,7 @@ These are in the Word files and are not restated in the agreement body. Annex st
 | Bullion denomination list and coin types, including shop-added types, and a split between stock and scrap | LEDGER | Body says weights, counts, bullion, and coins, without the list or the split |
 | Per-line price or a single invoice total | LEDGER | Body does not choose the pricing layout. D02 |
 | Onboarding step list and a skip control | PAGES | Body’s help clause is the interactive guide and search |
-| Analytics defects in the current product | PAGES | Implies a deployed screen. The defects are not listed. D01 |
+| Analytics defects in the current product | PAGES | Historical wording has no deployed product to verify. Build the specified new analytics and agree expected figures under D18. |
 | City and country on the subscriber record, broadcast messages, three-day reminder | PAGES | Body says phones, notices before renewal, and required updates, without these details |
 | User-facing reset of all data | PAGES settings and books | Separate from the four-month retention delete |
 | “Fine weight” label, defined in parentheses as the raw gram total of one chosen karat | LEDGER | See ambiguities. No purity formula is given |
@@ -182,19 +180,19 @@ The four cash-method tiles 70,000 + 30,000 + 15,000 + 10,000 do sum to the 125,0
 
 Sales 45,000 minus purchases 30,000 equals the 15,000 profit tile on the one drawing that shows it. That is drawing arithmetic only. See conflict C1.
 
-Direction cues also differ: one drawing marks purchases upward, another marks them downward. Bottom navigation differs across drawings, as listed in [legacy parity](legacy-parity.md).
+Direction cues also differ: one drawing marks purchases upward, another marks them downward. Bottom navigation differs across drawings, as listed in [greenfield scope inventory](greenfield-scope-inventory.md).
 
 ## Repository cross-check
 
-The starter described in [legacy parity](legacy-parity.md) implements none of the agreement screen list. Arabic RTL and both color themes exist on empty shells. Treating that starter as the deployed product, or as a passed stage, would overstate both the contract and the repository.
+The starter described in [greenfield scope inventory](greenfield-scope-inventory.md) implements none of the agreement screen list. Arabic RTL and both color themes exist on empty shells. The product owner confirmed there is no deployed product. The starter is not a passed delivery stage.
 
-The matrix status for these rows remains planned, starter-only, or unknown, which matches this reading. This file does not change the matrix.
+The matrix records the starter state and the confirmed greenfield launch, while individual workflows remain planned. This file does not change the matrix.
 
 ## Recommendations
 
 Not decisions:
 
-- Sign scope only after D27 records an annex revision in private.
+- Use the three agreed local Word files for the initial scope. If a named annex revision is supplied later, compare it privately and record any approved changes.
 - Treat C1–C6 as workshop items, not as defects to “fix” in code before the owner chooses.
 - Keep drawing numbers out of tests and out of opening balances.
 - Use [the worked examples](financial-worked-examples.md) for the numeric decisions, and expect the shop expert to replace the synthetic figures.

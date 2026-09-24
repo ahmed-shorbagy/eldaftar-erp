@@ -2,7 +2,7 @@
 
 ## Planning rule
 
-This is a dependency and acceptance plan, not a promise that all scope fits a fixed calendar. The agreement describes four broad stages over twelve work weeks: interactive design, transactional core, remaining modules/dashboard, and test/release. Keep those stages visible for stakeholder tracking. Estimate each milestone with the actual team, approved designs, legacy-app inventory, integration availability, and acceptance evidence. Do not mark a stage complete because its week ended.
+This is a dependency and acceptance plan, not a promise that all scope fits a fixed calendar. The agreement describes four broad stages over twelve work weeks: interactive design, transactional core, remaining modules/dashboard, and test/release. Keep those stages visible for stakeholder tracking. Estimate each milestone with the actual team, approved designs, new-shop onboarding policy, integration availability, and acceptance evidence. Do not mark a stage complete because its week ended.
 
 The first production release should contain a trustworthy end-to-end vertical slice. Later releases expand breadth without weakening cash, gold, permission, audit or sync guarantees. Every release can be tested independently against synthetic shop data.
 
@@ -10,7 +10,7 @@ The first production release should contain a trustworthy end-to-end vertical sl
 
 | Workstream | Foundation it needs | Shared deliverable |
 | --- | --- | --- |
-| Product and UX | source reconciliation, legacy inventory, owner decisions | approved Arabic RTL flows, light/dark tokens, acceptance cases |
+| Product and UX | source reconciliation, greenfield scope inventory, owner decisions | approved Arabic RTL flows, light/dark tokens, acceptance cases |
 | Core platform | environments, Auth, tenancy, RLS, command envelope | authenticated clients and protected shop boundary |
 | Financial engine | exact units, business-day rules, account model, idempotency | atomic operation/posting service and reconciliation |
 | Inventory and connected accounts | financial engine, catalog/karat policy | stock, scrap, trader, debt and repair movements |
@@ -23,7 +23,7 @@ The first production release should contain a trustworthy end-to-end vertical sl
 
 | Gate | Evidence required before proceeding |
 | --- | --- |
-| G0 product meaning | Approved legacy parity/import map, invoice numbering rule, and signed paper posting examples with money, mg, count, custody and obligations |
+| G0 product meaning | Approved greenfield scope and onboarding/opening-balance policy, invoice numbering rule, and signed paper posting examples with money, mg, count, custody and obligations |
 | G1 design | Interactive all-screens prototype approved in Arabic RTL light/dark, or explicit D12 deferral |
 | G2 financial kernel | Minimum catalog/lots/scrap, opening balances and sale/purchase cash-stock journal effects in one RPC transaction |
 | G3 reliability | Real-role RLS, concurrency, idempotent timeout/retry, weak-network and projection reconciliation tests green |
@@ -31,15 +31,15 @@ The first production release should contain a trustworthy end-to-end vertical sl
 
 ## Milestone 0 — discovery and baseline
 
-The [Milestone 0 discovery packet](discovery/README.md) records the repository and source baseline, unverified deployed-app parity, pending annex comparison, and unsigned worked examples. It is preparation for G0, not G0 approval.
+The [Milestone 0 discovery packet](discovery/README.md) records the repository and source baseline, confirmed greenfield scope, local Word-file baseline, and unsigned worked examples. It is preparation for G0, not G0 approval.
 
-Inventory the currently deployed/legacy application because the page requirements call for preserving existing functions while the repository is only a starter. Record each existing workflow, data source, export path, user role and screen. Compare it with product-scope.md. Confirm which embedded mockups are approved design targets. Resolve the highest-impact decisions in decisions.md: currency/price/workmanship, custody and financing, business day, stock valuation/tracking, WhatsApp evidence and data deletion. Produce synthetic sample sales, purchases, trader receipts and close-day cases with expected cash and grams.
+Inventory the intended screens and workflows from the agreed three local Word files. The product owner confirmed that there is no deployed application or historical migration to plan. Define how a newly subscribed shop creates its account, invites staff, and enters verified opening balances when applicable. Compare the inventory with product-scope.md. Confirm which embedded mockups are approved design targets. Resolve the highest-impact decisions in decisions.md: currency/price/workmanship, custody and financing, business day, stock valuation/tracking, WhatsApp evidence and data deletion. Produce synthetic sample sales, purchases, trader receipts and close-day cases with expected cash and grams.
 
-Acceptance: a signed scope matrix maps every requirement to an owner, screen, server command, permission and test. A screen-by-screen legacy parity matrix labels keep, replace, migrate or retire, and reconciled opening balances are designed. No private source document is copied to Git. A shop-domain expert signs worked examples for one sale, one three-party financed purchase, one trader receipt and one day close, showing cash by method, grams by karat, count, custody, ownership and obligations.
+Acceptance: a signed scope matrix maps every requirement to an owner, screen, server command, permission and test. A screen-by-screen scope inventory assigns build, defer, or change, and a new-shop opening-balance process is designed. No private source document is copied to Git. A shop-domain expert signs worked examples for one sale, one three-party financed purchase, one trader receipt and one day close, showing cash by method, grams by karat, count, custody, ownership and obligations.
 
 ## Milestone 1 — platform and design foundation
 
-Create development, staging and production environments in owner-controlled accounts. Add migration tooling, schema conventions, generated contracts, seed fixtures, RLS test harness, CI, secret scanning, telemetry and backup plan. Build Auth, shop membership, roles/grants, session expiry, account setup and the Arabic shell for all platforms. Establish shared design tokens and an interactive all-screens prototype for product approval, with approved captures for mobile, Windows and admin; implement light/dark persistence and RTL behavior. Treat the prototype as design evidence, not an operational ERP. Build a non-financial interactive onboarding path and Help resume entry.
+Create development, staging and production environments in owner-controlled accounts. Add migration tooling, schema conventions, generated contracts, seed fixtures, RLS test harness, CI, secret scanning, telemetry and backup plan. Build Auth, shop membership, roles/grants, session expiry, account setup, and a per-shop entitlement boundary (D28) for the Arabic shell on all platforms. One shop subscription covers invited staff, but their access still follows individual grants. Establish shared design tokens and an interactive all-screens prototype for product approval, with approved captures for mobile, Windows and admin; implement light/dark persistence and RTL behavior. Treat the prototype as design evidence, not an operational ERP. Build a non-financial interactive onboarding path and Help resume entry.
 
 Acceptance: anonymous/cross-shop/revoked access fails at the database; owner/partner/employee behavior is tested. All clients handle unavailable backend and session expiry. Visual baselines exist in both themes and the all-screens prototype is approved or explicitly deferred with D12. No shop data is shown before Auth. Arrange a macOS/iOS signing environment and owner accounts before the release window.
 
@@ -69,7 +69,7 @@ Acceptance: platform admins cannot read shop financial/CRM rows through ordinary
 
 ## Milestone 6 — integrated release
 
-Run full functional, RLS, concurrency, offline/reconnect, Arabic accessibility, RTL and visual checks across Android, iOS, Windows and admin. Conduct stakeholder acceptance against the scope matrix and approved reference screens. Measure slow connections and large-ledger pagination. Perform migration and restore rehearsals, R2 access tests, observability drills and data export checks. Package releases using owner-controlled store and infrastructure accounts. Roll out to a small pilot, compare paper ledger totals daily, then expand only after discrepancy thresholds are met.
+Run full functional, RLS, concurrency, offline/reconnect, Arabic accessibility, RTL and visual checks across Android, iOS, Windows and admin. Conduct stakeholder acceptance against the scope matrix and approved reference screens. Measure slow connections and large-ledger pagination. Perform schema migration and restore rehearsals, R2 access tests, observability drills and data export checks. Package releases using owner-controlled store and infrastructure accounts. Roll out to a small pilot, compare paper ledger totals daily, then expand only after discrepancy thresholds are met.
 
 Acceptance: no unresolved critical financial/authorization defects; documented recovery steps work; pilot reconciles cash and grams; pending operations are visible and recoverable; owner accepts each feature through evidence, not a slideshow. Record exact shipped version and any deferred scope.
 
@@ -87,7 +87,7 @@ Before reporting a milestone complete, rerun the actual commands for affected pa
 
 | Risk | Consequence | Control and early signal |
 | --- | --- | --- |
-| Legacy app behavior absent from repo | Missing promised function or migration path | Baseline inventory and parity matrix before feature freeze |
+| Initial requirements change during delivery | Missing or inconsistent promised behavior | Versioned scope matrix, owner decisions, and acceptance evidence before feature freeze |
 | Incomplete accounting policy | Balanced-looking but economically wrong ledger | Paper examples approved by shop expert; invariant/property tests |
 | Weak network and repeated taps | Duplicate or uncertain sale | Stable idempotency key, server lookup, pending reconciliation |
 | RLS or admin role error | Cross-shop/customer exposure | Default deny, real-role policy tests, separate admin boundary |

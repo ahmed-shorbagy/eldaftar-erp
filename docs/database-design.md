@@ -24,7 +24,7 @@ Names are illustrative; migrations should choose stable naming once contracts ar
 | CRM | customers, customer_phones, customer_notes, customer_requests, contact_consents | unique normalized phone per shop only if approved; notes and contact data scoped by permission |
 | Documents | invoice_snapshots, invoice_render_jobs, invoice_dispatches, dispatch_attempts, attachments | invoice snapshot freezes confirmed transaction details; dispatch and media are separate state machines |
 | Reports and messages | report_jobs, notification_jobs, delivery_attempts, projection_cursors | generated outputs reference scope and permission; retries have stable keys |
-| Subscriptions and content | plans, subscription_codes, code_redemptions, subscriptions, entitlement_events, retention_cases, help_topics, help_articles, release_policies | admin mutations audited; retention case tracks expiry, warning, restore, deletion eligibility |
+| Subscriptions and content | plans, subscription_codes, code_redemptions, subscriptions, entitlement_events, retention_cases, help_topics, help_articles, release_policies | subscription belongs to one shop; invited staff share its term through membership, not a separate subscription; redemption is idempotent and audited; retention case tracks expiry, warning, restore, deletion eligibility |
 | Audit and integration | audit_events, outbox_events, projection_versions, reconciliation_runs | append-only audit/outbox; outbox event references committed operation; projections record last sequence |
 
 All tenant FKs should include or validate shop_id so a row cannot reference another shop's product, customer, day, or operation. UUID primary keys are convenient for distributed drafts, but a server-assigned monotonically increasing sequence per shop is required for ordered synchronization. Use generated document numbers scoped by shop and business day rather than relying on UUID sort order.
@@ -96,9 +96,9 @@ Create read models for business-day cards, cash balance by method, stock by prod
 
 Likely indexes include (shop_id, sequence), (shop_id, business_day_id, sequence), (shop_id, actor_id, sequence), (shop_id, customer_id, sequence), (shop_id, trader_id, sequence), (shop_id, product_id, karat), (shop_id, due_at), and unique (shop_id, idempotency_key). Add partial indexes for open days, pending invoice dispatch, unrecognized trader receipts, and active subscriptions. Validate choices with actual query plans and production-like synthetic data before retaining indexes.
 
-## Opening balances and historical migration
+## New-shop opening balances
 
-Before the first live day, import or enter opening cash by payment method, stock grams and count by lot/karat, scrap by karat, and trader/customer obligations as a separately authorized opening operation. Reconcile each source total to the existing application or signed paper count. Preserve original source identifiers for traceability and make import idempotent. Never use a silent UPDATE to seed balances. D01 must establish the deployed-app parity and migration map before this schema is finalized.
+For each new shop, start with zero balances or enter opening cash by payment method, stock grams and count by lot/karat, scrap by karat, and trader/customer obligations as a separately authorized opening operation before the first live day. Reconcile entered values to a signed physical or paper count, retain that evidence privately, and make the command idempotent. Never use a silent UPDATE to seed balances. D01 records the greenfield decision and the onboarding opening-balance policy; no legacy application import is required.
 
 A mockup card called gross profit must not be derived as sales less purchases. Operational cash and gold journals do not contain valuation, cost of goods, tax or workmanship profit. Hide that card or show an explicitly defined net cash movement label until D26 approves a true formula.
 

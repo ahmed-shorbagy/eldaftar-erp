@@ -1,12 +1,12 @@
 # ElDafttar ERP engineering guide
 
-This directory is the working architecture baseline for the Flutter application, React administration dashboard, Supabase backend, and private object storage. It turns the supplied product requirements and agreement's technical scope into an implementable plan. The original DOCX and PDF files remain outside version control and remain the source for contractual interpretation. These guides are engineering proposals until the product owner accepts the open decisions.
+This directory is the working architecture baseline for the Flutter application, React administration dashboard, Supabase backend, and private object storage. It turns the supplied product requirements and agreement's technical scope into an implementable plan. The three local Word files are the agreed initial working requirements and may evolve through documented decisions and matrix updates. The original DOCX and PDF files remain outside version control and remain the source for contractual interpretation. These guides are engineering proposals until the product owner accepts the open decisions.
 
 ## Read in this order
 
 1. [Product scope](product-scope.md) — complete component map, workflow acceptance, source traceability, and unresolved product behavior.
 2. [Requirements matrix](requirements-matrix.md) — stable IDs, milestone targets and evidence status for every major component.
-3. [Milestone 0 discovery packet](discovery/README.md) — repository and source baseline, legacy parity questions, annex status, and unsigned financial cases.
+3. [Milestone 0 discovery packet](discovery/README.md) — repository and source baseline, greenfield scope inventory, source status, and unsigned financial cases.
 4. [System architecture](architecture.md) — runtime boundaries, client structure, security, synchronization, and operations.
 5. [UI theme contract](design-system.md) — required light/dark colors, token sources, RTL and visual review rules.
 6. [Database design](database-design.md) — tenancy, transactional ledger, entity model, RLS, retention, and migration rules.

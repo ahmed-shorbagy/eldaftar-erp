@@ -2,7 +2,7 @@
 
 ## Use
 
-This matrix is the long-lived work register derived from the local source documents. Source codes are defined in product-scope.md. Status starts as planned because the repository is a starter; do not promote an item to verified without a link to implementation, policy tests and acceptance evidence. Milestone numbers refer to delivery-plan.md and may change after estimation. Record a decision ID where product behavior remains open. Preserve existing deployed-app features after the D01 baseline audit.
+This matrix is the long-lived work register derived from the local source documents. Source codes are defined in product-scope.md. Status starts as planned because the repository is a starter; do not promote an item to verified without a link to implementation, policy tests and acceptance evidence. Milestone numbers refer to delivery-plan.md and may change after estimation. Record a decision ID where product behavior remains open. The product owner confirmed a greenfield launch and the three local Word files as the initial baseline; track later additions through decisions and this matrix.
 
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
@@ -72,7 +72,7 @@ This matrix is the long-lived work register derived from the local source docume
 | ADM-05 | Dynamic Help content management and user announcements | PAGES | 5 | Planned |
 | ADM-06 | Broadcast message workflow for subscribers | PAGES | 5 | Planned, D19 |
 | ADM-07 | Subscriber city/country and phone with platform-specific PII permission | PAGES | 5 | Planned |
-| ADM-08 | Bind a subscription code to one user with auditable redemption | PAGES | 5 | Planned |
+| ADM-08 | Redeem a subscription code once for one shop; invited staff share its entitlement subject to their permissions | PAGES; owner clarification | 5 | Scope confirmed, D28; implementation planned |
 | NTF-01 | Ongoing shop-status notices for cash, sales, purchases and scrap/sale weights | BASIC, PAGES | 5 | Planned, D19 |
 | RET-01 | Four-month post-expiry data retention and warning 30 days before deletion | PAGES | 5 | Planned, D13, D14 |
 | RET-02 | Renewal restores retained shop data | PAGES | 5 | Planned, D13 |
@@ -82,7 +82,7 @@ This matrix is the long-lived work register derived from the local source docume
 | SYS-02 | Reconciled shop status notification and due reminders | BASIC, PAGES | 4, 5 | Planned |
 | SYS-03 | Flutter Android, iOS and Windows, independent React admin | PAGES, AGREEMENT | 6 | Starters present |
 | SYS-04 | Owner-controlled cloud/store accounts and source delivery | PAGES, AGREEMENT | 0, 6 | Planned, D20 |
-| SYS-05 | Existing deployed app feature parity and data migration | PAGES | 0 onward | Unknown, D01 |
+| SYS-05 | Greenfield launch and optional verified opening balances for each new shop | PAGES; owner clarification | 0 onward | Scope confirmed, D01; workflow planned |
 | SYS-06 | Weak-network fault tests: timeout after commit, duplicate tap, reconnect and gap catch-up | BASIC, AGREEMENT | 2 onward | Planned |
 | SYS-07 | Flutter Clean Architecture enforced as feature implementation grows | PAGES, AGREEMENT | 1 onward | Planned |
 | DEBT-03 | Alarm-style due reminder behavior and retryable delivery | PAGES | 4 | Planned, D19 |

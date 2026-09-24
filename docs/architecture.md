@@ -2,7 +2,7 @@
 
 ## Architecture goal and present state
 
-ElDafttar ERP is a multi-tenant system for gold shops. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. Cloudflare R2 stores private binary attachments through server-authorized access. The architecture must favor correctness of cash and grams over apparent speed.
+ElDafttar ERP is a greenfield, multi-tenant subscription service for many independent gold shops and their authorized staff. Subscription entitlements govern access separately from shop membership and role permissions. The product owner confirmed one subscription per shop under D28. Invited staff share that shop's entitlement, while their membership and role grants remain separate. A user belonging to multiple shops must pass the entitlement check for each shop independently. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. Cloudflare R2 stores private binary attachments through server-authorized access. The architecture must favor correctness of cash and grams over apparent speed.
 
 Today the repository has starter clients and connection checks only. Paths below are the target layout. No database schema, RLS, transaction RPC, or attachment endpoint should be assumed to exist.
 
