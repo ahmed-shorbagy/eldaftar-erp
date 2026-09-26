@@ -16,3 +16,4 @@ dist/
 .idea/
 .vscode/
 app/config/local.json
+supabase/.temp/

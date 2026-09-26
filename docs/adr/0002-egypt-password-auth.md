@@ -1,6 +1,7 @@
 # Egypt password sign-in without verification
 
 Status: accepted
+Implementation: see [Milestone 1 validation](../operations/milestone-1-validation.md) for the subsequent owner-registration slice and its current evidence. Statements below marked planned describe the state when this ADR was accepted; they are not the current delivery status.
 Date: 2026-09-26
 Owners: product owner
 Related decision IDs: D25 (revised), D13 (preserved), D28 (preserved), D10 (preserved as default deny)

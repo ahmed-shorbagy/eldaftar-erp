@@ -22,9 +22,19 @@ class FakeAuthGateway implements AuthGateway {
   Stream<AuthStatus> get changes => const Stream.empty();
 
   @override
-  Future<void> signIn(String email, String password) async {
+  Future<void> signIn(SignInRequest request) async {
     current = AuthStatus.signedIn;
   }
+
+  @override
+  Future<OwnerRegistrationResult> registerOwner(
+    OwnerRegistration registration,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Governorate>> loadGovernorates() async => const [];
 
   @override
   Future<void> signOut() async {
@@ -42,10 +52,6 @@ class FakeShopAccountGateway implements ShopAccountGateway {
       entitlement: ShopEntitlement.active,
     ),
   ];
-
-  @override
-  Future<String> createShopAccount(ShopSetupRequest request) async =>
-      '11111111-1111-4111-8111-111111111111';
 }
 
 class MemoryThemePreferenceStore implements ThemePreferenceStore {

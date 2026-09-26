@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -32,7 +31,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   ShopAccount? _selected;
   bool _loading = false;
   bool _accessLost = false;
-  bool _setupConfirmed = false;
   String? _error;
   Timer? _refreshTimer;
 
@@ -115,16 +113,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     }
   }
 
-  Future<void> _created(String shopId) async {
-    setState(() => _setupConfirmed = true);
-    await _refresh();
-    if (!mounted) return;
-    final matches = _accounts?.where((item) => item.id == shopId);
-    if (matches != null && matches.isNotEmpty) {
-      setState(() => _selected = matches.first);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_selected?.entitlement == ShopEntitlement.active) {
@@ -180,10 +168,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                   const SizedBox(height: 16),
                   const Text('جارٍ التحقق من حسابات المتجر…'),
                 ],
-                if (_setupConfirmed) ...[
-                  const Text('تم إنشاء المتجر وتأكيده. التفعيل قيد الانتظار.'),
-                  const SizedBox(height: 12),
-                ],
                 if (_error != null) ...[
                   Text(
                     _error!,
@@ -215,14 +199,26 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                     child: const Text('اختيار متجر آخر'),
                   ),
                 ] else if (_accounts != null && !_accessLost) ...[
-                  Text(
-                    'اختر المتجر',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 12),
+                  if (_accounts!.isNotEmpty) ...[
+                    Text(
+                      'اختر المتجر',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   if (_accounts!.isEmpty) ...[
-                    const Text('ليس لديك متجر بعد. أدخل بيانات متجرك للبدء.'),
+                    const Text(
+                      'لا توجد عضويات مرتبطة بهذا الحساب.',
+                      key: Key('shop-empty'),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('سجّل الخروج للدخول بحساب له عضوية قائمة.'),
                     const SizedBox(height: 16),
+                    OutlinedButton(
+                      key: const Key('shop-empty-sign-out'),
+                      onPressed: widget.onSignOut,
+                      child: const Text('تسجيل الخروج'),
+                    ),
                   ],
                   for (final account in _accounts!) ...[
                     Card(
@@ -236,12 +232,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                     ),
                     const SizedBox(height: 8),
                   ],
-                  if (_accounts!.isEmpty)
-                    ShopSetupForm(
-                      key: const ValueKey('shop-setup-form'),
-                      gateway: widget.gateway,
-                      onCreated: _created,
-                    ),
                 ],
               ],
             ),
@@ -293,185 +283,6 @@ String _failureText(ShopAccountFailure failure) => switch (failure) {
     'انتهت الجلسة أو لم يعد لديك وصول. سجّل الدخول مجددًا.',
   ShopAccountFailure.invalidResponse =>
     'تعذر التحقق من بيانات المتجر. حاول مجددًا.',
-  ShopAccountFailure.rejected =>
-    'تعذر حفظ بيانات المتجر. راجع البيانات وحاول مجددًا.',
+  ShopAccountFailure.rejected => 'تعذر قبول طلب المتجر. حاول مجددًا.',
   ShopAccountFailure.unavailable => 'خدمة المتاجر غير متاحة الآن. حاول مجددًا.',
 };
-
-class ShopSetupForm extends StatefulWidget {
-  const ShopSetupForm({
-    super.key,
-    required this.gateway,
-    required this.onCreated,
-  });
-  final ShopAccountGateway gateway;
-  final Future<void> Function(String) onCreated;
-
-  @override
-  State<ShopSetupForm> createState() => _ShopSetupFormState();
-}
-
-class _ShopSetupFormState extends State<ShopSetupForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
-  final _ownerName = TextEditingController();
-  final _phone = TextEditingController();
-  final _timeZone = TextEditingController(text: 'Africa/Cairo');
-  ShopSetupRequest? _request;
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _ownerName.dispose();
-    _phone.dispose();
-    _timeZone.dispose();
-    super.dispose();
-  }
-
-  String _newRequestKey() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex = bytes
-        .map((part) => part.toRadixString(16).padLeft(2, '0'))
-        .join();
-    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
-  }
-
-  Future<void> _submit() async {
-    if (_busy || !_formKey.currentState!.validate()) return;
-    final request =
-        _request ??
-        ShopSetupRequest(
-          name: _name.text.trim(),
-          ownerDisplayName: _ownerName.text.trim(),
-          phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-          timeZone: _timeZone.text.trim(),
-          requestKey: _newRequestKey(),
-        );
-    setState(() {
-      _request = request;
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final shopId = await widget.gateway.createShopAccount(request);
-      if (!mounted) return;
-      await widget.onCreated(shopId);
-    } on ShopAccountException catch (error) {
-      if (mounted) setState(() => _error = _failureText(error.failure));
-    } catch (_) {
-      if (mounted) {
-        setState(() => _error = _failureText(ShopAccountFailure.unavailable));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final locked = _busy || _request != null;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'إعداد متجر جديد',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('shop-name'),
-                controller: _name,
-                enabled: !locked,
-                decoration: const InputDecoration(labelText: 'اسم المتجر'),
-                validator: (value) =>
-                    value == null ||
-                        value.trim().isEmpty ||
-                        value.trim().length > 120
-                    ? 'أدخل اسم متجر من ١ إلى ١٢٠ حرفًا'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('owner-name'),
-                controller: _ownerName,
-                enabled: !locked,
-                decoration: const InputDecoration(
-                  labelText: 'اسم المالك المعروض',
-                ),
-                validator: (value) =>
-                    value == null ||
-                        value.trim().isEmpty ||
-                        value.trim().length > 120
-                    ? 'أدخل اسم المالك من ١ إلى ١٢٠ حرفًا'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('shop-phone'),
-                controller: _phone,
-                enabled: !locked,
-                keyboardType: TextInputType.phone,
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(
-                  labelText: 'رقم الهاتف (اختياري)',
-                ),
-                validator: (value) => value != null && value.trim().length > 30
-                    ? 'رقم الهاتف طويل جدًا'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('shop-time-zone'),
-                controller: _timeZone,
-                enabled: !locked,
-                textDirection: TextDirection.ltr,
-                decoration: const InputDecoration(labelText: 'المنطقة الزمنية'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'أدخل منطقة زمنية'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              if (_error != null) ...[
-                Text(
-                  _error!,
-                  key: const Key('shop-setup-error'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              FilledButton(
-                key: const Key('shop-setup-submit'),
-                onPressed: _busy ? null : _submit,
-                child: Text(
-                  _busy
-                      ? 'جارٍ إنشاء المتجر…'
-                      : _request == null
-                      ? 'إنشاء المتجر'
-                      : 'إعادة المحاولة',
-                ),
-              ),
-              if (_request != null && !_busy)
-                TextButton(
-                  onPressed: () => setState(() {
-                    _request = null;
-                    _error = null;
-                  }),
-                  child: const Text('تعديل البيانات'),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

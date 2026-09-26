@@ -6,7 +6,7 @@ The product owner revised D25 in [ADR 0002](adr/0002-egypt-password-auth.md). Th
 
 Normalize Egyptian phone identifiers consistently and validate governorates against an Egyptian list. Passwords belong only to Supabase Auth. Contact identifiers are not proof of ownership and must not confer membership or grants. New shops remain pending activation without a trial; expired shops retain authorized read/export access and reject writes. Recovery and staff invitation binding need a separate design.
 
-This is an accepted scope change, not implemented functionality. Existing verified-email client and database behavior must be replaced in a reviewed Milestone 1 slice.
+This accepted scope change is implemented by the bounded owner-registration/password slice. See [Milestone 1 validation](operations/milestone-1-validation.md) for development evidence and remaining acceptance gaps; it does not mark the full milestone complete.
 
 ## Purpose and source key
 

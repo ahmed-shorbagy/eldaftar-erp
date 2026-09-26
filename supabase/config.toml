@@ -4,11 +4,23 @@ project_id = "eldafttar-local"
 port = 54322
 
 [auth]
+enable_signup = false
 enable_anonymous_sign_ins = false
 
 [auth.email]
-enable_confirmations = true
-double_confirm_changes = true
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = false
 
 [auth.sms]
-enable_signup = false
+# This enables phone/password authentication; global signup remains disabled.
+# No SMS delivery credentials are configured. Confirmation is disabled.
+# CLI 2.118.0 incorrectly maps this boolean to sms_autoconfirm without inversion.
+# For that CLI, set remote sms_autoconfirm=true through the Management API;
+# do not push this file's phone confirmation field with that version.
+enable_signup = true
+enable_confirmations = false
+
+[functions.owner-register]
+# Registration precedes a user session; the handler validates the public API key.
+verify_jwt = false

@@ -3,7 +3,7 @@ abstract final class ShellCopy {
   static const appTitle = 'الدفتر';
   static const prototypeLabel = 'نموذج أولي';
   static const prototypeBody =
-      'هذه واجهة البداية فقط. تسجيل الدخول، والإعداد التفاعلي، وشاشات العمل غير متاحة بعد.';
+      'هذه واجهة البداية فقط. الإعداد التفاعلي وشاشات العمل غير متاحة بعد.';
 
   static const missingTitle = 'إعداد Supabase غير مكتمل';
   static const missingBody =
@@ -15,7 +15,7 @@ abstract final class ShellCopy {
 
   static const readyTitle = 'تمت تهيئة Supabase';
   static const readyBody =
-      'وُجد العنوان والمفتاح العام، وتم إنشاء العميل. تسجيل الدخول، والإعداد التفاعلي، وشاشات العمل غير متاحة بعد.';
+      'وُجد العنوان والمفتاح العام، وتم إنشاء العميل. الإعداد التفاعلي وشاشات العمل غير متاحة بعد.';
 
   static const failedTitle = 'تعذرت تهيئة Supabase';
   static const failedBody =

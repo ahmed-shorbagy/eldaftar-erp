@@ -1,4 +1,4 @@
-export type AdminAccess = 'checking' | 'signedOut' | 'unverified' | 'denied' | 'admin' | 'unavailable'
+export type AdminAccess = 'checking' | 'signedOut' | 'denied' | 'admin' | 'unavailable'
 
 export interface AdminAuthGateway {
   readonly status: AdminAccess

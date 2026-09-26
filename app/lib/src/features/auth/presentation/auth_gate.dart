@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../../../config/supabase_startup.dart';
 import '../../../shell/home_shell.dart';
+import '../../../shell/shell_copy.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
 import '../domain/auth_gateway.dart';
+import 'auth_copy.dart';
+import 'auth_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({
@@ -29,6 +32,7 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   StreamSubscription<AuthStatus>? _subscription;
   AuthStatus _status = AuthStatus.signedOut;
+  bool _hold = false;
 
   @override
   void initState() {
@@ -41,14 +45,34 @@ class _AuthGateState extends State<AuthGate> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.authGateway != widget.authGateway) {
       _subscription?.cancel();
+      _hold = false;
       _listen();
     }
   }
 
   void _listen() {
-    _status = widget.authGateway?.status ?? AuthStatus.signedOut;
-    _subscription = widget.authGateway?.changes.listen((status) {
-      if (mounted) setState(() => _status = status);
+    final gateway = widget.authGateway;
+    _status = _hold
+        ? AuthStatus.signedOut
+        : gateway?.status ?? AuthStatus.signedOut;
+    _subscription = gateway?.changes.listen((status) {
+      if (!mounted || _hold) return;
+      setState(() => _status = status);
+    });
+  }
+
+  void _setHold(bool hold) {
+    if (!mounted) return;
+    setState(() {
+      _hold = hold;
+      if (hold) _status = AuthStatus.signedOut;
+    });
+  }
+
+  void _syncStatus() {
+    if (!mounted || _hold) return;
+    setState(() {
+      _status = widget.authGateway?.status ?? AuthStatus.signedOut;
     });
   }
 
@@ -66,153 +90,57 @@ class _AuthGateState extends State<AuthGate> {
         onToggleTheme: widget.onToggleTheme,
       );
     }
-    if (_status == AuthStatus.signedIn &&
-        widget.authGateway != null &&
-        widget.shopAccountGateway != null) {
+    final gateway = widget.authGateway;
+    final shops = widget.shopAccountGateway;
+    if (gateway == null || shops == null) {
+      return _AuthUnavailable(onToggleTheme: widget.onToggleTheme);
+    }
+    if (!_hold && _status == AuthStatus.signedIn) {
       return ShopAccountsGate(
-        gateway: widget.shopAccountGateway!,
+        gateway: shops,
         onToggleTheme: widget.onToggleTheme,
         onSignOut: () async {
-          await widget.authGateway!.signOut();
+          await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);
         },
       );
     }
-    return SignInScreen(
-      unavailable:
-          widget.authGateway == null || widget.shopAccountGateway == null,
-      unverified: _status == AuthStatus.unverifiedEmail,
-      onSubmit: (email, password) async {
-        await widget.authGateway!.signIn(email, password);
-        if (mounted) setState(() => _status = widget.authGateway!.status);
-      },
+    return AuthScreen(
+      gateway: gateway,
+      onToggleTheme: widget.onToggleTheme,
+      onHold: _setHold,
+      onSessionSettled: _syncStatus,
     );
   }
 }
 
-class SignInScreen extends StatefulWidget {
-  const SignInScreen({
-    super.key,
-    required this.unavailable,
-    required this.unverified,
-    required this.onSubmit,
-  });
+class _AuthUnavailable extends StatelessWidget {
+  const _AuthUnavailable({required this.onToggleTheme});
 
-  final bool unavailable;
-  final bool unverified;
-  final Future<void> Function(String, String) onSubmit;
-
-  @override
-  State<SignInScreen> createState() => _SignInScreenState();
-}
-
-class _SignInScreenState extends State<SignInScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  bool _busy = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await widget.onSubmit(_email.text, _password.text);
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _error =
-              'تعذر تسجيل الدخول. تحقق من البيانات وتأكيد البريد الإلكتروني ثم حاول مجددًا.',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+  final Future<void> Function(Brightness) onToggleTheme;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('الدفتر')),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.all(24),
-                children: [
-                  Text('تسجيل الدخول', style: theme.textTheme.headlineMedium),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'ادخل بريدك الإلكتروني المؤكد للوصول إلى حساب المتجر.',
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    key: const Key('sign-in-email'),
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    textDirection: TextDirection.ltr,
-                    decoration: const InputDecoration(
-                      labelText: 'البريد الإلكتروني',
-                    ),
-                    validator: (value) => value == null || !value.contains('@')
-                        ? 'أدخل بريدًا إلكترونيًا صحيحًا'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    key: const Key('sign-in-password'),
-                    controller: _password,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'كلمة المرور'),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'أدخل كلمة المرور'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  if (widget.unverified)
-                    Text(
-                      'أكد بريدك الإلكتروني قبل المتابعة.',
-                      style: TextStyle(color: scheme.error),
-                    ),
-                  if (widget.unavailable)
-                    Text(
-                      'خدمة تسجيل الدخول غير متاحة الآن.',
-                      style: TextStyle(color: scheme.error),
-                    ),
-                  if (_error != null)
-                    Text(
-                      _error!,
-                      key: const Key('sign-in-error'),
-                      style: TextStyle(color: scheme.error),
-                    ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    key: const Key('sign-in-submit'),
-                    onPressed: _busy || widget.unavailable ? null : _submit,
-                    child: Text(_busy ? 'جارٍ تسجيل الدخول…' : 'دخول'),
-                  ),
-                ],
-              ),
+      appBar: AppBar(
+        title: const Text(ShellCopy.appTitle),
+        actions: [
+          IconButton(
+            key: const Key('auth-theme-toggle'),
+            tooltip: theme.brightness == Brightness.dark
+                ? ShellCopy.toggleToLight
+                : ShellCopy.toggleToDark,
+            onPressed: () => onToggleTheme(theme.brightness),
+            icon: Icon(
+              theme.brightness == Brightness.dark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
             ),
           ),
-        ),
+        ],
       ),
+      body: const SafeArea(child: Center(child: Text(AuthCopy.unavailable))),
     );
   }
 }

@@ -10,10 +10,10 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async {
-    _requireVerifiedSession();
+    _requireSession();
     try {
       final response = await _client.rpc('list_my_shop_accounts');
-      _requireVerifiedSession();
+      _requireSession();
       if (response is! List) {
         throw const ShopAccountException(ShopAccountFailure.invalidResponse);
       }
@@ -27,39 +27,9 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
     }
   }
 
-  @override
-  Future<String> createShopAccount(ShopSetupRequest request) async {
-    _requireVerifiedSession();
-    try {
-      final response = await _client.rpc(
-        'create_shop_account',
-        params: {
-          'p_name': request.name,
-          'p_owner_display_name': request.ownerDisplayName,
-          'p_phone': request.phone,
-          'p_time_zone': request.timeZone,
-          'p_request_key': request.requestKey,
-        },
-      );
-      _requireVerifiedSession();
-      if (response is! String || !_uuid.hasMatch(response)) {
-        throw const ShopAccountException(ShopAccountFailure.invalidResponse);
-      }
-      return response;
-    } on ShopAccountException {
-      rethrow;
-    } on PostgrestException catch (error) {
-      throw ShopAccountException(_mapPostgrestError(error));
-    } catch (_) {
-      throw const ShopAccountException(ShopAccountFailure.unavailable);
-    }
-  }
-
-  void _requireVerifiedSession() {
+  void _requireSession() {
     final session = _client.auth.currentSession;
-    if (session == null ||
-        session.isExpired ||
-        session.user.emailConfirmedAt == null) {
+    if (session == null || session.isExpired) {
       throw const ShopAccountException(ShopAccountFailure.unauthorized);
     }
   }

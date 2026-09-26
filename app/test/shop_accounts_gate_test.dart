@@ -24,8 +24,6 @@ class FakeShops implements ShopAccountGateway {
   List<ShopAccount> accounts = [];
   bool failList = false;
   Completer<List<ShopAccount>>? listCompletion;
-  Completer<String>? createCompletion;
-  final requests = <ShopSetupRequest>[];
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async {
@@ -34,12 +32,6 @@ class FakeShops implements ShopAccountGateway {
       throw const ShopAccountException(ShopAccountFailure.unavailable);
     }
     return accounts;
-  }
-
-  @override
-  Future<String> createShopAccount(ShopSetupRequest request) {
-    requests.add(request);
-    return createCompletion!.future;
   }
 }
 
@@ -52,10 +44,20 @@ class FakeAuth implements AuthGateway {
   @override
   Stream<AuthStatus> get changes => controller.stream;
   @override
-  Future<void> signIn(String email, String password) async {
+  Future<void> signIn(SignInRequest request) async {
     current = AuthStatus.signedIn;
     controller.add(current);
   }
+
+  @override
+  Future<OwnerRegistrationResult> registerOwner(
+    OwnerRegistration registration,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Governorate>> loadGovernorates() async => const [];
 
   @override
   Future<void> signOut() async {
@@ -102,16 +104,18 @@ Future<void> pumpGate(
 }
 
 void main() {
-  testWidgets('empty account list offers Arabic RTL setup', (tester) async {
+  testWidgets('empty account list explains there are no memberships', (
+    tester,
+  ) async {
     final shops = FakeShops();
     await pumpGate(tester, shops);
+    expect(find.byKey(const Key('shop-empty')), findsOneWidget);
+    expect(find.byKey(const Key('shop-empty-sign-out')), findsOneWidget);
+    expect(find.byTooltip('تسجيل الخروج'), findsOneWidget);
+    expect(find.text('إنشاء المتجر'), findsNothing);
+    expect(find.byKey(const Key('shop-name')), findsNothing);
     expect(
-      find.text('ليس لديك متجر بعد. أدخل بيانات متجرك للبدء.'),
-      findsOneWidget,
-    );
-    expect(find.byKey(const Key('shop-name')), findsOneWidget);
-    expect(
-      Directionality.of(tester.element(find.text('اختر المتجر'))),
+      Directionality.of(tester.element(find.byKey(const Key('shop-empty')))),
       TextDirection.rtl,
     );
   });
@@ -143,82 +147,19 @@ void main() {
     expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
   });
 
-  testWidgets('background refresh preserves setup draft', (tester) async {
-    final shops = FakeShops();
-    await pumpGate(tester, shops);
-    await tester.enterText(
-      find.byKey(const Key('shop-name')),
-      'اسم قيد الكتابة',
-    );
-    shops.listCompletion = Completer<List<ShopAccount>>();
-    await tester.tap(find.byTooltip('تحديث المتاجر'));
-    await tester.pump();
-    expect(
-      tester
-          .widget<TextFormField>(find.byKey(const Key('shop-name')))
-          .controller!
-          .text,
-      'اسم قيد الكتابة',
-    );
-    shops.listCompletion!.complete([]);
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextFormField>(find.byKey(const Key('shop-name')))
-          .controller!
-          .text,
-      'اسم قيد الكتابة',
-    );
-  });
-
   testWidgets('list RPC failure hides accounts and supports retry', (
     tester,
   ) async {
     final shops = FakeShops()..failList = true;
     await pumpGate(tester, shops);
     expect(find.byKey(const Key('shop-error')), findsOneWidget);
-    expect(find.byKey(const Key('shop-name')), findsNothing);
+    expect(find.byKey(const Key('shop-empty')), findsNothing);
     shops.failList = false;
     await tester.tap(find.text('إعادة المحاولة'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('shop-name')), findsOneWidget);
+    expect(find.byKey(const Key('shop-empty')), findsOneWidget);
+    expect(find.text('إنشاء المتجر'), findsNothing);
   });
-
-  testWidgets(
-    'setup stays pending, retries with one key, then confirms pending activation',
-    (tester) async {
-      final shops = FakeShops()..createCompletion = Completer<String>();
-      await pumpGate(tester, shops);
-      await tester.enterText(find.byKey(const Key('shop-name')), 'متجر جديد');
-      await tester.enterText(find.byKey(const Key('owner-name')), 'المالك');
-      await tester.ensureVisible(find.byKey(const Key('shop-setup-submit')));
-      await tester.tap(find.byKey(const Key('shop-setup-submit')));
-      await tester.pump();
-      expect(find.text('جارٍ إنشاء المتجر…'), findsOneWidget);
-      expect(
-        tester
-            .widget<FilledButton>(find.byKey(const Key('shop-setup-submit')))
-            .onPressed,
-        isNull,
-      );
-      expect(shops.requests.length, 1);
-      shops.createCompletion!.completeError(
-        const ShopAccountException(ShopAccountFailure.unavailable),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('shop-setup-error')), findsOneWidget);
-      shops.createCompletion = Completer<String>();
-      await tester.tap(find.byKey(const Key('shop-setup-submit')));
-      await tester.pump();
-      expect(shops.requests.length, 2);
-      expect(shops.requests[0].requestKey, shops.requests[1].requestKey);
-      shops.accounts = [account(ShopEntitlement.pending)];
-      shops.createCompletion!.complete(shopId);
-      await tester.pumpAndSettle();
-      expect(find.text('قيد التفعيل'), findsOneWidget);
-      expect(find.text(ShellCopy.prototypeLabel), findsNothing);
-    },
-  );
 
   testWidgets('revocation closes selected shop on refresh', (tester) async {
     final shops = FakeShops()..accounts = [account(ShopEntitlement.active)];

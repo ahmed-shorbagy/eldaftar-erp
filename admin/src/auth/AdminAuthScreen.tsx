@@ -35,17 +35,15 @@ export function AdminAuthScreen({
     ? 'جارٍ التحقق من الجلسة…'
     : status === 'unavailable'
       ? 'خدمة الإدارة غير متاحة الآن. حاول مجددًا.'
-      : status === 'unverified'
-        ? 'أكد بريدك الإلكتروني قبل الدخول.'
-        : status === 'denied'
-          ? 'ليس لهذا الحساب صلاحية إدارة المنصة.'
-          : null
+      : status === 'denied'
+        ? 'ليس لهذا الحساب صلاحية إدارة المنصة.'
+        : null
 
   return (
     <Box lang="ar" dir="rtl" sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', display: 'grid', placeItems: 'center', p: 3 }}>
       <Box component="main" sx={{ width: '100%', maxWidth: 440, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 3, p: 3 }}>
         <Typography component="h1" variant="h5" sx={{ mb: 1 }}>إدارة الدفتر</Typography>
-        <Typography sx={{ mb: 3 }}>سجّل الدخول ببريد المدير المؤكد.</Typography>
+        <Typography sx={{ mb: 3 }}>سجّل الدخول بالبريد الإلكتروني وكلمة المرور.</Typography>
         <Box component="form" onSubmit={submit} sx={{ display: 'grid', gap: 2 }}>
           <TextField label="البريد الإلكتروني" type="email" required value={email} onChange={event => setEmail(event.target.value)} slotProps={{ htmlInput: { dir: 'ltr' } }} />
           <TextField label="كلمة المرور" type="password" required value={password} onChange={event => setPassword(event.target.value)} />

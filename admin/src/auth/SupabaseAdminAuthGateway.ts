@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AdminAccess, AdminAuthGateway } from './AdminAuthGateway.ts'
 
+function accessTokenExpired(session: { expires_at?: number | null }): boolean {
+  return typeof session.expires_at !== 'number' || session.expires_at * 1000 <= Date.now()
+}
+
 export class SupabaseAdminAuthGateway implements AdminAuthGateway {
   private access: AdminAccess = 'checking'
   private readonly listeners = new Set<(status: AdminAccess) => void>()
@@ -40,12 +44,8 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
         return
       }
       const session = data.session
-      if (session === null) {
+      if (session === null || accessTokenExpired(session)) {
         this.setStatus('signedOut')
-        return
-      }
-      if (session.user.email_confirmed_at == null) {
-        this.setStatus('unverified')
         return
       }
       const result = await this.client.rpc('is_platform_admin')
@@ -58,13 +58,15 @@ export class SupabaseAdminAuthGateway implements AdminAuthGateway {
 
   async signIn(email: string, password: string): Promise<void> {
     this.setStatus('checking')
-    const result = await this.client.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-    if (result.error) {
+    try {
+      const result = await this.client.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+      if (result.error) throw result.error
+    } catch (error) {
       this.setStatus('signedOut')
-      throw result.error
+      throw error
     }
     await this.refresh()
   }

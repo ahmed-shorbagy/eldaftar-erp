@@ -6,18 +6,18 @@ This matrix is the long-lived work register derived from the local source docume
 
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
-| ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | D25 revised in [ADR 0002](adr/0002-egypt-password-auth.md); implementation pending. Existing verified-email gate is superseded; historical tests do not verify the new policy |
+| ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | Implemented under [ADR 0002](adr/0002-egypt-password-auth.md): domain/data/presentation password flows, reviewed server registration, development Auth settings and rollback-only RLS gates. Exact tests, visual evidence, and live Auth limitations: [validation](operations/milestone-1-validation.md). Full Milestone 1 acceptance remains open |
 | ID-02 | Shop membership and independent owner, partner, employee permissions | PAGES | 1 | SQL/RPC deployed and command tests passed on dev; staff UI pending, D10 |
 | ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Dev RLS and command tests passed; staging and client acceptance pending |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
 | ONB-01 | Guided path through first sale, ledger, inventory, CRM and staff controls | PAGES | 1, 4 | Planned, D22 |
 | ONB-02 | First-operation guide must distinguish a safe practice draft from a real posting | PAGES | 1, 2 | Planned, D22 |
-| SET-01 | Owner signup: owner name, business name, email, required Egyptian phone, governorate, and password; default Africa/Cairo | PAGES; owner 2026-09-26 | 1 | Revised D25 accepted; integrated signup, governorate persistence, dual-identifier identity and required-field validation pending. Existing shop setup/selector and status tests cover the earlier contract only; pending/expired entitlement policy preserved |
+| SET-01 | Owner signup: owner name, business name, email, required Egyptian phone, governorate, and password; default Africa/Cairo | PAGES; owner 2026-09-26 | 1 | Integrated signup and protected reservation/completion implemented; canonical unique contacts, 27 server governorates, Africa/Cairo, no entitlement/trial, and retry reconciliation tested. Forward migration applied only to development. [Evidence and acceptance limits](operations/milestone-1-validation.md); D13 preserved |
 | SET-02 | Rename/archive payment methods while preserving historical identity | PAGES | 1, 2 | Planned, D24 |
 | SET-03 | Invoice logo, slogan, address, color and template choices | LEDGER mockups, PAGES | 4 | Planned, D12 |
 | SET-04 | Custom invoice/WhatsApp message text with validated placeholders | PAGES | 4 | Planned |
 | NAV-01 | Home, ledger, customers, reports and more navigation in Arabic RTL | LEDGER mockups | 1 | Planned |
-| ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Arabic sign-in and shop setup/selector reviewed at 320/1440 px in light/dark widget captures; live platform visual baselines and prototype approval pending, D12 |
+| ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Arabic email/phone login and owner signup reviewed in 16 Flutter widget captures and admin login in 4 browser captures at 320/1440 px, light/dark; live platform visual baselines and prototype approval pending, D12 |
 | LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Planned, D08 |
 | LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Planned, D24 |
 | LED-03 | Sale/purchase grams and count by applicable karat, configurable card order/visibility | LEDGER | 2 | Planned |
@@ -78,13 +78,13 @@ This matrix is the long-lived work register derived from the local source docume
 | RET-02 | Renewal restores retained shop data | PAGES | 5 | Planned, D13 |
 | RET-03 | Requested reset and account deletion with approved scope | PAGES | 5 | Planned, D15 |
 | AUD-01 | Actor/time audit for changes, deletion requests and deductions | PAGES, AGREEMENT | 1 onward | Identity audit deployed; financial and deletion audit pending |
-| SYS-01 | Pending/success/failure feedback and safe retry/reconciliation | BASIC, PAGES | 2 onward | Planned |
+| SYS-01 | Pending/success/failure feedback and safe retry/reconciliation | BASIC, PAGES | 1 onward | Owner-registration slice implemented/tested; financial mutation feedback remains planned. [Evidence](operations/milestone-1-validation.md) |
 | SYS-02 | Reconciled shop status notification and due reminders | BASIC, PAGES | 4, 5 | Planned |
 | SYS-03 | Flutter Android, iOS and Windows, independent React admin | PAGES, AGREEMENT | 6 | Starters present |
 | SYS-04 | Owner-controlled cloud/store accounts and source delivery | PAGES, AGREEMENT | 0, 6 | Planned, D20 |
 | SYS-05 | Greenfield launch and optional verified opening balances for each new shop | PAGES; owner clarification | 0 onward | Scope confirmed, D01; workflow planned |
-| SYS-06 | Weak-network fault tests: timeout after commit, duplicate tap, reconnect and gap catch-up | BASIC, AGREEMENT | 2 onward | Planned |
-| SYS-07 | Flutter Clean Architecture enforced as feature implementation grows | PAGES, AGREEMENT | 1 onward | Planned |
+| SYS-06 | Weak-network fault tests: timeout after commit, duplicate tap, reconnect and gap catch-up | BASIC, AGREEMENT | 1 onward | Owner signup duplicate/timeout/partial-failure reconciliation covered; financial reconnect and gap catch-up remain planned. [Evidence](operations/milestone-1-validation.md) |
+| SYS-07 | Flutter Clean Architecture enforced as feature implementation grows | PAGES, AGREEMENT | 1 onward | Auth/registration domain independent of Flutter, Supabase and storage; domain interfaces and separate adapters/presentation implemented. Subsequent workflows retain this gate |
 | DEBT-03 | Alarm-style due reminder behavior and retryable delivery | PAGES | 4 | Planned, D19 |
 
 ## Promotion rule

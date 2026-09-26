@@ -2,7 +2,7 @@
 
 ## Milestone 1 policy revision and bounded implementation queue — 2026-09-26
 
-Follow [ADR 0002](adr/0002-egypt-password-auth.md) for the Egypt-only authentication policy. This update changes documentation and planning only. Existing verified-email implementations and their earlier validation do not satisfy the new policy.
+Follow [ADR 0002](adr/0002-egypt-password-auth.md) for the Egypt-only authentication policy. The bounded owner registration/password slice is implemented in the current work: the forward migration is applied to development and rollback-only SQL tests pass. The development Edge deployment, completed client review and gates, and exact evidence are tracked in [the validation record](operations/milestone-1-validation.md). Historical verified-email tests alone do not satisfy the revised policy.
 
 1. Define and implement the protected registration contract: one Supabase Auth user can sign in with email/password or Egyptian phone/password; normalize and enforce unique identifiers; require owner name, business name, email, phone, governorate, and password. Validate Egyptian governorates, default the shop to `Africa/Cairo`, and keep passwords only in Auth. Design recovery from partial Auth/profile creation before calling registration complete.
 2. Coordinate forward backend changes, Auth project configuration, Flutter adapters, and the React authentication gate. Remove email-confirmation prerequisites without weakening RLS, session expiry, membership revocation, or platform-admin checks. No email verification, OTP, or SMS confirmation is part of registration or login. Review compatibility with older clients before rollout. Explain any verified schema blocker before applying a migration.
