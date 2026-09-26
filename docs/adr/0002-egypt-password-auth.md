@@ -7,6 +7,8 @@ Owners: product owner
 Related decision IDs: D25 (revised), D13 (preserved), D28 (preserved), D10 (preserved as default deny)
 Supersedes: D25 only, in [ADR 0001](0001-email-and-expired-shop-access.md)
 
+Staff, partner, invitation, and per-user grant statements in this record are superseded by [ADR 0003](0003-owner-only-shop-access.md). That decision closes D10 and revises D28 to one owner account per shop. The D25 sign-in rule in this record remains accepted. Password recovery is still undesigned. Staff-invitation binding is cancelled, not deferred.
+
 ## Context
 
 ElDafttar ERP is an Egypt-only product. Shop users authenticate with Supabase Auth. The backend authorizes shop data with row-level security and role grants. Hiding a control in the Flutter or React client is not authorization.

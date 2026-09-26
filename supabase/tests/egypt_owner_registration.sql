@@ -139,6 +139,7 @@ $test$;
 do $test$
 declare
   v_function oid;
+  v_remaining text;
 begin
   select p.oid into v_function
   from pg_proc as p
@@ -220,14 +221,34 @@ begin
     or has_function_privilege('anon', 'public.complete_owner_registration(uuid)', 'EXECUTE')
     or has_function_privilege('authenticated', 'public.complete_owner_registration(uuid)', 'EXECUTE')
     or has_function_privilege('service_role', 'public.create_shop_account(text,text,text,text,uuid)', 'EXECUTE')
-    or has_function_privilege('authenticated', 'public.create_shop_account(text,text,text,text,uuid)', 'EXECUTE')
-    or has_function_privilege('service_role', 'public.create_staff_invitation(uuid,text,text,uuid,uuid)', 'EXECUTE')
-    or has_function_privilege('service_role', 'public.accept_staff_invitation(uuid)', 'EXECUTE') then
+    or has_function_privilege('authenticated', 'public.create_shop_account(text,text,text,text,uuid)', 'EXECUTE') then
     raise exception 'registration or legacy RPC grant is too wide';
   end if;
-  if not has_function_privilege('authenticated', 'public.set_staff_permission(uuid,uuid,text,boolean,uuid)', 'EXECUTE')
-    or not has_function_privilege('authenticated', 'public.revoke_staff_member(uuid,uuid,uuid)', 'EXECUTE') then
-    raise exception 'staff grant or revoke execute changed';
+  select string_agg(item, ', ' order by item)
+  into v_remaining
+  from (
+    select 'shop_invitations'::text as item
+    where to_regclass('public.shop_invitations') is not null
+    union all
+    select 'shop_member_grants'
+    where to_regclass('public.shop_member_grants') is not null
+    union all
+    select 'create_staff_invitation'
+    where to_regprocedure('public.create_staff_invitation(uuid,text,text,uuid,uuid)') is not null
+    union all
+    select 'accept_staff_invitation'
+    where to_regprocedure('public.accept_staff_invitation(uuid)') is not null
+    union all
+    select 'set_staff_permission'
+    where to_regprocedure('public.set_staff_permission(uuid,uuid,text,boolean,uuid)') is not null
+    union all
+    select 'revoke_staff_member'
+    where to_regprocedure('public.revoke_staff_member(uuid,uuid,uuid)') is not null
+  ) as leftover;
+  if v_remaining is not null then
+    raise exception
+      'removed staff surface still exists (%). Apply migration 20260926084437_owner_only_access.sql before this test',
+      v_remaining;
   end if;
 
   if not (
@@ -870,17 +891,19 @@ values
 
 insert into public.shops (id, name) values
   ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', 'متجر العزل'),
-  ('b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2', 'متجر منته');
+  ('b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2', 'متجر منته'),
+  ('c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3', 'متجر موقوف'),
+  ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4', 'متجر مجهول');
 insert into public.shop_memberships (shop_id, user_id, role, revoked_at) values
   ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', '10101010-1010-4010-8010-101010101010', 'owner', null),
   ('b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2', '20202020-2020-4020-8020-202020202020', 'owner', null),
-  ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', '30303030-3030-4030-8030-303030303030', 'employee', now()),
-  ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', '40404040-4040-4040-8040-404040404040', 'employee', null);
+  ('c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3', '30303030-3030-4030-8030-303030303030', 'owner', now()),
+  ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4', '40404040-4040-4040-8040-404040404040', 'owner', null);
 insert into public.shop_entitlements (shop_id, starts_at, expires_at) values
   ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', now() - interval '1 day', now() + interval '1 day'),
-  ('b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2', now() - interval '2 days', now() - interval '1 day');
-insert into public.shop_member_grants (shop_id, user_id, permission)
-values ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', '30303030-3030-4030-8030-303030303030', 'sale');
+  ('b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2', now() - interval '2 days', now() - interval '1 day'),
+  ('c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3', now() - interval '1 day', now() + interval '1 day'),
+  ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4', now() - interval '1 day', now() + interval '1 day');
 insert into public.platform_admins (user_id)
 values ('50505050-5050-4050-8050-505050505050');
 
@@ -896,18 +919,6 @@ begin
   end if;
 end;
 $test$;
-call pg_temp.expect_error(
-  $sql$select public.set_staff_permission(
-    'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2',
-    '30303030-3030-4030-8030-303030303030',
-    'sale',
-    true,
-    'c3c3c3c3-0000-4000-8000-000000000003'
-  )$sql$,
-  '42501',
-  'owner_required'
-);
-
 select set_config('request.jwt.claim.sub', '20202020-2020-4020-8020-202020202020', true);
 do $test$
 begin
@@ -926,8 +937,8 @@ $test$;
 select set_config('request.jwt.claim.sub', '30303030-3030-4030-8030-303030303030', true);
 do $test$
 begin
-  if exists (select 1 from public.shops) or private.is_active_shop_member('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1') then
-    raise exception 'revoked member retained access';
+  if exists (select 1 from public.shops) or private.is_active_shop_member('c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3') then
+    raise exception 'revoked owner retained access';
   end if;
 end;
 $test$;
@@ -936,7 +947,7 @@ select set_config('request.jwt.claim.sub', '40404040-4040-4040-8040-404040404040
 do $test$
 begin
   if exists (select 1 from public.shops)
-    or private.is_active_shop_member('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1')
+    or private.is_active_shop_member('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4')
     or public.is_platform_admin() then
     raise exception 'anonymous actor gained access';
   end if;

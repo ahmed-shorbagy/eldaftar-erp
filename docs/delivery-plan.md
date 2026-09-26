@@ -9,13 +9,13 @@ Follow [ADR 0002](adr/0002-egypt-password-auth.md) for the Egypt-only authentica
 3. Implement Arabic RTL Flutter login/signup with domain-owned interfaces, separate Supabase adapters and presentation. Reuse theme persistence and tokens. Keep one setup idempotency key across retries of the same request, disable duplicate submission, and show pending, confirmed, and failure states. Confirm success only after server confirmation. Preserve shop selection, pending activation without a trial, and expired read-only access. Review narrow mobile and Windows desktop in both themes.
 4. Verify both login identifiers return the same user ID; wrong passwords, duplicate/invalid identifiers, missing signup fields, invalid governorates, partial registration failure, timeout/retry, session expiry, and membership loss. Prove no verification or OTP is required or sent. Re-run format, analysis, tests, Android/Windows builds and rollback-only backend authorization tests; record exact evidence in the requirements matrix and validation record.
 
-Staff invitation/grant screens remain a following slice. Invitation binding and password recovery require their own reviewed design because unverified contacts cannot establish ownership. Financial posting remains outside this queue. Milestone 1 acceptance also retains its environment, staging, onboarding, prototype, and platform gates below.
+Staff invitations, partner and employee roles, and per-user permission grants are removed by [ADR 0003](adr/0003-owner-only-shop-access.md). One Auth user owns and operates one shop. Password recovery, onboarding, subscription activation, and financial posting remain separate later slices. Milestone 1 acceptance no longer includes staff UI or partner/employee grant tests. Environment, staging, onboarding, prototype, and platform gates below still apply.
 
 ## Planning rule
 
 This is a dependency and acceptance plan, not a promise that all scope fits a fixed calendar. The agreement describes four broad stages over twelve work weeks: interactive design, transactional core, remaining modules/dashboard, and test/release. Keep those stages visible for stakeholder tracking. Estimate each milestone with the actual team, approved designs, new-shop onboarding policy, integration availability, and acceptance evidence. Do not mark a stage complete because its week ended.
 
-The first production release should contain a trustworthy end-to-end vertical slice. Later releases expand breadth without weakening cash, gold, permission, audit or sync guarantees. Every release can be tested independently against synthetic shop data.
+The first production release should contain a trustworthy end-to-end vertical slice. Later releases expand breadth without weakening cash, gold, owner authorization, audit or sync guarantees. Every release can be tested independently against synthetic shop data.
 
 ## Workstreams and dependencies
 
@@ -25,7 +25,7 @@ The first production release should contain a trustworthy end-to-end vertical sl
 | Core platform | environments, Auth, tenancy, RLS, command envelope | authenticated clients and protected shop boundary |
 | Financial engine | exact units, business-day rules, account model, idempotency | atomic operation/posting service and reconciliation |
 | Inventory and connected accounts | financial engine, catalog/karat policy | stock, scrap, trader, debt and repair movements |
-| Communication | confirmed invoice snapshots, permission model, R2 | PDF, pending-send queue, safe dispatch evidence |
+| Communication | confirmed invoice snapshots, owner-only shop boundary, R2 | PDF, pending-send queue, safe dispatch evidence |
 | Platform administration | separate admin roles, subscriptions, content model | subscriber management, codes, help, notices |
 | Reporting and reliability | stable postings and read models | analytics, exports, monitoring, backup and recovery |
 | Release | all critical gates, owner accounts, store readiness | staged Android/iOS/Windows/admin rollout and support runbooks |
@@ -44,15 +44,15 @@ The first production release should contain a trustworthy end-to-end vertical sl
 
 The [Milestone 0 discovery packet](discovery/README.md) records the repository and source baseline, confirmed greenfield scope, local Word-file baseline, and unsigned worked examples. It is preparation for G0, not G0 approval.
 
-Inventory the intended screens and workflows from the agreed three local Word files. The product owner confirmed that there is no deployed application or historical migration to plan. Define how a newly subscribed shop creates its account, invites staff, and enters verified opening balances when applicable. Compare the inventory with product-scope.md. Confirm which embedded mockups are approved design targets. Resolve the highest-impact decisions in decisions.md: currency/price/workmanship, custody and financing, business day, stock valuation/tracking, WhatsApp evidence and data deletion. Produce synthetic sample sales, purchases, trader receipts and close-day cases with expected cash and grams.
+Inventory the intended screens and workflows from the agreed three local Word files. The product owner confirmed that there is no deployed application or historical migration to plan. Define how a newly subscribed shop creates its single owner account and enters verified opening balances when applicable. Compare the inventory with product-scope.md. Confirm which embedded mockups are approved design targets. Resolve the highest-impact decisions in decisions.md: currency/price/workmanship, custody and financing, business day, stock valuation/tracking, WhatsApp evidence and data deletion. Produce synthetic sample sales, purchases, trader receipts and close-day cases with expected cash and grams.
 
 Acceptance: a signed scope matrix maps every requirement to an owner, screen, server command, permission and test. A screen-by-screen scope inventory assigns build, defer, or change, and a new-shop opening-balance process is designed. No private source document is copied to Git. A shop-domain expert signs worked examples for one sale, one three-party financed purchase, one trader receipt and one day close, showing cash by method, grams by karat, count, custody, ownership and obligations.
 
 ## Milestone 1 — platform and design foundation
 
-Create development, staging and production environments in owner-controlled accounts. Add migration tooling, schema conventions, generated contracts, seed fixtures, RLS test harness, CI, secret scanning, telemetry and backup plan. Build Auth, shop membership, roles/grants, session expiry, account setup, and a per-shop entitlement boundary (D28) for the Arabic shell on all platforms. One shop subscription covers invited staff, but their access still follows individual grants. Establish shared design tokens and an interactive all-screens prototype for product approval, with approved captures for mobile, Windows and admin; implement light/dark persistence and RTL behavior. Treat the prototype as design evidence, not an operational ERP. Build a non-financial interactive onboarding path and Help resume entry.
+Create development, staging and production environments in owner-controlled accounts. Add migration tooling, schema conventions, generated contracts, seed fixtures, RLS test harness, CI, secret scanning, telemetry and backup plan. Build Auth, the single owner membership, session expiry, account setup, and a per-shop entitlement boundary (D28) for the Arabic shell on all platforms. One shop subscription covers that owner account only. Establish shared design tokens and an interactive all-screens prototype for product approval, with approved captures for mobile, Windows and admin; implement light/dark persistence and RTL behavior. Treat the prototype as design evidence, not an operational ERP. Build a non-financial interactive onboarding path and Help resume entry.
 
-Acceptance: anonymous/cross-shop/revoked access fails at the database; owner/partner/employee behavior is tested. All clients handle unavailable backend and session expiry. Visual baselines exist in both themes and the all-screens prototype is approved or explicitly deferred with D12. No shop data is shown before Auth. Arrange a macOS/iOS signing environment and owner accounts before the release window.
+Acceptance: anonymous, cross-shop, and revoked-owner access fails at the database. A second owner, a second shop for the same account, and any partner or employee membership are rejected. All clients handle unavailable backend and session expiry. Visual baselines exist in both themes and the all-screens prototype is approved or explicitly deferred with D12. No shop data is shown before Auth. Arrange a macOS/iOS signing environment and owner accounts before the release window.
 
 ## Milestone 2 — transaction kernel and daily ledger
 
@@ -64,17 +64,17 @@ Acceptance: simultaneous retries produce one confirmed operation; a lost respons
 
 Expand the minimum catalog and lots from Milestone 2 into full instant inventory, scrap by karat, bullion/coin denominations, stock adjustments and returns. Add trader account receipts/settlements, unrecognized goods queue, manual stock linkage and reconciliation. Add purchase financing/unallocated goods only after custody and obligation policy is approved. Build inventory audit and report export. Run an early Arabic PDF/image and Windows print spike so rendering and device integration do not surprise the release.
 
-Acceptance: stock and scrap reconcile to confirmed movements; the combined Milestone 2 and 3 slice satisfies the agreement's ledger, inventory and trader core before that stage is accepted; no trader receipt can be recognized twice; “already entered manually” requires a verified link; return/adjustment uses compensating operations. Role tests deny ungranted inventory edits. The owner can trace a displayed gram total back to operations.
+Acceptance: stock and scrap reconcile to confirmed movements; the combined Milestone 2 and 3 slice satisfies the agreement's ledger, inventory and trader core before that stage is accepted; no trader receipt can be recognized twice; “already entered manually” requires a verified link; return/adjustment uses compensating operations. Authorization tests deny inventory edits from another shop, a revoked owner, and an anonymous session. The owner can trace a displayed gram total back to operations.
 
 ## Milestone 4 — connected shop workflows
 
 Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, permission-controlled pending-send queue, and WhatsApp dispatch evidence. Add daily notes and private media through R2 presigned access. Expand interactive onboarding through these real controls and build searchable Help.
 
-Acceptance: repair goods never appear as saleable stock until an explicit authorized transition; partial debt settlements reconcile; customer summaries derive from confirmed movements; a sales employee without dispatch permission cannot access/send another user's invoices. A failed upload or PDF render remains visible and retryable without replaying the financial transaction.
+Acceptance: repair goods never appear as saleable stock until an explicit authorized transition; partial debt settlements reconcile; customer summaries derive from confirmed movements; invoice dispatch stays inside the owning shop and is unavailable to every other account. A failed upload or PDF render remains visible and retryable without replaying the financial transaction.
 
 ## Milestone 5 — administration, subscriptions and reporting
 
-Complete independent React admin with subscriber management, codes and durations, notices, help content, version policy and platform audit. Build shop analytics and daily/weekly books from reconciled projections, with employee scope and PDF exports. Implement subscription expiry notices and retention state machine only after legal/product deletion rules are approved.
+Complete independent React admin with subscriber management, codes and durations, notices, help content, version policy and platform audit. Build shop analytics and daily/weekly books from reconciled projections, with owner-only shop scope and PDF exports. Implement subscription expiry notices and retention state machine only after legal/product deletion rules are approved.
 
 Acceptance: platform admins cannot read shop financial/CRM rows through ordinary admin access; code redemption is single-use/idempotent; reports equal authoritative totals; help edits appear without a client release; expiry/restore/deletion behavior passes synthetic timeline tests.
 

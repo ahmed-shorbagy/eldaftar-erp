@@ -52,7 +52,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
         name is! String ||
         name.trim().isEmpty ||
         role is! String ||
-        !const ['owner', 'partner', 'employee'].contains(role) ||
+        role != 'owner' ||
         status is! String ||
         !const ['pending', 'active', 'expired'].contains(status) ||
         (expires != null && expires is! String)) {

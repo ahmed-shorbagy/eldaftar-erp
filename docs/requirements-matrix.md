@@ -7,10 +7,10 @@ This matrix is the long-lived work register derived from the local source docume
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
 | ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | Implemented under [ADR 0002](adr/0002-egypt-password-auth.md): domain/data/presentation password flows, reviewed server registration, development Auth settings and rollback-only RLS gates. Exact tests, visual evidence, and live Auth limitations: [validation](operations/milestone-1-validation.md). Full Milestone 1 acceptance remains open |
-| ID-02 | Shop membership and independent owner, partner, employee permissions | PAGES | 1 | SQL/RPC deployed and command tests passed on dev; staff UI pending, D10 |
+| ID-02 | One owner account per shop; no partner, employee, invitation, or per-user permission grant | PAGES; owner 2026-09-26 | 1 | [ADR 0003](adr/0003-owner-only-shop-access.md). Migration `20260926084437_owner_only_access.sql` and rollback-only tests are written. Flutter accepts only `member_role = owner`. Development apply is not yet recorded in [validation](operations/milestone-1-validation.md) |
 | ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Dev RLS and command tests passed; staging and client acceptance pending |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
-| ONB-01 | Guided path through first sale, ledger, inventory, CRM and staff controls | PAGES | 1, 4 | Planned, D22 |
+| ONB-01 | Guided path through first sale, ledger, inventory, and CRM controls | PAGES; ADR 0003 | 1, 4 | Planned, D22 |
 | ONB-02 | First-operation guide must distinguish a safe practice draft from a real posting | PAGES | 1, 2 | Planned, D22 |
 | SET-01 | Owner signup: owner name, business name, email, required Egyptian phone, governorate, and password; default Africa/Cairo | PAGES; owner 2026-09-26 | 1 | Integrated signup and protected reservation/completion implemented; canonical unique contacts, 27 server governorates, Africa/Cairo, no entitlement/trial, and retry reconciliation tested. Forward migration applied only to development. [Evidence and acceptance limits](operations/milestone-1-validation.md); D13 preserved |
 | SET-02 | Rename/archive payment methods while preserving historical identity | PAGES | 1, 2 | Planned, D24 |
@@ -21,7 +21,7 @@ This matrix is the long-lived work register derived from the local source docume
 | LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Planned, D08 |
 | LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Planned, D24 |
 | LED-03 | Sale/purchase grams and count by applicable karat, configurable card order/visibility | LEDGER | 2 | Planned |
-| LED-04 | Operation list with actor, time, invoice, notes marker and employee scope | LEDGER, PAGES | 2 | Planned, D10 |
+| LED-04 | Operation list with actor, time, invoice, and notes marker for the owning shop | LEDGER, PAGES; ADR 0003 | 2 | Planned; D10 closed, employee scope removed |
 | LED-05 | Daily text/image notes and quick actions | LEDGER, PAGES | 2, 4 | Planned |
 | LED-06 | Define mockup profit/card formula; hide profit until approved valuation or label net cash movement accurately | LEDGER mockups | 2 | Planned, D26 |
 | CAT-01 | Category-specific allowed karats and stock tracking mode, including 14/22 where applicable | LEDGER, PAGES | 2 | Planned, D03, D04 |
@@ -72,7 +72,7 @@ This matrix is the long-lived work register derived from the local source docume
 | ADM-05 | Dynamic Help content management and user announcements | PAGES | 5 | Planned |
 | ADM-06 | Broadcast message workflow for subscribers | PAGES | 5 | Planned, D19 |
 | ADM-07 | Subscriber city/country and phone with platform-specific PII permission | PAGES | 5 | Planned |
-| ADM-08 | Redeem a subscription code once for one shop; invited staff share its entitlement subject to their permissions | PAGES; owner clarification | 5 | Scope confirmed, D28; implementation planned |
+| ADM-08 | Redeem a subscription code once for one shop and its single owner account | PAGES; owner 2026-09-26 | 5 | D28 revised by [ADR 0003](adr/0003-owner-only-shop-access.md); implementation planned |
 | NTF-01 | Ongoing shop-status notices for cash, sales, purchases and scrap/sale weights | BASIC, PAGES | 5 | Planned, D19 |
 | RET-01 | Four-month post-expiry data retention and warning 30 days before deletion | PAGES | 5 | Planned, D13, D14 |
 | RET-02 | Renewal restores retained shop data | PAGES | 5 | Planned, D13 |

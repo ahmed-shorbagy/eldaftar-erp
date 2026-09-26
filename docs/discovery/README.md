@@ -17,7 +17,7 @@ BASIC, LEDGER, and PAGES name the three agreed local Word files. AGREEMENT names
 | Topic | State |
 | --- | --- |
 | Product start | **Confirmed:** build from scratch; no deployed app or legacy export |
-| Customer model | **Confirmed:** one subscription per shop covers its invited staff; each staff member retains individual role permissions (D28) |
+| Customer model | **Revised 2026-09-26:** one subscription covers one shop and its single owner account. Staff invitations and per-user grants are removed ([ADR 0003](../adr/0003-owner-only-shop-access.md)). The 2026-09-24 invited-staff reading of D28 is historical |
 | Working requirements | **Confirmed:** three local Word files; changes must update this guide and the requirements matrix |
 | External annex | Uncompared; record a named revision privately if supplied, without blocking the agreed working scope |
 | Financial examples | Draft; numerical and custody assumptions await a shop-domain expert's signature |

@@ -10,11 +10,11 @@ These rules apply to all work in this repository, including Codex and Grok Build
 - The daily ledger is the main workflow. Preserve gram precision to three decimal places, support karats 14, 18, 21, 22, and 24 where the source requirements allow, and emphasize gold weight alongside cash. Never use binary floating-point arithmetic for stored money or gold weights.
 
 ## Required entry experience
-- Authentication is required before access to shop data. Use Supabase Auth and enforce authorization in the backend through row level security and role permissions; hiding controls in the UI is insufficient. Do not embed service-role keys in clients or commit secrets.
+- Authentication is required before access to shop data. Use Supabase Auth and enforce authorization in the backend through row level security. Each shop has one owner account, and that account belongs to one shop. Do not add staff invitations, partner or employee roles, or per-user permission grants. Hiding controls in the UI is insufficient. Do not embed service-role keys in clients or commit secrets.
 - Include interactive, skippable onboarding that guides users through real app controls and can be resumed from Help. A static slideshow alone does not satisfy this requirement.
 - Give a clear success, pending, or failure state for every mutation. Disable duplicate submissions while a request is in flight, and use an idempotency key for retries.
 - Transactions that alter cash, stock, scrap, customer balances, or ledger state must be atomic on the server. Never present a financial operation as saved until the backend confirms it. Offline drafts or queued requests must remain visibly pending, with safe retry and reconciliation.
-- Confirm the net cash and inventory effects before committing financial operations. Enforce permissions for sale, purchase, expense, close-day, inventory edit, and invoice dispatch. Record actor and timestamp for changes in an audit trail that ordinary users cannot edit.
+- Confirm the net cash and inventory effects before committing financial operations. The signed-in owner is the only shop actor for sale, purchase, expense, close-day, inventory edit, and invoice dispatch. Record that actor and a server timestamp in an audit trail that ordinary users cannot edit.
 
 ## Engineering and delivery
 - Keep Flutter domain rules separate from data access and presentation. Keep the React dashboard independent of Flutter while sharing backend contracts and visual guidance.

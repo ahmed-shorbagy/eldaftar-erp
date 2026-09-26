@@ -1,9 +1,9 @@
 # Verified email sign-in and access after subscription expiry
 
-Status: partially superseded on 2026-09-26: D25 is replaced by [ADR 0002](0002-egypt-password-auth.md). D13 and D28 remain accepted. The text below records the historical decision.
+Status: partially superseded. On 2026-09-26, D25 was replaced by [ADR 0002](0002-egypt-password-auth.md). Later the same day, [ADR 0003](0003-owner-only-shop-access.md) removed staff, partner, invitation, and per-user grant scope and revised D10 and D28. D13 remains accepted. The text below records the historical decision.
 Date: 2026-09-24
 Owners: product owner
-Related requirement IDs: D25, D13, D28. D10 remains undecided. D14 retention and deletion remain separately undecided.
+Related requirement IDs: D25, D13, D28, D10. D14 retention and deletion remain separately undecided.
 Supersedes: none
 
 ## Context

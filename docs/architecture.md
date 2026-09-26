@@ -2,7 +2,7 @@
 
 ## Architecture goal and present state
 
-ElDafttar ERP is a greenfield, multi-tenant subscription service for many independent gold shops and their authorized staff. Subscription entitlements govern access separately from shop membership and role permissions. The product owner confirmed one subscription per shop under D28. Invited staff share that shop's entitlement, while their membership and role grants remain separate. A user belonging to multiple shops must pass the entitlement check for each shop independently. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. Cloudflare R2 stores private binary attachments through server-authorized access. The architecture must favor correctness of cash and grams over apparent speed.
+ElDafttar ERP is a greenfield, multi-tenant subscription service for many independent gold shops. Each shop is operated by exactly one owner account, and that account belongs to exactly one shop ([ADR 0003](adr/0003-owner-only-shop-access.md)). One subscription entitlement covers that shop and its owner under the revised D28. There is no staff invitation, partner, employee, or per-user permission grant. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. Cloudflare R2 stores private binary attachments through server-authorized access. The architecture must favor correctness of cash and grams over apparent speed.
 
 Today the repository has starter clients and connection checks only. Paths below are the target layout. No database schema, RLS, transaction RPC, or attachment endpoint should be assumed to exist.
 
@@ -31,7 +31,7 @@ Admin is a separate trust domain. A platform administrator may manage subscripti
 
 | Domain | Owns | Depends on |
 | --- | --- | --- |
-| Identity and tenancy | Shops, memberships, roles, permissions, invitations | Supabase Auth |
+| Identity and tenancy | Shops and the single owner membership | Supabase Auth |
 | Catalog and inventory | Categories, products, lots, saleable stock, scrap, counts | Identity, ledger posting contract |
 | Trading and daily ledger | Sales, purchases, tenders, business day, quick actions, returns | Catalog, customers, posting engine |
 | Accounts | Trader obligations, customer debt, external financing, settlements | Trading, posting engine |
