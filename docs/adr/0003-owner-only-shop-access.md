@@ -43,4 +43,4 @@ Old clients cannot call the removed staff RPCs. Those RPCs were already unavaila
 - Pending, active, and expired owner states remain visible through `list_my_shop_accounts`.
 - Flutter accepts only `member_role = owner` from the backend.
 
-The migration, SQL tests, and client role check are written. [The Milestone 1 validation record](../operations/milestone-1-validation.md) tracks whether development has applied the migration and whether the rollback-only suites have passed. Until that record says they passed, this ADR is accepted product scope, not applied schema evidence.
+The migration is applied to development, the rollback-only SQL suites pass, and the Flutter adapter enforces the owner role. Exact evidence and remaining release limitations are recorded in [the Milestone 1 validation record](../operations/milestone-1-validation.md).

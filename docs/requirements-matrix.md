@@ -7,7 +7,7 @@ This matrix is the long-lived work register derived from the local source docume
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
 | ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | Implemented under [ADR 0002](adr/0002-egypt-password-auth.md): domain/data/presentation password flows, reviewed server registration, development Auth settings and rollback-only RLS gates. Exact tests, visual evidence, and live Auth limitations: [validation](operations/milestone-1-validation.md). Full Milestone 1 acceptance remains open |
-| ID-02 | One owner account per shop; no partner, employee, invitation, or per-user permission grant | PAGES; owner 2026-09-26 | 1 | [ADR 0003](adr/0003-owner-only-shop-access.md). Migration `20260926084437_owner_only_access.sql` and rollback-only tests are written. Flutter accepts only `member_role = owner`. Development apply is not yet recorded in [validation](operations/milestone-1-validation.md) |
+| ID-02 | One owner account per shop; no partner, employee, invitation, or per-user permission grant | PAGES; owner 2026-09-26 | 1 | [ADR 0003](adr/0003-owner-only-shop-access.md). Migration `20260926120634_owner_only_access.sql` is applied to development and rollback-only tests pass. Flutter accepts only `member_role = owner`. See [validation](operations/milestone-1-validation.md) |
 | ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Dev RLS and command tests passed; staging and client acceptance pending |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
 | ONB-01 | Guided path through first sale, ledger, inventory, and CRM controls | PAGES; ADR 0003 | 1, 4 | Planned, D22 |
@@ -26,7 +26,7 @@ This matrix is the long-lived work register derived from the local source docume
 | LED-06 | Define mockup profit/card formula; hide profit until approved valuation or label net cash movement accurately | LEDGER mockups | 2 | Planned, D26 |
 | CAT-01 | Category-specific allowed karats and stock tracking mode, including 14/22 where applicable | LEDGER, PAGES | 2 | Planned, D03, D04 |
 | QA-01 | Deduct scrap and add cash, including split cash methods, as one atomic quick action | LEDGER | 3 | Planned |
-| EXP-01 | Expense using one or more cash methods with independent permission | LEDGER, PAGES | 2 | Planned |
+| EXP-01 | Owner records an expense using one or more cash methods | LEDGER, PAGES; ADR 0003 | 2 | Planned |
 | SALE-01 | Sale with multiple items, quantity, grams, category and karat | LEDGER, PAGES | 2 | Planned, D02 |
 | SALE-02 | Per-line or whole-invoice pricing and split tender | LEDGER, PAGES | 2 | Planned, D02 |
 | SALE-03 | Optional customer/phone and notes, net-effect confirmation | LEDGER | 2 | Planned |
@@ -52,15 +52,15 @@ This matrix is the long-lived work register derived from the local source docume
 | CRM-01 | Customer name, multiple phones, search, sorting and deletion policy | PAGES | 4 | Planned |
 | CRM-02 | Per-karat bought/sold weight statistics, transaction counts and last activity | PAGES | 4 | Planned |
 | CRM-03 | Notes, latest-note preview, open request and VIP/contact status | PAGES | 4 | Planned |
-| CRM-04 | Call and WhatsApp contact actions under data access permission | PAGES | 4 | Planned |
+| CRM-04 | Owner call and WhatsApp contact actions scoped to the shop | PAGES; ADR 0003 | 4 | Planned |
 | CRM-05 | Track whether customer number is saved on WhatsApp | PAGES | 4 | Planned |
 | CRM-06 | Direct call control with phone permission and accessibility label | PAGES | 4 | Planned |
 | DOC-01 | Confirmed immutable invoice snapshot and Arabic customizable PDF | LEDGER, PAGES | 4 | Planned, D23 |
-| DOC-02 | Pending-send queue and separate dispatch permission | LEDGER, PAGES | 4 | Planned, D11 |
+| DOC-02 | Owner pending-send queue for confirmed invoices | LEDGER, PAGES; ADR 0003 | 4 | Planned, D11 |
 | DOC-03 | Honest dispatch status, actor and timestamp | LEDGER | 4 | Planned, D11 |
 | DOC-04 | Render PDF or image and allow print, receipt and share after confirmation | LEDGER mockups | 4 | Planned |
 | RPT-01 | Daily/weekly books and PDF exports by selected period | PAGES | 5 | Planned, D18 |
-| RPT-02 | Sales/purchases grams and money by employee and period | PAGES | 5 | Planned, D18 |
+| RPT-02 | Sales/purchases grams and money by period | PAGES; ADR 0003 | 5 | Planned, D18 |
 | RPT-03 | Notes and expenses associated with a selected historical business day | PAGES | 5 | Planned, D08 |
 | RPT-04 | Weekly PDF grouped by product category and karat | PAGES | 5 | Planned, D18 |
 | HELP-01 | Searchable FAQ with categories/media, updated by admin | PAGES | 4, 5 | Planned |

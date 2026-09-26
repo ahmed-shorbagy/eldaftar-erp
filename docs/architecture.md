@@ -36,7 +36,7 @@ Admin is a separate trust domain. A platform administrator may manage subscripti
 | Trading and daily ledger | Sales, purchases, tenders, business day, quick actions, returns | Catalog, customers, posting engine |
 | Accounts | Trader obligations, customer debt, external financing, settlements | Trading, posting engine |
 | Repairs | Intake, custody, completion, handover, fees | Customers, catalog, posting engine |
-| CRM and communication | Customers, contact methods, notes, requests, invoices, dispatch queue | Trading, permissions, R2 |
+| CRM and communication | Customers, contact methods, notes, requests, invoices, dispatch queue | Trading, owner access, R2 |
 | Reports and analytics | Reconciled read models and exports | Confirmed operations/postings |
 | Subscriptions and platform admin | Entitlements, codes, retention, notices, help content | Identity, scheduled jobs |
 | Audit and operations | Append-only audit, reconciliation, monitoring, backup and restore | All mutation boundaries |
@@ -53,7 +53,7 @@ app/
       design/              tokens, responsive rules, theme, RTL components
       domain/              exact units, errors, result types, identifiers
       data/                Supabase transport, local draft store, sync cursor
-      security/            auth state and permission presentation
+      security/            auth state and owner-access presentation
     features/
       onboarding/
       daily_ledger/
@@ -96,7 +96,7 @@ A feature package should contain domain entities/value objects, use cases, repos
 
 ## Command boundary and example
 
-A sale follows one state machine: local draft -> reviewed -> submitting -> confirmed, pending reconciliation, or rejected. The review shows item count, grams by karat, money by method, change, and stock/cash effects. The client sends a UUID idempotency key unique within the shop, expected business-day version and command payload to one protected PostgreSQL RPC. The function checks the JWT, membership and permission, validates all units and category-karat rules, locks the relevant day and balance/lot rows, checks stock and tender constraints, writes the immutable operation plus postings and audit event in one PostgreSQL transaction, and returns a stable result identifier. A repeat with the same key and identical payload returns the original result. The same key with a different payload is rejected.
+A sale follows one state machine: local draft -> reviewed -> submitting -> confirmed, pending reconciliation, or rejected. The review shows item count, grams by karat, money by method, change, and stock/cash effects. The client sends a UUID idempotency key unique within the shop, expected business-day version and command payload to one protected PostgreSQL RPC. The function checks the JWT, sole-owner association and active entitlement, validates all units and category-karat rules, locks the relevant day and balance/lot rows, checks stock and tender constraints, writes the immutable operation plus postings and audit event in one PostgreSQL transaction, and returns a stable result identifier. A repeat with the same key and identical payload returns the original result. The same key with a different payload is rejected.
 
 A client timeout leaves the sale in pending reconciliation. The UI queries by idempotency key; it never submits a new sale key merely because the first response was lost. Realtime events are hints to refresh a server-scoped feed, not the source of truth. The client records a per-shop server sequence/cursor, re-fetches gaps after reconnect, and invalidates affected summaries. This also handles missed events on Windows or mobile sleep.
 
@@ -108,7 +108,7 @@ Store event and audit timestamps in UTC from the server. Each shop has an IANA t
 
 ## Security model
 
-Supabase Auth proves identity. Shop membership and role/permission grants decide data access. RLS filters every tenant-owned table by shop ID and user entitlement. Server command functions recheck authorization and must not accept a caller-supplied actor ID. Employee row visibility is scoped to their own operations unless a distinct aggregate/report permission is granted. Platform admin claims are separate from shop roles. Sensitive customer phone numbers, invoices and media require explicit permissions.
+Supabase Auth proves identity. The one-to-one owner association, revocation state, and shop entitlement decide data access. RLS filters every tenant-owned table by shop ID and owner identity. Server command functions recheck authorization and derive the actor from `auth.uid()`; they never accept a caller-supplied actor ID. Platform-admin status is separate and grants no ordinary shop access. Sensitive customer phone numbers, invoices, and media stay scoped to the owning shop.
 
 Use narrow SECURITY DEFINER functions only for protected commands and authorization helpers; fix search_path, use qualified table names, and revoke public execute. Keep table policies simple enough to test. Ordinary clients cannot write postings, audit events, subscription entitlements, or dispatch evidence directly. Audit events capture actor, shop, command, before/after references, server time, and correlation ID. Database roles and backup controls should prevent ordinary users from editing audit history.
 
@@ -116,13 +116,13 @@ For R2, use a private bucket. An authenticated Edge Function validates the user 
 
 ## Read models and performance
 
-The operation/posting journal is authoritative. Shop/day summaries, customer weight statistics, employee metrics and inventory balance cards are derived read models. Open-day cash/gram cards must be computed from a synchronous scoped view or updated in the same transaction as postings, so a confirmed sale appears immediately. Slower analytics may use a transaction-safe outbox; label their freshness. Every projection has a rebuild procedure and reconciliation query. Index the tenant plus business day, created sequence, customer, trader, product and due-date access paths. Paginate feeds with server cursor, not client-side full-table loading.
+The operation/posting journal is authoritative. Shop/day summaries, customer weight statistics, operation metrics and inventory balance cards are derived read models. Open-day cash/gram cards must be computed from a synchronous scoped view or updated in the same transaction as postings, so a confirmed sale appears immediately. Slower analytics may use a transaction-safe outbox; label their freshness. Every projection has a rebuild procedure and reconciliation query. Index the tenant plus business day, created sequence, customer, trader, product and due-date access paths. Paginate feeds with server cursor, not client-side full-table loading.
 
 Do not use a push notification as an accounting event. Notifications can be delayed or duplicated. Choose and document a concrete scheduler (Supabase-supported cron, Edge scheduled invocation, or a separately operated worker) before reminders and retention go live. Its jobs create reminder and subscription notices with idempotency and record delivery attempts. A forced app update policy needs a safe rollout and a minimum supported version per platform; it cannot silently block users from retrieving their own records during an outage.
 
 ## Invoice and communication path
 
-Confirmed transactions produce a versioned invoice snapshot and Arabic PDF. Rendering may run asynchronously, with a visible pending state. The pending-send queue holds invoices whose creator cannot dispatch and any authorized user's unsent invoices. Dispatch permission is separate from sale permission. A WhatsApp deep link creates a handoff record; unless a provider callback or explicit authorized user attestation exists, mark the outcome as handed off or unverified, not delivered. Log who initiated or confirmed dispatch and when. Repeated attempts must not change the financial transaction.
+Confirmed transactions produce a versioned invoice snapshot and Arabic PDF. Rendering may run asynchronously, with a visible pending state. The pending-send queue holds the owner's unsent invoices. A WhatsApp deep link creates a handoff record; unless a provider callback or explicit owner attestation exists, mark the outcome as handed off or unverified, not delivered. Log the owner actor and server timestamp. Repeated attempts must not change the financial transaction.
 
 ## Operational design
 
@@ -132,6 +132,6 @@ Record structured, privacy-minimized server events with correlation IDs and idem
 
 ## Evolution constraints
 
-Use vertical releases through the real ledger flow before building broad screens. New modules must define their state machine, posting effects, permissions, audit event, sync behavior, tests and UI states before implementation. A feature flag may hide unfinished functionality but must not be the security boundary. The first sale command cannot ship before a minimum category, lot/count and scrap model can post its inventory effect atomically; richer inventory screens may follow. Use additive migrations, versioned command payloads, and tolerant clients for mobile release overlap. Backfills and projection rebuilds must be resumable and idempotent.
+Use vertical releases through the real ledger flow before building broad screens. New modules must define their state machine, posting effects, owner-access boundary, audit event, sync behavior, tests and UI states before implementation. A feature flag may hide unfinished functionality but must not be the security boundary. The first sale command cannot ship before a minimum category, lot/count and scrap model can post its inventory effect atomically; richer inventory screens may follow. Use additive migrations, versioned command payloads, and tolerant clients for mobile release overlap. Backfills and projection rebuilds must be resumable and idempotent.
 
 See database-design.md for the proposed relational model and delivery-plan.md for release gates.

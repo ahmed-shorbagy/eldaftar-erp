@@ -14,11 +14,11 @@ A reservation is not a membership, grant, or entitlement. `reserved_user_id` has
 
 ## Owner-only access — 2026-09-26
 
-[ADR 0003](adr/0003-owner-only-shop-access.md) removes staff invitations and per-user grants. The forward migration `supabase/migrations/20260926084437_owner_only_access.sql` drops `shop_invitations`, `shop_member_grants`, the staff RPCs, `private.can_manage_staff`, and `private.has_shop_permission`. `shop_memberships.role` is constrained to `owner`, with one membership per shop and one shop per Auth user. `revoked_at` still suspends that owner. `list_my_shop_accounts` returns `member_role = owner`. Future shop commands authorize the signed-in, non-revoked owner through `private.is_active_shop_member` and `private.can_write_shop`; they do not consult a permission grant. Development application evidence belongs in [milestone-1-validation.md](operations/milestone-1-validation.md).
+[ADR 0003](adr/0003-owner-only-shop-access.md) removes staff invitations and per-user grants. The applied forward migration `supabase/migrations/20260926120634_owner_only_access.sql` drops `shop_invitations`, `shop_member_grants`, the staff RPCs, `private.can_manage_staff`, and `private.has_shop_permission`. `shop_memberships.role` is constrained to `owner`, with one membership per shop and one shop per Auth user. `revoked_at` still suspends that owner. `list_my_shop_accounts` returns `member_role = owner`. Future shop commands authorize the signed-in, non-revoked owner through `private.is_active_shop_member` and `private.can_write_shop`; they do not consult a permission grant. Development evidence is recorded in [milestone-1-validation.md](operations/milestone-1-validation.md).
 
 ## Status and design principles
 
-The financial model below is proposed. Identity migrations through Egypt owner registration are implemented and tested on the development Supabase project. The owner-only migration is written and is not yet recorded as applied. Clean local and staging replay remain open. Validate the unresolved business rules in decisions.md before writing irreversible migrations. All authoritative cash, gold, quantity, obligation, and business-day effects are produced by server transactions. A successful client response is evidence of a committed operation; a timeout is an unknown outcome resolved by idempotency lookup. Each tenant-owned row carries shop_id and is protected by RLS.
+The financial model below is proposed. Identity migrations through the owner-only access revision are implemented and tested on the development Supabase project. Clean local and staging replay remain open. Validate the unresolved business rules in decisions.md before writing irreversible migrations. All authoritative cash, gold, quantity, obligation, and business-day effects are produced by server transactions. A successful client response is evidence of a committed operation; a timeout is an unknown outcome resolved by idempotency lookup. Each tenant-owned row carries shop_id and is protected by RLS.
 
 Use integer minor currency units and integer milligrams, never binary floating point. For EGP, 1 pound is 100 minor units; 1 gram is 1,000 milligrams. Persist ISO currency code and currency exponent or enforce one approved shop currency. Conversions and display rounding are explicit at the boundary. PostgreSQL numeric can be used for derived rates/prices where needed, but final postings use integer units. Counts are integers. Karat is a constrained small integer in 14, 18, 21, 22, 24, with category restrictions.
 
@@ -28,7 +28,7 @@ The ordered migrations through `20260924141455_list_my_shop_accounts_status.sql`
 
 `20260926075930_egypt_owner_password_registration.sql` is the ninth applied development migration. With it, contact-confirmation timestamps stop authorizing access, legacy shop setup and both invitation RPCs stop being API-callable, and new owner profiles go through the reservation RPCs above.
 
-`20260926084437_owner_only_access.sql` is the tenth identity migration. It removes the dormant invitation and grant surface and constrains each shop to one owner account. Financial groups below remain proposed; the worked posting examples are still unsigned. Clean local and staging replay remain unverified.
+`20260926120634_owner_only_access.sql` is the tenth applied identity migration. It removes the dormant invitation and grant surface and constrains each shop to one owner account. Financial groups below remain proposed; the worked posting examples are still unsigned. Clean local and staging replay remain unverified.
 
 ## Entity groups
 
@@ -45,9 +45,9 @@ Names are illustrative; migrations should choose stable naming once contracts ar
 | Inventory | inventory_receipts, recognition_allocations, stock_counts, stock_adjustments | receipt can be held unrecognized, then linked once to stock/scrap/custody allocation; manual stock entry must link to receipt |
 | Accounts | traders, trader_transactions, obligations, obligation_settlements, financing_sources | obligations carry direction, commodity/currency, counterparty, due state; settlements post through journal |
 | Repairs | repairs, repair_events, repair_media | repair state and custody movement linked to customer and operation; delivery requires authorized transition |
-| CRM | customers, customer_phones, customer_notes, customer_requests, contact_consents | unique normalized phone per shop only if approved; notes and contact data scoped by permission |
+| CRM | customers, customer_phones, customer_notes, customer_requests, contact_consents | unique normalized phone per shop only if approved; notes and contact data scoped to the owning shop |
 | Documents | invoice_snapshots, invoice_render_jobs, invoice_dispatches, dispatch_attempts, attachments | invoice snapshot freezes confirmed transaction details; dispatch and media are separate state machines |
-| Reports and messages | report_jobs, notification_jobs, delivery_attempts, projection_cursors | generated outputs reference scope and permission; retries have stable keys |
+| Reports and messages | report_jobs, notification_jobs, delivery_attempts, projection_cursors | generated outputs reference the owning shop; retries have stable keys |
 | Subscriptions and content | plans, subscription_codes, code_redemptions, subscriptions, entitlement_events, retention_cases, help_topics, help_articles, release_policies | subscription belongs to one shop and its single owner account; redemption is idempotent and audited; retention case tracks expiry, warning, restore, deletion eligibility |
 | Audit and integration | audit_events, outbox_events, projection_versions, reconciliation_runs | append-only audit/outbox; outbox event references committed operation; projections record last sequence |
 
@@ -68,7 +68,7 @@ The server must enforce:
 - a lot and cash account belong to the same shop as the operation;
 - no confirmed operation is updated or deleted; corrections use linked compensating operations;
 - materialized balance projections equal the sum of postings through their recorded sequence;
-- day close blocks or explicitly routes later posting to a new/reopened day under controlled permission;
+- day close blocks or explicitly routes later posting to a new/reopened day through an audited owner command;
 - one idempotency key unique within a shop plus payload hash yields one immutable outcome; actor_id is recorded but is not part of uniqueness or status lookup.
 
 Use transaction-level locking on business-day state and affected accounts/lots, or equivalent serializable logic with retry. Define lock order to prevent deadlocks. Enforce invariants with constraints/triggers and protected server functions, not only application code. Each financial command is a versioned, narrowly granted PostgreSQL SECURITY DEFINER RPC with a fixed search_path, executing as one database transaction. Lock in a documented order, such as business day, cash accounts by ID, then inventory lots by ID, and retry only safe serialization/deadlock failures under the same idempotency key. An Edge Function that makes several independent API writes is insufficient.
@@ -89,7 +89,7 @@ A trader receipt creates the appropriate trader gold/cash obligation and receive
 
 ### Day close
 
-The day close command takes an expected day version and counted cash by method plus counted gold by bucket/karat, compares to authoritative projections, stores discrepancies and notes, and closes the day atomically. The owner or delegated closer can review and sign. A discrepancy should generate a separately approved adjustment operation, not silently overwrite balances. Closing a day after midnight uses its business_day_id and shop time zone. Reopening, if allowed, requires elevated permission and audit, with report versioning.
+The day close command takes an expected day version and counted cash by method plus counted gold by bucket/karat, compares to authoritative projections, stores discrepancies and notes, and closes the day atomically. The owner can review and sign. A discrepancy should generate a separately approved adjustment operation, not silently overwrite balances. Closing a day after midnight uses its business_day_id and shop time zone. Reopening, if allowed, requires an explicit owner command and audit, with report versioning.
 
 ### Repair and debts
 
@@ -107,7 +107,7 @@ Audit rows are append-only: revoke UPDATE and DELETE from ordinary and platform 
 
 ## Projection, indexes and query design
 
-Create read models for business-day cards, cash balance by method, stock by product/karat/lot, scrap by karat, trader and customer balances, CRM weight summaries, employee metrics and subscription state. Open-day balance cards use a synchronous scoped view or same-transaction update so a confirmed operation appears immediately. Other projections record the latest applied shop sequence. Rebuild from confirmed journals and source records; compare checksums/totals in scheduled reconciliation. The UI should fetch a scoped snapshot then follow cursor events; event subscription alone is not complete sync.
+Create read models for business-day cards, cash balance by method, stock by product/karat/lot, scrap by karat, trader and customer balances, CRM weight summaries, operation metrics and subscription state. Open-day balance cards use a synchronous scoped view or same-transaction update so a confirmed operation appears immediately. Other projections record the latest applied shop sequence. Rebuild from confirmed journals and source records; compare checksums/totals in scheduled reconciliation. The UI should fetch a scoped snapshot then follow cursor events; event subscription alone is not complete sync.
 
 Likely indexes include (shop_id, sequence), (shop_id, business_day_id, sequence), (shop_id, actor_id, sequence), (shop_id, customer_id, sequence), (shop_id, trader_id, sequence), (shop_id, product_id, karat), (shop_id, due_at), and unique (shop_id, idempotency_key). Add partial indexes for open days, pending invoice dispatch, unrecognized trader receipts, and active subscriptions. Validate choices with actual query plans and production-like synthetic data before retaining indexes.
 
@@ -125,7 +125,7 @@ Backups must cover Postgres and R2 object references consistently enough to rest
 
 ## Contract and test strategy
 
-Define command schemas and generated client types from the backend contract. Version incompatible request/response changes. Contract tests exercise each command's success, validation error, permission denial, timeout/idempotent replay, concurrent submission, closed-day race, and cross-shop reference. Property tests assert journal balance and projection equality over generated sequences. RLS tests run as real authenticated roles against an isolated database. Restore and retention tests use synthetic tenants. UI tests verify Arabic errors and pending/reconciliation states, with no mock-only claim of financial correctness.
+Define command schemas and generated client types from the backend contract. Version incompatible request/response changes. Contract tests exercise each command's success, validation error, owner-access denial, timeout/idempotent replay, concurrent submission, closed-day race, and cross-shop reference. Property tests assert journal balance and projection equality over generated sequences. RLS tests run as real authenticated roles against an isolated database. Restore and retention tests use synthetic tenants. UI tests verify Arabic errors and pending/reconciliation states, with no mock-only claim of financial correctness.
 
 See architecture.md for runtime boundaries and decisions.md for unresolved policy choices.
 

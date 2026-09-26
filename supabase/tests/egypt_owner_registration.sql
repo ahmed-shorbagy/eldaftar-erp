@@ -247,7 +247,7 @@ begin
   ) as leftover;
   if v_remaining is not null then
     raise exception
-      'removed staff surface still exists (%). Apply migration 20260926084437_owner_only_access.sql before this test',
+      'removed staff surface still exists (%). Apply migration 20260926120634_owner_only_access.sql before this test',
       v_remaining;
   end if;
 

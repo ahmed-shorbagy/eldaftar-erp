@@ -32,24 +32,58 @@ $owner_only_preflight$;
 
 drop policy if exists shop_memberships_select_self_or_staff_manager
   on public.shop_memberships;
-drop policy if exists shop_member_grants_select_self_or_staff_manager
-  on public.shop_member_grants;
+drop policy if exists shop_memberships_select_self
+  on public.shop_memberships;
 
-drop function if exists public.create_staff_invitation(uuid, text, text, uuid, uuid) cascade;
-drop function if exists public.accept_staff_invitation(uuid) cascade;
-drop function if exists public.set_staff_permission(uuid, uuid, text, boolean, uuid) cascade;
-drop function if exists public.revoke_staff_member(uuid, uuid, uuid) cascade;
-drop function if exists private.can_manage_staff(uuid) cascade;
-drop function if exists private.has_shop_permission(uuid, text) cascade;
+do $drop_grant_policy$
+begin
+  if to_regclass('public.shop_member_grants') is not null then
+    execute 'drop policy if exists shop_member_grants_select_self_or_staff_manager on public.shop_member_grants';
+  end if;
+end;
+$drop_grant_policy$;
 
-drop table if exists public.shop_invitations cascade;
-drop table if exists public.shop_member_grants cascade;
+drop function if exists public.create_staff_invitation(uuid, text, text, uuid, uuid);
+drop function if exists public.accept_staff_invitation(uuid);
+drop function if exists public.set_staff_permission(uuid, uuid, text, boolean, uuid);
+drop function if exists public.revoke_staff_member(uuid, uuid, uuid);
+drop function if exists private.can_manage_staff(uuid);
+drop function if exists private.has_shop_permission(uuid, text);
+
+drop table if exists public.shop_invitations;
+drop table if exists public.shop_member_grants;
 
 alter table public.shop_memberships
-  drop constraint shop_memberships_role_check,
-  add constraint shop_memberships_role_check check (role = 'owner'),
-  add constraint shop_memberships_one_owner_per_shop unique (shop_id),
-  add constraint shop_memberships_one_shop_per_user unique (user_id);
+  drop constraint if exists shop_memberships_role_check;
+
+do $owner_only_constraints$
+begin
+  if not exists (
+    select 1 from pg_catalog.pg_constraint
+    where conrelid = 'public.shop_memberships'::regclass
+      and conname = 'shop_memberships_role_check'
+  ) then
+    alter table public.shop_memberships
+      add constraint shop_memberships_role_check check (role = 'owner');
+  end if;
+  if not exists (
+    select 1 from pg_catalog.pg_constraint
+    where conrelid = 'public.shop_memberships'::regclass
+      and conname = 'shop_memberships_one_owner_per_shop'
+  ) then
+    alter table public.shop_memberships
+      add constraint shop_memberships_one_owner_per_shop unique (shop_id);
+  end if;
+  if not exists (
+    select 1 from pg_catalog.pg_constraint
+    where conrelid = 'public.shop_memberships'::regclass
+      and conname = 'shop_memberships_one_shop_per_user'
+  ) then
+    alter table public.shop_memberships
+      add constraint shop_memberships_one_shop_per_user unique (user_id);
+  end if;
+end;
+$owner_only_constraints$;
 
 comment on table public.shop_memberships is
   'Owner-account association. Exactly one owner Auth user per shop and one shop per Auth user. revoked_at suspends that owner account.';

@@ -46,7 +46,7 @@ The [Milestone 0 discovery packet](discovery/README.md) records the repository a
 
 Inventory the intended screens and workflows from the agreed three local Word files. The product owner confirmed that there is no deployed application or historical migration to plan. Define how a newly subscribed shop creates its single owner account and enters verified opening balances when applicable. Compare the inventory with product-scope.md. Confirm which embedded mockups are approved design targets. Resolve the highest-impact decisions in decisions.md: currency/price/workmanship, custody and financing, business day, stock valuation/tracking, WhatsApp evidence and data deletion. Produce synthetic sample sales, purchases, trader receipts and close-day cases with expected cash and grams.
 
-Acceptance: a signed scope matrix maps every requirement to an owner, screen, server command, permission and test. A screen-by-screen scope inventory assigns build, defer, or change, and a new-shop opening-balance process is designed. No private source document is copied to Git. A shop-domain expert signs worked examples for one sale, one three-party financed purchase, one trader receipt and one day close, showing cash by method, grams by karat, count, custody, ownership and obligations.
+Acceptance: a signed scope matrix maps every requirement to an owner, screen, server command, owner-access boundary and test. A screen-by-screen scope inventory assigns build, defer, or change, and a new-shop opening-balance process is designed. No private source document is copied to Git. A shop-domain expert signs worked examples for one sale, one three-party financed purchase, one trader receipt and one day close, showing cash by method, grams by karat, count, custody, ownership and obligations.
 
 ## Milestone 1 — platform and design foundation
 
@@ -58,7 +58,7 @@ Acceptance: anonymous, cross-shop, and revoked-owner access fails at the databas
 
 Implement integer money/gram/count value objects, a minimum catalog with category-karat rules, stock lots/counts, scrap buckets, stock constraints and opening balances, then business-day identity, account/posting model, command envelope, idempotency registry, audit/outbox and synchronous open-day balance cards. Deliver sale and purchase commands with multiple lines and tenders, customer/notes, review of effects, and reconciliation after timeout. Implement daily ledger feed, configurable summary visibility/order, actor/time display, quick cash transfer, expense and manual close after the product rules are approved.
 
-Acceptance: simultaneous retries produce one confirmed operation; a lost response is reconciled by key; all cash, gram and required count postings balance and stock projections match; crafted permission bypass is denied. A confirmed sale changes cash and stock together. A failed purchase leaves no partial cash or stock changes. Network fault injection covers duplicate tap, timeout after commit and reconnect gap catch-up. Owner can close a selected open business day after midnight. Flutter and backend integration tests cover the real command boundary.
+Acceptance: simultaneous retries produce one confirmed operation; a lost response is reconciled by key; all cash, gram and required count postings balance and stock projections match; crafted owner-access bypass is denied. A confirmed sale changes cash and stock together. A failed purchase leaves no partial cash or stock changes. Network fault injection covers duplicate tap, timeout after commit and reconnect gap catch-up. Owner can close a selected open business day after midnight. Flutter and backend integration tests cover the real command boundary.
 
 ## Milestone 3 — stock, scrap and trader accounts
 
@@ -68,7 +68,7 @@ Acceptance: stock and scrap reconcile to confirmed movements; the combined Miles
 
 ## Milestone 4 — connected shop workflows
 
-Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, permission-controlled pending-send queue, and WhatsApp dispatch evidence. Add daily notes and private media through R2 presigned access. Expand interactive onboarding through these real controls and build searchable Help.
+Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, an owner-scoped pending-send queue, and WhatsApp dispatch evidence. Add daily notes and private media through R2 presigned access. Expand interactive onboarding through these real controls and build searchable Help.
 
 Acceptance: repair goods never appear as saleable stock until an explicit authorized transition; partial debt settlements reconcile; customer summaries derive from confirmed movements; invoice dispatch stays inside the owning shop and is unavailable to every other account. A failed upload or PDF render remains visible and retryable without replaying the financial transaction.
 
@@ -90,7 +90,7 @@ After launch, monitor error rate, pending command age, projection drift, backup 
 
 ## Definition of done for each feature
 
-A feature is complete only when: the product rule and failure states are explicit; backend permission and RLS are tested; the transaction is atomic and idempotent if financial; audit and sync paths work; Arabic RTL, both themes, accessibility and responsive layouts are reviewed; domain, integration and critical UI tests pass; a staging demonstration uses real backend behavior; documentation and the scope matrix are updated; and no prototype control is presented as operational.
+A feature is complete only when: the product rule and failure states are explicit; backend owner access and RLS are tested; the transaction is atomic and idempotent if financial; audit and sync paths work; Arabic RTL, both themes, accessibility and responsive layouts are reviewed; domain, integration and critical UI tests pass; a staging demonstration uses real backend behavior; documentation and the scope matrix are updated; and no prototype control is presented as operational.
 
 Before reporting a milestone complete, rerun the actual commands for affected packages. Current baseline from README.md: in app, flutter analyze, flutter test, flutter build windows, flutter build apk; in admin, npm run lint, npm test, npm run build; in supabase, connection checks exist but are network checks, not schema/RLS tests. Add database test/migration gates before the first financial release. iOS build requires a macOS signing environment and owner account; do not claim it passed from Windows.
 
