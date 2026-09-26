@@ -1,5 +1,16 @@
 # Long-term delivery plan
 
+## Milestone 1 policy revision and bounded implementation queue — 2026-09-26
+
+Follow [ADR 0002](adr/0002-egypt-password-auth.md) for the Egypt-only authentication policy. This update changes documentation and planning only. Existing verified-email implementations and their earlier validation do not satisfy the new policy.
+
+1. Define and implement the protected registration contract: one Supabase Auth user can sign in with email/password or Egyptian phone/password; normalize and enforce unique identifiers; require owner name, business name, email, phone, governorate, and password. Validate Egyptian governorates, default the shop to `Africa/Cairo`, and keep passwords only in Auth. Design recovery from partial Auth/profile creation before calling registration complete.
+2. Coordinate forward backend changes, Auth project configuration, Flutter adapters, and the React authentication gate. Remove email-confirmation prerequisites without weakening RLS, session expiry, membership revocation, or platform-admin checks. No email verification, OTP, or SMS confirmation is part of registration or login. Review compatibility with older clients before rollout. Explain any verified schema blocker before applying a migration.
+3. Implement Arabic RTL Flutter login/signup with domain-owned interfaces, separate Supabase adapters and presentation. Reuse theme persistence and tokens. Keep one setup idempotency key across retries of the same request, disable duplicate submission, and show pending, confirmed, and failure states. Confirm success only after server confirmation. Preserve shop selection, pending activation without a trial, and expired read-only access. Review narrow mobile and Windows desktop in both themes.
+4. Verify both login identifiers return the same user ID; wrong passwords, duplicate/invalid identifiers, missing signup fields, invalid governorates, partial registration failure, timeout/retry, session expiry, and membership loss. Prove no verification or OTP is required or sent. Re-run format, analysis, tests, Android/Windows builds and rollback-only backend authorization tests; record exact evidence in the requirements matrix and validation record.
+
+Staff invitation/grant screens remain a following slice. Invitation binding and password recovery require their own reviewed design because unverified contacts cannot establish ownership. Financial posting remains outside this queue. Milestone 1 acceptance also retains its environment, staging, onboarding, prototype, and platform gates below.
+
 ## Planning rule
 
 This is a dependency and acceptance plan, not a promise that all scope fits a fixed calendar. The agreement describes four broad stages over twelve work weeks: interactive design, transactional core, remaining modules/dashboard, and test/release. Keep those stages visible for stakeholder tracking. Estimate each milestone with the actual team, approved designs, new-shop onboarding policy, integration availability, and acceptance evidence. Do not mark a stage complete because its week ended.

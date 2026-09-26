@@ -6,13 +6,13 @@ This matrix is the long-lived work register derived from the local source docume
 
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
-| ID-01 | Authenticate before any shop data | PAGES, AGREEMENT | 1 | Verified-email gate and shop selection wired in Flutter; widget session-expiry test passes; live session test pending |
+| ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | D25 revised in [ADR 0002](adr/0002-egypt-password-auth.md); implementation pending. Existing verified-email gate is superseded; historical tests do not verify the new policy |
 | ID-02 | Shop membership and independent owner, partner, employee permissions | PAGES | 1 | SQL/RPC deployed and command tests passed on dev; staff UI pending, D10 |
 | ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Dev RLS and command tests passed; staging and client acceptance pending |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
 | ONB-01 | Guided path through first sale, ledger, inventory, CRM and staff controls | PAGES | 1, 4 | Planned, D22 |
 | ONB-02 | First-operation guide must distinguish a safe practice draft from a real posting | PAGES | 1, 2 | Planned, D22 |
-| SET-01 | Shop name, phone, owner display name and time zone | PAGES | 1 | Flutter Arabic setup/selector implemented and widget-tested (pending, active, expired, failure, retry); server-status RPC applied and rollback-tested on development; live Flutter acceptance pending |
+| SET-01 | Owner signup: owner name, business name, email, required Egyptian phone, governorate, and password; default Africa/Cairo | PAGES; owner 2026-09-26 | 1 | Revised D25 accepted; integrated signup, governorate persistence, dual-identifier identity and required-field validation pending. Existing shop setup/selector and status tests cover the earlier contract only; pending/expired entitlement policy preserved |
 | SET-02 | Rename/archive payment methods while preserving historical identity | PAGES | 1, 2 | Planned, D24 |
 | SET-03 | Invoice logo, slogan, address, color and template choices | LEDGER mockups, PAGES | 4 | Planned, D12 |
 | SET-04 | Custom invoice/WhatsApp message text with validated placeholders | PAGES | 4 | Planned |

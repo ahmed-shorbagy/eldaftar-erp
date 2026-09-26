@@ -1,5 +1,15 @@
 # Database design and transaction model
 
+## Planned Egypt identity revision — 2026-09-26
+
+[ADR 0002](adr/0002-egypt-password-auth.md) replaces the verified-email policy described in the implemented draft below. No schema, Auth configuration, or client change is made by this documentation update.
+
+The target uses one Supabase Auth user with unique normalized email and Egyptian phone identifiers, both supporting password login without verification, OTP, or SMS confirmation. Passwords and password hashes remain exclusively in Auth. Protected registration persists owner/business names, required contact fields and a validated Egyptian governorate; default time zone is `Africa/Cairo`. Select the storage and RPC contract during implementation; do not use mutable user metadata for authorization.
+
+Audit every email-confirmation prerequisite in RPCs, RLS helpers, Flutter and React. Replace it in a coordinated rollout while retaining actor checks, grants, platform-admin isolation and session/member revocation. Review required forward migrations and old-client compatibility before applying changes. Auth creation and shop/profile persistence can cross service boundaries: define stable retry keys, reconciliation and failure recovery so a partial registration never appears complete or creates duplicate shops. Do not claim cross-service atomicity without evidence.
+
+Existing development tests verify the earlier contract, including its verified-email checks. New tests must cover both identifiers resolving to the same user, uniqueness, Egyptian validation, required fields, no confirmation/OTP, partial failure/retry and authorization boundaries. New shops still have no entitlement or trial; pending and expired rules remain unchanged. Staff invitation identity binding and password recovery require later design.
+
 ## Status and design principles
 
 The financial model below is proposed; the identity migrations are implemented and tested on the development Supabase project; clean local and staging replay remain open. Validate the unresolved business rules in decisions.md before writing irreversible migrations. All authoritative cash, gold, quantity, obligation, and business-day effects are produced by server transactions. A successful client response is evidence of a committed operation; a timeout is an unknown outcome resolved by idempotency lookup. Each tenant-owned row carries shop_id and is protected by RLS.

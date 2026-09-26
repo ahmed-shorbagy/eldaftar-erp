@@ -1,5 +1,13 @@
 # Product scope and acceptance map
 
+## Accepted Egypt registration policy — 2026-09-26
+
+The product owner revised D25 in [ADR 0002](adr/0002-egypt-password-auth.md). The product is Egypt-only. Login accepts email and password or Egyptian phone and password on the same account, without email verification, OTP, or SMS confirmation. Owner signup requires owner name, business name, email, phone, Egyptian governorate, and password. The default shop time zone is `Africa/Cairo`.
+
+Normalize Egyptian phone identifiers consistently and validate governorates against an Egyptian list. Passwords belong only to Supabase Auth. Contact identifiers are not proof of ownership and must not confer membership or grants. New shops remain pending activation without a trial; expired shops retain authorized read/export access and reject writes. Recovery and staff invitation binding need a separate design.
+
+This is an accepted scope change, not implemented functionality. Existing verified-email client and database behavior must be replaced in a reviewed Milestone 1 slice.
+
 ## Purpose and source key
 
 This is the scope inventory for ElDafttar ERP. It is not a claim that any workflow already works. The three root Word files are abbreviated here as BASIC (core problems and goals), LEDGER (daily ledger detail and embedded UI concepts), and PAGES (page-by-page requirements). AGREEMENT means the technical scope in the root PDF, excluding its private and commercial details. If wording differs, preserve the original files for the product owner to decide; record the decision in decisions.md. The three local Word files are the agreed initial working requirements for this greenfield, multi-customer subscription service. The product owner confirmed there is no deployed legacy application to inventory or migrate. The agreement links to an external annex that has not been retrieved here; D27 tracks a private comparison for the contract record without blocking work from the agreed local files. Future additions or changes are recorded in decisions.md and the requirements matrix.

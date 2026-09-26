@@ -1,5 +1,13 @@
 # Milestone 1 identity validation
 
+## Policy revision record — 2026-09-26
+
+The owner accepted [ADR 0002](../adr/0002-egypt-password-auth.md): Egypt-only email/password or phone/password login without email verification, OTP, or SMS confirmation. Signup requires owner name, business name, email, phone, governorate, and password, with `Africa/Cairo` as the default shop time zone. This task updates docs and the plan only; executable code, schema and remote Auth configuration remain unchanged.
+
+The evidence below records the earlier verified-email implementation. It does not establish acceptance of the revised login/signup policy. New implementation gates must demonstrate both identifiers return the same Auth user; all required fields and Egyptian phone/governorate validation; wrong-password and duplicate-identifier rejection; no verification/OTP; partial signup failure and idempotent retry; session expiry and membership loss; pending/active/expired access; Arabic RTL mobile/desktop in both themes. Re-run Dart format, Flutter analysis/tests, Android and Windows builds, and backend authorization tests for that implementation.
+
+Documentation gate evidence for this revision: Grok 4.7 drafted ADR 0002; Codex reviewed and corrected the decision and synchronized the scope, decisions, delivery queue, database plan and requirements matrix. `git diff --check` passed. A local Python check confirmed that all nine changed files are Markdown under `docs/` and all ten relative Markdown links in those files resolve. No application builds or UI tests are claimed for this documentation-only change. Staff UI, recovery/invitation design, live revised-client acceptance, clean replay/CI, staging, onboarding, prototype approval and iOS signing remain acceptance work.
+
 ## Current state
 
 The Flutter shop client and React platform dashboard gate their prototype shells behind Supabase Auth. Only a verified email session may pass the client gate. React additionally calls the separate `is_platform_admin` RPC. The database migrations add shops, memberships, grants, invitations, audit records, one entitlement per shop, and server-side authorization helpers. Financial posting, subscription-code redemption, invoice dispatch, and real ERP modules are outside this identity draft. The prototype banner remains visible after sign-in.

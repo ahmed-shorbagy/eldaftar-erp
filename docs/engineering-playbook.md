@@ -1,5 +1,9 @@
 # Engineering playbook
 
+## Identity policy revision
+
+Identity work follows [ADR 0002](adr/0002-egypt-password-auth.md): Egypt-only email/password or phone/password, no email verification or OTP. Treat contact identifiers as unverified; passwords stay in Supabase Auth and user metadata never grants authorization. Plan client, backend and Auth configuration changes together, including partial-registration reconciliation, idempotent setup retries and old-client compatibility. Existing verified-email tests remain historical evidence until the revised behavior is implemented and tested.
+
 ## How to start a change
 
 Read AGENTS.md, the relevant scope row, architecture.md, database-design.md and existing code. Identify the user-visible behavior, exact server effect, role, audit event, synchronization state, and failure response before changing UI. Check decisions.md; if a pending decision changes stored meaning, settle it before a migration. Work in a small vertical slice and keep unrelated cleanup separate. Source documents and agreement details remain local, outside Git.
