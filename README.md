@@ -11,11 +11,20 @@ Copy app/config/local.example.json to app/config/local.json, then enter the publ
 - app/config/local.json, used with: flutter run -d windows --dart-define-from-file=config/local.json (from app/)
 - admin/.env.local, used with: npm run dev (from admin/)
 
-Build checks:
+Routine validation for a code change:
 
-- app/: flutter analyze; flutter test; flutter build windows; flutter build apk
-- admin/: npm run lint; npm test; npm run build
-- supabase/: npm run verify:supabase; npm run verify:r2
+- app/: scoped Dart formatting; flutter analyze; flutter test. A debug build may run when a compile or runtime check is relevant.
+- admin/: npm run lint; npm test; npx tsc -b
+- supabase/: meaningful SQL, RLS, and atomicity tests for the behavior that changed. npm run verify:supabase and npm run verify:r2 remain connectivity checks and do not replace those gates.
+
+Arabic RTL visual review in both themes and at the relevant widths remains required for UI changes. Runtime visual checks may run when relevant.
+
+Release and production builds are opt-in. Run them only when the user explicitly asks. They are never automatic routine task gates:
+
+- app/: flutter build apk; flutter build windows; an iOS release build
+- admin/: npm run build
+
+Documentation-only changes require a link, consistency, and privacy review and git diff --check. They do not require application tests or builds. Historical validation records stay intact.
 
 Registration server checks: from `supabase/functions/owner-register`, run `npx deno fmt --check`, `npx deno lint`, `npx deno check index.ts`, and `npx deno test --allow-env`. Local disposable database tests run with `npm run test:rls` from `supabase/`; they refuse a remote URL and roll all fixtures back. The validation record describes development execution through the connected SQL tool. Do not push the phone-confirmation field with Supabase CLI 2.118.0: it incorrectly maps that field; use the reviewed Management API setting described in the validation record.
 
