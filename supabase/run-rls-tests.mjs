@@ -20,7 +20,13 @@ if (!['postgres:', 'postgresql:'].includes(url.protocol) ||
   process.exit(2)
 }
 
-for (const name of ['identity_rls.sql', 'identity_commands.sql', 'egypt_owner_registration.sql']) {
+for (const name of [
+  'identity_rls.sql',
+  'identity_commands.sql',
+  'egypt_owner_registration.sql',
+  'opening_balances.sql',
+  'opening_rls.sql',
+]) {
   const file = fileURLToPath(new URL(`./tests/${name}`, import.meta.url))
   console.log(`Running ${name}`)
   const result = spawnSync('psql', [connection, '-X', '-v', 'ON_ERROR_STOP=1', '-f', file], {
