@@ -14,6 +14,9 @@ dist/
 .next/
 *.log
 .idea/
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/ensure-android-emulator.ps1
 app/config/local.json
 supabase/.temp/

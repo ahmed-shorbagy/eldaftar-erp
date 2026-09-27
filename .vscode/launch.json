@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Mobile (Android)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/app",
+      "program": "${workspaceFolder}/app/lib/main.dart",
+      "deviceId": "emulator",
+      "preLaunchTask": "Ensure Android emulator",
+      "toolArgs": [
+        "--dart-define-from-file=config/local.json"
+      ]
+    },
+    {
+      "name": "Flutter Desktop (Windows)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/app",
+      "program": "${workspaceFolder}/app/lib/main.dart",
+      "deviceId": "windows",
+      "toolArgs": [
+        "--dart-define-from-file=config/local.json"
+      ]
+    },
+    {
+      "name": "React Admin (Web)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev -- --open",
+      "cwd": "${workspaceFolder}/admin"
+    }
+  ]
+}
