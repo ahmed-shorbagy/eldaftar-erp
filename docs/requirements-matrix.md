@@ -8,7 +8,7 @@ This matrix is the long-lived work register derived from the local source docume
 | --- | --- | --- | --- | --- |
 | ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | Implemented under [ADR 0002](adr/0002-egypt-password-auth.md): domain/data/presentation password flows, reviewed server registration, development Auth settings and rollback-only RLS gates. Exact tests, visual evidence, and live Auth limitations: [validation](operations/milestone-1-validation.md). Full Milestone 1 acceptance remains open |
 | ID-02 | One owner account per shop; no partner, employee, invitation, or per-user permission grant | PAGES; owner 2026-09-26 | 1 | [ADR 0003](adr/0003-owner-only-shop-access.md). Migration `20260926120634_owner_only_access.sql` is applied to development and rollback-only tests pass. Flutter accepts only `member_role = owner`. See [validation](operations/milestone-1-validation.md) |
-| ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Dev RLS and command tests passed; staging and client acceptance pending |
+| ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Identity and opening RLS/command tests passed on development and rolled back. Staging, live Auth, and device acceptance remain pending. [Evidence](operations/milestone-2-opening-validation.md) |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
 | ONB-01 | Guided path through first sale, ledger, inventory, and CRM controls | PAGES; ADR 0003 | 1, 4 | Planned, D22 |
 | ONB-02 | First-operation guide must distinguish a safe practice draft from a real posting | PAGES | 1, 2 | Planned, D22 |
@@ -17,14 +17,14 @@ This matrix is the long-lived work register derived from the local source docume
 | SET-03 | Invoice logo, slogan, address, color and template choices | LEDGER mockups, PAGES | 4 | Planned, D12 |
 | SET-04 | Custom invoice/WhatsApp message text with validated placeholders | PAGES | 4 | Planned |
 | NAV-01 | Home, ledger, customers, reports and more navigation in Arabic RTL | LEDGER mockups | 1 | Planned |
-| ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Arabic email/phone login and owner signup reviewed in 16 Flutter widget captures and admin login in 4 browser captures at 320/1440 px, light/dark; live platform visual baselines and prototype approval pending, D12 |
-| LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Planned, D08 |
-| LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Planned, D24 |
+| ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Login and signup captures remain as in Milestone 1. Opening ledger: 46 Flutter widget PNGs inspected at 320 and 1440, light and dark, including pending, expired, in-flight, and review. Widget screens are not device proof. Live baselines and D12 remain open. [Evidence](operations/milestone-2-opening-validation.md) |
+| LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Partial. Confirmation opens one Africa/Cairo business day that stays open past midnight. Manual close and reopen stay planned, D08 unsigned. [Evidence](operations/milestone-2-opening-validation.md) |
+| LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Partial: confirmed opening balances by four methods from postings (cash, instant_transfer, wallet, card); the pre-confirmation review shows total net cash. An overall confirmed-ledger summary remains planned. Rename and delete stay planned, D24. [Evidence](operations/milestone-2-opening-validation.md) |
 | LED-03 | Sale/purchase grams and count by applicable karat, configurable card order/visibility | LEDGER | 2 | Planned |
-| LED-04 | Operation list with actor, time, invoice, and notes marker for the owning shop | LEDGER, PAGES; ADR 0003 | 2 | Planned; D10 closed, employee scope removed |
+| LED-04 | Operation list with actor, time, invoice, and notes marker for the owning shop | LEDGER, PAGES; ADR 0003 | 2 | Partial. Confirmed feed is one opening row with owner name and Cairo time. Invoice number and notes marker are not in this slice. D10 stays closed. [Evidence](operations/milestone-2-opening-validation.md) |
 | LED-05 | Daily text/image notes and quick actions | LEDGER, PAGES | 2, 4 | Planned |
 | LED-06 | Define mockup profit/card formula; hide profit until approved valuation or label net cash movement accurately | LEDGER mockups | 2 | Planned, D26 |
-| CAT-01 | Category-specific allowed karats and stock tracking mode, including 14/22 where applicable | LEDGER, PAGES | 2 | Planned, D03, D04 |
+| CAT-01 | Category-specific allowed karats and stock tracking mode, including 14/22 where applicable | LEDGER, PAGES | 2 | Partial opening catalog only, under [ADR 0004](adr/0004-opening-balance-working-defaults.md): worked jewelry 14/18/21/22, bullion 24, coin 21, scrap 14/18/21/22/24. D03 and D04 stay unsigned. [Evidence](operations/milestone-2-opening-validation.md) |
 | QA-01 | Deduct scrap and add cash, including split cash methods, as one atomic quick action | LEDGER | 3 | Planned |
 | EXP-01 | Owner records an expense using one or more cash methods | LEDGER, PAGES; ADR 0003 | 2 | Planned |
 | SALE-01 | Sale with multiple items, quantity, grams, category and karat | LEDGER, PAGES | 2 | Planned, D02 |
@@ -77,14 +77,14 @@ This matrix is the long-lived work register derived from the local source docume
 | RET-01 | Four-month post-expiry data retention and warning 30 days before deletion | PAGES | 5 | Planned, D13, D14 |
 | RET-02 | Renewal restores retained shop data | PAGES | 5 | Planned, D13 |
 | RET-03 | Requested reset and account deletion with approved scope | PAGES | 5 | Planned, D15 |
-| AUD-01 | Actor/time audit for changes, deletion requests and deductions | PAGES, AGREEMENT | 1 onward | Identity audit deployed; financial and deletion audit pending |
-| SYS-01 | Pending/success/failure feedback and safe retry/reconciliation | BASIC, PAGES | 1 onward | Owner-registration slice implemented/tested; financial mutation feedback remains planned. [Evidence](operations/milestone-1-validation.md) |
+| AUD-01 | Actor/time audit for changes, deletion requests and deductions | PAGES, AGREEMENT | 1 onward | Identity audit remains deployed. Opening writes one append-only `opening_balances_confirmed` event with the owner and server UTC time; rollback tests leave zero financial audit rows. Deletion and other financial audit stay pending. [Evidence](operations/milestone-2-opening-validation.md) |
+| SYS-01 | Pending/success/failure feedback and safe retry/reconciliation | BASIC, PAGES | 1 onward | Registration evidence stays in [Milestone 1](operations/milestone-1-validation.md). Opening confirm disables the control, shows pending until the server answers, retains the draft on failure, and reconciles a lost success with the same key. Other financial mutations stay planned. [Evidence](operations/milestone-2-opening-validation.md) |
 | SYS-02 | Reconciled shop status notification and due reminders | BASIC, PAGES | 4, 5 | Planned |
 | SYS-03 | Flutter Android, iOS and Windows, independent React admin | PAGES, AGREEMENT | 6 | Starters present |
 | SYS-04 | Owner-controlled cloud/store accounts and source delivery | PAGES, AGREEMENT | 0, 6 | Planned, D20 |
-| SYS-05 | Greenfield launch and optional verified opening balances for each new shop | PAGES; owner clarification | 0 onward | Scope confirmed, D01; workflow planned |
-| SYS-06 | Weak-network fault tests: timeout after commit, duplicate tap, reconnect and gap catch-up | BASIC, AGREEMENT | 1 onward | Owner signup duplicate/timeout/partial-failure reconciliation covered; financial reconnect and gap catch-up remain planned. [Evidence](operations/milestone-1-validation.md) |
-| SYS-07 | Flutter Clean Architecture enforced as feature implementation grows | PAGES, AGREEMENT | 1 onward | Auth/registration domain independent of Flutter, Supabase and storage; domain interfaces and separate adapters/presentation implemented. Subsequent workflows retain this gate |
+| SYS-05 | Greenfield launch and optional verified opening balances for each new shop | PAGES; owner clarification | 0 onward | D01 scope stands. Active owner can confirm an explicit zero or the entered opening once; development SQL and Flutter tests passed with the limits in the note. Not full acceptance. [Evidence](operations/milestone-2-opening-validation.md) |
+| SYS-06 | Weak-network fault tests: timeout after commit, duplicate tap, reconnect and gap catch-up | BASIC, AGREEMENT | 1 onward | Signup coverage stays in [Milestone 1](operations/milestone-1-validation.md). Opening flow, HTTP, and widget tests cover duplicate submissions, response timeout, durable pending restart, and status lookup after a dropped success. A real two-session race was not run. Reconnect and gap catch-up stay planned. [Evidence](operations/milestone-2-opening-validation.md) |
+| SYS-07 | Flutter Clean Architecture enforced as feature implementation grows | PAGES, AGREEMENT | 1 onward | Auth/registration remains separated. The daily-ledger domain does not import Flutter, Supabase, or storage; the use case, HTTP adapter, and Arabic presentation are separate. [Evidence](operations/milestone-2-opening-validation.md) |
 | DEBT-03 | Alarm-style due reminder behavior and retryable delivery | PAGES | 4 | Planned, D19 |
 
 ## Promotion rule
