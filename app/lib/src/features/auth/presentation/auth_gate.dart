@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../config/supabase_startup.dart';
 import '../../../shell/home_shell.dart';
 import '../../../shell/shell_copy.dart';
+import '../../daily_ledger/application/opening_gateway.dart';
+import '../../daily_ledger/application/pending_opening_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
 import '../domain/auth_gateway.dart';
@@ -18,12 +20,18 @@ class AuthGate extends StatefulWidget {
     required this.authGateway,
     required this.shopAccountGateway,
     required this.onToggleTheme,
+    this.openingGateway,
+    this.pendingOpeningStore,
+    this.currentUserId,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final AuthGateway? authGateway;
   final ShopAccountGateway? shopAccountGateway;
   final Future<void> Function(Brightness) onToggleTheme;
+  final OpeningGateway? openingGateway;
+  final PendingOpeningStore? pendingOpeningStore;
+  final String? Function()? currentUserId;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -96,9 +104,14 @@ class _AuthGateState extends State<AuthGate> {
       return _AuthUnavailable(onToggleTheme: widget.onToggleTheme);
     }
     if (!_hold && _status == AuthStatus.signedIn) {
+      final userId = widget.currentUserId?.call();
       return ShopAccountsGate(
+        key: ValueKey(userId),
         gateway: shops,
         onToggleTheme: widget.onToggleTheme,
+        openingGateway: widget.openingGateway,
+        pendingOpeningStore: widget.pendingOpeningStore,
+        currentUserId: widget.currentUserId,
         onSignOut: () async {
           await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);

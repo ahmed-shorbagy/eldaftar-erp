@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'config/supabase_startup.dart';
 import 'features/auth/domain/auth_gateway.dart';
 import 'features/auth/presentation/auth_gate.dart';
+import 'features/daily_ledger/application/opening_gateway.dart';
+import 'features/daily_ledger/application/pending_opening_store.dart';
 import 'features/shop_accounts/domain/shop_account_gateway.dart';
 import 'shell/shell_copy.dart';
 import 'theme/app_theme.dart';
@@ -16,12 +18,18 @@ class ElDafttarApp extends StatelessWidget {
     required this.themeController,
     this.authGateway,
     this.shopAccountGateway,
+    this.openingGateway,
+    this.pendingOpeningStore,
+    this.currentUserId,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final ThemeController themeController;
   final AuthGateway? authGateway;
   final ShopAccountGateway? shopAccountGateway;
+  final OpeningGateway? openingGateway;
+  final PendingOpeningStore? pendingOpeningStore;
+  final String? Function()? currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +54,9 @@ class ElDafttarApp extends StatelessWidget {
             supabaseStatus: supabaseStatus,
             authGateway: authGateway,
             shopAccountGateway: shopAccountGateway,
+            openingGateway: openingGateway,
+            pendingOpeningStore: pendingOpeningStore,
+            currentUserId: currentUserId,
             onToggleTheme: themeController.toggle,
           ),
         );

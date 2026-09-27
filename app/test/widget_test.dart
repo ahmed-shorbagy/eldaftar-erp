@@ -130,9 +130,10 @@ void main() {
       find.byKey(const Key('shop-11111111-1111-4111-8111-111111111111')),
     );
     await tester.pumpAndSettle();
-    expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
-    expect(find.text(ShellCopy.readyTitle), findsOneWidget);
-    expect(find.text(ShellCopy.readyBody), findsOneWidget);
+    expect(find.text('الدفتر اليومي'), findsOneWidget);
+    expect(find.text(ShellCopy.prototypeLabel), findsNothing);
+    expect(find.text(ShellCopy.readyTitle), findsNothing);
+    expect(find.text(ShellCopy.readyBody), findsNothing);
     expect(find.textContaining('--dart-define'), findsNothing);
 
     await pumpShell(tester, status: SupabaseStartupStatus.failed);
@@ -181,7 +182,8 @@ void main() {
       find.byKey(const Key('shop-11111111-1111-4111-8111-111111111111')),
     );
     await tester.pumpAndSettle();
-    expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
+    expect(find.text('الدفتر اليومي'), findsOneWidget);
+    expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     await tester.tap(find.byTooltip('تسجيل الخروج'));
     await tester.pumpAndSettle();
     expect(find.text('تسجيل الدخول'), findsOneWidget);

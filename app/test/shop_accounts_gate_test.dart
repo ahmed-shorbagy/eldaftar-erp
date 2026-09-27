@@ -144,7 +144,8 @@ void main() {
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     await tester.tap(find.byKey(const Key('shop-$shopId')));
     await tester.pumpAndSettle();
-    expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
+    expect(find.text('الدفتر اليومي'), findsOneWidget);
+    expect(find.text(ShellCopy.prototypeLabel), findsNothing);
   });
 
   testWidgets('list RPC failure hides accounts and supports retry', (
@@ -192,7 +193,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('shop-$shopId')));
     await tester.pumpAndSettle();
-    expect(find.text(ShellCopy.prototypeLabel), findsOneWidget);
+    expect(find.text('الدفتر اليومي'), findsOneWidget);
+    expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     auth.expire();
     await tester.pumpAndSettle();
     expect(find.text('تسجيل الدخول'), findsOneWidget);

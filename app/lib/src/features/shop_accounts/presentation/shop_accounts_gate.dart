@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../config/supabase_startup.dart';
-import '../../../shell/home_shell.dart';
 import '../../../shell/shell_copy.dart';
 import '../../../theme/app_tokens.dart';
+import '../../daily_ledger/application/opening_gateway.dart';
+import '../../daily_ledger/application/pending_opening_store.dart';
+import '../../daily_ledger/presentation/daily_ledger_screen.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_account_gateway.dart';
 
@@ -15,11 +16,17 @@ class ShopAccountsGate extends StatefulWidget {
     required this.gateway,
     required this.onSignOut,
     required this.onToggleTheme,
+    this.openingGateway,
+    this.pendingOpeningStore,
+    this.currentUserId,
   });
 
   final ShopAccountGateway gateway;
   final Future<void> Function() onSignOut;
   final Future<void> Function(Brightness) onToggleTheme;
+  final OpeningGateway? openingGateway;
+  final PendingOpeningStore? pendingOpeningStore;
+  final String? Function()? currentUserId;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -33,11 +40,14 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   bool _accessLost = false;
   String? _error;
   Timer? _refreshTimer;
+  int _ledgerGeneration = 0;
+  String? _userId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _userId = widget.currentUserId?.call();
     _refresh();
     _refreshTimer = Timer.periodic(
       const Duration(minutes: 1),
@@ -48,10 +58,13 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   @override
   void didUpdateWidget(covariant ShopAccountsGate oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.gateway != widget.gateway) {
+    final nextUser = widget.currentUserId?.call();
+    if (oldWidget.gateway != widget.gateway || nextUser != _userId) {
+      _userId = nextUser;
       _accounts = null;
       _selected = null;
       _accessLost = false;
+      _ledgerGeneration++;
       _refresh();
     }
   }
@@ -92,6 +105,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             _selected = matching.first;
           }
         }
+        _ledgerGeneration++;
       });
     } on ShopAccountException catch (error) {
       if (!mounted) return;
@@ -115,16 +129,21 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
 
   @override
   Widget build(BuildContext context) {
-    if (_selected?.entitlement == ShopEntitlement.active) {
-      return HomeShell(
-        supabaseStatus: SupabaseStartupStatus.ready,
-        onToggleTheme: widget.onToggleTheme,
+    final selected = _selected;
+    if (selected != null && selected.entitlement != ShopEntitlement.pending) {
+      return DailyLedgerScreen(
+        key: ValueKey('${widget.currentUserId?.call()}:${selected.id}'),
+        shop: selected,
+        gateway: widget.openingGateway,
+        store: widget.pendingOpeningStore,
+        userId: widget.currentUserId?.call(),
+        refreshGeneration: _ledgerGeneration,
         onSignOut: widget.onSignOut,
-        shopName: _selected!.name,
+        onToggleTheme: widget.onToggleTheme,
         onChangeShop: () => setState(() => _selected = null),
+        onRefreshShops: _refresh,
       );
     }
-    final selected = _selected;
     return Scaffold(
       appBar: AppBar(
         title: const Text(ShellCopy.appTitle),
