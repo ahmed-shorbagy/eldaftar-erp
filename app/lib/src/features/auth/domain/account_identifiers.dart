@@ -4,6 +4,22 @@ import 'dart:convert';
 /// request only and are omitted from [toString].
 enum SignInIdentifier { email, phone }
 
+/// Classifies a contact field while the person is still typing.
+/// Letters or `@` mean an email. Digits, spaces, hyphens, parentheses,
+/// and an optional leading plus mean a phone. Empty input is undecided.
+abstract final class AccountIdentifier {
+  static final _emailSignal = RegExp(r'[A-Za-z@]');
+  static final _phoneChars = RegExp(r'^[0-9+ \-()]+$');
+
+  static SignInIdentifier? detect(String input) {
+    final value = input.trim();
+    if (value.isEmpty) return null;
+    if (_emailSignal.hasMatch(value)) return SignInIdentifier.email;
+    if (_phoneChars.hasMatch(value)) return SignInIdentifier.phone;
+    return SignInIdentifier.email;
+  }
+}
+
 abstract final class AccountEmail {
   static final _pattern = RegExp(
     r'^[a-z0-9._%+\-]+@[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?)+$',
@@ -83,6 +99,17 @@ class SignInRequest {
       identifier: canonical,
       password: password,
     );
+  }
+
+  /// Detects email or phone from [identifier], then applies the same rules
+  /// as [tryCreate].
+  static SignInRequest? tryParse({
+    required String identifier,
+    required String password,
+  }) {
+    final kind = AccountIdentifier.detect(identifier);
+    if (kind == null) return null;
+    return tryCreate(kind: kind, identifier: identifier, password: password);
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../shell/shell_copy.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/brand_mark.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/opening_gateway.dart';
@@ -117,9 +118,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
     final controller = _controller;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'الدفتر اليومي',
-          key: const Key('ledger-title'),
+        title: BrandLockup(
+          title: 'الدفتر اليومي',
+          titleKey: const Key('ledger-title'),
+          markSize: 22,
           maxLines: 2,
           style: MediaQuery.sizeOf(context).width < 400
               ? theme.textTheme.titleMedium

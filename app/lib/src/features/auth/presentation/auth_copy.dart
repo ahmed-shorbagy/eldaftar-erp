@@ -6,17 +6,34 @@ abstract final class AuthCopy {
   static const signInTitle = 'تسجيل الدخول';
   static const signUpTitle = 'إنشاء حساب المالك';
   static const signInBody =
-      'ادخل بالبريد الإلكتروني أو رقم الهاتف المصري مع كلمة المرور. نجاح الدخول لا يثبت ملكية البريد أو الهاتف.';
+      'أدخل البريد الإلكتروني أو رقم الهاتف، ثم كلمة المرور.';
+  static const signInAssurance = 'نجاح الدخول لا يثبت ملكية البريد أو الهاتف.';
   static const signUpBody =
-      'التسجيل يطلب اسم المالك واسم النشاط والبريد ورقم الهاتف المصري والمحافظة وكلمة المرور. كلمة المرور لا تُحفظ في التطبيق، ولا يُعتبر الطلب محفوظًا قبل تأكيد الخادم.';
+      'عرّفنا بك وبمتجرك. نتعرف على البريد والهاتف من طريقة الكتابة.';
+  static const ownerSection = 'المالك والنشاط';
+  static const contactSection = 'البريد والهاتف';
+  static const contactGuide = 'اكتب كل واحد في حقل، بأي ترتيب.';
+  static const contactLabel = 'البريد أو رقم الهاتف';
+  static const contactHint = 'name@mail.com\n01012345678';
+  static const contactInvalid =
+      'أدخل بريدًا إلكترونيًا أو رقم هاتف مصريًا صحيحًا';
+  static const detectedEmail = 'تعرّفنا عليه كبريد إلكتروني';
+  static const detectedPhone = 'تعرّفنا عليه كرقم هاتف';
+  static const duplicateContact =
+      'البريد والهاتف مطلوبان معًا، كل واحد في حقل.';
+  static const credentialsSection = 'بيانات الدخول';
+  static const backToSignIn = 'رجوع إلى تسجيل الدخول';
+  static const showPassword = 'إظهار كلمة المرور';
+  static const hidePassword = 'إخفاء كلمة المرور';
+  static const passwordHelper = 'اختر كلمة مرور طويلة يسهل عليك تذكّرها.';
+  static const emailHint = 'name@example.com';
+  static const phoneHint = '01012345678';
   static const emailLabel = 'البريد الإلكتروني';
   static const phoneLabel = 'رقم الهاتف المصري';
   static const passwordLabel = 'كلمة المرور';
   static const ownerLabel = 'اسم المالك';
   static const businessLabel = 'اسم النشاط';
   static const governorateLabel = 'المحافظة';
-  static const emailKind = 'البريد الإلكتروني';
-  static const phoneKind = 'الهاتف المصري';
   static const signInAction = 'دخول';
   static const signInBusy = 'جارٍ تسجيل الدخول…';
   static const signUpAction = 'إنشاء الحساب';

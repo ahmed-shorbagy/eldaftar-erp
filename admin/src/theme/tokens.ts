@@ -10,6 +10,7 @@ export const tokens = {
   darkOnPrimaryContainer: '#F6F1E8',
   lightOutline: '#D9CBB8',
   darkOutline: '#4A433A',
+  brandGold: '#E6C36A',
   contentMaxWidth: 720,
   wideBreakpoint: 840,
   fontFamily:

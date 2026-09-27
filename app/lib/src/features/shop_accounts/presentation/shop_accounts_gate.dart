@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../shell/shell_copy.dart';
+import '../../../theme/brand_mark.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
@@ -146,7 +147,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text(ShellCopy.appTitle),
+        title: const BrandLockup(title: ShellCopy.appTitle),
         actions: [
           IconButton(
             tooltip: 'تحديث المتاجر',

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../config/supabase_startup.dart';
 import '../../../shell/home_shell.dart';
 import '../../../shell/shell_copy.dart';
+import '../../../theme/brand_mark.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
@@ -37,7 +38,11 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _intro;
+  bool _introStarted = false;
+  bool _introDone = false;
   StreamSubscription<AuthStatus>? _subscription;
   AuthStatus _status = AuthStatus.signedOut;
   bool _hold = false;
@@ -45,7 +50,33 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    _intro =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 800),
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed && mounted) {
+            setState(() => _introDone = true);
+          }
+        });
     _listen();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_introStarted) return;
+    _introStarted = true;
+    final skip =
+        MediaQuery.disableAnimationsOf(context) ||
+        widget.supabaseStatus != SupabaseStartupStatus.ready ||
+        widget.authGateway == null ||
+        widget.shopAccountGateway == null;
+    if (skip) {
+      _introDone = true;
+      return;
+    }
+    _intro.forward();
   }
 
   @override
@@ -86,12 +117,19 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    _intro.dispose();
     _subscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_introDone &&
+        widget.supabaseStatus == SupabaseStartupStatus.ready &&
+        widget.authGateway != null &&
+        widget.shopAccountGateway != null) {
+      return const BrandSplash();
+    }
     if (widget.supabaseStatus != SupabaseStartupStatus.ready) {
       return HomeShell(
         supabaseStatus: widget.supabaseStatus,
@@ -137,7 +175,7 @@ class _AuthUnavailable extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text(ShellCopy.appTitle),
+        title: const BrandLockup(title: ShellCopy.appTitle),
         actions: [
           IconButton(
             key: const Key('auth-theme-toggle'),

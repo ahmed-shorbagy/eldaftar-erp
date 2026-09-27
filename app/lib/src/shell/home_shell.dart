@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/supabase_startup.dart';
 import '../theme/app_tokens.dart';
+import '../theme/brand_mark.dart';
 import 'shell_copy.dart';
 
 class HomeShell extends StatelessWidget {
@@ -30,7 +31,7 @@ class HomeShell extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(ShellCopy.appTitle),
+        title: const BrandLockup(title: ShellCopy.appTitle),
         actions: [
           if (onChangeShop != null)
             IconButton(

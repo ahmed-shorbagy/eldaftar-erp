@@ -7,6 +7,7 @@ import IconButton from '@mui/material/IconButton'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import type { SupabaseStartupStatus } from '../config/supabaseStartup.ts'
+import { BrandMark } from '../theme/BrandMark.tsx'
 import { tokens } from '../theme/tokens.ts'
 import type { ResolvedTheme } from '../theme/themePreference.ts'
 import { shellCopy } from './copy.ts'
@@ -58,8 +59,16 @@ export function HomeShell({
           <Typography
             component="h1"
             variant="h6"
-            sx={{ textAlign: 'center', fontWeight: 700 }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              minWidth: 0,
+              fontWeight: 700,
+            }}
           >
+            <BrandMark />
             {shellCopy.appTitle}
           </Typography>
           {onSignOut && <IconButton aria-label="تسجيل الخروج" color="inherit" onClick={onSignOut}><LogoutOutlinedIcon /></IconButton>}

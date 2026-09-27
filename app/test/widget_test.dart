@@ -153,7 +153,8 @@ void main() {
 
     expect(find.text('تسجيل الدخول'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
-    expect(find.byKey(const Key('sign-in-email')), findsOneWidget);
+    expect(find.byKey(const Key('brand-mark')), findsOneWidget);
+    expect(find.byKey(const Key('sign-in-identifier')), findsOneWidget);
     expect(find.byKey(const Key('sign-in-password')), findsOneWidget);
     final context = tester.element(find.text('تسجيل الدخول'));
     expect(Directionality.of(context), TextDirection.rtl);
@@ -168,7 +169,7 @@ void main() {
     );
 
     await tester.enterText(
-      find.byKey(const Key('sign-in-email')),
+      find.byKey(const Key('sign-in-identifier')),
       'staff@example.test',
     );
     await tester.enterText(

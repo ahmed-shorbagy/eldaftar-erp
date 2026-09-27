@@ -55,6 +55,7 @@ test('missing public config shows the Arabic setup message in RTL', () => {
   renderShell('missingConfiguration')
 
   expect(screen.getByRole('heading', { name: shellCopy.appTitle })).toBeInTheDocument()
+  expect(screen.getByTestId('brand-mark')).toBeInTheDocument()
   expect(screen.getByText(shellCopy.prototypeLabel)).toBeInTheDocument()
   expect(screen.getByText(shellCopy.missingTitle)).toBeInTheDocument()
   expect(screen.getByText(shellCopy.missingBody)).toBeInTheDocument()
@@ -102,6 +103,7 @@ test('signed-out visitors see the Arabic admin sign-in form', () => {
     />,
   )
   expect(screen.getByRole('heading', { name: 'إدارة الدفتر' })).toBeInTheDocument()
+  expect(screen.getByTestId('brand-mark')).toBeInTheDocument()
   expect(screen.getByRole('textbox', { name: /البريد الإلكتروني/ })).toBeInTheDocument()
   expect(screen.queryByText(shellCopy.prototypeLabel)).not.toBeInTheDocument()
 })

@@ -3,6 +3,7 @@ import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useState, type FormEvent } from 'react'
+import { BrandMark } from '../theme/BrandMark.tsx'
 import type { AdminAccess, AdminAuthGateway } from './AdminAuthGateway.ts'
 
 export function AdminAuthScreen({
@@ -42,8 +43,15 @@ export function AdminAuthScreen({
   return (
     <Box lang="ar" dir="rtl" sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', display: 'grid', placeItems: 'center', p: 3 }}>
       <Box component="main" sx={{ width: '100%', maxWidth: 440, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 3, p: 3 }}>
-        <Typography component="h1" variant="h5" sx={{ mb: 1 }}>إدارة الدفتر</Typography>
-        <Typography sx={{ mb: 3 }}>سجّل الدخول بالبريد الإلكتروني وكلمة المرور.</Typography>
+        <Box sx={{ display: 'grid', justifyItems: 'center', gap: 0.5, mb: 3 }}>
+          <BrandMark size={88} />
+          <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+            الدفتر
+          </Typography>
+          <Typography color="text.secondary">دفتر محلات الذهب</Typography>
+        </Box>
+        <Typography component="h1" variant="h5" sx={{ mb: 1, textAlign: 'center' }}>إدارة الدفتر</Typography>
+        <Typography sx={{ mb: 3, textAlign: 'center' }}>سجّل الدخول بالبريد الإلكتروني وكلمة المرور.</Typography>
         <Box component="form" onSubmit={submit} sx={{ display: 'grid', gap: 2 }}>
           <TextField label="البريد الإلكتروني" type="email" required value={email} onChange={event => setEmail(event.target.value)} slotProps={{ htmlInput: { dir: 'ltr' } }} />
           <TextField label="كلمة المرور" type="password" required value={password} onChange={event => setPassword(event.target.value)} />

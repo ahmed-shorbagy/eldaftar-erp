@@ -17,9 +17,17 @@ This is the required visual baseline for new or edited Flutter and React UI. AGE
 
 Flutter currently defines the five core seed/surface/text values in app/lib/src/theme/app_tokens.dart and derives other roles through ColorScheme.fromSeed in app/lib/src/theme/app_theme.dart. React defines the core plus container/outline values in admin/src/theme/tokens.ts and maps them into MUI in admin/src/theme/theme.ts. Derived Flutter colors and explicit React container/outline values are not guaranteed to be numerically identical; align visual intent and contrast when adding a shared component pattern.
 
+## Brand mark
+
+The product mark is an open cream ledger with a gold ingot on the brown seed field. The opening splash centers a large mark with the name الدفتر and the line دفتر محلات الذهب. Flutter login and signup use a compact 40px mark beside the name/tagline so the form and actions remain visible on narrow phones; shop/admin bars use a small mark. The drawing is `app/assets/brand/mark.svg`, repeated as `admin/public/favicon.svg` and the Android launch drawable. Flutter paints it in `BrandMark`; React draws it in `admin/src/theme/BrandMark.tsx`.
+
+The gold `#E6C36A` (`brandGold`) is used only inside that mark, on the brown field. It is not a text or status color. The page, spine, and field use the existing surface, dark primary container, and seed tokens.
+
 ## Layout and typography baseline
 
 Both clients use Arabic copy and RTL layout. The current wide breakpoint is 840 logical pixels and content maximum width is 720 pixels in both token files. React uses the Segoe UI, Tahoma, Noto Naskh Arabic, Noto Sans Arabic, Arial fallback stack. Flutter currently uses platform Material typography; choose and license a consistent Arabic typeface before treating the mockup typography as an exact production target.
+
+Flutter authentication uses the bundled Noto Sans Arabic variable font under the SIL Open Font License (`app/assets/fonts/OFL.txt`), scoped through its local theme. Its form measure is 480 logical pixels, with 16px phone gutters, 48px minimum controls, 12px corners, and persistent labels. Other Flutter workflows and React retain their typography and shared layout tokens. Auth controls/status colors continue to come from the existing `ColorScheme`; the new synchronized gold token is confined to the brand illustration. See [auth review](reviews/auth-redesign-2026-09-27/validation.md) for rendered evidence and verification limits.
 
 Use logical start/end spacing, alignment and icon direction. Ensure numbers, customer names and phone numbers remain readable within mixed Arabic/Latin content. Preserve theme choice and respect system preference until the user makes a choice.
 

@@ -113,6 +113,51 @@ void main() {
     );
   });
 
+  test('detects email or phone from what the person types', () {
+    expect(AccountIdentifier.detect(''), isNull);
+    expect(AccountIdentifier.detect('   '), isNull);
+    expect(AccountIdentifier.detect('a'), SignInIdentifier.email);
+    expect(
+      AccountIdentifier.detect('Owner@Example.TEST'),
+      SignInIdentifier.email,
+    );
+    expect(AccountIdentifier.detect('not-an-email'), SignInIdentifier.email);
+    expect(AccountIdentifier.detect('01012345678'), SignInIdentifier.phone);
+    expect(AccountIdentifier.detect('010 1234 5678'), SignInIdentifier.phone);
+    expect(
+      AccountIdentifier.detect('+20 10 1234 5678'),
+      SignInIdentifier.phone,
+    );
+    expect(AccountIdentifier.detect('(010) 1234-5678'), SignInIdentifier.phone);
+    expect(AccountIdentifier.detect('00201012345678'), SignInIdentifier.phone);
+    expect(AccountIdentifier.detect('12345'), SignInIdentifier.phone);
+    expect(AccountIdentifier.detect('+966512345678'), SignInIdentifier.phone);
+
+    final email = SignInRequest.tryParse(
+      identifier: ' Owner@Example.TEST ',
+      password: 'example-password',
+    )!;
+    final phone = SignInRequest.tryParse(
+      identifier: '010-1234-5678',
+      password: 'example-password',
+    )!;
+    expect(email.kind, SignInIdentifier.email);
+    expect(email.identifier, 'owner@example.test');
+    expect(phone.kind, SignInIdentifier.phone);
+    expect(phone.identifier, '+201012345678');
+    expect(
+      SignInRequest.tryParse(identifier: '   ', password: 'example-password'),
+      isNull,
+    );
+    expect(
+      SignInRequest.tryParse(
+        identifier: '+966512345678',
+        password: 'example-password',
+      ),
+      isNull,
+    );
+  });
+
   test(
     'sign-in accepts either canonical identifier and the same password rule',
     () {
