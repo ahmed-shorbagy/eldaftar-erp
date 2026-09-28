@@ -34,13 +34,13 @@ abstract final class AuthCopy {
   static const ownerLabel = 'اسم المالك';
   static const businessLabel = 'اسم النشاط';
   static const governorateLabel = 'المحافظة';
+  static const modeSignIn = 'دخول';
+  static const modeSignUp = 'حساب جديد';
   static const signInAction = 'دخول';
   static const signInBusy = 'جارٍ تسجيل الدخول…';
   static const signUpAction = 'إنشاء الحساب';
   static const signUpBusy = 'جارٍ إرسال طلب التسجيل…';
   static const retryAction = 'إعادة المحاولة';
-  static const showSignUp = 'إنشاء حساب مالك';
-  static const showSignIn = 'لديك حساب؟ تسجيل الدخول';
   static const emailInvalid = 'أدخل بريدًا إلكترونيًا صحيحًا';
   static const phoneInvalid = 'أدخل رقم هاتف مصري صحيحًا';
   static const ownerInvalid = 'أدخل اسم المالك من ١ إلى ١٢٠ حرفًا';

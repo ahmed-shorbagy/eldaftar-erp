@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../shell/shell_copy.dart';
+import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../onboarding/presentation/guide_card.dart';
@@ -223,7 +224,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _showMode(AuthFormMode mode) {
-    if (_busy) return;
+    if (_busy || _mode == mode) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _mode = mode;
@@ -540,7 +541,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final scheme = theme.colorScheme;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(_radius),
-      borderSide: BorderSide(color: scheme.outline),
+      borderSide: BorderSide(color: scheme.outlineVariant),
     );
     final buttonText = theme.textTheme.titleMedium;
     final buttonShape = RoundedRectangleBorder(
@@ -558,10 +559,10 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerLow,
+        fillColor: scheme.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 16,
+          vertical: 14,
         ),
         floatingLabelBehavior: FloatingLabelBehavior.never,
         errorMaxLines: 8,
@@ -647,111 +648,129 @@ class _AuthScreenState extends State<AuthScreen> {
           key: const Key('auth-capture-boundary'),
           child: Scaffold(
             resizeToAvoidBottomInset: true,
-            appBar: AppBar(
-              actions: [
-                IconButton(
-                  key: const Key('auth-help'),
-                  tooltip: 'إعادة الإرشاد',
-                  onPressed: _resumeGuide,
-                  icon: const Icon(Icons.help_outline),
-                ),
-                IconButton(
-                  key: const Key('auth-theme-toggle'),
-                  tooltip: theme.brightness == Brightness.dark
-                      ? ShellCopy.toggleToLight
-                      : ShellCopy.toggleToDark,
-                  onPressed: () => widget.onToggleTheme(theme.brightness),
-                  icon: Icon(
-                    theme.brightness == Brightness.dark
-                        ? Icons.light_mode_outlined
-                        : Icons.dark_mode_outlined,
+            body: Stack(
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          theme.colorScheme.primaryContainer,
+                          theme.colorScheme.surface,
+                          theme.colorScheme.surface,
+                        ],
+                        stops: const [0, 0.42, 1],
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
-            body: SafeArea(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  key: const Key('auth-measure'),
-                  constraints: const BoxConstraints(maxWidth: _measure),
-                  child: Form(
-                    key: _formKey,
-                    autovalidateMode: _validated
-                        ? AutovalidateMode.onUserInteraction
-                        : AutovalidateMode.disabled,
-                    child: AutofillGroup(
-                      child: FocusTraversalGroup(
-                        policy: OrderedTraversalPolicy(),
-                        child: ScrollConfiguration(
-                          // Avoid an animated edge effect during form
-                          // replacement; retain platform scrollbars/physics.
-                          behavior: ScrollConfiguration.of(
-                            context,
-                          ).copyWith(overscroll: false),
-                          child: SingleChildScrollView(
-                            key: const Key('auth-scroll'),
-                            controller: _scroll,
-                            keyboardDismissBehavior:
-                                ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (_signingUp) ...[
-                                  _order(1, _backButton()),
-                                  const SizedBox(height: 8),
-                                ],
-                                const BrandHero(markSize: 40, compact: true),
-                                const SizedBox(height: 16),
-                                _headline(theme),
-                                if (_guideVisible) ...[
-                                  const SizedBox(height: 8),
-                                  _guide(),
-                                ],
-                                SizedBox(height: _guideVisible ? 8 : 24),
-                                if (!_signingUp) ..._signInFields(theme),
-                                if (_signingUp) ..._signUpFields(theme),
-                                if (_fieldAlert != null)
-                                  Semantics(
-                                    key: const Key('auth-field-alert'),
-                                    liveRegion: true,
-                                    label: _fieldAlert,
-                                    child: const SizedBox(
-                                      width: double.infinity,
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      key: const Key('auth-measure'),
+                      constraints: const BoxConstraints(maxWidth: _measure),
+                      child: Form(
+                        key: _formKey,
+                        autovalidateMode: _validated
+                            ? AutovalidateMode.onUserInteraction
+                            : AutovalidateMode.disabled,
+                        child: AutofillGroup(
+                          child: FocusTraversalGroup(
+                            policy: OrderedTraversalPolicy(),
+                            child: ScrollConfiguration(
+                              // Avoid an animated edge effect during form
+                              // replacement; retain platform scrollbars/physics.
+                              behavior: ScrollConfiguration.of(
+                                context,
+                              ).copyWith(overscroll: false),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final wide =
+                                      MediaQuery.sizeOf(context).width >=
+                                      AppTokens.wideBreakpoint;
+                                  final keyboard =
+                                      MediaQuery.viewInsetsOf(context).bottom >
+                                      0;
+                                  final bounded =
+                                      constraints.maxHeight.isFinite;
+                                  final roomy =
+                                      bounded &&
+                                      constraints.maxHeight >= 760 &&
+                                      !keyboard;
+                                  final topPad = wide ? 40.0 : 8.0;
+                                  const bottomPad = 24.0;
+                                  final minHeight = roomy
+                                      ? (constraints.maxHeight -
+                                                topPad -
+                                                bottomPad)
+                                            .clamp(0.0, double.infinity)
+                                      : 0.0;
+                                  return SingleChildScrollView(
+                                    key: const Key('auth-scroll'),
+                                    controller: _scroll,
+                                    keyboardDismissBehavior:
+                                        ScrollViewKeyboardDismissBehavior
+                                            .onDrag,
+                                    padding: EdgeInsets.fromLTRB(
+                                      16,
+                                      topPad,
+                                      16,
+                                      bottomPad,
                                     ),
-                                  ),
-                                _status(theme.colorScheme),
-                                const SizedBox(height: 16),
-                                _submit(),
-                                const SizedBox(height: 8),
-                                _order(
-                                  _signingUp ? 12 : 8,
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: TextButton(
-                                      key: Key(
-                                        _signingUp
-                                            ? 'show-sign-in'
-                                            : 'show-signup',
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        minHeight: minHeight,
                                       ),
-                                      onPressed: _busy
-                                          ? null
-                                          : () => _showMode(
-                                              _signingUp
-                                                  ? AuthFormMode.signIn
-                                                  : AuthFormMode.signUp,
-                                            ),
-                                      child: Text(
-                                        _signingUp
-                                            ? AuthCopy.showSignIn
-                                            : AuthCopy.showSignUp,
-                                        textAlign: TextAlign.center,
+                                      child: Column(
+                                        mainAxisAlignment: roomy
+                                            ? MainAxisAlignment.center
+                                            : MainAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          _header(theme),
+                                          if (_signingUp) ...[
+                                            const SizedBox(height: 4),
+                                            _backButton(),
+                                          ],
+                                          const SizedBox(height: 20),
+                                          _headline(theme),
+                                          if (_guideVisible) ...[
+                                            const SizedBox(height: 12),
+                                            _guide(),
+                                          ],
+                                          const SizedBox(height: 16),
+                                          _panel(theme, [
+                                            _modeSwitch(theme),
+                                            const SizedBox(height: 16),
+                                            if (!_signingUp)
+                                              ..._signInFields(theme),
+                                            if (_signingUp)
+                                              ..._signUpFields(theme),
+                                            if (_fieldAlert != null)
+                                              Semantics(
+                                                key: const Key(
+                                                  'auth-field-alert',
+                                                ),
+                                                liveRegion: true,
+                                                label: _fieldAlert,
+                                                child: const SizedBox(
+                                                  width: double.infinity,
+                                                ),
+                                              ),
+                                            _status(theme.colorScheme),
+                                            const SizedBox(height: 8),
+                                            _submit(),
+                                          ]),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                  );
+                                },
+                              ),
                             ),
                           ),
                         ),
@@ -759,10 +778,158 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _header(ThemeData theme) {
+    final dark = theme.brightness == Brightness.dark;
+    return Row(
+      children: [
+        const Expanded(child: BrandHero(markSize: 40, compact: true)),
+        const SizedBox(width: 8),
+        _order(
+          0.01,
+          IconButton(
+            key: const Key('auth-help'),
+            tooltip: 'إعادة الإرشاد',
+            onPressed: _resumeGuide,
+            icon: const Icon(Icons.help_outline),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _order(
+          0.02,
+          IconButton(
+            key: const Key('auth-theme-toggle'),
+            tooltip: dark ? ShellCopy.toggleToLight : ShellCopy.toggleToDark,
+            onPressed: () => widget.onToggleTheme(theme.brightness),
+            icon: Icon(
+              dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _panel(ThemeData theme, List<Widget> children) {
+    final scheme = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      ),
+    );
+  }
+
+  Widget _modeSwitch(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Row(
+          children: [
+            Expanded(
+              child: _modeButton(
+                theme: theme,
+                order: 0.1,
+                buttonKey: const Key('show-sign-in'),
+                label: AuthCopy.modeSignIn,
+                selected: !_signingUp,
+                onPressed: () => _showMode(AuthFormMode.signIn),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _modeButton(
+                theme: theme,
+                order: 0.2,
+                buttonKey: const Key('show-signup'),
+                label: AuthCopy.modeSignUp,
+                selected: _signingUp,
+                onPressed: () => _showMode(AuthFormMode.signUp),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _modeButton({
+    required ThemeData theme,
+    required double order,
+    required Key buttonKey,
+    required String label,
+    required bool selected,
+    required VoidCallback onPressed,
+  }) {
+    final scheme = theme.colorScheme;
+    final style = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(_control)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      elevation: const WidgetStatePropertyAll(0),
+      tapTargetSize: MaterialTapTargetSize.padded,
+      backgroundColor: WidgetStatePropertyAll(
+        selected ? scheme.primary : scheme.surface,
+      ),
+      foregroundColor: WidgetStatePropertyAll(
+        selected ? scheme.onPrimary : scheme.onSurface,
+      ),
+      side: WidgetStatePropertyAll(
+        BorderSide(color: selected ? scheme.primary : scheme.outlineVariant),
+      ),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
+      ),
+      textStyle: WidgetStatePropertyAll(
+        theme.textTheme.titleSmall?.copyWith(
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+    );
+    final child = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+    );
+    return _order(
+      order,
+      Semantics(
+        selected: selected,
+        child: selected
+            ? FilledButton(
+                key: buttonKey,
+                style: style,
+                onPressed: _busy ? null : onPressed,
+                child: child,
+              )
+            : OutlinedButton(
+                key: buttonKey,
+                style: style,
+                onPressed: _busy ? null : onPressed,
+                child: child,
+              ),
       ),
     );
   }
@@ -772,23 +939,25 @@ class _AuthScreenState extends State<AuthScreen> {
     final title = _signingUp ? AuthCopy.signUpTitle : AuthCopy.signInTitle;
     final body = _signingUp ? AuthCopy.signUpBody : AuthCopy.signInBody;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Semantics(
           header: true,
           child: Text(
             title,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.start,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           body,
-          textAlign: TextAlign.center,
+          textAlign: TextAlign.start,
           style: theme.textTheme.bodyLarge?.copyWith(
-            color: scheme.onSurface,
+            color: scheme.onSurfaceVariant,
             height: 1.5,
           ),
         ),
@@ -839,6 +1008,7 @@ class _AuthScreenState extends State<AuthScreen> {
         next: _businessFocus,
         label: AuthCopy.ownerLabel,
         invalid: AuthCopy.ownerInvalid,
+        icon: Icons.person_outline,
         autofillHints: const [AutofillHints.name],
       ),
       _nameField(
@@ -849,6 +1019,7 @@ class _AuthScreenState extends State<AuthScreen> {
         next: _emailFocus,
         label: AuthCopy.businessLabel,
         invalid: AuthCopy.businessInvalid,
+        icon: Icons.storefront_outlined,
         autofillHints: const [AutofillHints.organizationName],
       ),
       _caption(theme, AuthCopy.contactSection),
@@ -1024,25 +1195,41 @@ class _AuthScreenState extends State<AuthScreen> {
         liveRegion: true,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: unknown ? scheme.surfaceContainerLow : scheme.errorContainer,
+            color: unknown ? scheme.surface : scheme.errorContainer,
             borderRadius: BorderRadius.circular(_radius),
             border: Border.all(color: unknown ? scheme.outline : scheme.error),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              message,
-              key: Key(
-                _signingUp
-                    ? (_unknown ? 'signup-unknown' : 'signup-error')
-                    : 'sign-in-error',
-              ),
-              softWrap: true,
-              style: _authTheme(Theme.of(context)).textTheme.bodyLarge
-                  ?.copyWith(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ExcludeSemantics(
+                  child: Icon(
+                    unknown ? Icons.schedule : Icons.error_outline,
                     color: unknown ? scheme.onSurface : scheme.onErrorContainer,
-                    height: 1.5,
                   ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    message,
+                    key: Key(
+                      _signingUp
+                          ? (_unknown ? 'signup-unknown' : 'signup-error')
+                          : 'sign-in-error',
+                    ),
+                    softWrap: true,
+                    style: _authTheme(Theme.of(context)).textTheme.bodyLarge
+                        ?.copyWith(
+                          color: unknown
+                              ? scheme.onSurface
+                              : scheme.onErrorContainer,
+                          height: 1.5,
+                        ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1051,22 +1238,27 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _backButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: TextButton(
-        key: const Key('signup-back'),
-        style: TextButton.styleFrom(
-          alignment: AlignmentDirectional.centerStart,
-        ),
-        onPressed: _busy ? null : () => _showMode(AuthFormMode.signIn),
-        child: const Row(
-          children: [
-            Icon(Icons.arrow_back),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(AuthCopy.backToSignIn, textAlign: TextAlign.start),
-            ),
-          ],
+    return _order(
+      0.05,
+      SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          key: const Key('signup-back'),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, _control),
+            alignment: AlignmentDirectional.centerStart,
+            padding: const EdgeInsetsDirectional.only(end: 8),
+          ),
+          onPressed: _busy ? null : () => _showMode(AuthFormMode.signIn),
+          child: const Row(
+            children: [
+              Icon(Icons.arrow_back),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(AuthCopy.backToSignIn, textAlign: TextAlign.start),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1115,11 +1307,32 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _caption(ThemeData theme, String text) {
-    return Text(
-      text,
-      style: theme.textTheme.labelLarge?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.5,
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: Row(
+        children: [
+          ExcludeSemantics(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: const SizedBox(width: 3, height: 16),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w700,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1127,8 +1340,9 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _label(ThemeData theme, String text) {
     return Text(
       text,
-      style: theme.textTheme.bodyLarge?.copyWith(
+      style: theme.textTheme.titleSmall?.copyWith(
         color: theme.colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
         height: 1.4,
       ),
     );
@@ -1142,6 +1356,7 @@ class _AuthScreenState extends State<AuthScreen> {
     required FocusNode next,
     required String label,
     required String invalid,
+    required IconData icon,
     required List<String> autofillHints,
   }) {
     final theme = _authTheme(Theme.of(context));
@@ -1160,7 +1375,11 @@ class _AuthScreenState extends State<AuthScreen> {
         enableInteractiveSelection: true,
         scrollPadding: _fieldScrollPadding,
         onFieldSubmitted: (_) => next.requestFocus(),
-        decoration: const InputDecoration(),
+        decoration: InputDecoration(
+          prefixIcon: ExcludeSemantics(
+            child: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ),
         validator: (value) =>
             AccountName.tryCanonical(value ?? '') == null ? invalid : null,
       ),
@@ -1295,6 +1514,12 @@ class _AuthScreenState extends State<AuthScreen> {
         decoration: InputDecoration(
           helperText: _signingUp ? AuthCopy.passwordHelper : null,
           helperMaxLines: 4,
+          prefixIcon: ExcludeSemantics(
+            child: Icon(
+              Icons.lock_outline,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           suffixIcon: IconButton(
             key: const Key('password-visibility'),
             tooltip: _passwordVisible
