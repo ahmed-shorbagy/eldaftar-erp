@@ -282,6 +282,12 @@ void main() {
     ((overflow['cash'] as List).first as Map)['piastres'] =
         '9223372036854775808';
     expect(() => parseDailyLedger(overflow), throwsFormatException);
+    final aggregateOverflow = confirmedBody(piastres: maxPiastres);
+    final otherMethod =
+        ((aggregateOverflow['cash'] as List)[1] as Map<String, Object?>);
+    otherMethod['piastres'] = '1';
+    otherMethod['pounds'] = '0.01';
+    expect(() => parseDailyLedger(aggregateOverflow), throwsFormatException);
     final mismatch = confirmedBody(piastres: bigPiastres);
     final cash = (mismatch['cash'] as List).first as Map<String, Object?>;
     cash['pounds'] = '10000.00';

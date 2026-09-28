@@ -126,7 +126,7 @@ DailyLedgerView parseDailyLedger(Object? json) {
   if (confirmed && businessDay == null) {
     throw const FormatException('business_day');
   }
-  return DailyLedgerView(
+  final view = DailyLedgerView(
     state: state,
     entitlementStatus: entitlement,
     canConfirm: canConfirm,
@@ -136,6 +136,10 @@ DailyLedgerView parseDailyLedger(Object? json) {
     scrap: scrap,
     feed: feed,
   );
+  if (confirmed && view.totalCashPounds == null) {
+    throw const FormatException('cash_total');
+  }
+  return view;
 }
 
 LedgerBusinessDay? _businessDay(Object? value, {required bool confirmed}) {

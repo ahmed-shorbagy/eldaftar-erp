@@ -658,6 +658,8 @@ class _ConfirmedLedger extends StatelessWidget {
         Text('النقد بالجنيه', style: theme.textTheme.titleSmall),
         for (final line in view.cash)
           _ReviewLine(label: line.labelAr, amount: line.pounds),
+        if (view.totalCashPounds case final total?)
+          _ReviewLine(label: 'إجمالي النقد', amount: '$total جنيه'),
         if (view.stock.isNotEmpty)
           Text('المخزون', style: theme.textTheme.titleSmall),
         for (final line in view.stock) ...[

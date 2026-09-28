@@ -248,6 +248,32 @@ Future<void> show(WidgetTester tester, Key key) async {
 }
 
 void main() {
+  test('confirmed cash total uses exact piastres above double precision', () {
+    const view = DailyLedgerView(
+      state: 'confirmed',
+      entitlementStatus: 'active',
+      canConfirm: false,
+      businessDay: null,
+      cash: [
+        LedgerCashLine(
+          method: 'cash',
+          labelAr: 'نقدي',
+          piastres: '9007199254740993',
+          pounds: '90071992547409.93',
+        ),
+        LedgerCashLine(
+          method: 'card',
+          labelAr: 'فيزا',
+          piastres: '7',
+          pounds: '0.07',
+        ),
+      ],
+      stock: [],
+      scrap: [],
+      feed: [],
+    );
+    expect(view.totalCashPounds, '90071992547410.00');
+  });
   testWidgets('review then pending then the confirmed ledger', (tester) async {
     final gateway = ScriptGateway();
     final store = MemoryStore();
@@ -283,6 +309,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+    expect(find.text('إجمالي النقد'), findsOneWidget);
+    expect(find.text('10000.00 جنيه'), findsOneWidget);
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.text('منى حسن'), findsOneWidget);
     expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);

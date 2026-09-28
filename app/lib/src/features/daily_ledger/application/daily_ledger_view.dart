@@ -1,3 +1,7 @@
+import '../domain/opening_issue.dart';
+import '../domain/postgres_integer.dart';
+import '../domain/quantities.dart';
+
 /// Server read model. Quantities stay the strings the server sent.
 final class DailyLedgerView {
   const DailyLedgerView({
@@ -22,6 +26,23 @@ final class DailyLedgerView {
 
   bool get isConfirmed => state == 'confirmed';
   bool get isUninitialized => state == 'uninitialized';
+
+  /// Overall confirmed cash, calculated exactly from the four server balances.
+  String? get totalCashPounds {
+    if (!isConfirmed) return null;
+    final values = <BigInt>[];
+    for (final line in cash) {
+      final parsed = Piastres.parseWire(line.piastres);
+      if (parsed is! Accepted<Piastres>) return null;
+      values.add(parsed.value.value);
+    }
+    final total = PostgresInteger.checkedSum(values);
+    if (total == null) return null;
+    final parsedTotal = Piastres.parseWire(total.toString());
+    return parsedTotal is Accepted<Piastres>
+        ? parsedTotal.value.poundsText
+        : null;
+  }
 }
 
 final class LedgerBusinessDay {
