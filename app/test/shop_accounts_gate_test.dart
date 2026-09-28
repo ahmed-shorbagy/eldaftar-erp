@@ -202,6 +202,37 @@ void main() {
     await auth.controller.close();
   });
 
+  testWidgets('late shop response cannot cross an owner switch', (
+    tester,
+  ) async {
+    final oldRequest = Completer<List<ShopAccount>>();
+    final oldShops = FakeShops()..listCompletion = oldRequest;
+    final newShops = FakeShops();
+    var userId = 'owner-a';
+
+    Widget gate(FakeShops shops) => MaterialApp(
+      locale: const Locale('ar'),
+      home: ShopAccountsGate(
+        gateway: shops,
+        currentUserId: () => userId,
+        onSignOut: () async {},
+        onToggleTheme: (_) async {},
+      ),
+    );
+
+    await tester.pumpWidget(gate(oldShops));
+    await tester.pump();
+    userId = 'owner-b';
+    await tester.pumpWidget(gate(newShops));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('shop-empty')), findsOneWidget);
+
+    oldRequest.complete([account(ShopEntitlement.active)]);
+    await tester.pump();
+    expect(find.byKey(const Key('shop-empty')), findsOneWidget);
+    expect(find.byKey(const Key('shop-$shopId')), findsNothing);
+  });
+
   testWidgets('selector fits narrow and desktop in both themes', (
     tester,
   ) async {

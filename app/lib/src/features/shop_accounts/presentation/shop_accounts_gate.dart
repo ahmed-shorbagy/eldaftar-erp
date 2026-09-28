@@ -42,6 +42,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   String? _error;
   Timer? _refreshTimer;
   int _ledgerGeneration = 0;
+  int _requestGeneration = 0;
   String? _userId;
 
   @override
@@ -61,10 +62,13 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     super.didUpdateWidget(oldWidget);
     final nextUser = widget.currentUserId?.call();
     if (oldWidget.gateway != widget.gateway || nextUser != _userId) {
+      _requestGeneration++;
       _userId = nextUser;
       _accounts = null;
       _selected = null;
       _accessLost = false;
+      _loading = false;
+      _error = null;
       _ledgerGeneration++;
       _refresh();
     }
@@ -77,6 +81,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
 
   @override
   void dispose() {
+    _requestGeneration++;
     _refreshTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -84,13 +89,20 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
 
   Future<void> _refresh() async {
     if (_loading) return;
+    final generation = ++_requestGeneration;
+    final userId = widget.currentUserId?.call();
+    final gateway = widget.gateway;
+    bool isCurrent() =>
+        mounted &&
+        generation == _requestGeneration &&
+        userId == widget.currentUserId?.call();
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final accounts = await widget.gateway.listMyShopAccounts();
-      if (!mounted) return;
+      final accounts = await gateway.listMyShopAccounts();
+      if (!isCurrent()) return;
       setState(() {
         if (_accounts != null && _accounts!.isNotEmpty && accounts.isEmpty) {
           _accessLost = true;
@@ -109,7 +121,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _ledgerGeneration++;
       });
     } on ShopAccountException catch (error) {
-      if (!mounted) return;
+      if (!isCurrent()) return;
       setState(() {
         _selected = null;
         _accounts = null;
@@ -117,14 +129,14 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _error = _failureText(error.failure);
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!isCurrent()) return;
       setState(() {
         _selected = null;
         _accounts = null;
         _error = 'تعذر تحميل المتاجر. تحقق من الاتصال وحاول مجددًا.';
       });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (isCurrent()) setState(() => _loading = false);
     }
   }
 
