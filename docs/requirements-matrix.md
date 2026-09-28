@@ -6,7 +6,7 @@ This matrix is the long-lived work register derived from the local source docume
 
 | ID | Requirement | Source | Target milestone | Status / decision |
 | --- | --- | --- | --- | --- |
-| ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | Implemented under [ADR 0002](adr/0002-egypt-password-auth.md): domain/data/presentation password flows, reviewed server registration, development Auth settings and rollback-only RLS gates. Exact tests, visual evidence, and live Auth limitations: [validation](operations/milestone-1-validation.md). Full Milestone 1 acceptance remains open |
+| ID-01 | Authenticate before shop data using email/password or Egyptian phone/password, with no verification or OTP | PAGES, AGREEMENT; owner 2026-09-26 | 1 | Implemented, not accepted. Live two-identifier login, registration, session/revocation, and final device acceptance remain open. [Current assessment](operations/auth-ledger-assessment-2026-09-28.md), [historical evidence](operations/milestone-1-validation.md) |
 | ID-02 | One owner account per shop; no partner, employee, invitation, or per-user permission grant | PAGES; owner 2026-09-26 | 1 | [ADR 0003](adr/0003-owner-only-shop-access.md). Migration `20260926120634_owner_only_access.sql` is applied to development and rollback-only tests pass. Flutter accepts only `member_role = owner`. See [validation](operations/milestone-1-validation.md) |
 | ID-03 | Enforce tenant and row scope through RLS and command authorization | BASIC, PAGES | 1 | Identity and opening RLS/command tests passed on development and rolled back. Staging, live Auth, and device acceptance remain pending. [Evidence](operations/milestone-2-opening-validation.md) |
 | ID-04 | Interactive skippable onboarding over real controls, resumable from Help | PAGES | 1, 4 | Planned, D22 |
@@ -18,21 +18,21 @@ This matrix is the long-lived work register derived from the local source docume
 | SET-04 | Custom invoice/WhatsApp message text with validated placeholders | PAGES | 4 | Planned |
 | NAV-01 | Home, ledger, customers, reports and more navigation in Arabic RTL | LEDGER mockups | 1 | Planned |
 | ID-05 | Arabic RTL and complete light/dark themes on all clients | PAGES | 1 | Login and signup captures remain as in Milestone 1. Opening ledger: 46 Flutter widget PNGs inspected at 320 and 1440, light and dark, including pending, expired, in-flight, and review. Widget screens are not device proof. Live baselines and D12 remain open. [Evidence](operations/milestone-2-opening-validation.md) |
-| LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Partial. Confirmation opens one Africa/Cairo business day that stays open past midnight. Manual close and reopen stay planned, D08 unsigned. [Evidence](operations/milestone-2-opening-validation.md) |
-| LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Partial: confirmed opening balances by four methods from postings (cash, instant_transfer, wallet, card); the pre-confirmation review shows total net cash. An overall confirmed-ledger summary remains planned. Rename and delete stay planned, D24. [Evidence](operations/milestone-2-opening-validation.md) |
+| LED-01 | Daily ledger by explicit business day and manual close | LEDGER, PAGES | 2 | Partial. Opening business day exists; bounded close rule approved in [ADR 0005](adr/0005-bounded-sale-and-close-rules.md). Close and next-day commands are absent; discrepancy/correction remains open. [Assessment](operations/auth-ledger-assessment-2026-09-28.md) |
+| LED-02 | Cash summary overall and by cash, card, instant transfer and wallet | LEDGER, PAGES | 2 | Partial: confirmed opening balances by four methods from postings and an exact overall cash balance display. Full daily posting summaries are absent. [Assessment](operations/auth-ledger-assessment-2026-09-28.md) |
 | LED-03 | Sale/purchase grams and count by applicable karat, configurable card order/visibility | LEDGER | 2 | Planned |
 | LED-04 | Operation list with actor, time, invoice, and notes marker for the owning shop | LEDGER, PAGES; ADR 0003 | 2 | Partial. Confirmed feed is one opening row with owner name and Cairo time. Invoice number and notes marker are not in this slice. D10 stays closed. [Evidence](operations/milestone-2-opening-validation.md) |
 | LED-05 | Daily text/image notes and quick actions | LEDGER, PAGES | 2, 4 | Planned |
 | LED-06 | Define mockup profit/card formula; hide profit until approved valuation or label net cash movement accurately | LEDGER mockups | 2 | Planned, D26 |
 | CAT-01 | Category-specific allowed karats and stock tracking mode, including 14/22 where applicable | LEDGER, PAGES | 2 | Partial opening catalog only, under [ADR 0004](adr/0004-opening-balance-working-defaults.md): worked jewelry 14/18/21/22, bullion 24, coin 21, scrap 14/18/21/22/24. D03 and D04 stay unsigned. [Evidence](operations/milestone-2-opening-validation.md) |
 | QA-01 | Deduct scrap and add cash, including split cash methods, as one atomic quick action | LEDGER | 3 | Planned |
-| EXP-01 | Owner records an expense using one or more cash methods | LEDGER, PAGES; ADR 0003 | 2 | Planned |
-| SALE-01 | Sale with multiple items, quantity, grams, category and karat | LEDGER, PAGES | 2 | Planned, D02 |
-| SALE-02 | Per-line or whole-invoice pricing and split tender | LEDGER, PAGES | 2 | Planned, D02 |
+| EXP-01 | Owner records an expense using one or more cash methods | LEDGER, PAGES; ADR 0003 | 2 | Planned; positive exact split-tender, required Arabic description, and no gold effect approved in [ADR 0005](adr/0005-bounded-sale-and-close-rules.md), command absent |
+| SALE-01 | Sale with multiple items, quantity, grams, category and karat | LEDGER, PAGES | 2 | Planned; bounded arithmetic and nonnegative-stock rule approved in [ADR 0005](adr/0005-bounded-sale-and-close-rules.md), full sale workflow unimplemented |
+| SALE-02 | Per-line or whole-invoice pricing and split tender | LEDGER, PAGES | 2 | Planned; exact split-tender equality and whole-invoice total without per-item allocation approved in [ADR 0005](adr/0005-bounded-sale-and-close-rules.md). Future tax/workmanship/discount/credit rules remain D02 decisions |
 | SALE-03 | Optional customer/phone and notes, net-effect confirmation | LEDGER | 2 | Planned |
 | SALE-04 | One atomic, idempotent server commit with clear outcome | BASIC, LEDGER | 2 | Planned |
-| PUR-01 | Purchase with multiple items and split tender | LEDGER, PAGES | 2 | Planned |
-| PUR-02 | Partial/no cash payment and partial/no scrap or stock recognition | LEDGER, PAGES | 2, 3 | Planned, D05, D16 |
+| PUR-01 | Purchase with multiple items and split tender | LEDGER, PAGES | 2 | Planned; bounded fully paid receipt and exact split tender approved in [ADR 0005](adr/0005-bounded-sale-and-close-rules.md), command absent |
+| PUR-02 | Partial/no cash payment and partial/no scrap or stock recognition | LEDGER, PAGES | 2, 3 | Planned; product owner explicitly deferred irreversible posting until D05/D16 ownership, custody and obligation worked example is approved. [ADR 0005](adr/0005-bounded-sale-and-close-rules.md) |
 | PUR-03 | Bullion at 24K and coins at 21K by category policy | LEDGER | 3 | Planned, D04 |
 | PUR-04 | Split bullion/coin receipt between inventory and scrap | LEDGER | 3 | Planned, D04 |
 | INV-01 | Instant inventory by product, count, grams, karat and scrap | PAGES | 3 | Planned, D03 |
