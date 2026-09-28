@@ -542,8 +542,8 @@ class _Review extends StatelessWidget {
             label: cashMethodLabel(method),
             amount: draft.cash[method].poundsText,
           ),
-        if (_netCash(draft) case final net?)
-          _ReviewLine(label: 'صافي النقد', amount: '$net جنيه'),
+        if (_totalCash(draft) case final total?)
+          _ReviewLine(label: 'إجمالي النقد', amount: '$total جنيه'),
         if (draft.stock.isNotEmpty)
           Text('المخزون', style: theme.textTheme.titleSmall),
         for (final row in draft.stock) ...[
@@ -687,7 +687,7 @@ class _ConfirmedLedger extends StatelessWidget {
   }
 }
 
-String? _netCash(OpeningDraft draft) {
+String? _totalCash(OpeningDraft draft) {
   final sum = PostgresInteger.checkedSum([
     for (final method in CashMethod.canonicalOrder) draft.cash[method].value,
   ]);

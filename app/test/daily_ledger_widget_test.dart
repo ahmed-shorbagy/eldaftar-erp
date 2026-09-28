@@ -297,6 +297,8 @@ void main() {
     await tester.tap(find.byKey(const Key('review-values')));
     await tester.pumpAndSettle();
     expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
+    expect(find.text('إجمالي النقد'), findsOneWidget);
+    expect(find.text('صافي النقد'), findsNothing);
     expect(find.text('10000.00'), findsOneWidget);
     expect(find.textContaining('5.000'), findsOneWidget);
     await tester.tap(find.byKey(const Key('confirm-opening')));
