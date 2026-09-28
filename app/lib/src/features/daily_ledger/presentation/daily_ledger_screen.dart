@@ -4,6 +4,8 @@ import '../../../shell/shell_copy.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
 import '../../shop_accounts/domain/shop_account.dart';
+import '../../onboarding/application/onboarding_store.dart';
+import '../../onboarding/presentation/guide_card.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/opening_gateway.dart';
 import '../application/pending_opening_store.dart';
@@ -28,6 +30,7 @@ class DailyLedgerScreen extends StatefulWidget {
     this.userId,
     this.refreshGeneration = 0,
     this.newKey,
+    this.onboardingStore,
   });
 
   final ShopAccount shop;
@@ -40,6 +43,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final String? userId;
   final int refreshGeneration;
   final String Function()? newKey;
+  final OnboardingStore? onboardingStore;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -48,6 +52,9 @@ class DailyLedgerScreen extends StatefulWidget {
 class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
   DailyLedgerController? _controller;
   final _scroll = ScrollController();
+  final _refreshFocus = FocusNode();
+  bool _guideVisible = false;
+  int _guideStep = 0;
 
   bool get _expired => widget.shop.entitlement == ShopEntitlement.expired;
 
@@ -55,6 +62,45 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
   void initState() {
     super.initState();
     _attach();
+    _loadGuide();
+  }
+
+  String get _guidePath => 'ledger_${widget.userId}_${widget.shop.id}';
+
+  Future<void> _loadGuide() async {
+    final store = widget.onboardingStore;
+    if (store == null || widget.userId == null) return;
+    final path = _guidePath;
+    final complete = await store.isComplete(path);
+    final step = await store.readStep(path);
+    if (mounted && _guidePath == path && !complete) {
+      setState(() {
+        _guideVisible = true;
+        _guideStep = step.clamp(0, 1);
+      });
+    }
+  }
+
+  void _skipGuide() {
+    setState(() => _guideVisible = false);
+    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
+  }
+
+  void _finishGuide() {
+    setState(() => _guideVisible = false);
+    widget.onboardingStore?.markComplete(_guidePath);
+  }
+
+  void _resumeGuide() {
+    setState(() => _guideVisible = true);
+  }
+
+  void _refreshWithGuide() {
+    (widget.onRefreshShops ?? _controller?.refresh)?.call();
+    if (_guideVisible && _guideStep == 0) {
+      setState(() => _guideStep = 1);
+      widget.onboardingStore?.saveStep(_guidePath, 1);
+    }
   }
 
   void _attach() {
@@ -109,6 +155,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
     _controller?.removeListener(_onController);
     _controller?.dispose();
     _scroll.dispose();
+    _refreshFocus.dispose();
     super.dispose();
   }
 
@@ -135,7 +182,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
           ),
           IconButton(
             tooltip: 'تحديث الدفتر',
-            onPressed: widget.onRefreshShops ?? _controller?.refresh,
+            focusNode: _refreshFocus,
+            onPressed: _refreshWithGuide,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
@@ -173,6 +221,47 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
               ),
               children: [
                 Text(widget.shop.name, style: theme.textTheme.titleLarge),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    key: const Key('ledger-help'),
+                    onPressed: _resumeGuide,
+                    icon: const Icon(Icons.help_outline),
+                    label: const Text('إرشاد الشاشة'),
+                  ),
+                ),
+                if (_guideVisible) ...[
+                  const SizedBox(height: 12),
+                  GuideCard(
+                    title: _guideStep == 0
+                        ? 'تحديث الدفتر'
+                        : 'راجع الأرصدة قبل أي تأكيد',
+                    description: _guideStep == 0
+                        ? 'اضغط زر التحديث أعلى الشاشة لجلب أحدث حالة من الخادم.'
+                        : 'اعرض النقد والذهب هنا. إدخال الأرصدة لا يُحفظ حتى تراجع وتؤكد العملية.',
+                    progress: const ['١/٢', '٢/٢'][_guideStep],
+                    actionLabel: _guideStep == 0
+                        ? 'تحديد زر التحديث'
+                        : 'عرض الأرصدة',
+                    onAction: () {
+                      if (_guideStep == 0) {
+                        _refreshFocus.requestFocus();
+                      } else {
+                        _finishGuide();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (_scroll.hasClients) {
+                            _scroll.animateTo(
+                              _scroll.position.maxScrollExtent,
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOut,
+                            );
+                          }
+                        });
+                      }
+                    },
+                    onSkip: _skipGuide,
+                  ),
+                ],
                 if (_expired || (controller?.readOnly ?? false)) ...[
                   const SizedBox(height: 12),
                   Text(

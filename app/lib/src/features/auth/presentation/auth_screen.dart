@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
+import '../../onboarding/application/onboarding_store.dart';
+import '../../onboarding/presentation/guide_card.dart';
 import '../domain/auth_gateway.dart';
 import 'auth_copy.dart';
 
@@ -22,12 +24,14 @@ class AuthScreen extends StatefulWidget {
     required this.onToggleTheme,
     required this.onHold,
     required this.onSessionSettled,
+    this.onboardingStore,
   });
 
   final AuthGateway gateway;
   final Future<void> Function(Brightness brightness) onToggleTheme;
   final ValueChanged<bool> onHold;
   final VoidCallback onSessionSettled;
+  final OnboardingStore? onboardingStore;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -47,6 +51,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _phoneFocus = FocusNode();
   final _governorateFocus = FocusNode();
   final _passwordFocus = FocusNode();
+  final _submitFocus = FocusNode();
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   AuthFormMode _mode = AuthFormMode.signIn;
@@ -62,18 +67,105 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _serverMessage;
   String? _fieldAlert;
   int _governorateLoadGeneration = 0;
+  bool _guideVisible = false;
+  int _guideStep = 0;
 
   @override
   void initState() {
     super.initState();
     _email.addListener(_refreshContacts);
     _phone.addListener(_refreshContacts);
+    _emailFocus.addListener(_onGuideFocus);
+    _ownerFocus.addListener(_onGuideFocus);
+    _passwordFocus.addListener(_onGuideFocus);
+    _loadGuide();
+  }
+
+  String get _guidePath => _signingUp ? 'auth_signup' : 'auth_signin';
+
+  Future<void> _loadGuide() async {
+    final store = widget.onboardingStore;
+    if (store == null) return;
+    final path = _guidePath;
+    final complete = await store.isComplete(path);
+    final step = await store.readStep(path);
+    if (mounted && _guidePath == path && !complete) {
+      setState(() {
+        _guideVisible = true;
+        _guideStep = step.clamp(0, 2);
+      });
+    }
+  }
+
+  void _onGuideFocus() {
+    if (!_guideVisible) return;
+    if (_guideStep == 0 &&
+        (_signingUp ? _ownerFocus.hasFocus : _emailFocus.hasFocus)) {
+      setState(() => _guideStep = 1);
+      widget.onboardingStore?.saveStep(_guidePath, 1);
+    } else if (_guideStep == 1 &&
+        (_signingUp ? _emailFocus.hasFocus : _passwordFocus.hasFocus)) {
+      setState(() => _guideStep = 2);
+      widget.onboardingStore?.saveStep(_guidePath, 2);
+    }
+  }
+
+  void _skipGuide() {
+    setState(() => _guideVisible = false);
+    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
+  }
+
+  void _finishGuide() {
+    setState(() => _guideVisible = false);
+    widget.onboardingStore?.markComplete(_guidePath);
+  }
+
+  void _resumeGuide() {
+    setState(() => _guideVisible = true);
+  }
+
+  Widget _guide() {
+    final signup = _signingUp;
+    final titles = signup
+        ? const ['ابدأ باسم المالك', 'أضف وسيلة التواصل', 'أكمل بيانات المتجر']
+        : const ['مرحبًا بك', 'أدخل كلمة المرور', 'راجع ثم ادخل'];
+    final descriptions = signup
+        ? const [
+            'المس اسم المالك الحقيقي في النموذج.',
+            'اكتب البريد الإلكتروني والهاتف المصري في الحقلين.',
+            'اختر المحافظة وكلمة المرور، ثم راجع الطلب قبل إرساله.',
+          ]
+        : const [
+            'استخدم البريد الإلكتروني أو رقم الهاتف المصري في الحقل نفسه.',
+            'أدخل كلمة المرور الخاصة بالحساب. يمكنك إظهارها للتأكد.',
+            'اضغط دخول بعد مراجعة البيانات. لن يفتح المتجر إلا بعد تأكيد الخادم.',
+          ];
+    return GuideCard(
+      title: titles[_guideStep],
+      description: descriptions[_guideStep],
+      progress: const ['١/٣', '٢/٣', '٣/٣'][_guideStep],
+      actionLabel: _guideStep == 2 ? 'الانتقال إلى الإجراء' : 'تجربة الحقل',
+      onAction: () {
+        if (_guideStep == 2) {
+          _finishGuide();
+          _submitFocus.requestFocus();
+        } else if (_guideStep == 0) {
+          (signup ? _ownerFocus : _emailFocus).requestFocus();
+        } else {
+          (signup ? _emailFocus : _passwordFocus).requestFocus();
+        }
+      },
+      onSkip: _skipGuide,
+    );
   }
 
   @override
   void dispose() {
     _email.removeListener(_refreshContacts);
     _phone.removeListener(_refreshContacts);
+    _emailFocus.removeListener(_onGuideFocus);
+    _ownerFocus.removeListener(_onGuideFocus);
+    _passwordFocus.removeListener(_onGuideFocus);
     _scroll.dispose();
     _owner.dispose();
     _business.dispose();
@@ -86,6 +178,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _phoneFocus.dispose();
     _governorateFocus.dispose();
     _passwordFocus.dispose();
+    _submitFocus.dispose();
     super.dispose();
   }
 
@@ -138,6 +231,8 @@ class _AuthScreenState extends State<AuthScreen> {
       _fieldAlert = null;
       _formKey = GlobalKey<FormState>();
       _validated = false;
+      _guideVisible = false;
+      _guideStep = 0;
     });
     if (mode == AuthFormMode.signUp &&
         _governorates.isEmpty &&
@@ -145,6 +240,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _loadGovernorates();
     }
     if (_scroll.hasClients) _scroll.jumpTo(0);
+    if (widget.onboardingStore != null) _loadGuide();
   }
 
   Future<void> _submitSignIn() async {
@@ -554,6 +650,12 @@ class _AuthScreenState extends State<AuthScreen> {
             appBar: AppBar(
               actions: [
                 IconButton(
+                  key: const Key('auth-help'),
+                  tooltip: 'إعادة الإرشاد',
+                  onPressed: _resumeGuide,
+                  icon: const Icon(Icons.help_outline),
+                ),
+                IconButton(
                   key: const Key('auth-theme-toggle'),
                   tooltip: theme.brightness == Brightness.dark
                       ? ShellCopy.toggleToLight
@@ -603,7 +705,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                 const BrandHero(markSize: 40, compact: true),
                                 const SizedBox(height: 16),
                                 _headline(theme),
-                                const SizedBox(height: 24),
+                                if (_guideVisible) ...[
+                                  const SizedBox(height: 8),
+                                  _guide(),
+                                ],
+                                SizedBox(height: _guideVisible ? 8 : 24),
                                 if (!_signingUp) ..._signInFields(theme),
                                 if (_signingUp) ..._signUpFields(theme),
                                 if (_fieldAlert != null)
@@ -993,6 +1099,7 @@ class _AuthScreenState extends State<AuthScreen> {
         width: double.infinity,
         child: FilledButton(
           key: Key(_signingUp ? 'signup-submit' : 'sign-in-submit'),
+          focusNode: _submitFocus,
           style: FilledButton.styleFrom(
             minimumSize: const Size(double.infinity, _control),
           ),
@@ -1218,7 +1325,7 @@ class _AuthScreenState extends State<AuthScreen> {
     return _order(
       order,
       Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.only(bottom: _guideVisible ? 8 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

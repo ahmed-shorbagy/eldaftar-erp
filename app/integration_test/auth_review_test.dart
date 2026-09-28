@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_copy.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_screen.dart';
+import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/shell/shell_copy.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -106,6 +107,7 @@ class AuthReviewHost extends StatefulWidget {
 class _AuthReviewHostState extends State<AuthReviewHost> {
   ThemeMode _mode = ThemeMode.light;
   final _gateway = _ReviewAuthGateway();
+  final _guide = _ReviewOnboardingStore();
 
   @override
   Widget build(BuildContext context) {
@@ -157,9 +159,26 @@ class _AuthReviewHostState extends State<AuthReviewHost> {
         },
         onHold: (_) {},
         onSessionSettled: () {},
+        onboardingStore: widget.preview ? _guide : null,
       ),
     );
   }
+}
+
+class _ReviewOnboardingStore implements OnboardingStore {
+  final steps = <String, int>{};
+
+  @override
+  Future<bool> isComplete(String path) async => false;
+  @override
+  Future<int> readStep(String path) async => steps[path] ?? 0;
+  @override
+  Future<void> saveStep(String path, int step) async {
+    steps[path] = step;
+  }
+
+  @override
+  Future<void> markComplete(String path) async {}
 }
 
 class _ReviewAuthGateway implements AuthGateway {

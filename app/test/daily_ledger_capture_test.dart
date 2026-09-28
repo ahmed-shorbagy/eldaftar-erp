@@ -6,6 +6,7 @@ import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_vie
 import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/pending_opening_store.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_screen.dart';
+import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account_gateway.dart';
 import 'package:eldafttar/src/features/shop_accounts/presentation/shop_accounts_gate.dart';
@@ -200,6 +201,17 @@ class CaptureStore implements PendingOpeningStore {
   Future<void> retire({required String userId, required String shopId}) async {}
 }
 
+class CaptureGuideStore implements OnboardingStore {
+  @override
+  Future<bool> isComplete(String path) async => false;
+  @override
+  Future<int> readStep(String path) async => 0;
+  @override
+  Future<void> saveStep(String path, int step) async {}
+  @override
+  Future<void> markComplete(String path) async {}
+}
+
 class CaptureShops implements ShopAccountGateway {
   CaptureShops(this.accounts);
 
@@ -289,6 +301,23 @@ Future<void> capture(WidgetTester tester, String name) async {
     final file = File('$captureDir/$name');
     await file.parent.create(recursive: true);
     await file.writeAsBytes(bytes, flush: true);
+  });
+}
+
+Future<void> captureGuide(WidgetTester tester, String name) async {
+  expectNoException(tester);
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(const Key('opening-capture-boundary')),
+  );
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 1);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    final file = File(
+      '../docs/reviews/onboarding-entry-2026-09-28/widget/$name',
+    );
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(data!.buffer.asUint8List(), flush: true);
+    image.dispose();
   });
 }
 
@@ -465,6 +494,7 @@ Future<void> pumpLedger(
   required ShopAccount shop,
   required OpeningGateway gateway,
   required String screenKey,
+  OnboardingStore? onboardingStore,
 }) async {
   await blank(tester);
   tester.view.physicalSize = size;
@@ -494,6 +524,7 @@ Future<void> pumpLedger(
           gateway: gateway,
           store: CaptureStore(),
           userId: 'user-1',
+          onboardingStore: onboardingStore,
           onSignOut: () async {},
           onToggleTheme: (_) async {},
           onChangeShop: () {},
@@ -793,6 +824,24 @@ void main() {
         timeout: const Timeout(Duration(minutes: 3)),
         skip: !captureFontsAvailable,
       );
+      testWidgets('ledger guide capture $label', (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = size;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(() async => blank(tester));
+        await pumpLedger(
+          tester,
+          size: size,
+          brightness: brightness,
+          shop: account(ShopEntitlement.active),
+          gateway: CaptureGateway(emptyLedger()),
+          screenKey: 'guide-$label',
+          onboardingStore: CaptureGuideStore(),
+        );
+        expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+        await captureGuide(tester, 'ledger-$label.png');
+      }, skip: !captureFontsAvailable);
     }
   }
 

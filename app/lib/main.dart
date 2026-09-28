@@ -9,6 +9,7 @@ import 'src/config/supabase_startup.dart';
 import 'src/features/auth/data/supabase_auth_gateway.dart';
 import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
+import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
 import 'src/features/shop_accounts/data/supabase_shop_account_gateway.dart';
 import 'src/theme/theme_controller.dart';
 import 'src/theme/theme_preference_store.dart';
@@ -47,6 +48,7 @@ Future<void> main() async {
       pendingOpeningStore: supabaseStatus == SupabaseStartupStatus.ready
           ? SharedPreferencesPendingOpeningStore(preferences)
           : null,
+      onboardingStore: SharedPreferencesOnboardingStore(preferences),
       currentUserId: supabaseStatus == SupabaseStartupStatus.ready
           ? () => Supabase.instance.client.auth.currentUser?.id
           : null,

@@ -85,39 +85,6 @@ class BrandHero extends StatelessWidget {
   }
 }
 
-/// Full-screen opening view used before login or the shop.
-class BrandSplash extends StatelessWidget {
-  const BrandSplash({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      key: const Key('brand-splash'),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final minHeight = (constraints.maxHeight - 48).clamp(
-              0.0,
-              double.infinity,
-            );
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: minHeight),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [BrandHero(markSize: 144)],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
 class BrandLockup extends StatelessWidget {
   const BrandLockup({
     super.key,

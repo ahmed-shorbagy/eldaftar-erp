@@ -8,6 +8,7 @@ import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
 import '../../daily_ledger/presentation/daily_ledger_screen.dart';
+import '../../onboarding/application/onboarding_store.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_account_gateway.dart';
 
@@ -20,6 +21,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.openingGateway,
     this.pendingOpeningStore,
     this.currentUserId,
+    this.onboardingStore,
   });
 
   final ShopAccountGateway gateway;
@@ -28,6 +30,7 @@ class ShopAccountsGate extends StatefulWidget {
   final OpeningGateway? openingGateway;
   final PendingOpeningStore? pendingOpeningStore;
   final String? Function()? currentUserId;
+  final OnboardingStore? onboardingStore;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -155,6 +158,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         onToggleTheme: widget.onToggleTheme,
         onChangeShop: () => setState(() => _selected = null),
         onRefreshShops: _refresh,
+        onboardingStore: widget.onboardingStore,
       );
     }
     return Scaffold(

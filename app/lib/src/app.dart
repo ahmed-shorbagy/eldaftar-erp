@@ -6,6 +6,7 @@ import 'features/auth/domain/auth_gateway.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
+import 'features/onboarding/application/onboarding_store.dart';
 import 'features/shop_accounts/domain/shop_account_gateway.dart';
 import 'shell/shell_copy.dart';
 import 'theme/app_theme.dart';
@@ -20,6 +21,7 @@ class ElDafttarApp extends StatelessWidget {
     this.shopAccountGateway,
     this.openingGateway,
     this.pendingOpeningStore,
+    this.onboardingStore,
     this.currentUserId,
   });
 
@@ -29,6 +31,7 @@ class ElDafttarApp extends StatelessWidget {
   final ShopAccountGateway? shopAccountGateway;
   final OpeningGateway? openingGateway;
   final PendingOpeningStore? pendingOpeningStore;
+  final OnboardingStore? onboardingStore;
   final String? Function()? currentUserId;
 
   @override
@@ -56,6 +59,7 @@ class ElDafttarApp extends StatelessWidget {
             shopAccountGateway: shopAccountGateway,
             openingGateway: openingGateway,
             pendingOpeningStore: pendingOpeningStore,
+            onboardingStore: onboardingStore,
             currentUserId: currentUserId,
             onToggleTheme: themeController.toggle,
           ),

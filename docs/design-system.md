@@ -19,7 +19,7 @@ Flutter currently defines the five core seed/surface/text values in app/lib/src/
 
 ## Brand mark
 
-The product mark is an open cream ledger with a gold ingot on the brown seed field. The opening splash centers a large mark with the name الدفتر and the line دفتر محلات الذهب. Flutter login and signup use a compact 40px mark beside the name/tagline so the form and actions remain visible on narrow phones; shop/admin bars use a small mark. The drawing is `app/assets/brand/mark.svg`, repeated as `admin/public/favicon.svg` and the Android launch drawable. Flutter paints it in `BrandMark`; React draws it in `admin/src/theme/BrandMark.tsx`.
+The product mark is an open cream ledger with a gold ingot on the brown seed field. Android and iOS native launch screens use the centered mark and system light/dark backgrounds through `flutter_native_splash`; the earlier delayed Flutter opening view is no longer shown. Flutter login and signup use a compact 40px mark beside the name/tagline so the form and actions remain visible on narrow phones; shop/admin bars use a small mark. The drawing is `app/assets/brand/mark.svg`, repeated as `admin/public/favicon.svg` and the generated native splash PNG. Flutter paints it in `BrandMark`; React draws it in `admin/src/theme/BrandMark.tsx`. See the [current entry review](reviews/onboarding-entry-2026-09-28/validation.md); older auth splash records are historical.
 
 The gold `#E6C36A` (`brandGold`) is used only inside that mark, on the brown field. It is not a text or status color. The page, spine, and field use the existing surface, dark primary container, and seed tokens.
 

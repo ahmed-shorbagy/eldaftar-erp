@@ -8,6 +8,7 @@ import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.
 import 'package:eldafttar/src/features/daily_ledger/application/pending_opening_store.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/opening_balances.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_screen.dart';
+import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account_gateway.dart';
 import 'package:eldafttar/src/features/shop_accounts/presentation/shop_accounts_gate.dart';
@@ -110,6 +111,27 @@ class MemoryStore implements PendingOpeningStore {
   }
 }
 
+class GuideMemoryStore implements OnboardingStore {
+  final steps = <String, int>{};
+  final complete = <String>{};
+
+  @override
+  Future<bool> isComplete(String path) async => complete.contains(path);
+
+  @override
+  Future<int> readStep(String path) async => steps[path] ?? 0;
+
+  @override
+  Future<void> saveStep(String path, int step) async {
+    steps[path] = step;
+  }
+
+  @override
+  Future<void> markComplete(String path) async {
+    complete.add(path);
+  }
+}
+
 class ScriptGateway implements OpeningGateway {
   int confirmCalls = 0;
   int statusCalls = 0;
@@ -196,6 +218,7 @@ Future<void> pumpScreen(
   required ScriptGateway gateway,
   required MemoryStore store,
   int generation = 0,
+  OnboardingStore? onboardingStore,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -213,6 +236,7 @@ Future<void> pumpScreen(
         store: store,
         userId: user,
         refreshGeneration: generation,
+        onboardingStore: onboardingStore,
         onSignOut: () async {},
         onToggleTheme: (_) async {},
         onChangeShop: () {},
@@ -248,6 +272,38 @@ Future<void> show(WidgetTester tester, Key key) async {
 }
 
 void main() {
+  testWidgets('ledger guide resumes after skip and uses real refresh', (
+    tester,
+  ) async {
+    final gateway = ScriptGateway();
+    final guide = GuideMemoryStore();
+    await pumpScreen(
+      tester,
+      account: shop(ShopEntitlement.active),
+      gateway: gateway,
+      store: MemoryStore(),
+      onboardingStore: guide,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+    final reads = gateway.ledgerCalls;
+    await tester.tap(find.byTooltip('تحديث الدفتر'));
+    await tester.pumpAndSettle();
+    expect(gateway.ledgerCalls, greaterThan(reads));
+    expect(guide.steps.values, contains(1));
+    await tester.tap(find.byKey(const Key('onboarding-skip')));
+    await tester.pump();
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-help')));
+    await tester.pump();
+    expect(find.text('راجع الأرصدة قبل أي تأكيد'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-action')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(guide.complete, contains('ledger_${user}_$shopId'));
+    expect(gateway.confirmCalls, 0, reason: 'Guidance never posts balances');
+  });
+
   test('confirmed cash total uses exact piastres above double precision', () {
     const view = DailyLedgerView(
       state: 'confirmed',

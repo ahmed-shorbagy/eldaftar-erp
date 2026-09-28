@@ -8,6 +8,7 @@ import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
+import '../../onboarding/application/onboarding_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
 import '../domain/auth_gateway.dart';
@@ -23,6 +24,7 @@ class AuthGate extends StatefulWidget {
     required this.onToggleTheme,
     this.openingGateway,
     this.pendingOpeningStore,
+    this.onboardingStore,
     this.currentUserId,
   });
 
@@ -32,17 +34,14 @@ class AuthGate extends StatefulWidget {
   final Future<void> Function(Brightness) onToggleTheme;
   final OpeningGateway? openingGateway;
   final PendingOpeningStore? pendingOpeningStore;
+  final OnboardingStore? onboardingStore;
   final String? Function()? currentUserId;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _intro;
-  bool _introStarted = false;
-  bool _introDone = false;
+class _AuthGateState extends State<AuthGate> {
   StreamSubscription<AuthStatus>? _subscription;
   AuthStatus _status = AuthStatus.signedOut;
   bool _hold = false;
@@ -50,33 +49,7 @@ class _AuthGateState extends State<AuthGate>
   @override
   void initState() {
     super.initState();
-    _intro =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 800),
-        )..addStatusListener((status) {
-          if (status == AnimationStatus.completed && mounted) {
-            setState(() => _introDone = true);
-          }
-        });
     _listen();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_introStarted) return;
-    _introStarted = true;
-    final skip =
-        MediaQuery.disableAnimationsOf(context) ||
-        widget.supabaseStatus != SupabaseStartupStatus.ready ||
-        widget.authGateway == null ||
-        widget.shopAccountGateway == null;
-    if (skip) {
-      _introDone = true;
-      return;
-    }
-    _intro.forward();
   }
 
   @override
@@ -117,19 +90,12 @@ class _AuthGateState extends State<AuthGate>
 
   @override
   void dispose() {
-    _intro.dispose();
     _subscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_introDone &&
-        widget.supabaseStatus == SupabaseStartupStatus.ready &&
-        widget.authGateway != null &&
-        widget.shopAccountGateway != null) {
-      return const BrandSplash();
-    }
     if (widget.supabaseStatus != SupabaseStartupStatus.ready) {
       return HomeShell(
         supabaseStatus: widget.supabaseStatus,
@@ -149,6 +115,7 @@ class _AuthGateState extends State<AuthGate>
         onToggleTheme: widget.onToggleTheme,
         openingGateway: widget.openingGateway,
         pendingOpeningStore: widget.pendingOpeningStore,
+        onboardingStore: widget.onboardingStore,
         currentUserId: widget.currentUserId,
         onSignOut: () async {
           await gateway.signOut();
@@ -161,6 +128,7 @@ class _AuthGateState extends State<AuthGate>
       onToggleTheme: widget.onToggleTheme,
       onHold: _setHold,
       onSessionSettled: _syncStatus,
+      onboardingStore: widget.onboardingStore,
     );
   }
 }

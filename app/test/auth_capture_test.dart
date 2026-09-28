@@ -6,6 +6,7 @@ import 'package:eldafttar/src/config/supabase_startup.dart';
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_copy.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_gate.dart';
+import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account_gateway.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
@@ -92,6 +93,35 @@ class CaptureShops implements ShopAccountGateway {
       : const [];
 }
 
+class CaptureGuideStore implements OnboardingStore {
+  @override
+  Future<bool> isComplete(String path) async => false;
+  @override
+  Future<int> readStep(String path) async => 0;
+  @override
+  Future<void> saveStep(String path, int step) async {}
+  @override
+  Future<void> markComplete(String path) async {}
+}
+
+Future<void> captureGuide(WidgetTester tester, String name) async {
+  await frames(tester);
+  expect(tester.takeException(), isNull, reason: name);
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(const Key('auth-capture-boundary')),
+  );
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 1);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    final file = File(
+      '../docs/reviews/onboarding-entry-2026-09-28/widget/$name',
+    );
+    file.parent.createSync(recursive: true);
+    file.writeAsBytesSync(data!.buffer.asUint8List(), flush: true);
+    image.dispose();
+  });
+}
+
 Future<void> reveal(WidgetTester tester, Key key) async {
   final finder = find.byKey(key);
   for (var attempt = 0; attempt < 12 && finder.evaluate().isEmpty; attempt++) {
@@ -127,10 +157,7 @@ Future<void> capture(WidgetTester tester, String name) async {
     final image = await boundary.toImage(pixelRatio: 1);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     final bytes = data!.buffer.asUint8List();
-    for (final directory in const [
-      'build/auth-review',
-      '../docs/reviews/auth-redesign-2026-09-27/after',
-    ]) {
+    for (final directory in const ['build/auth-review']) {
       final file = File('$directory/$name');
       file.parent.createSync(recursive: true);
       file.writeAsBytesSync(bytes, flush: true);
@@ -171,6 +198,42 @@ void main() {
     final binding = TestWidgetsFlutterBinding.instance;
     binding.platformDispatcher.clearTextScaleFactorTestValue();
   });
+
+  testWidgets(
+    'captures new entry guidance in Arabic RTL at phone and desktop widths',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      for (final size in const [Size(320, 640), Size(1440, 900)]) {
+        for (final brightness in [Brightness.light, Brightness.dark]) {
+          await _pump(
+            tester,
+            size: size,
+            brightness: brightness,
+            onboardingStore: CaptureGuideStore(),
+          );
+          expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+          await captureGuide(
+            tester,
+            'login-${brightness.name}-${size.width.toInt()}.png',
+          );
+          await reveal(tester, const Key('show-signup'));
+          await tester.tap(find.byKey(const Key('show-signup')));
+          await frames(tester);
+          final scroll = tester.widget<SingleChildScrollView>(
+            find.byKey(const Key('auth-scroll')),
+          );
+          scroll.controller!.jumpTo(0);
+          await frames(tester);
+          await captureGuide(
+            tester,
+            'signup-${brightness.name}-${size.width.toInt()}.png',
+          );
+        }
+      }
+    },
+  );
 
   testWidgets('captures the confirmed account awaiting shop activation', (
     tester,
@@ -420,6 +483,7 @@ Future<void> _pump(
   AuthGateway? gateway,
   double textScale = 1,
   bool confirmed = false,
+  OnboardingStore? onboardingStore,
 }) async {
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   await tester.pumpWidget(const SizedBox.shrink());
@@ -447,6 +511,7 @@ Future<void> _pump(
           authGateway: gateway ?? CaptureAuth(signedIn: confirmed),
           shopAccountGateway: CaptureShops(pending: confirmed),
           onToggleTheme: (_) async {},
+          onboardingStore: onboardingStore,
         ),
       ),
     ),

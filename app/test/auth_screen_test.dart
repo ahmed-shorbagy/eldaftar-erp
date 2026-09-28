@@ -4,6 +4,7 @@ import 'package:eldafttar/src/app.dart';
 import 'package:eldafttar/src/config/supabase_startup.dart';
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_copy.dart';
+import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account_gateway.dart';
 import 'package:eldafttar/src/shell/shell_copy.dart';
@@ -22,6 +23,27 @@ class MemoryThemePreferenceStore implements ThemePreferenceStore {
 
   @override
   Future<void> write(String value) async => this.value = value;
+}
+
+class MemoryOnboardingStore implements OnboardingStore {
+  final completed = <String>{};
+  final steps = <String, int>{};
+
+  @override
+  Future<bool> isComplete(String path) async => completed.contains(path);
+
+  @override
+  Future<int> readStep(String path) async => steps[path] ?? 0;
+
+  @override
+  Future<void> saveStep(String path, int step) async {
+    steps[path] = step;
+  }
+
+  @override
+  Future<void> markComplete(String path) async {
+    completed.add(path);
+  }
 }
 
 class ScriptedAuth implements AuthGateway {
@@ -100,6 +122,7 @@ Future<ScriptedAuth> pumpAuth(
   ScriptedAuth? auth,
   ScriptedShops? shops,
   MemoryThemePreferenceStore? store,
+  OnboardingStore? onboardingStore,
   Size size = const Size(420, 1200),
   ThemeMode mode = ThemeMode.light,
   double textScale = 1,
@@ -135,6 +158,7 @@ Future<ScriptedAuth> pumpAuth(
       themeController: ThemeController(store: store, initial: mode),
       authGateway: gateway,
       shopAccountGateway: shops ?? ScriptedShops(),
+      onboardingStore: onboardingStore,
     ),
   );
   await tester.pumpAndSettle();
@@ -923,7 +947,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the opening splash shows the mark before the login form', (
+  testWidgets('native splash hands off directly to the login form', (
     tester,
   ) async {
     final auth = ScriptedAuth();
@@ -940,13 +964,48 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byKey(const Key('brand-splash')), findsOneWidget);
-    expect(find.text(ShellCopy.brandTagline), findsOneWidget);
-    expect(find.byKey(const Key('sign-in-identifier')), findsNothing);
-    await tester.pump(const Duration(milliseconds: 800));
-    await tester.pumpAndSettle();
     expect(find.byKey(const Key('brand-splash')), findsNothing);
     expect(find.byKey(const Key('sign-in-identifier')), findsOneWidget);
+  });
+
+  testWidgets('entry guide uses real fields, can skip and reopen from Help', (
+    tester,
+  ) async {
+    final onboarding = MemoryOnboardingStore();
+    final auth = await pumpAuth(tester, onboardingStore: onboarding);
+    expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-action')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byKey(const Key('sign-in-identifier')),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .focusNode
+          .hasFocus,
+      isTrue,
+    );
+    expect(find.text('أدخل كلمة المرور'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-skip')));
+    await tester.pump();
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(onboarding.completed, isNot(contains('auth_signin')));
+    expect(onboarding.steps['auth_signin'], 1);
+    await tester.tap(find.byKey(const Key('auth-help')));
+    await tester.pump();
+    expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+    expect(find.text('أدخل كلمة المرور'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-action')));
+    await tester.pump();
+    expect(find.text('راجع ثم ادخل'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-action')));
+    await tester.pump();
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(onboarding.completed, contains('auth_signin'));
+    expect(auth.signIns, isEmpty, reason: 'Guidance never submits credentials');
   });
 
   testWidgets('screen reader hears the detected contact and the password', (
