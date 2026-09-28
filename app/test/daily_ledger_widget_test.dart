@@ -367,11 +367,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
-    expect(find.text('إجمالي النقد'), findsOneWidget);
+    expect(find.text('إجمالي النقدية'), findsOneWidget);
     expect(find.text('10000.00 جنيه'), findsOneWidget);
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
-    expect(find.text('منى حسن'), findsOneWidget);
-    expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);
+    expect(find.text('منى حسن · 26 سبتمبر 2026، 03:30:00'), findsOneWidget);
     expect(find.textContaining('T'), findsNothing);
     expect(gateway.confirmCalls, 1);
   });

@@ -42,3 +42,9 @@ Use logical start/end spacing, alignment and icon direction. Ensure numbers, cus
 ## Review evidence
 
 For a new or substantially edited screen, capture or inspect representative light and dark states at a narrow phone width and a desktop width; include hover/focus or keyboard state where relevant. Check readable contrast, Arabic labels, overflow, empty/loading/pending/error/success states, and persisted theme choice. Keep the screen's color decisions traceable to the token role used. The design review is incomplete when only one theme or one platform width has been checked.
+
+## Confirmed daily ledger layout
+
+The confirmed Flutter ledger presents server-confirmed gold weight and cash total first, followed by comparisons for payment methods and karats, inventory and scrap details, and the confirmed activity feed. At widths below 480 logical pixels, the two totals stack; on wider screens they sit side by side inside the existing 720-pixel content measure. Cards, bars, icons, text, and borders use Material `ColorScheme` roles derived from the shared brown and cream tokens. Charts retain visible numeric labels and explain that each bar is scaled against the largest value in its group. Cash and gold totals are summed as integers before formatting; chart proportions are display-only.
+
+The owner may show, hide, and reorder the cash, gold, and activity sections. This layout preference is stored per shop on the current device. The two confirmed totals always remain visible. This view currently receives opening balances and the confirmed feed from `get_daily_ledger`; sale, purchase, and other financial controls from the product brief require separate server commands and must not be shown as operational until implemented.

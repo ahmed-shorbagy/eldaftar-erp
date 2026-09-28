@@ -252,8 +252,7 @@ void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
 
 void expectConfirmedFeed(WidgetTester tester) {
   expect(find.text('رصيد افتتاحي'), findsOneWidget);
-  expect(find.text(ownerName), findsOneWidget);
-  expect(find.text(cairoStamp), findsOneWidget);
+  expect(find.text('$ownerName · $cairoStamp'), findsOneWidget);
   expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
 }
@@ -533,7 +532,7 @@ Future<void> pumpLedger(
     ),
   );
   await frames(tester);
-  expect(find.byType(LinearProgressIndicator), findsNothing);
+  expect(find.byKey(const Key('ledger-loading')), findsNothing);
   expectThemeAndRtl(tester, brightness);
 }
 
@@ -626,14 +625,14 @@ Future<void> captureMatrix(
   );
   expectConfirmedFeed(tester);
   expect(find.text('نقدي'), findsOneWidget);
-  expect(find.text('سبائك عيار 24'), findsOneWidget);
-  expect(find.text('كسر عيار 24'), findsOneWidget);
+  expect(find.text('سبائك · عيار 24 · 1 قطعة'), findsOneWidget);
+  expect(find.text('كسر · عيار 24'), findsOneWidget);
   await captureScrollSlots(
     tester,
     stem: 'confirmed',
     label: label,
     topMarker: find.text('تم تأكيد الأرصدة الافتتاحية'),
-    lowerMarker: find.text(cairoStamp),
+    lowerMarker: find.text('$ownerName · $cairoStamp'),
     middleWhenTall: true,
   );
 
@@ -730,7 +729,7 @@ Future<void> captureMatrix(
     stem: 'expired-confirmed',
     label: label,
     topMarker: find.text('منتهي - للقراءة فقط'),
-    lowerMarker: find.text(cairoStamp),
+    lowerMarker: find.text('$ownerName · $cairoStamp'),
     middleWhenTall: true,
   );
 

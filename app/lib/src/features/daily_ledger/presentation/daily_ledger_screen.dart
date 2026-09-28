@@ -6,7 +6,6 @@ import '../../../theme/brand_mark.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../onboarding/presentation/guide_card.dart';
-import '../application/daily_ledger_view.dart';
 import '../application/opening_gateway.dart';
 import '../application/pending_opening_store.dart';
 import '../domain/opening_catalog.dart';
@@ -15,6 +14,7 @@ import '../domain/opening_issue.dart';
 import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
 import 'daily_ledger_controller.dart';
+import 'confirmed_ledger_dashboard.dart';
 import 'opening_copy.dart';
 
 class DailyLedgerScreen extends StatefulWidget {
@@ -279,7 +279,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
                 if (controller == null)
                   const SizedBox.shrink()
                 else if (controller.phase == LedgerPhase.loading)
-                  const LinearProgressIndicator()
+                  const LinearProgressIndicator(key: Key('ledger-loading'))
                 else
                   _LedgerBody(controller: controller, expired: _expired),
               ],
@@ -335,7 +335,10 @@ class _LedgerBody extends StatelessWidget {
               ],
             ],
           ),
-          LedgerPhase.confirmed => _ConfirmedLedger(ledger: controller.ledger),
+          LedgerPhase.confirmed => ConfirmedLedgerDashboard(
+            ledger: controller.ledger,
+            shopId: controller.shopId,
+          ),
           LedgerPhase.refreshFailed => const _RefreshFailedNotice(),
           LedgerPhase.accessDenied => const SizedBox.shrink(),
           LedgerPhase.expiredEmpty => const Text(
@@ -719,58 +722,6 @@ class _RefreshFailedNotice extends StatelessWidget {
         Text('تم تأكيد الأرصدة الافتتاحية'),
         SizedBox(height: 8),
         Text('تعذر تحديث الدفتر بعد التأكيد.'),
-      ],
-    );
-  }
-}
-
-class _ConfirmedLedger extends StatelessWidget {
-  const _ConfirmedLedger({required this.ledger});
-
-  final DailyLedgerView? ledger;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final view = ledger;
-    if (view == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('تم تأكيد الأرصدة الافتتاحية', style: theme.textTheme.titleMedium),
-        if (view.businessDay != null) ...[
-          const SizedBox(height: 8),
-          Text('يوم العمل ${formatServerDate(view.businessDay!.businessDate)}'),
-        ],
-        const SizedBox(height: 12),
-        Text('النقد بالجنيه', style: theme.textTheme.titleSmall),
-        for (final line in view.cash)
-          _ReviewLine(label: line.labelAr, amount: line.pounds),
-        if (view.totalCashPounds case final total?)
-          _ReviewLine(label: 'إجمالي النقد', amount: '$total جنيه'),
-        if (view.stock.isNotEmpty)
-          Text('المخزون', style: theme.textTheme.titleSmall),
-        for (final line in view.stock) ...[
-          _ReviewLine(
-            label: '${line.labelAr} عيار ${line.karat}',
-            amount: '${line.grams} جرام',
-          ),
-          _ReviewLine(label: 'العدد', amount: line.count),
-        ],
-        if (view.scrap.isNotEmpty)
-          Text('الكسر', style: theme.textTheme.titleSmall),
-        for (final line in view.scrap)
-          _ReviewLine(
-            label: '${line.labelAr} عيار ${line.karat}',
-            amount: '${line.grams} جرام',
-          ),
-        const SizedBox(height: 16),
-        for (final line in view.feed) ...[
-          Text(line.labelAr, style: theme.textTheme.titleMedium),
-          Text(line.actorDisplayName),
-          Text(formatServerCairoTimestamp(line.occurredAtCairo)),
-        ],
       ],
     );
   }
