@@ -144,7 +144,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('نظرة على الدفتر', style: theme.textTheme.headlineSmall),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               view.businessDay == null
                   ? 'الأرصدة المؤكدة من الخادم'
@@ -152,104 +152,19 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
               key: const Key('ledger-confirmed-status'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        if (widget.onSale != null || widget.onOpenDay != null) ...[
-          if (widget.dayClosed)
-            FilledButton.icon(
-              key: const Key('ledger-open-day'),
-              onPressed: widget.onOpenDay,
-              icon: const Icon(Icons.today_outlined),
-              label: const Text('فتح يوم عمل جديد'),
-            )
-          else ...[
-            FilledButton.icon(
-              key: const Key('ledger-new-sale'),
-              onPressed: widget.onSale,
-              icon: const Icon(Icons.add_shopping_cart_outlined),
-              label: const Text('إضافة بيع'),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const Key('ledger-new-purchase'),
-                    onPressed: widget.onPurchase,
-                    icon: const Icon(Icons.shopping_bag_outlined),
-                    label: const Text('إضافة شراء'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const Key('ledger-new-expense'),
-                    onPressed: widget.onExpense,
-                    icon: const Icon(Icons.receipt_long_outlined),
-                    label: const Text('مصروف'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (widget.onCashTransfer != null) ...[
-              OutlinedButton.icon(
-                key: const Key('ledger-cash-transfer'),
-                onPressed: widget.onCashTransfer,
-                icon: const Icon(Icons.swap_horiz_outlined),
-                label: const Text('تحويل بين وسائل الدفع'),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (widget.onScrapSale != null) ...[
-              OutlinedButton.icon(
-                key: const Key('ledger-scrap-sale'),
-                onPressed: widget.onScrapSale,
-                icon: const Icon(Icons.scale_outlined),
-                label: const Text('بيع كسر وإضافة نقد'),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (widget.onScrapToStock != null) ...[
-              OutlinedButton.icon(
-                key: const Key('ledger-scrap-to-stock'),
-                onPressed: widget.onScrapToStock,
-                icon: const Icon(Icons.inventory_2_outlined),
-                label: const Text('تحويل كسر إلى مخزون'),
-              ),
-              const SizedBox(height: 8),
-            ],
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                key: const Key('ledger-close-day'),
-                onPressed: widget.onCloseDay,
-                icon: const Icon(Icons.lock_clock_outlined),
-                label: const Text('تقفيل اليومية'),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-        ],
-        if (widget.onPendingInvoices != null) ...[
-          TextButton.icon(
-            key: const Key('ledger-pending-invoices'),
-            onPressed: widget.onPendingInvoices,
-            icon: const Icon(Icons.mark_email_unread_outlined),
-            label: const Text('فواتير تنتظر تأكيد الإرسال'),
-          ),
-          const SizedBox(height: 12),
-        ],
+        const SizedBox(height: 20),
         LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final tileWidth = width >= 480 ? (width - 12) / 2 : width;
+            final tileWidth = width >= 480 ? (width - 16) / 2 : width;
             return Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: 16,
+              runSpacing: 16,
               children: [
                 SizedBox(
                   width: tileWidth,
@@ -278,7 +193,19 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
             );
           },
         ),
-        const SizedBox(height: 12),
+        _OperationsPanel(
+          dayClosed: widget.dayClosed,
+          onSale: widget.onSale,
+          onPurchase: widget.onPurchase,
+          onExpense: widget.onExpense,
+          onCashTransfer: widget.onCashTransfer,
+          onScrapSale: widget.onScrapSale,
+          onScrapToStock: widget.onScrapToStock,
+          onCloseDay: widget.onCloseDay,
+          onOpenDay: widget.onOpenDay,
+          onPendingInvoices: widget.onPendingInvoices,
+        ),
+        const SizedBox(height: 8),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: TextButton.icon(
@@ -337,9 +264,328 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                 onOperation: widget.onOperation,
               ),
             },
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
           ],
       ],
+    );
+  }
+}
+
+class _OperationsPanel extends StatelessWidget {
+  const _OperationsPanel({
+    required this.dayClosed,
+    this.onSale,
+    this.onPurchase,
+    this.onExpense,
+    this.onCashTransfer,
+    this.onScrapSale,
+    this.onScrapToStock,
+    this.onCloseDay,
+    this.onOpenDay,
+    this.onPendingInvoices,
+  });
+
+  final bool dayClosed;
+  final VoidCallback? onSale;
+  final VoidCallback? onPurchase;
+  final VoidCallback? onExpense;
+  final VoidCallback? onCashTransfer;
+  final VoidCallback? onScrapSale;
+  final VoidCallback? onScrapToStock;
+  final VoidCallback? onCloseDay;
+  final VoidCallback? onOpenDay;
+  final VoidCallback? onPendingInvoices;
+
+  bool get _hasActions =>
+      dayClosed ||
+      onSale != null ||
+      onPurchase != null ||
+      onExpense != null ||
+      onCashTransfer != null ||
+      onScrapSale != null ||
+      onScrapToStock != null ||
+      onCloseDay != null ||
+      onOpenDay != null ||
+      onPendingInvoices != null;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasActions) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final stockMoves = <Widget>[
+      if (onCashTransfer != null)
+        _LedgerActionButton(
+          buttonKey: const Key('ledger-cash-transfer'),
+          label: 'تحويل بين وسائل الدفع',
+          icon: Icons.swap_horiz_outlined,
+          onPressed: onCashTransfer,
+        ),
+      if (onScrapSale != null)
+        _LedgerActionButton(
+          buttonKey: const Key('ledger-scrap-sale'),
+          label: 'بيع كسر وإضافة نقد',
+          icon: Icons.scale_outlined,
+          onPressed: onScrapSale,
+        ),
+      if (onScrapToStock != null)
+        _LedgerActionButton(
+          buttonKey: const Key('ledger-scrap-to-stock'),
+          label: 'تحويل كسر إلى مخزون',
+          icon: Icons.inventory_2_outlined,
+          onPressed: onScrapToStock,
+        ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'عمليات اليوم',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                dayClosed
+                    ? 'اليوم مقفل. افتح يوماً جديداً قبل تسجيل عملية.'
+                    : 'البيع أولاً، ثم الشراء والمصروف وحركة الذهب والنقد.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (dayClosed)
+                _LedgerActionButton(
+                  buttonKey: const Key('ledger-open-day'),
+                  label: 'فتح يوم عمل جديد',
+                  icon: Icons.today_outlined,
+                  onPressed: onOpenDay,
+                  filled: true,
+                )
+              else ...[
+                if (onSale != null)
+                  _LedgerActionButton(
+                    buttonKey: const Key('ledger-new-sale'),
+                    label: 'إضافة بيع',
+                    icon: Icons.add_shopping_cart_outlined,
+                    onPressed: onSale,
+                    filled: true,
+                  ),
+                if (onPurchase != null || onExpense != null) ...[
+                  const SizedBox(height: 12),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final purchase = onPurchase == null
+                          ? null
+                          : _LedgerActionButton(
+                              buttonKey: const Key('ledger-new-purchase'),
+                              label: 'إضافة شراء',
+                              icon: Icons.shopping_bag_outlined,
+                              onPressed: onPurchase,
+                            );
+                      final expense = onExpense == null
+                          ? null
+                          : _LedgerActionButton(
+                              buttonKey: const Key('ledger-new-expense'),
+                              label: 'مصروف',
+                              icon: Icons.receipt_long_outlined,
+                              onPressed: onExpense,
+                            );
+                      if (purchase != null &&
+                          expense != null &&
+                          constraints.maxWidth >= 420) {
+                        return Row(
+                          children: [
+                            Expanded(child: purchase),
+                            const SizedBox(width: 12),
+                            Expanded(child: expense),
+                          ],
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ?purchase,
+                          if (purchase != null && expense != null)
+                            const SizedBox(height: 12),
+                          ?expense,
+                        ],
+                      );
+                    },
+                  ),
+                ],
+                if (stockMoves.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
+                  Text(
+                    'حركة المخزون والنقد',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  for (var index = 0; index < stockMoves.length; index++) ...[
+                    if (index > 0) const SizedBox(height: 10),
+                    stockMoves[index],
+                  ],
+                ],
+              ],
+              if (onCloseDay != null || onPendingInvoices != null) ...[
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 4),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final close = onCloseDay == null
+                        ? null
+                        : _QuietAction(
+                            buttonKey: const Key('ledger-close-day'),
+                            label: 'تقفيل اليومية',
+                            icon: Icons.lock_clock_outlined,
+                            onPressed: onCloseDay!,
+                          );
+                    final invoices = onPendingInvoices == null
+                        ? null
+                        : _QuietAction(
+                            buttonKey: const Key('ledger-pending-invoices'),
+                            label: 'فواتير تنتظر تأكيد الإرسال',
+                            icon: Icons.mark_email_unread_outlined,
+                            onPressed: onPendingInvoices!,
+                          );
+                    if (close != null &&
+                        invoices != null &&
+                        constraints.maxWidth >= 420) {
+                      return Row(
+                        children: [
+                          Expanded(child: close),
+                          const SizedBox(width: 8),
+                          Expanded(child: invoices),
+                        ],
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ?close,
+                        if (close != null && invoices != null)
+                          const SizedBox(height: 4),
+                        ?invoices,
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerActionButton extends StatelessWidget {
+  const _LedgerActionButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.filled = false,
+    this.buttonKey,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool filled;
+  final Key? buttonKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
+    final style = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+    if (filled) {
+      return FilledButton(
+        key: buttonKey,
+        onPressed: onPressed,
+        style: style,
+        child: child,
+      );
+    }
+    return OutlinedButton(
+      key: buttonKey,
+      onPressed: onPressed,
+      style: style,
+      child: child,
+    );
+  }
+}
+
+class _QuietAction extends StatelessWidget {
+  const _QuietAction({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.buttonKey,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Key? buttonKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      key: buttonKey,
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -605,12 +851,15 @@ class _DailyMovementSectionState extends State<_DailyMovementSection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('حركة يوم العمل', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
         Text(
           'مبالغ وعمليات أكدها الخادم في هذا اليوم',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
           ),
         ),
+        const SizedBox(height: 4),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: TextButton.icon(
@@ -693,6 +942,7 @@ class _DailyMovementSectionState extends State<_DailyMovementSection> {
             );
           },
         ),
+        const SizedBox(height: 4),
       ],
     );
   }
@@ -769,34 +1019,51 @@ class _GoldMovementSectionState extends State<_GoldMovementSection> {
     final karats = widget.summary.goldByBucket.map((line) => line.karat).toSet()
       ..removeWhere((karat) => !const {14, 18, 21, 22, 24}.contains(karat));
     final orderedKarats = karats.toList()..sort();
+    if (orderedKarats.isEmpty) return const SizedBox.shrink();
     final selected = orderedKarats.contains(_selectedKarat)
         ? _selectedKarat!
         : orderedKarats.first;
+    final lines = [
+      for (final movement in widget.summary.goldByBucket)
+        if (movement.karat == selected) movement,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: 8),
         Text('حركة الذهب', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
         Text(
-          'إجمالي الوزن حسب العيار، ثم تفاصيل النوع والعدد',
+          'اختر العيار لعرض وزن البيع والشراء، ثم تفاصيل النوع والعدد',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
           ),
         ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            for (final karat in orderedKarats)
-              ChoiceChip(
-                key: Key('ledger-karat-$karat'),
-                label: Text('عيار $karat'),
-                selected: karat == selected,
-                onSelected: (_) => setState(() => _selectedKarat = karat),
-              ),
-          ],
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var index = 0; index < orderedKarats.length; index++) ...[
+                if (index > 0) const SizedBox(width: 8),
+                ChoiceChip(
+                  key: Key('ledger-karat-${orderedKarats[index]}'),
+                  label: Text('عيار ${orderedKarats[index]}'),
+                  selected: orderedKarats[index] == selected,
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
+                  onSelected: (_) =>
+                      setState(() => _selectedKarat = orderedKarats[index]),
+                ),
+              ],
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Card(
           color: theme.colorScheme.primaryContainer,
           child: Padding(
@@ -806,13 +1073,16 @@ class _GoldMovementSectionState extends State<_GoldMovementSection> {
               children: [
                 Text(
                   'إجمالي عيار $selected',
-                  style: theme.textTheme.titleSmall,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   'بيع: ${_grams(widget.summary.goldMilligrams(kind: 'sale', karat: selected))} جرام',
                   key: const Key('ledger-karat-sale-total'),
                 ),
+                const SizedBox(height: 6),
                 Text(
                   'شراء: ${_grams(widget.summary.goldMilligrams(kind: 'purchase', karat: selected))} جرام',
                   key: const Key('ledger-karat-purchase-total'),
@@ -821,32 +1091,81 @@ class _GoldMovementSectionState extends State<_GoldMovementSection> {
             ),
           ),
         ),
-        const SizedBox(height: 6),
-        for (final movement in widget.summary.goldByBucket)
-          Card(
-            child: ListTile(
-              key: Key(
-                'ledger-gold-${movement.kind}-${movement.category}-${movement.karat}',
-              ),
-              leading: Icon(
-                movement.kind == 'sale' ? Icons.north_east : Icons.south_west,
-                color: theme.colorScheme.primary,
-              ),
-              title: Text(
-                '${movement.kind == 'sale' ? 'بيع' : 'شراء'} · '
-                '${_goldCategoryLabel(movement.category)} · عيار ${movement.karat}',
-              ),
-              subtitle: movement.category == 'scrap'
-                  ? null
-                  : Text('عدد القطع: ${movement.count}'),
-              trailing: Text(
-                '${_grams(BigInt.parse(movement.milligrams))} جرام',
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.titleSmall,
+        const SizedBox(height: 12),
+        if (lines.isEmpty)
+          Text(
+            'لا تفاصيل لهذا العيار في حركة اليوم.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          for (var index = 0; index < lines.length; index++) ...[
+            if (index > 0) const SizedBox(height: 10),
+            _GoldMovementLine(movement: lines[index]),
+          ],
+      ],
+    );
+  }
+}
+
+class _GoldMovementLine extends StatelessWidget {
+  const _GoldMovementLine({required this.movement});
+
+  final LedgerGoldMovement movement;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final sale = movement.kind == 'sale';
+    return Card(
+      key: Key(
+        'ledger-gold-${movement.kind}-${movement.category}-${movement.karat}',
+      ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              sale ? Icons.north_east : Icons.south_west,
+              color: scheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${sale ? 'بيع' : 'شراء'} · '
+                    '${_goldCategoryLabel(movement.category)} · عيار ${movement.karat}',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  if (movement.category != 'scrap') ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'عدد القطع: ${movement.count}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ),
-      ],
+            const SizedBox(width: 12),
+            Text(
+              '${_grams(BigInt.parse(movement.milligrams))} جرام',
+              textDirection: TextDirection.ltr,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1050,7 +1369,7 @@ class _SectionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 6),
             Text(
               subtitle,
               style: theme.textTheme.bodySmall?.copyWith(

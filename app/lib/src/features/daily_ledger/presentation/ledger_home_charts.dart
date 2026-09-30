@@ -384,7 +384,7 @@ class _SliceButton extends StatelessWidget {
       label: semanticsLabel,
       child: ExcludeSemantics(
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.only(bottom: 8),
           child: Material(
             type: selected ? MaterialType.canvas : MaterialType.transparency,
             color: selected ? scheme.primaryContainer : null,

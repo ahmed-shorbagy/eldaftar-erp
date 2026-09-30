@@ -341,10 +341,22 @@ void main() {
         expect(find.text('حركة الذهب'), findsOneWidget);
         expect(find.text('2.000 جرام'), findsOneWidget);
         expect(find.text('بيع: 2.000 جرام'), findsOneWidget);
+        expect(
+          find.byKey(const Key('ledger-gold-sale-worked_jewelry-18')),
+          findsOneWidget,
+        );
         await tester.ensureVisible(find.byKey(const Key('ledger-karat-21')));
         await tester.tap(find.byKey(const Key('ledger-karat-21')));
         await tester.pump();
         expect(find.text('شراء: 1.250 جرام'), findsOneWidget);
+        expect(
+          find.byKey(const Key('ledger-gold-sale-worked_jewelry-18')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('ledger-gold-purchase-scrap-21')),
+          findsOneWidget,
+        );
         if (brightness == Brightness.light && width == 320) {
           await tester.ensureVisible(
             find.byKey(const Key('ledger-customize-movement')),

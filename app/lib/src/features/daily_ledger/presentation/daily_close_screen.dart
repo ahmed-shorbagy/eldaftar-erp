@@ -8,6 +8,7 @@ import '../data/pending_financial_command.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
+import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class DailyCloseScreen extends StatefulWidget {
@@ -282,12 +283,12 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      decoration: InputDecoration(
-                        labelText: '${cashMethodLabel(method)} بالجنيه',
-                        border: const OutlineInputBorder(),
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: '${cashMethodLabel(method)} بالجنيه',
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                   ],
                   if ((counts['stock'] as List).isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -297,30 +298,31 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       Text(
                         '${stockCategoryLabel(StockCategory.byCode((row as Map)['category'] as String)!)} · عيار ${row['karat']}',
                       ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller:
-                            _stock['${row['category']}:${row['karat']}']![0],
-                        readOnly: _review != null,
-                        textDirection: TextDirection.ltr,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
+                      const SizedBox(height: 12),
+                      LedgerFieldPair(
+                        first: TextField(
+                          controller:
+                              _stock['${row['category']}:${row['karat']}']![0],
+                          readOnly: _review != null,
+                          textDirection: TextDirection.ltr,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: ledgerFieldDecoration(
+                            context,
+                            label: 'الوزن بالجرام',
+                          ),
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'الوزن بالجرام',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller:
-                            _stock['${row['category']}:${row['karat']}']![1],
-                        readOnly: _review != null,
-                        textDirection: TextDirection.ltr,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'العدد',
-                          border: OutlineInputBorder(),
+                        second: TextField(
+                          controller:
+                              _stock['${row['category']}:${row['karat']}']![1],
+                          readOnly: _review != null,
+                          textDirection: TextDirection.ltr,
+                          keyboardType: TextInputType.number,
+                          decoration: ledgerFieldDecoration(
+                            context,
+                            label: 'العدد',
+                          ),
                         ),
                       ),
                     ],
@@ -339,9 +341,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'الوزن بالجرام',
-                          border: OutlineInputBorder(),
+                        decoration: ledgerFieldDecoration(
+                          context,
+                          label: 'الوزن بالجرام',
                         ),
                       ),
                     ],

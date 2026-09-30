@@ -9,6 +9,7 @@ import '../domain/financial_draft.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
+import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class FinancialTradeScreen extends StatefulWidget {
@@ -264,7 +265,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 children: [
                   if (_review == null)
                     ..._entryWidgets(theme)
@@ -294,12 +295,15 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 752),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: SizedBox(
                   width: double.infinity,
                   child: _unknown
                       ? FilledButton.icon(
                           key: const Key('trade-check-status'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                          ),
                           onPressed: _busy ? null : _reconcile,
                           icon: const Icon(Icons.sync),
                           label: const Text('التحقق من الحالة'),
@@ -307,6 +311,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                       : FilledButton(
                           key: Key(
                             _review == null ? 'trade-review' : 'trade-confirm',
+                          ),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
                           ),
                           onPressed: _busy
                               ? null
@@ -332,28 +339,25 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   List<Widget> _entryWidgets(ThemeData theme) => [
     Text(_title, style: theme.textTheme.headlineSmall),
-    const SizedBox(height: 4),
+    const SizedBox(height: 6),
     const Text('تُحفظ العملية بعد مراجعة أثر النقد والذهب وتأكيد الخادم فقط.'),
-    const SizedBox(height: 16),
+    const SizedBox(height: 20),
     if (widget.kind == FinancialKind.expense) ...[
       TextField(
         key: const Key('trade-description'),
         controller: _description,
         textInputAction: TextInputAction.next,
         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        decoration: const InputDecoration(
-          labelText: 'وصف المصروف',
-          border: OutlineInputBorder(),
-        ),
+        decoration: ledgerFieldDecoration(context, label: 'وصف المصروف'),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
     ],
     if (widget.kind != FinancialKind.expense) ...[
       Text('الأصناف', style: theme.textTheme.titleMedium),
-      const SizedBox(height: 8),
+      const SizedBox(height: 12),
       for (var index = 0; index < _items.length; index++) ...[
         _itemCard(index, theme),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
       ],
       OutlinedButton.icon(
         key: const Key('trade-add-item'),
@@ -375,34 +379,39 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textInputAction: TextInputAction.next,
         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        decoration: const InputDecoration(
-          labelText: 'سعر الشراء الكلي بالجنيه',
-          border: OutlineInputBorder(),
+        decoration: ledgerFieldDecoration(
+          context,
+          label: 'سعر الشراء الكلي بالجنيه',
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 16),
       TextField(
         key: const Key('trade-seller-name'),
         controller: _customerName,
         textInputAction: TextInputAction.next,
         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        decoration: const InputDecoration(
-          labelText: 'اسم البائع (مطلوب عند وجود مبلغ مستحق)',
-          border: OutlineInputBorder(),
+        decoration: ledgerFieldDecoration(
+          context,
+          label: 'اسم البائع (مطلوب عند وجود مبلغ مستحق)',
         ),
       ),
       const SizedBox(height: 20),
     ],
     Text('الدفع', style: theme.textTheme.titleMedium),
+    const SizedBox(height: 4),
     Text(
       widget.kind == FinancialKind.purchase
           ? 'أدخل ما دفعه المتجر الآن. اترك المبلغ فارغاً إذا لم يُدفع نقد.'
           : 'يمكن تقسيم المبلغ بين أكثر من وسيلة. يُحسب الإجمالي تلقائياً.',
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        height: 1.5,
+      ),
     ),
-    const SizedBox(height: 8),
+    const SizedBox(height: 12),
     for (var index = 0; index < _tenders.length; index++) ...[
       _tenderCard(index),
-      const SizedBox(height: 8),
+      const SizedBox(height: 12),
     ],
     if (_tenders.length < 4)
       OutlinedButton.icon(
@@ -430,38 +439,29 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               ? 'هاتف البائع والملاحظات (اختياري)'
               : 'بيانات العميل والملاحظات (اختياري)',
         ),
-        childrenPadding: const EdgeInsets.only(bottom: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
         children: [
           if (widget.kind != FinancialKind.purchase)
             TextField(
               controller: _customerName,
               textInputAction: TextInputAction.next,
               onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: const InputDecoration(
-                labelText: 'اسم العميل',
-                border: OutlineInputBorder(),
-              ),
+              decoration: ledgerFieldDecoration(context, label: 'اسم العميل'),
             ),
-          if (widget.kind != FinancialKind.purchase) const SizedBox(height: 8),
+          if (widget.kind != FinancialKind.purchase) const SizedBox(height: 12),
           TextField(
             controller: _customerPhone,
             textDirection: TextDirection.ltr,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-            decoration: const InputDecoration(
-              labelText: 'رقم الهاتف',
-              border: OutlineInputBorder(),
-            ),
+            decoration: ledgerFieldDecoration(context, label: 'رقم الهاتف'),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           TextField(
             controller: _note,
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'ملاحظة العملية',
-              border: OutlineInputBorder(),
-            ),
+            decoration: ledgerFieldDecoration(context, label: 'ملاحظة العملية'),
           ),
         ],
       ),
@@ -479,7 +479,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         : (StockCategory.byCode(categoryCode)!.karats.toList()..sort());
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -488,7 +488,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 Expanded(
                   child: Text(
                     'الصنف ${index + 1}',
-                    style: theme.textTheme.titleSmall,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 if (_items.length > 1)
@@ -507,10 +509,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 key: Key('trade-category-$index'),
                 initialValue: row.category,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'الفئة',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: ledgerFieldDecoration(context, label: 'الفئة'),
                 items: [
                   for (final category in categories)
                     DropdownMenuItem(
@@ -534,81 +533,90 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   row.nameFocus.requestFocus();
                 },
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextField(
               key: Key('trade-name-$index'),
               controller: row.name,
               focusNode: row.nameFocus,
               textInputAction: TextInputAction.next,
               onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: const InputDecoration(
-                labelText: 'اسم الصنف',
-                border: OutlineInputBorder(),
-              ),
+              decoration: ledgerFieldDecoration(context, label: 'اسم الصنف'),
             ),
-            const SizedBox(height: 8),
-            if (categoryCode != 'scrap') ...[
+            const SizedBox(height: 12),
+            if (categoryCode != 'scrap')
+              LedgerFieldPair(
+                first: TextField(
+                  key: Key('trade-count-$index'),
+                  controller: row.count,
+                  textDirection: TextDirection.ltr,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                  decoration: ledgerFieldDecoration(context, label: 'العدد'),
+                ),
+                second: TextField(
+                  key: Key('trade-grams-$index'),
+                  controller: row.grams,
+                  textDirection: TextDirection.ltr,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                  decoration: ledgerFieldDecoration(
+                    context,
+                    label: 'الوزن بالجرام',
+                    helper: 'حتى ثلاث منازل عشرية',
+                  ),
+                ),
+              )
+            else
               TextField(
-                key: Key('trade-count-$index'),
-                controller: row.count,
+                key: Key('trade-grams-$index'),
+                controller: row.grams,
                 textDirection: TextDirection.ltr,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-                decoration: const InputDecoration(
-                  labelText: 'العدد',
-                  border: OutlineInputBorder(),
+                decoration: ledgerFieldDecoration(
+                  context,
+                  label: 'الوزن بالجرام',
+                  helper: 'حتى ثلاث منازل عشرية',
                 ),
               ),
-              const SizedBox(height: 8),
-            ],
-            TextField(
-              key: Key('trade-grams-$index'),
-              controller: row.grams,
-              textDirection: TextDirection.ltr,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+            const SizedBox(height: 12),
+            LedgerFieldPair(
+              first: DropdownButtonFormField<int>(
+                key: Key('trade-karat-$index-${row.category}-${row.karat}'),
+                initialValue: row.karat,
+                isExpanded: true,
+                decoration: ledgerFieldDecoration(context, label: 'العيار'),
+                items: [
+                  for (final karat in karats)
+                    DropdownMenuItem(value: karat, child: Text('$karat')),
+                ],
+                onChanged: (value) {
+                  setState(() => row.karat = value ?? row.karat);
+                  row.priceFocus.requestFocus();
+                },
               ),
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: const InputDecoration(
-                labelText: 'الوزن بالجرام',
-                helperText: 'حتى ثلاث منازل عشرية',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<int>(
-              key: Key('trade-karat-$index-${row.category}-${row.karat}'),
-              initialValue: row.karat,
-              decoration: const InputDecoration(
-                labelText: 'العيار',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                for (final karat in karats)
-                  DropdownMenuItem(value: karat, child: Text('$karat')),
-              ],
-              onChanged: (value) {
-                setState(() => row.karat = value ?? row.karat);
-                row.priceFocus.requestFocus();
-              },
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: Key('trade-line-price-$index'),
-              controller: row.price,
-              focusNode: row.priceFocus,
-              textDirection: TextDirection.ltr,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: const InputDecoration(
-                labelText: 'سعر الصنف (اختياري)',
-                helperText: 'اتركه فارغاً لسعر الفاتورة الكلي',
-                border: OutlineInputBorder(),
+              second: TextField(
+                key: Key('trade-line-price-$index'),
+                controller: row.price,
+                focusNode: row.priceFocus,
+                textDirection: TextDirection.ltr,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                decoration: ledgerFieldDecoration(
+                  context,
+                  label: 'سعر الصنف (اختياري)',
+                  helper: 'اتركه فارغاً لسعر الفاتورة الكلي',
+                ),
               ),
             ),
           ],
@@ -621,56 +629,54 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     final row = _tenders[index];
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<CashMethod>(
-                    key: Key('trade-tender-method-$index'),
-                    initialValue: row.method,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'وسيلة الدفع',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      for (final method in CashMethod.canonicalOrder)
-                        DropdownMenuItem(
-                          value: method,
-                          child: Text(cashMethodLabel(method)),
-                        ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => row.method = value ?? row.method),
+            Expanded(
+              child: LedgerFieldPair(
+                first: DropdownButtonFormField<CashMethod>(
+                  key: Key('trade-tender-method-$index'),
+                  initialValue: row.method,
+                  isExpanded: true,
+                  decoration: ledgerFieldDecoration(
+                    context,
+                    label: 'وسيلة الدفع',
+                  ),
+                  items: [
+                    for (final method in CashMethod.canonicalOrder)
+                      DropdownMenuItem(
+                        value: method,
+                        child: Text(cashMethodLabel(method)),
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => row.method = value ?? row.method),
+                ),
+                second: TextField(
+                  key: Key('trade-tender-amount-$index'),
+                  controller: row.amount,
+                  onChanged: (_) => setState(() {}),
+                  textDirection: TextDirection.ltr,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                  decoration: ledgerFieldDecoration(
+                    context,
+                    label: 'المبلغ بالجنيه',
                   ),
                 ),
-                if (_tenders.length > 1)
-                  IconButton(
-                    tooltip: 'حذف وسيلة الدفع ${index + 1}',
-                    onPressed: () =>
-                        setState(() => _tenders.removeAt(index).dispose()),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: Key('trade-tender-amount-$index'),
-              controller: row.amount,
-              onChanged: (_) => setState(() {}),
-              textDirection: TextDirection.ltr,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => FocusScope.of(context).unfocus(),
-              decoration: const InputDecoration(
-                labelText: 'المبلغ بالجنيه',
-                border: OutlineInputBorder(),
               ),
             ),
+            if (_tenders.length > 1)
+              IconButton(
+                tooltip: 'حذف وسيلة الدفع ${index + 1}',
+                onPressed: () =>
+                    setState(() => _tenders.removeAt(index).dispose()),
+                icon: const Icon(Icons.delete_outline),
+              ),
           ],
         ),
       ),

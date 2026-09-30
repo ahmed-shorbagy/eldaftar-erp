@@ -10,6 +10,7 @@ import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
+import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class CashTransferScreen extends StatefulWidget {
@@ -222,9 +223,10 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                     DropdownButtonFormField<CashMethod>(
                       key: const Key('transfer-from'),
                       initialValue: _from,
-                      decoration: const InputDecoration(
-                        labelText: 'من وسيلة الدفع',
-                        border: OutlineInputBorder(),
+                      isExpanded: true,
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'من وسيلة الدفع',
                       ),
                       items: [
                         for (final method in CashMethod.canonicalOrder)
@@ -238,13 +240,14 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text('الرصيد المتاح: ${source?.poundsText ?? '—'} جنيه'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<CashMethod>(
                       key: const Key('transfer-to'),
                       initialValue: _to,
-                      decoration: const InputDecoration(
-                        labelText: 'إلى وسيلة الدفع',
-                        border: OutlineInputBorder(),
+                      isExpanded: true,
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'إلى وسيلة الدفع',
                       ),
                       items: [
                         for (final method in CashMethod.canonicalOrder)
@@ -264,9 +267,9 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                         decimal: true,
                       ),
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'المبلغ بالجنيه',
-                        border: OutlineInputBorder(),
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'المبلغ بالجنيه',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -275,9 +278,9 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                       controller: _note,
                       maxLength: 1000,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'ملاحظة اختيارية',
-                        border: OutlineInputBorder(),
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'ملاحظة اختيارية',
                       ),
                     ),
                   ] else ...[

@@ -27,7 +27,7 @@ class GuideCard extends StatelessWidget {
       key: const Key('onboarding-guide'),
       color: scheme.primaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -50,7 +50,7 @@ class GuideCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               description,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -58,7 +58,7 @@ class GuideCard extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Wrap(
               alignment: WrapAlignment.end,
               spacing: 8,

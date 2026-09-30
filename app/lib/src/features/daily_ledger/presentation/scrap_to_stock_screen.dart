@@ -9,6 +9,7 @@ import '../data/pending_financial_command.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
+import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class ScrapToStockScreen extends StatefulWidget {
@@ -243,9 +244,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                     DropdownButtonFormField<int>(
                       key: const Key('scrap-stock-karat'),
                       initialValue: _karat,
-                      decoration: const InputDecoration(
-                        labelText: 'عيار الكسر',
-                        border: OutlineInputBorder(),
+                      isExpanded: true,
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'عيار الكسر',
                       ),
                       items: [
                         for (final karat in _availableKarats)
@@ -270,9 +272,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                     DropdownButtonFormField<StockCategory>(
                       key: ValueKey('scrap-stock-category-$_karat'),
                       initialValue: _category,
-                      decoration: const InputDecoration(
-                        labelText: 'فئة المخزون الجديدة',
-                        border: OutlineInputBorder(),
+                      isExpanded: true,
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'فئة المخزون الجديدة',
                       ),
                       items: [
                         for (final category in _categories)
@@ -289,36 +292,37 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                       key: const Key('scrap-stock-name'),
                       controller: _name,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم الصنف الجديد',
-                        border: OutlineInputBorder(),
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'اسم الصنف الجديد',
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('scrap-stock-grams'),
-                      controller: _grams,
-                      textDirection: TextDirection.ltr,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                    LedgerFieldPair(
+                      first: TextField(
+                        key: const Key('scrap-stock-grams'),
+                        controller: _grams,
+                        textDirection: TextDirection.ltr,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        decoration: ledgerFieldDecoration(
+                          context,
+                          label: 'الوزن بالجرام',
+                          helper: 'حتى ثلاث منازل عشرية',
+                        ),
                       ),
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'الوزن بالجرام',
-                        helperText: 'حتى ثلاث منازل عشرية',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('scrap-stock-count'),
-                      controller: _count,
-                      textDirection: TextDirection.ltr,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'عدد القطع الجديدة',
-                        border: OutlineInputBorder(),
+                      second: TextField(
+                        key: const Key('scrap-stock-count'),
+                        controller: _count,
+                        textDirection: TextDirection.ltr,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.next,
+                        decoration: ledgerFieldDecoration(
+                          context,
+                          label: 'عدد القطع الجديدة',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -326,9 +330,9 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                       controller: _note,
                       maxLength: 1000,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'ملاحظة اختيارية',
-                        border: OutlineInputBorder(),
+                      decoration: ledgerFieldDecoration(
+                        context,
+                        label: 'ملاحظة اختيارية',
                       ),
                     ),
                   ] else ...[

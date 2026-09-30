@@ -29,6 +29,7 @@ import 'pending_invoice_sends_screen.dart';
 import 'daily_close_screen.dart';
 import 'cash_transfer_screen.dart';
 import 'scrap_to_stock_screen.dart';
+import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class DailyLedgerScreen extends StatefulWidget {
@@ -684,27 +685,49 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
             child: ListView(
               key: const Key('ledger-scroll'),
               controller: _scroll,
-              padding: EdgeInsetsDirectional.symmetric(
-                horizontal: compact ? 16 : 24,
-                vertical: compact ? 16 : 24,
+              padding: EdgeInsetsDirectional.fromSTEB(
+                compact ? 16 : 24,
+                compact ? 12 : 20,
+                compact ? 16 : 24,
+                compact ? 28 : 36,
               ),
               children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(widget.shop.name, style: theme.textTheme.titleLarge),
-                    TextButton.icon(
-                      key: const Key('ledger-help'),
-                      onPressed: _resumeGuide,
-                      icon: const Icon(Icons.help_outline),
-                      label: const Text('إرشاد الشاشة'),
+                    Expanded(
+                      child: Text(
+                        widget.shop.name,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    if (compact)
+                      IconButton(
+                        key: const Key('ledger-help'),
+                        tooltip: 'إرشاد الشاشة',
+                        onPressed: _resumeGuide,
+                        icon: const Icon(Icons.help_outline),
+                      )
+                    else
+                      TextButton.icon(
+                        key: const Key('ledger-help'),
+                        onPressed: _resumeGuide,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(48, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        icon: const Icon(Icons.help_outline),
+                        label: const Text('إرشاد الشاشة'),
+                      ),
                   ],
                 ),
                 if (_guideVisible) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   GuideCard(
                     title: _guideStep == 0
                         ? 'تحديث الدفتر'
@@ -748,7 +771,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                     'انتهى اشتراك هذا المتجر. الوصول الحالي للقراءة فقط، ولا يمكن إجراء تغييرات.',
                   ),
                 ],
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
                 if (controller == null)
                   const SizedBox.shrink()
                 else if (controller.phase == LedgerPhase.loading)
@@ -991,14 +1014,15 @@ class _EntryForm extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('إعداد الأرصدة الافتتاحية', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           'أدخل النقد والذهب، ثم راجع الأثر قبل التأكيد على الخادم.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         _EntrySection(
           icon: Icons.account_balance_wallet_outlined,
           title: 'النقدية',
@@ -1013,12 +1037,12 @@ class _EntryForm extends StatelessWidget {
                   locked: controller.fieldsLocked,
                 ),
                 if (method != CashMethod.canonicalOrder.last)
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _EntrySection(
           icon: Icons.scale_outlined,
           title: 'المخزون',
@@ -1032,10 +1056,13 @@ class _EntryForm extends StatelessWidget {
                   index: index,
                   controller: controller,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
               ],
               OutlinedButton.icon(
                 key: const Key('add-stock'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
                 onPressed: controller.fieldsLocked ? null : controller.addStock,
                 icon: const Icon(Icons.add),
                 label: const Text('إضافة صنف'),
@@ -1043,7 +1070,7 @@ class _EntryForm extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _EntrySection(
           icon: Icons.inventory_2_outlined,
           title: 'الكسر',
@@ -1057,10 +1084,13 @@ class _EntryForm extends StatelessWidget {
                   index: index,
                   controller: controller,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
               ],
               OutlinedButton.icon(
                 key: const Key('add-scrap'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
                 onPressed: controller.fieldsLocked ? null : controller.addScrap,
                 icon: const Icon(Icons.add),
                 label: const Text('إضافة كسر'),
@@ -1068,15 +1098,19 @@ class _EntryForm extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         FilledButton(
           key: const Key('review-values'),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: controller.fieldsLocked ? null : controller.reviewEntered,
           child: const Text('مراجعة الأرصدة'),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         OutlinedButton(
           key: const Key('review-zero'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+          ),
           onPressed: controller.fieldsLocked ? null : controller.reviewZeros,
           child: const Text('تأكيد أرصدة صفرية'),
         ),
@@ -1103,7 +1137,7 @@ class _EntrySection extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1112,11 +1146,16 @@ class _EntrySection extends StatelessWidget {
                 Icon(icon, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(title, style: theme.textTheme.titleMedium),
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               description,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -1153,10 +1192,10 @@ class _AmountField extends StatelessWidget {
       readOnly: locked,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textDirection: TextDirection.ltr,
-      decoration: InputDecoration(
-        labelText: label,
-        helperText: 'بالجنيه',
-        border: const OutlineInputBorder(),
+      decoration: ledgerFieldDecoration(
+        context,
+        label: label,
+        helper: 'بالجنيه',
       ),
     );
   }
@@ -1180,70 +1219,66 @@ class _StockRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        DropdownButtonFormField<StockCategory>(
-          key: Key('stock-category-$index'),
-          initialValue: entry.category,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'الصنف',
-            border: OutlineInputBorder(),
+        LedgerFieldPair(
+          first: DropdownButtonFormField<StockCategory>(
+            key: Key('stock-category-$index'),
+            initialValue: entry.category,
+            isExpanded: true,
+            decoration: ledgerFieldDecoration(context, label: 'الصنف'),
+            items: [
+              for (final category in openingCategoryChoices)
+                DropdownMenuItem(
+                  value: category,
+                  child: Text(stockCategoryLabel(category)),
+                ),
+            ],
+            onChanged: controller.fieldsLocked
+                ? null
+                : (value) {
+                    if (value != null) {
+                      controller.setStockCategory(entry, value);
+                    }
+                  },
           ),
-          items: [
-            for (final category in openingCategoryChoices)
-              DropdownMenuItem(
-                value: category,
-                child: Text(stockCategoryLabel(category)),
-              ),
-          ],
-          onChanged: controller.fieldsLocked
-              ? null
-              : (value) {
-                  if (value != null) controller.setStockCategory(entry, value);
-                },
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<int>(
-          key: ValueKey(
-            'stock-karat-$index-${entry.category.code}-${entry.karat}',
-          ),
-          initialValue: entry.karat,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'العيار',
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            for (final karat in karats)
-              DropdownMenuItem(value: karat, child: Text('$karat')),
-          ],
-          onChanged: controller.fieldsLocked
-              ? null
-              : (value) {
-                  if (value != null) controller.setStockKarat(entry, value);
-                },
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          key: Key('stock-grams-$index'),
-          controller: entry.grams,
-          readOnly: controller.fieldsLocked,
-          textDirection: TextDirection.ltr,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'الوزن بالجرام',
-            border: OutlineInputBorder(),
+          second: DropdownButtonFormField<int>(
+            key: ValueKey(
+              'stock-karat-$index-${entry.category.code}-${entry.karat}',
+            ),
+            initialValue: entry.karat,
+            isExpanded: true,
+            decoration: ledgerFieldDecoration(context, label: 'العيار'),
+            items: [
+              for (final karat in karats)
+                DropdownMenuItem(value: karat, child: Text('$karat')),
+            ],
+            onChanged: controller.fieldsLocked
+                ? null
+                : (value) {
+                    if (value != null) controller.setStockKarat(entry, value);
+                  },
           ),
         ),
-        const SizedBox(height: 8),
-        TextField(
-          key: Key('stock-count-$index'),
-          controller: entry.count,
-          readOnly: controller.fieldsLocked,
-          textDirection: TextDirection.ltr,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'العدد',
-            border: OutlineInputBorder(),
+        const SizedBox(height: 12),
+        LedgerFieldPair(
+          first: TextField(
+            key: Key('stock-grams-$index'),
+            controller: entry.grams,
+            readOnly: controller.fieldsLocked,
+            textDirection: TextDirection.ltr,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: ledgerFieldDecoration(
+              context,
+              label: 'الوزن بالجرام',
+              helper: 'حتى ثلاث منازل',
+            ),
+          ),
+          second: TextField(
+            key: Key('stock-count-$index'),
+            controller: entry.count,
+            readOnly: controller.fieldsLocked,
+            textDirection: TextDirection.ltr,
+            keyboardType: TextInputType.number,
+            decoration: ledgerFieldDecoration(context, label: 'العدد'),
           ),
         ),
         if (controller.stock.length > 1)
@@ -1274,41 +1309,34 @@ class _ScrapRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        DropdownButtonFormField<int>(
-          key: Key('scrap-karat-$index'),
-          initialValue: entry.karat,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'عيار الكسر',
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            for (final karat in scrapKaratChoices)
-              DropdownMenuItem(value: karat, child: Text('$karat')),
-          ],
-          onChanged: controller.fieldsLocked
-              ? null
-              : (value) {
-                  if (value != null) controller.setScrapKarat(entry, value);
-                },
+    return LedgerFieldPair(
+      first: DropdownButtonFormField<int>(
+        key: Key('scrap-karat-$index'),
+        initialValue: entry.karat,
+        isExpanded: true,
+        decoration: ledgerFieldDecoration(context, label: 'عيار الكسر'),
+        items: [
+          for (final karat in scrapKaratChoices)
+            DropdownMenuItem(value: karat, child: Text('$karat')),
+        ],
+        onChanged: controller.fieldsLocked
+            ? null
+            : (value) {
+                if (value != null) controller.setScrapKarat(entry, value);
+              },
+      ),
+      second: TextField(
+        key: Key('scrap-grams-$index'),
+        controller: entry.grams,
+        readOnly: controller.fieldsLocked,
+        textDirection: TextDirection.ltr,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: ledgerFieldDecoration(
+          context,
+          label: 'وزن الكسر بالجرام',
+          helper: 'حتى ثلاث منازل',
         ),
-        const SizedBox(height: 8),
-        TextField(
-          key: Key('scrap-grams-$index'),
-          controller: entry.grams,
-          readOnly: controller.fieldsLocked,
-          textDirection: TextDirection.ltr,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'وزن الكسر بالجرام',
-            border: OutlineInputBorder(),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -1393,6 +1421,9 @@ class _Review extends StatelessWidget {
           const SizedBox(height: 16),
           FilledButton(
             key: const Key('confirm-opening'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
             onPressed: controller.fieldsLocked
                 ? null
                 : controller.confirmReview,
