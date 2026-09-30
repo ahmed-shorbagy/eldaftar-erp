@@ -168,7 +168,9 @@ void main() {
     await tester.tap(find.byKey(const Key('shop-$shopId')));
     await tester.pumpAndSettle();
     shops.accounts = [];
-    await tester.tap(find.byTooltip('اختيار متجر آخر'));
+    await tester.tap(find.byTooltip('المزيد'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('اختيار متجر آخر'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('تحديث المتاجر'));
     await tester.pumpAndSettle();

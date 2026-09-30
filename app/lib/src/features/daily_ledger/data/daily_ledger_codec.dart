@@ -93,12 +93,14 @@ DailyLedgerView parseDailyLedger(Object? json) {
     'scrap',
     'feed',
   };
-  if (json.length != fields.length ||
-      json.keys.any((key) => !fields.contains(key))) {
-    throw const FormatException('ledger');
-  }
-  if (json['read_model_version'] is! int || json['read_model_version'] != 1) {
+  final version = json['read_model_version'];
+  if (version is! int || (version != 1 && version != 2)) {
     throw const FormatException('version');
+  }
+  final allowedFields = version == 2 ? {...fields, 'day_summary'} : fields;
+  if (json.length != allowedFields.length ||
+      json.keys.any((key) => !allowedFields.contains(key))) {
+    throw const FormatException('ledger');
   }
   final state = json['state'];
   final entitlement = json['entitlement_status'];
@@ -123,6 +125,8 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final stock = _stock(json['stock'], confirmed: confirmed);
   final scrap = _scrap(json['scrap'], confirmed: confirmed);
   final feed = _feed(json['feed'], confirmed: confirmed);
+  final daySummary = version == 2 ? _daySummary(json['day_summary']) : null;
+  if (version == 2 && !confirmed) throw const FormatException('day_summary');
   if (confirmed && businessDay == null) {
     throw const FormatException('business_day');
   }
@@ -135,11 +139,88 @@ DailyLedgerView parseDailyLedger(Object? json) {
     stock: stock,
     scrap: scrap,
     feed: feed,
+    daySummary: daySummary,
   );
   if (confirmed && view.totalCashPounds == null) {
     throw const FormatException('cash_total');
   }
   return view;
+}
+
+LedgerDaySummary _daySummary(Object? value) {
+  if (value is! Map || (value.length != 6 && value.length != 7)) {
+    throw const FormatException('day_summary');
+  }
+  const money = ['sale_piastres', 'purchase_piastres', 'expense_piastres'];
+  const counts = ['sale_count', 'purchase_count', 'expense_count'];
+  for (final field in money) {
+    final raw = value[field];
+    if (raw is! String || Piastres.parseWire(raw) is! Accepted<Piastres>) {
+      throw const FormatException('day_summary');
+    }
+  }
+  for (final field in counts) {
+    final raw = value[field];
+    if (raw is! int || raw < 0) throw const FormatException('day_summary');
+  }
+  final goldRaw = value['gold_by_bucket'];
+  if (value.length == 7 && goldRaw is! List) {
+    throw const FormatException('day_summary');
+  }
+  final gold = <LedgerGoldMovement>[];
+  final seen = <String>{};
+  if (goldRaw is List) {
+    for (final row in goldRaw) {
+      if (row is! Map ||
+          row.length != 5 ||
+          row['kind'] is! String ||
+          row['category'] is! String ||
+          row['karat'] is! int ||
+          row['milligrams'] is! String ||
+          row['count'] is! String) {
+        throw const FormatException('day_summary');
+      }
+      final kind = row['kind'] as String;
+      final category = row['category'] as String;
+      final karat = row['karat'] as int;
+      final milligrams = row['milligrams'] as String;
+      final count = row['count'] as String;
+      final weight = Milligrams.parseWire(milligrams);
+      final pieces = PieceCount.parseWire(count);
+      final stockCategory = StockCategory.byCode(category);
+      final validPair = category == 'scrap'
+          ? ScrapKarats.allowed.contains(karat)
+          : stockCategory?.allowsKarat(karat) ?? false;
+      if ((kind != 'sale' && kind != 'purchase') ||
+          !validPair ||
+          weight is! Accepted<Milligrams> ||
+          weight.value.value == BigInt.zero ||
+          pieces is! Accepted<PieceCount> ||
+          (category == 'scrap' && pieces.value.value != BigInt.zero) ||
+          (category != 'scrap' && pieces.value.value == BigInt.zero) ||
+          !seen.add('$kind:$category:$karat')) {
+        throw const FormatException('day_summary');
+      }
+      gold.add(
+        LedgerGoldMovement(
+          kind: kind,
+          category: category,
+          karat: karat,
+          milligrams: milligrams,
+          count: count,
+        ),
+      );
+    }
+  }
+  return LedgerDaySummary(
+    salePiastres: value['sale_piastres'] as String,
+    purchasePiastres: value['purchase_piastres'] as String,
+    expensePiastres: value['expense_piastres'] as String,
+    saleCount: value['sale_count'] as int,
+    purchaseCount: value['purchase_count'] as int,
+    expenseCount: value['expense_count'] as int,
+    goldByBucket: List.unmodifiable(gold),
+  );
 }
 
 LedgerBusinessDay? _businessDay(Object? value, {required bool confirmed}) {
@@ -270,8 +351,8 @@ LedgerStockLine _stockLine(Object? row) {
       pieces is! Accepted<PieceCount> ||
       weight.value.gramsText != grams ||
       pieces.value.wire != count ||
-      weight.value.value == BigInt.zero ||
-      pieces.value.value == BigInt.zero) {
+      (weight.value.value == BigInt.zero) !=
+          (pieces.value.value == BigInt.zero)) {
     throw const FormatException('stock');
   }
   return LedgerStockLine(
@@ -315,9 +396,7 @@ LedgerScrapLine _scrapLine(Object? row) {
     throw const FormatException('scrap');
   }
   final weight = Milligrams.parseWire(milligrams);
-  if (weight is! Accepted<Milligrams> ||
-      weight.value.gramsText != grams ||
-      weight.value.value == BigInt.zero) {
+  if (weight is! Accepted<Milligrams> || weight.value.gramsText != grams) {
     throw const FormatException('scrap');
   }
   return LedgerScrapLine(
@@ -331,7 +410,9 @@ LedgerScrapLine _scrapLine(Object? row) {
 List<LedgerFeedLine> _feed(Object? value, {required bool confirmed}) {
   if (value is! List) throw const FormatException('feed');
   if (confirmed) {
-    if (value.length != 1) throw const FormatException('feed');
+    if (value.isEmpty || value.length > 200) {
+      throw const FormatException('feed');
+    }
   } else if (value.isNotEmpty) {
     throw const FormatException('feed');
   }
@@ -347,8 +428,9 @@ LedgerFeedLine _feedLine(Object? row) {
     'actor_display_name',
     'occurred_at',
     'occurred_at_cairo',
+    'has_note',
   };
-  if (row.length != fields.length ||
+  if ((row.length != fields.length && row.length != fields.length - 1) ||
       row.keys.any((key) => !fields.contains(key))) {
     throw const FormatException('feed');
   }
@@ -358,12 +440,29 @@ LedgerFeedLine _feedLine(Object? row) {
   final actor = row['actor_display_name'];
   final occurredAt = row['occurred_at'];
   final cairo = row['occurred_at_cairo'];
-  if (kind != 'opening_balances_confirmed' ||
-      label != 'رصيد افتتاحي' ||
+  final hasNote = row.containsKey('has_note') ? row['has_note'] : false;
+  const labels = {
+    'opening_balances_confirmed': 'رصيد افتتاحي',
+    'opening_balances': 'رصيد افتتاحي',
+    'sale': 'بيع',
+    'purchase': 'شراء',
+    'expense': 'مصروف',
+    'purchase_settlement': 'سداد شراء',
+    'cash_transfer': 'تحويل نقدية',
+    'scrap_sale': 'بيع كسر',
+    'scrap_to_stock': 'تحويل كسر إلى مخزون',
+    'sale_return': 'مرتجع بيع',
+    'purchase_return': 'مرتجع شراء',
+    'close_day': 'تقفيل اليومية',
+    'open_day': 'فتح اليومية',
+  };
+  if (kind is! String ||
+      label != labels[kind] ||
       operationId is! String ||
       actor is! String ||
       occurredAt is! String ||
       cairo is! String ||
+      hasNote is! bool ||
       !isUuid(operationId) ||
       !_plainText(actor) ||
       !_utcTimestamp(occurredAt) ||
@@ -377,5 +476,6 @@ LedgerFeedLine _feedLine(Object? row) {
     actorDisplayName: actor,
     occurredAt: occurredAt,
     occurredAtCairo: cairo,
+    hasNote: hasNote,
   );
 }

@@ -21,7 +21,11 @@ abstract final class AppTheme {
             surface: AppTokens.darkSurface,
             onSurface: AppTokens.darkOnSurface,
           );
-    final base = ThemeData(useMaterial3: true, colorScheme: scheme);
+    final base = ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
+      fontFamily: 'NotoSansArabic',
+    );
     return base.copyWith(
       visualDensity: VisualDensity.adaptivePlatformDensity,
       scaffoldBackgroundColor: scheme.surface,

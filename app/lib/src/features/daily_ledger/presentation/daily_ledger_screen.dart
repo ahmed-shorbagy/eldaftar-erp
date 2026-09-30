@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../shell/shell_copy.dart';
@@ -7,14 +9,26 @@ import '../../shop_accounts/domain/shop_account.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../onboarding/presentation/guide_card.dart';
 import '../application/opening_gateway.dart';
+import '../application/daily_ledger_view.dart';
+import '../application/financial_gateway.dart';
+import '../application/idempotency_key.dart';
 import '../application/pending_opening_store.dart';
+import '../application/pending_financial_command.dart';
+import '../data/pending_financial_command.dart';
 import '../domain/opening_catalog.dart';
+import '../domain/financial_draft.dart';
 import '../domain/opening_draft.dart';
 import '../domain/opening_issue.dart';
 import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
 import 'daily_ledger_controller.dart';
 import 'confirmed_ledger_dashboard.dart';
+import 'financial_trade_screen.dart';
+import 'financial_operation_screen.dart';
+import 'pending_invoice_sends_screen.dart';
+import 'daily_close_screen.dart';
+import 'cash_transfer_screen.dart';
+import 'scrap_to_stock_screen.dart';
 import 'opening_copy.dart';
 
 class DailyLedgerScreen extends StatefulWidget {
@@ -49,20 +63,70 @@ class DailyLedgerScreen extends StatefulWidget {
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
 }
 
-class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
+bool _positiveWireAmount(String value) {
+  final parsed = Milligrams.parseWire(value);
+  return parsed is Accepted<Milligrams> && parsed.value.value > BigInt.zero;
+}
+
+class _DailyLedgerScreenState extends State<DailyLedgerScreen>
+    with WidgetsBindingObserver {
   DailyLedgerController? _controller;
   final _scroll = ScrollController();
   final _refreshFocus = FocusNode();
   bool _guideVisible = false;
   int _guideStep = 0;
+  FinancialDayState? _financialDay;
+  String? _financialError;
+  bool _financialLoading = false;
+  bool _dayCommandBusy = false;
+  final _financialPendingStore = const PendingFinancialCommands();
+  PendingFinancialCommand? _financialPending;
+  bool _pendingStatusUnknown = false;
+  Timer? _syncTimer;
+  bool _syncing = false;
+
+  FinancialGateway? get _financialGateway => widget.gateway is FinancialGateway
+      ? widget.gateway! as FinancialGateway
+      : null;
 
   bool get _expired => widget.shop.entitlement == ShopEntitlement.expired;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) => _sync());
     _attach();
     _loadGuide();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _sync();
+  }
+
+  Future<void> _sync() async {
+    if (!mounted ||
+        _syncing ||
+        _dayCommandBusy ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        _controller?.phase != LedgerPhase.confirmed) {
+      return;
+    }
+    _syncing = true;
+    try {
+      await _controller?.refresh();
+      if (mounted) await _maybeLoadFinancialDay(force: true);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _financialError =
+              'تعذرت مزامنة الدفتر. استخدم زر التحديث للتحقق من الأرصدة.',
+        );
+      }
+    } finally {
+      _syncing = false;
+    }
   }
 
   String get _guidePath => 'ledger_${widget.userId}_${widget.shop.id}';
@@ -97,6 +161,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
 
   void _refreshWithGuide() {
     (widget.onRefreshShops ?? _controller?.refresh)?.call();
+    _maybeLoadFinancialDay(force: true);
     if (_guideVisible && _guideStep == 0) {
       setState(() => _guideStep = 1);
       widget.onboardingStore?.saveStep(_guidePath, 1);
@@ -124,7 +189,372 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
   }
 
   void _onController() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    _maybeLoadFinancialDay();
+  }
+
+  Future<void> _maybeLoadFinancialDay({bool force = false}) async {
+    final gateway = _financialGateway;
+    final controller = _controller;
+    if (gateway == null ||
+        controller?.phase != LedgerPhase.confirmed ||
+        _financialLoading ||
+        (!force && _financialDay != null)) {
+      return;
+    }
+    final userId = widget.userId;
+    if (userId == null) return;
+    _financialLoading = true;
+    try {
+      final pending = await _financialPendingStore.read(userId, widget.shop.id);
+      if (pending != null) {
+        final status = await widget.gateway!.status(
+          callerUserId: userId,
+          idempotencyKey: pending.key,
+        );
+        if (status is StatusCompleted) {
+          await _financialPendingStore.clear(
+            userId,
+            widget.shop.id,
+            pending.key,
+          );
+          if (mounted) setState(() => _financialPending = null);
+          await controller!.refresh();
+        } else if (mounted) {
+          setState(() {
+            _financialPending = pending;
+            _pendingStatusUnknown = status is! StatusAbsent;
+          });
+        }
+      } else if (mounted) {
+        setState(() => _financialPending = null);
+      }
+      final state = await gateway.dayState(callerUserId: userId);
+      if (!mounted || userId != widget.userId) return;
+      setState(() {
+        _financialDay = state;
+        _financialError = null;
+      });
+    } on LedgerReadException catch (error) {
+      if (!mounted || userId != widget.userId) return;
+      if (error.code == 'rpc_unavailable') {
+        setState(() {
+          _financialDay = null;
+          _financialError = null;
+        });
+        return;
+      }
+      setState(
+        () => _financialError =
+            'تعذر تحميل حالة يوم العمل. حدّث الدفتر للمحاولة مرة أخرى.',
+      );
+    } catch (_) {
+      if (!mounted || userId != widget.userId) return;
+      setState(
+        () => _financialError =
+            'تعذر تحميل حالة يوم العمل. حدّث الدفتر للمحاولة مرة أخرى.',
+      );
+    } finally {
+      _financialLoading = false;
+    }
+  }
+
+  Future<void> _resolveFinancialPending({bool retry = false}) async {
+    final pending = _financialPending;
+    final userId = widget.userId;
+    final gateway = _financialGateway;
+    if (pending == null ||
+        userId == null ||
+        gateway == null ||
+        _dayCommandBusy) {
+      return;
+    }
+    setState(() => _dayCommandBusy = true);
+    try {
+      final status = await widget.gateway!.status(
+        callerUserId: userId,
+        idempotencyKey: pending.key,
+      );
+      if (!mounted) return;
+      if (status is StatusCompleted) {
+        await _financialPendingStore.clear(userId, widget.shop.id, pending.key);
+        if (!mounted) return;
+        setState(() => _financialPending = null);
+        await _controller?.refresh();
+        await _maybeLoadFinancialDay(force: true);
+      } else if (status is StatusAbsent && retry) {
+        final result = await gateway.retryPending(
+          callerUserId: userId,
+          command: pending,
+        );
+        if (!mounted) return;
+        if (result is FinancialCommitted) {
+          await _financialPendingStore.clear(
+            userId,
+            widget.shop.id,
+            pending.key,
+          );
+          if (!mounted) return;
+          setState(() => _financialPending = null);
+          await _controller?.refresh();
+          await _maybeLoadFinancialDay(force: true);
+        } else if (result is FinancialRejected) {
+          await _financialPendingStore.clear(
+            userId,
+            widget.shop.id,
+            pending.key,
+          );
+          if (!mounted) return;
+          setState(() {
+            _financialPending = null;
+            _financialError =
+                'رفض الخادم إعادة المحاولة: ${result.code}. حدّث الدفتر قبل طلب جديد.';
+          });
+        } else if (result is FinancialCountMismatch) {
+          await _financialPendingStore.clear(
+            userId,
+            widget.shop.id,
+            pending.key,
+          );
+          if (!mounted) return;
+          setState(() {
+            _financialPending = null;
+            _financialError =
+                'تغير العد على الخادم. حدّث الدفتر وأعد المراجعة.';
+          });
+        } else {
+          setState(() => _pendingStatusUnknown = true);
+        }
+      } else {
+        setState(() => _pendingStatusUnknown = status is! StatusAbsent);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _pendingStatusUnknown = true);
+    } finally {
+      if (mounted) setState(() => _dayCommandBusy = false);
+    }
+  }
+
+  Future<void> _startTrade(FinancialKind kind) async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    if (gateway == null ||
+        userId == null ||
+        _financialDay?.isOpen != true ||
+        _financialPending != null) {
+      return;
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => FinancialTradeScreen(
+          kind: kind,
+          gateway: gateway,
+          statusGateway: widget.gateway!,
+          userId: userId,
+          shopId: widget.shop.id,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
+    }
+  }
+
+  Future<void> _closeDay() async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    final day = _financialDay;
+    if (gateway == null ||
+        userId == null ||
+        day?.isOpen != true ||
+        _financialPending != null) {
+      return;
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DailyCloseScreen(
+          gateway: gateway,
+          statusGateway: widget.gateway!,
+          userId: userId,
+          shopId: widget.shop.id,
+          day: day!,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
+    }
+  }
+
+  Future<void> _transferCash() async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    final cash = _controller?.ledger?.cash;
+    if (gateway is! CashTransferGateway ||
+        userId == null ||
+        cash == null ||
+        _financialDay?.isOpen != true ||
+        _financialPending != null) {
+      return;
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CashTransferScreen(
+          gateway: gateway as CashTransferGateway,
+          statusGateway: widget.gateway!,
+          userId: userId,
+          shopId: widget.shop.id,
+          cash: cash,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
+    }
+  }
+
+  Future<void> _convertScrapToStock() async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    final scrap = _controller?.ledger?.scrap;
+    if (gateway is! ScrapToStockGateway ||
+        userId == null ||
+        scrap == null ||
+        !scrap.any((line) => _positiveWireAmount(line.milligrams)) ||
+        _financialDay?.isOpen != true ||
+        _financialPending != null) {
+      return;
+    }
+    final scrapGateway = gateway as ScrapToStockGateway;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ScrapToStockScreen(
+          gateway: scrapGateway,
+          statusGateway: widget.gateway!,
+          userId: userId,
+          shopId: widget.shop.id,
+          scrap: scrap,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (saved == true) {
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
+    }
+  }
+
+  Future<void> _openOperation(LedgerFeedLine line) async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    if (gateway == null || userId == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FinancialOperationScreen(
+          gateway: gateway,
+          userId: userId,
+          line: line,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _controller?.refresh();
+    await _maybeLoadFinancialDay(force: true);
+  }
+
+  void _openPendingInvoices() {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    if (gateway is! InvoiceDispatchGateway || userId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PendingInvoiceSendsScreen(
+          gateway: gateway as FinancialGateway,
+          userId: userId,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openDay() async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    if (gateway == null ||
+        userId == null ||
+        _dayCommandBusy ||
+        _financialPending != null) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('فتح يوم عمل جديد'),
+        content: const Text(
+          'ستبدأ العمليات التالية في يوم عمل جديد. يحدد الخادم تاريخ الفتح.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('فتح اليوم'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _dayCommandBusy = true);
+    try {
+      final key = newIdempotencyKey();
+      final pending = PendingFinancialCommand(
+        key: key,
+        kind: 'open_day',
+        body: {'p_idempotency_key': key},
+      );
+      await _financialPendingStore.save(userId, widget.shop.id, pending);
+      final result = await gateway.openDay(
+        callerUserId: userId,
+        idempotencyKey: key,
+      );
+      if (!mounted) return;
+      if (result is FinancialCommitted) {
+        await _financialPendingStore.clear(userId, widget.shop.id, key);
+        if (!mounted) return;
+        await _controller?.refresh();
+        await _maybeLoadFinancialDay(force: true);
+      } else if (result is FinancialRejected) {
+        await _financialPendingStore.clear(userId, widget.shop.id, key);
+        if (!mounted) return;
+        setState(
+          () => _financialError =
+              'رفض الخادم فتح اليوم. تحقق من حالة اليوم والاشتراك.',
+        );
+      } else {
+        setState(() => _financialPending = pending);
+        setState(
+          () => _financialError =
+              'تعذر تأكيد فتح اليوم. حدّث الدفتر للتحقق من حالته.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _financialError =
+              'تعذر حفظ طلب فتح اليوم أو تأكيده. تحقق من الحالة.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _dayCommandBusy = false);
+    }
   }
 
   @override
@@ -136,6 +566,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
         oldWidget.gateway != widget.gateway ||
         oldWidget.store != widget.store;
     if (identityChanged) {
+      _financialDay = null;
+      _financialPending = null;
+      _financialError = null;
       _controller?.removeListener(_onController);
       _controller?.dispose();
       _controller = null;
@@ -147,11 +580,14 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
     );
     if (oldWidget.refreshGeneration != widget.refreshGeneration) {
       _controller?.refresh();
+      _maybeLoadFinancialDay(force: true);
     }
   }
 
   @override
   void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _controller?.removeListener(_onController);
     _controller?.dispose();
     _scroll.dispose();
@@ -163,6 +599,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final controller = _controller;
+    final compact = MediaQuery.sizeOf(context).width < 400;
     return Scaffold(
       appBar: AppBar(
         title: BrandLockup(
@@ -170,39 +607,71 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
           titleKey: const Key('ledger-title'),
           markSize: 22,
           maxLines: 2,
-          style: MediaQuery.sizeOf(context).width < 400
-              ? theme.textTheme.titleMedium
-              : null,
+          style: compact ? theme.textTheme.titleMedium : null,
         ),
         actions: [
-          IconButton(
-            tooltip: 'اختيار متجر آخر',
-            onPressed: widget.onChangeShop,
-            icon: const Icon(Icons.storefront_outlined),
-          ),
           IconButton(
             tooltip: 'تحديث الدفتر',
             focusNode: _refreshFocus,
             onPressed: _refreshWithGuide,
             icon: const Icon(Icons.refresh),
           ),
-          IconButton(
-            key: const Key('theme-toggle'),
-            tooltip: theme.brightness == Brightness.dark
-                ? ShellCopy.toggleToLight
-                : ShellCopy.toggleToDark,
-            onPressed: () => widget.onToggleTheme(theme.brightness),
-            icon: Icon(
-              theme.brightness == Brightness.dark
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
+          if (compact)
+            PopupMenuButton<String>(
+              tooltip: 'المزيد',
+              onSelected: (value) {
+                switch (value) {
+                  case 'shop':
+                    widget.onChangeShop();
+                  case 'theme':
+                    widget.onToggleTheme(theme.brightness);
+                  case 'signout':
+                    widget.onSignOut();
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'shop',
+                  child: Text('اختيار متجر آخر'),
+                ),
+                PopupMenuItem(
+                  value: 'theme',
+                  child: Text(
+                    theme.brightness == Brightness.dark
+                        ? ShellCopy.toggleToLight
+                        : ShellCopy.toggleToDark,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'signout',
+                  child: Text('تسجيل الخروج'),
+                ),
+              ],
+            )
+          else ...[
+            IconButton(
+              tooltip: 'اختيار متجر آخر',
+              onPressed: widget.onChangeShop,
+              icon: const Icon(Icons.storefront_outlined),
             ),
-          ),
-          IconButton(
-            tooltip: 'تسجيل الخروج',
-            onPressed: widget.onSignOut,
-            icon: const Icon(Icons.logout),
-          ),
+            IconButton(
+              key: const Key('theme-toggle'),
+              tooltip: theme.brightness == Brightness.dark
+                  ? ShellCopy.toggleToLight
+                  : ShellCopy.toggleToDark,
+              onPressed: () => widget.onToggleTheme(theme.brightness),
+              icon: Icon(
+                theme.brightness == Brightness.dark
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined,
+              ),
+            ),
+            IconButton(
+              tooltip: 'تسجيل الخروج',
+              onPressed: widget.onSignOut,
+              icon: const Icon(Icons.logout),
+            ),
+          ],
         ],
       ),
       body: SafeArea(
@@ -215,20 +684,24 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
             child: ListView(
               key: const Key('ledger-scroll'),
               controller: _scroll,
-              padding: const EdgeInsetsDirectional.symmetric(
-                horizontal: 20,
-                vertical: 24,
+              padding: EdgeInsetsDirectional.symmetric(
+                horizontal: compact ? 16 : 24,
+                vertical: compact ? 16 : 24,
               ),
               children: [
-                Text(widget.shop.name, style: theme.textTheme.titleLarge),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton.icon(
-                    key: const Key('ledger-help'),
-                    onPressed: _resumeGuide,
-                    icon: const Icon(Icons.help_outline),
-                    label: const Text('إرشاد الشاشة'),
-                  ),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    Text(widget.shop.name, style: theme.textTheme.titleLarge),
+                    TextButton.icon(
+                      key: const Key('ledger-help'),
+                      onPressed: _resumeGuide,
+                      icon: const Icon(Icons.help_outline),
+                      label: const Text('إرشاد الشاشة'),
+                    ),
+                  ],
                 ),
                 if (_guideVisible) ...[
                   const SizedBox(height: 12),
@@ -275,13 +748,128 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
                     'انتهى اشتراك هذا المتجر. الوصول الحالي للقراءة فقط، ولا يمكن إجراء تغييرات.',
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 if (controller == null)
                   const SizedBox.shrink()
                 else if (controller.phase == LedgerPhase.loading)
                   const LinearProgressIndicator(key: Key('ledger-loading'))
-                else
-                  _LedgerBody(controller: controller, expired: _expired),
+                else ...[
+                  if (_financialError != null)
+                    Text(
+                      _financialError!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  if (_financialPending != null) ...[
+                    const SizedBox(height: 8),
+                    Card(
+                      color: theme.colorScheme.primaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text('عملية مالية بانتظار تأكيد الخادم'),
+                            Text(
+                              _pendingStatusUnknown
+                                  ? 'تعذر تحديد حالتها بعد. تحقق قبل تسجيل عملية أخرى.'
+                                  : 'لم تظهر بعد على الخادم. أعد المحاولة بالمفتاح نفسه.',
+                            ),
+                            Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: TextButton.icon(
+                                key: const Key('ledger-retry-pending'),
+                                onPressed: _dayCommandBusy
+                                    ? null
+                                    : () =>
+                                          _resolveFinancialPending(retry: true),
+                                icon: const Icon(Icons.sync),
+                                label: const Text('التحقق وإعادة المحاولة'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  _LedgerBody(
+                    controller: controller,
+                    expired: _expired,
+                    day: _financialDay,
+                    dayBusy: _dayCommandBusy,
+                    onSale:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null
+                        ? () => _startTrade(FinancialKind.sale)
+                        : null,
+                    onPurchase:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null
+                        ? () => _startTrade(FinancialKind.purchase)
+                        : null,
+                    onExpense:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null
+                        ? () => _startTrade(FinancialKind.expense)
+                        : null,
+                    onCashTransfer:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null &&
+                            _financialGateway is CashTransferGateway
+                        ? _transferCash
+                        : null,
+                    onScrapSale:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null
+                        ? () => _startTrade(FinancialKind.scrapSale)
+                        : null,
+                    onScrapToStock:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null &&
+                            _financialGateway is ScrapToStockGateway &&
+                            (controller.ledger?.scrap.any(
+                                  (line) =>
+                                      _positiveWireAmount(line.milligrams),
+                                ) ??
+                                false)
+                        ? _convertScrapToStock
+                        : null,
+                    onCloseDay:
+                        _financialDay?.isOpen == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null
+                        ? _closeDay
+                        : null,
+                    onOpenDay:
+                        _financialDay?.isClosed == true &&
+                            !_expired &&
+                            !controller.readOnly &&
+                            _financialPending == null
+                        ? _openDay
+                        : null,
+                    onOperation: _financialGateway == null
+                        ? null
+                        : _openOperation,
+                    onPendingInvoices:
+                        _financialGateway is InvoiceDispatchGateway
+                        ? _openPendingInvoices
+                        : null,
+                  ),
+                ],
               ],
             ),
           ),
@@ -292,10 +880,37 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen> {
 }
 
 class _LedgerBody extends StatelessWidget {
-  const _LedgerBody({required this.controller, required this.expired});
+  const _LedgerBody({
+    required this.controller,
+    required this.expired,
+    required this.day,
+    required this.dayBusy,
+    this.onSale,
+    this.onPurchase,
+    this.onExpense,
+    this.onCashTransfer,
+    this.onScrapSale,
+    this.onScrapToStock,
+    this.onCloseDay,
+    this.onOpenDay,
+    this.onOperation,
+    this.onPendingInvoices,
+  });
 
   final DailyLedgerController controller;
   final bool expired;
+  final FinancialDayState? day;
+  final bool dayBusy;
+  final VoidCallback? onSale;
+  final VoidCallback? onPurchase;
+  final VoidCallback? onExpense;
+  final VoidCallback? onCashTransfer;
+  final VoidCallback? onScrapSale;
+  final VoidCallback? onScrapToStock;
+  final VoidCallback? onCloseDay;
+  final VoidCallback? onOpenDay;
+  final ValueChanged<LedgerFeedLine>? onOperation;
+  final VoidCallback? onPendingInvoices;
 
   @override
   Widget build(BuildContext context) {
@@ -338,6 +953,17 @@ class _LedgerBody extends StatelessWidget {
           LedgerPhase.confirmed => ConfirmedLedgerDashboard(
             ledger: controller.ledger,
             shopId: controller.shopId,
+            dayClosed: day?.isClosed == true,
+            onSale: onSale,
+            onPurchase: onPurchase,
+            onExpense: onExpense,
+            onCashTransfer: onCashTransfer,
+            onScrapSale: onScrapSale,
+            onScrapToStock: onScrapToStock,
+            onCloseDay: onCloseDay,
+            onOpenDay: dayBusy ? null : onOpenDay,
+            onOperation: onOperation,
+            onPendingInvoices: onPendingInvoices,
           ),
           LedgerPhase.refreshFailed => const _RefreshFailedNotice(),
           LedgerPhase.accessDenied => const SizedBox.shrink(),
@@ -364,50 +990,83 @@ class _EntryForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
+        Text('إعداد الأرصدة الافتتاحية', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 4),
         Text(
-          'لم يتم تأكيد الأرصدة الافتتاحية',
-          style: theme.textTheme.titleMedium,
+          'أدخل النقد والذهب، ثم راجع الأثر قبل التأكيد على الخادم.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 16),
-        for (final method in CashMethod.canonicalOrder) ...[
-          _AmountField(
-            label: cashMethodLabel(method),
-            controller: controller.cash[method]!,
-            fieldKey: Key('cash-${method.code}'),
-            locked: controller.fieldsLocked,
+        _EntrySection(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'النقدية',
+          description: 'الرصيد الحالي لكل وسيلة دفع بالجنيه',
+          child: Column(
+            children: [
+              for (final method in CashMethod.canonicalOrder) ...[
+                _AmountField(
+                  label: cashMethodLabel(method),
+                  controller: controller.cash[method]!,
+                  fieldKey: Key('cash-${method.code}'),
+                  locked: controller.fieldsLocked,
+                ),
+                if (method != CashMethod.canonicalOrder.last)
+                  const SizedBox(height: 12),
+              ],
+            ],
           ),
-          const SizedBox(height: 12),
-        ],
-        Text('المخزون', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        for (var index = 0; index < controller.stock.length; index++) ...[
-          _StockRow(
-            entry: controller.stock[index],
-            index: index,
-            controller: controller,
-          ),
-          const SizedBox(height: 12),
-        ],
-        OutlinedButton(
-          key: const Key('add-stock'),
-          onPressed: controller.fieldsLocked ? null : controller.addStock,
-          child: const Text('إضافة صنف'),
         ),
-        const SizedBox(height: 16),
-        Text('الكسر', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        for (var index = 0; index < controller.scrap.length; index++) ...[
-          _ScrapRow(
-            entry: controller.scrap[index],
-            index: index,
-            controller: controller,
+        const SizedBox(height: 12),
+        _EntrySection(
+          icon: Icons.scale_outlined,
+          title: 'المخزون',
+          description: 'حدد الصنف والعيار والعدد والوزن بدقة ثلاثة منازل',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < controller.stock.length; index++) ...[
+                _StockRow(
+                  entry: controller.stock[index],
+                  index: index,
+                  controller: controller,
+                ),
+                const SizedBox(height: 12),
+              ],
+              OutlinedButton.icon(
+                key: const Key('add-stock'),
+                onPressed: controller.fieldsLocked ? null : controller.addStock,
+                icon: const Icon(Icons.add),
+                label: const Text('إضافة صنف'),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-        ],
-        OutlinedButton(
-          key: const Key('add-scrap'),
-          onPressed: controller.fieldsLocked ? null : controller.addScrap,
-          child: const Text('إضافة كسر'),
+        ),
+        const SizedBox(height: 12),
+        _EntrySection(
+          icon: Icons.inventory_2_outlined,
+          title: 'الكسر',
+          description: 'سجل الوزن لكل عيار على حدة',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < controller.scrap.length; index++) ...[
+                _ScrapRow(
+                  entry: controller.scrap[index],
+                  index: index,
+                  controller: controller,
+                ),
+                const SizedBox(height: 12),
+              ],
+              OutlinedButton.icon(
+                key: const Key('add-scrap'),
+                onPressed: controller.fieldsLocked ? null : controller.addScrap,
+                icon: const Icon(Icons.add),
+                label: const Text('إضافة كسر'),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         FilledButton(
@@ -422,6 +1081,53 @@ class _EntryForm extends StatelessWidget {
           child: const Text('تأكيد أرصدة صفرية'),
         ),
       ],
+    );
+  }
+}
+
+class _EntrySection extends StatelessWidget {
+  const _EntrySection({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: theme.colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(title, style: theme.textTheme.titleMedium),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }
@@ -628,6 +1334,37 @@ class _Review extends StatelessWidget {
           'يؤكد هذا الإجراء الأرصدة الافتتاحية مرة واحدة، ولا يُعاد تأكيده.',
         ),
         const SizedBox(height: 12),
+        Card(
+          color: theme.colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'الأثر بعد التأكيد',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _ReviewEffectLine(
+                  icon: Icons.scale_outlined,
+                  label: 'الذهب في المخزون والكسر',
+                  value: '${_totalGold(draft)} جرام',
+                ),
+                const SizedBox(height: 8),
+                _ReviewEffectLine(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'النقدية بكل الوسائل',
+                  value: '${_totalCash(draft) ?? '—'} جنيه',
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
         Text('النقد بالجنيه', style: theme.textTheme.titleSmall),
         for (final method in CashMethod.canonicalOrder)
           _ReviewLine(
@@ -669,6 +1406,67 @@ class _Review extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _ReviewEffectLine extends StatelessWidget {
+  const _ReviewEffectLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onPrimaryContainer;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final labelWidget = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(color: color),
+              ),
+            ),
+          ],
+        );
+        final valueWidget = Directionality(
+          textDirection: TextDirection.ltr,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            softWrap: true,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        );
+        if (constraints.maxWidth < 360) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [labelWidget, const SizedBox(height: 4), valueWidget],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: labelWidget),
+            const SizedBox(width: 8),
+            Flexible(child: valueWidget),
+          ],
+        );
+      },
     );
   }
 }
@@ -735,4 +1533,14 @@ String? _totalCash(OpeningDraft draft) {
   final parsed = Piastres.parseWire(sum.toString());
   if (parsed is! Accepted<Piastres>) return null;
   return parsed.value.poundsText;
+}
+
+String _totalGold(OpeningDraft draft) {
+  final total = [
+    ...draft.stock.map((row) => row.milligrams.value),
+    ...draft.scrap.map((row) => row.milligrams.value),
+  ].fold(BigInt.zero, (sum, value) => sum + value);
+  final whole = total ~/ BigInt.from(1000);
+  final fraction = (total % BigInt.from(1000)).toString().padLeft(3, '0');
+  return '$whole.$fraction';
 }

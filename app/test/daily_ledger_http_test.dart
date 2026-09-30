@@ -108,6 +108,126 @@ void expectHeaders(http.Request request) {
 }
 
 void main() {
+  test('version two parses exact daily movement totals', () {
+    final body = confirmedBody();
+    body['read_model_version'] = 2;
+    body['day_summary'] = {
+      'sale_piastres': '420025',
+      'purchase_piastres': '200000',
+      'expense_piastres': '50000',
+      'sale_count': 1,
+      'purchase_count': 1,
+      'expense_count': 1,
+      'gold_by_bucket': [
+        {
+          'kind': 'sale',
+          'category': 'worked_jewelry',
+          'karat': 18,
+          'milligrams': '2000',
+          'count': '2',
+        },
+        {
+          'kind': 'purchase',
+          'category': 'scrap',
+          'karat': 21,
+          'milligrams': '1250',
+          'count': '0',
+        },
+        {
+          'kind': 'sale',
+          'category': 'worked_jewelry',
+          'karat': 21,
+          'milligrams': '1000',
+          'count': '1',
+        },
+        {
+          'kind': 'sale',
+          'category': 'coin',
+          'karat': 21,
+          'milligrams': '500',
+          'count': '1',
+        },
+      ],
+    };
+    final view = parseDailyLedger(body);
+    expect(view.daySummary?.salePiastres, '420025');
+    expect(view.daySummary?.expenseCount, 1);
+    expect(view.daySummary?.goldByBucket.length, 4);
+    expect(view.daySummary?.goldByBucket.first.milligrams, '2000');
+    expect(view.daySummary?.goldByBucket.last.karat, 21);
+    expect(
+      view.daySummary?.goldMilligrams(kind: 'sale', karat: 21),
+      BigInt.from(1500),
+    );
+    expect(
+      view.daySummary?.goldMilligrams(kind: 'purchase', karat: 21),
+      BigInt.from(1250),
+    );
+    (body['day_summary'] as Map<String, Object?>)['gold_by_bucket'] = [
+      {
+        'kind': 'sale',
+        'category': 'bullion',
+        'karat': 18,
+        'milligrams': '1000',
+        'count': '1',
+      },
+    ];
+    expect(() => parseDailyLedger(body), throwsFormatException);
+    body['day_summary'] = {
+      ...(body['day_summary'] as Map<String, Object?>),
+      'sale_piastres': 420025,
+    };
+    expect(() => parseDailyLedger(body), throwsFormatException);
+  });
+
+  test('settlement feed and note marker follow the server shape', () {
+    final body = confirmedBody();
+    body['read_model_version'] = 2;
+    body['day_summary'] = {
+      'sale_piastres': '0',
+      'purchase_piastres': '0',
+      'expense_piastres': '0',
+      'sale_count': 0,
+      'purchase_count': 0,
+      'expense_count': 0,
+      'gold_by_bucket': <Object?>[],
+    };
+    body['feed'] = [
+      {
+        'kind': 'purchase_settlement',
+        'label_ar': 'سداد شراء',
+        'operation_id': operationId,
+        'actor_display_name': 'منى',
+        'occurred_at': '2026-09-26T00:30:00+00:00',
+        'occurred_at_cairo': '2026-09-26T03:30:00',
+        'has_note': true,
+      },
+    ];
+    expect(parseDailyLedger(body).feed.single.hasNote, isTrue);
+    ((body['feed'] as List).single as Map<String, Object?>)['has_note'] = 'yes';
+    expect(() => parseDailyLedger(body), throwsFormatException);
+  });
+
+  test('a sold-out stock bucket and depleted scrap remain readable', () {
+    final body = confirmedBody();
+    body['stock'] = [
+      {
+        'category': 'worked_jewelry',
+        'label_ar': 'مشغولات',
+        'karat': 18,
+        'milligrams': '0',
+        'grams': '0.000',
+        'count': '0',
+      },
+    ];
+    body['scrap'] = [
+      {'karat': 21, 'label_ar': 'كسر', 'milligrams': '0', 'grams': '0.000'},
+    ];
+    final view = parseDailyLedger(body);
+    expect(view.stock.single.grams, '0.000');
+    expect(view.scrap.single.grams, '0.000');
+  });
+
   test(
     'confirm posts the canonical payload and keeps a big decimal string',
     () async {
@@ -176,9 +296,33 @@ void main() {
     expect(ledger.isUninitialized, isTrue);
     expect(paths, [
       '/rest/v1/rpc/get_opening_status',
-      '/rest/v1/rpc/get_daily_ledger',
+      '/rest/v1/rpc/get_daily_ledger_v2',
     ]);
   });
+
+  test(
+    'existing opening ledger stays readable before the v2 migration',
+    () async {
+      final paths = <String>[];
+      final client = MockClient((request) async {
+        paths.add(request.url.path);
+        if (request.url.path.endsWith('get_daily_ledger_v2')) {
+          return http.Response(jsonEncode({'code': 'PGRST202'}), 404);
+        }
+        return http.Response.bytes(
+          utf8.encode(jsonEncode(confirmedBody())),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      final ledger = await gateway(client).ledger(callerUserId: 'owner-a');
+      expect(ledger.isConfirmed, isTrue);
+      expect(paths, [
+        '/rest/v1/rpc/get_daily_ledger_v2',
+        '/rest/v1/rpc/get_daily_ledger',
+      ]);
+    },
+  );
 
   test(
     'a decimal string above the safe integer range stays a string',

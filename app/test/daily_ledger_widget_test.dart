@@ -7,6 +7,7 @@ import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_vie
 import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/pending_opening_store.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/opening_balances.dart';
+import 'package:eldafttar/src/features/daily_ledger/presentation/confirmed_ledger_dashboard.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_screen.dart';
 import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
@@ -16,6 +17,7 @@ import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const shopId = '11111111-1111-4111-8111-111111111111';
 const user = 'user-1';
@@ -272,6 +274,126 @@ Future<void> show(WidgetTester tester, Key key) async {
 }
 
 void main() {
+  for (final brightness in [Brightness.light, Brightness.dark]) {
+    for (final width in [320.0, 1440.0]) {
+      testWidgets('gold movements fit at $width in $brightness RTL', (
+        tester,
+      ) async {
+        SharedPreferences.setMockInitialValues({});
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final base = confirmedLedger();
+        final view = DailyLedgerView(
+          state: base.state,
+          entitlementStatus: base.entitlementStatus,
+          canConfirm: base.canConfirm,
+          businessDay: base.businessDay,
+          cash: base.cash,
+          stock: base.stock,
+          scrap: base.scrap,
+          feed: base.feed,
+          daySummary: const LedgerDaySummary(
+            salePiastres: '5000',
+            purchasePiastres: '2000',
+            expensePiastres: '500',
+            saleCount: 1,
+            purchaseCount: 1,
+            expenseCount: 1,
+            goldByBucket: [
+              LedgerGoldMovement(
+                kind: 'sale',
+                category: 'worked_jewelry',
+                karat: 18,
+                milligrams: '2000',
+                count: '2',
+              ),
+              LedgerGoldMovement(
+                kind: 'purchase',
+                category: 'scrap',
+                karat: 21,
+                milligrams: '1250',
+                count: '0',
+              ),
+            ],
+          ),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('ar'),
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: brightness == Brightness.dark
+                ? ThemeMode.dark
+                : ThemeMode.light,
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                body: SingleChildScrollView(
+                  child: ConfirmedLedgerDashboard(ledger: view, shopId: shopId),
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.text('حركة الذهب'), findsOneWidget);
+        expect(find.text('2.000 جرام'), findsOneWidget);
+        expect(find.text('بيع: 2.000 جرام'), findsOneWidget);
+        await tester.ensureVisible(find.byKey(const Key('ledger-karat-21')));
+        await tester.tap(find.byKey(const Key('ledger-karat-21')));
+        await tester.pump();
+        expect(find.text('شراء: 1.250 جرام'), findsOneWidget);
+        if (brightness == Brightness.light && width == 320) {
+          await tester.ensureVisible(
+            find.byKey(const Key('ledger-customize-movement')),
+          );
+          await tester.tap(find.byKey(const Key('ledger-customize-movement')));
+          await tester.pump();
+          await tester.ensureVisible(find.byKey(const Key('ledger-show-sale')));
+          await tester.tap(find.byKey(const Key('ledger-show-sale')));
+          await tester.pump();
+          expect(find.byKey(const Key('ledger-movement-sale')), findsNothing);
+          await tester.ensureVisible(
+            find.byTooltip('نقل المشتريات إلى الأعلى'),
+          );
+          await tester.tap(find.byTooltip('نقل المشتريات إلى الأعلى'));
+          await tester.pumpAndSettle();
+          final saved = (await SharedPreferences.getInstance()).getStringList(
+            'ledger_movement_layout_$shopId',
+          );
+          expect(saved?.first, 'purchase');
+          expect(saved, contains('hidden:sale'));
+        }
+      });
+    }
+  }
+  testWidgets(
+    'narrow ledger keeps refresh visible and groups account actions',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpScreen(
+        tester,
+        account: shop(ShopEntitlement.active),
+        gateway: ScriptGateway(),
+        store: MemoryStore(),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('تحديث الدفتر'), findsOneWidget);
+      expect(find.byTooltip('المزيد'), findsOneWidget);
+      expect(find.byTooltip('تسجيل الخروج'), findsNothing);
+      await tester.tap(find.byTooltip('المزيد'));
+      await tester.pumpAndSettle();
+      expect(find.text('اختيار متجر آخر'), findsOneWidget);
+      expect(find.text('تسجيل الخروج'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('ledger guide resumes after skip and uses real refresh', (
     tester,
   ) async {
@@ -343,7 +465,7 @@ void main() {
       store: store,
     );
     await tester.pumpAndSettle();
-    expect(find.text('لم يتم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+    expect(find.text('إعداد الأرصدة الافتتاحية'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('cash-cash')), '10000');
     await show(tester, const Key('stock-grams-0'));
     await tester.enterText(find.byKey(const Key('stock-grams-0')), '5');
@@ -356,7 +478,8 @@ void main() {
     expect(find.text('إجمالي النقد'), findsOneWidget);
     expect(find.text('صافي النقد'), findsNothing);
     expect(find.text('10000.00'), findsOneWidget);
-    expect(find.textContaining('5.000'), findsOneWidget);
+    expect(find.text('5.000 جرام'), findsWidgets);
+    expect(find.text('10000.00 جنيه'), findsWidgets);
     await tester.tap(find.byKey(const Key('confirm-opening')));
     await tester.pump();
     expect(find.text('بانتظار تأكيد الخادم'), findsOneWidget);
@@ -366,7 +489,7 @@ void main() {
       const StatusCompleted('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
     );
     await tester.pumpAndSettle();
-    expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+    expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
     expect(find.text('إجمالي النقدية'), findsOneWidget);
     expect(find.text('10000.00 جنيه'), findsOneWidget);
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
@@ -432,7 +555,7 @@ void main() {
         const StatusCompleted('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
       );
       await tester.pumpAndSettle();
-      expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+      expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
       expect(gateway.confirmCalls, 1);
     },
   );
@@ -466,7 +589,7 @@ void main() {
     expect(gateway.confirmCalls, 1);
     expect(gateway.keys.single, '99999999-9999-4999-8999-999999999999');
     expect(gateway.payloads.single, draft.toCanonicalJson());
-    expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+    expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
   });
 
   testWidgets('a validation error keeps the draft and the same key', (
@@ -647,6 +770,44 @@ void main() {
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
   });
+
+  testWidgets(
+    'an active session catches a remote balance change within a minute',
+    (tester) async {
+      final gateway = ScriptGateway()..ledgerView = confirmedLedger();
+      await pumpScreen(
+        tester,
+        account: shop(ShopEntitlement.active),
+        gateway: gateway,
+        store: MemoryStore(),
+      );
+      await tester.pumpAndSettle();
+      final firstCalls = gateway.ledgerCalls;
+      final original = confirmedLedger();
+      gateway.ledgerView = DailyLedgerView(
+        state: original.state,
+        entitlementStatus: original.entitlementStatus,
+        canConfirm: original.canConfirm,
+        businessDay: original.businessDay,
+        cash: [
+          const LedgerCashLine(
+            method: 'cash',
+            labelAr: 'نقدي',
+            piastres: '2000000',
+            pounds: '20000.00',
+          ),
+          ...original.cash.skip(1),
+        ],
+        stock: original.stock,
+        scrap: original.scrap,
+        feed: original.feed,
+      );
+      await tester.pump(const Duration(minutes: 1));
+      await tester.pumpAndSettle();
+      expect(gateway.ledgerCalls, greaterThan(firstCalls));
+      expect(find.text('20000.00'), findsOneWidget);
+    },
+  );
 
   testWidgets('sign-out and revocation remove the figures', (tester) async {
     final gateway = ScriptGateway()..ledgerView = confirmedLedger();
@@ -944,7 +1105,7 @@ void main() {
     await show(tester, const Key('review-values'));
     await tester.tap(find.byKey(const Key('review-values')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('9223372036854775.807'), findsOneWidget);
+    expect(find.textContaining('9223372036854775.807'), findsWidgets);
     expect(find.text('9223372036854775807'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

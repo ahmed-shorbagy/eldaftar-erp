@@ -185,7 +185,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('الدفتر اليومي'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
-    await tester.tap(find.byTooltip('تسجيل الخروج'));
+    await tester.tap(find.byTooltip('المزيد'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تسجيل الخروج'));
     await tester.pumpAndSettle();
     expect(find.text('تسجيل الدخول'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);

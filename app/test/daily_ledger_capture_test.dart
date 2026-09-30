@@ -30,6 +30,7 @@ const primaryStems = <String>[
   'review-top',
   'review-lower',
   'confirmed-top',
+  'confirmed-movement',
   'confirmed-lower',
   'pending-activation',
 ];
@@ -154,6 +155,30 @@ DailyLedgerView confirmedLedger({String entitlement = 'active'}) =>
           occurredAtCairo: '2026-09-26T03:30:00',
         ),
       ],
+      daySummary: const LedgerDaySummary(
+        salePiastres: '420025',
+        purchasePiastres: '200000',
+        expensePiastres: '50000',
+        saleCount: 1,
+        purchaseCount: 1,
+        expenseCount: 1,
+        goldByBucket: [
+          LedgerGoldMovement(
+            kind: 'sale',
+            category: 'worked_jewelry',
+            karat: 18,
+            milligrams: '1830',
+            count: '1',
+          ),
+          LedgerGoldMovement(
+            kind: 'purchase',
+            category: 'scrap',
+            karat: 21,
+            milligrams: '3000',
+            count: '0',
+          ),
+        ],
+      ),
     );
 
 class CaptureGateway implements OpeningGateway {
@@ -253,13 +278,13 @@ void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
 void expectConfirmedFeed(WidgetTester tester) {
   expect(find.text('رصيد افتتاحي'), findsOneWidget);
   expect(find.text('$ownerName · $cairoStamp'), findsOneWidget);
-  expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+  expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
 }
 
 void expectReviewEnabled(WidgetTester tester) {
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-  expect(find.text('لم يتم تأكيد الأرصدة الافتتاحية'), findsNothing);
+  expect(find.text('إعداد الأرصدة الافتتاحية'), findsNothing);
   final button = tester.widget<FilledButton>(
     find.byKey(const Key('confirm-opening')),
   );
@@ -553,7 +578,7 @@ Future<void> captureMatrix(
     gateway: CaptureGateway(emptyLedger()),
     screenKey: 'uninitialized-$label',
   );
-  expect(find.text('لم يتم تأكيد الأرصدة الافتتاحية'), findsOneWidget);
+  expect(find.text('إعداد الأرصدة الافتتاحية'), findsOneWidget);
   expect(find.text('ذهب الجيزة'), findsOneWidget);
   expect(
     tester
@@ -565,7 +590,7 @@ Future<void> captureMatrix(
     tester,
     stem: 'uninitialized',
     label: label,
-    topMarker: find.text('لم يتم تأكيد الأرصدة الافتتاحية'),
+    topMarker: find.text('إعداد الأرصدة الافتتاحية'),
     lowerMarker: find.byKey(const Key('review-zero')),
     middleWhenTall: false,
   );
@@ -609,7 +634,7 @@ Future<void> captureMatrix(
     await tester.pump();
     expectReviewEnabled(tester);
     expect(find.text('92233720368547758.07'), findsOneWidget);
-    expect(find.text('92233720368547758.07 جنيه'), findsOneWidget);
+    expect(find.text('92233720368547758.07 جنيه'), findsWidgets);
     await jump(tester, 0);
     expectOnScreen(tester, find.text('مراجعة الأرصدة الافتتاحية'));
     await capture(tester, 'review-bigint-top-$label.png');
@@ -631,10 +656,12 @@ Future<void> captureMatrix(
     tester,
     stem: 'confirmed',
     label: label,
-    topMarker: find.text('تم تأكيد الأرصدة الافتتاحية'),
+    topMarker: find.byKey(const Key('ledger-confirmed-status')),
     lowerMarker: find.text('$ownerName · $cairoStamp'),
     middleWhenTall: true,
   );
+  await show(tester, const Key('ledger-karat-18'));
+  await capture(tester, 'confirmed-movement-$label.png');
 
   await blank(tester);
   tester.view.physicalSize = size;
@@ -710,7 +737,7 @@ Future<void> captureMatrix(
   );
   expectExpiredNoWrite(tester);
   expect(find.text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.'), findsOneWidget);
-  expect(find.text('تم تأكيد الأرصدة الافتتاحية'), findsNothing);
+  expect(find.byKey(const Key('ledger-confirmed-status')), findsNothing);
   expectOnScreen(tester, find.text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.'));
   await capture(tester, 'expired-empty-$label.png');
 
@@ -768,7 +795,7 @@ final captureFontsAvailable =
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
     ).existsSync();
 final managedCapture = RegExp(
-  r'^(uninitialized-(top|lower)|review-(top|lower)|confirmed-(top|lower)|pending-activation|expired-empty|expired-confirmed-(top|lower)|inflight-pending|review-bigint-top)-(light|dark)-(320|1440)\.png$',
+  r'^(uninitialized-(top|lower)|review-(top|lower)|confirmed-(top|lower|movement)|pending-activation|expired-empty|expired-confirmed-(top|lower)|inflight-pending|review-bigint-top)-(light|dark)-(320|1440)\.png$',
 );
 
 void main() {
@@ -844,7 +871,7 @@ void main() {
     }
   }
 
-  test('manifest covers the 28 primary captures', () async {
+  test('manifest covers the 32 primary captures', () async {
     final dir = Directory(captureDir);
     expect(await dir.exists(), isTrue);
     final names = <String>[];
@@ -876,8 +903,8 @@ void main() {
       }
       expect(names, contains('review-bigint-top-$brightness-320.png'));
     }
-    expect(names.where((name) => primaryStems.any(name.startsWith)).length, 28);
-    expect(names.length, 46);
+    expect(names.where((name) => primaryStems.any(name.startsWith)).length, 32);
+    expect(names.length, 50);
     // ignore: avoid_print
     print('CAPTURE_COUNT ${names.length}');
     for (final name in names) {

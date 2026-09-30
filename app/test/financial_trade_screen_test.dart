@@ -1,0 +1,315 @@
+import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
+import 'package:eldafttar/src/features/daily_ledger/data/pending_financial_command.dart';
+import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart';
+import 'package:eldafttar/src/features/daily_ledger/presentation/financial_trade_screen.dart';
+import 'package:eldafttar/src/features/daily_ledger/presentation/daily_close_screen.dart';
+import 'package:eldafttar/src/theme/app_theme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class FakeFinancialGateway implements FinancialGateway, OpeningGateway {
+  @override
+  Future<FinancialCommandResult> retryPending({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) async => result;
+  FinancialCommandResult result = const FinancialCommitted(
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    replayed: false,
+  );
+  StatusResult statusResult = const StatusAbsent();
+  final keys = <String>[];
+  final payloads = <Map<String, Object?>>[];
+  final closeCounts = <Map<String, Object?>>[];
+  bool pendingExistedAtPost = false;
+
+  @override
+  Future<FinancialCommandResult> postTrade({
+    required String callerUserId,
+    required String idempotencyKey,
+    required FinancialDraft draft,
+  }) async {
+    pendingExistedAtPost =
+        (await const PendingFinancialCommands().read(
+          'owner-1',
+          'shop-1',
+        ))?.key ==
+        idempotencyKey;
+    keys.add(idempotencyKey);
+    payloads.add(draft.toJson());
+    return result;
+  }
+
+  @override
+  Future<StatusResult> status({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async => statusResult;
+
+  @override
+  Future<ConfirmResult> confirm({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) async => const ConfirmUnknown();
+
+  @override
+  Future<DailyLedgerView> ledger({required String callerUserId}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<FinancialDayState> dayState({required String callerUserId}) async =>
+      const FinancialDayState(state: 'open');
+
+  @override
+  Future<FinancialCommandResult> closeDay({
+    required String callerUserId,
+    required String idempotencyKey,
+    required FinancialDayState expected,
+    required Map<String, Object?> counted,
+  }) async {
+    closeCounts.add(counted);
+    return result;
+  }
+
+  @override
+  Future<FinancialCommandResult> openDay({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async => result;
+
+  @override
+  Future<Map<String, Object?>> operation({
+    required String callerUserId,
+    required String operationId,
+  }) async => {};
+}
+
+Future<void> pumpTrade(
+  WidgetTester tester,
+  FakeFinancialGateway gateway,
+  FinancialKind kind,
+) async {
+  tester.view.physicalSize = const Size(320, 800);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('ar'),
+      theme: AppTheme.light(),
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: FinancialTradeScreen(
+          kind: kind,
+          gateway: gateway,
+          statusGateway: gateway,
+          userId: 'owner-1',
+          shopId: 'shop-1',
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  testWidgets('close blocks a discrepancy and posts only matching counts', (
+    tester,
+  ) async {
+    final gateway = FakeFinancialGateway();
+    const day = FinancialDayState(
+      state: 'open',
+      dayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      businessDate: '2026-09-28',
+      dayVersion: 2,
+      counts: {
+        'cash': {
+          'cash': '100',
+          'instant_transfer': '0',
+          'wallet': '0',
+          'card': '0',
+        },
+        'stock': [],
+        'scrap': [],
+      },
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        theme: AppTheme.light(),
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: DailyCloseScreen(
+            gateway: gateway,
+            statusGateway: gateway,
+            userId: 'owner-close',
+            shopId: 'shop-close',
+            day: day,
+          ),
+        ),
+      ),
+    );
+    for (final method in ['cash', 'instant_transfer', 'wallet', 'card']) {
+      await tester.enterText(
+        find.byKey(Key('close-cash-$method')),
+        method == 'cash' ? '1.01' : '0',
+      );
+    }
+    await tester.tap(find.byKey(const Key('close-review')));
+    await tester.pump();
+    expect(find.textContaining('يوجد فرق'), findsOneWidget);
+    expect(gateway.closeCounts, isEmpty);
+    await tester.enterText(find.byKey(const Key('close-cash-cash')), '1.00');
+    await tester.tap(find.byKey(const Key('close-review')));
+    await tester.pump();
+    expect(find.byKey(const Key('close-confirm')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('close-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.closeCounts, hasLength(1));
+    expect((gateway.closeCounts.single['cash'] as Map)['cash'], '100');
+  });
+  testWidgets('sale reviews exact cash and gold before one server post', (
+    tester,
+  ) async {
+    final gateway = FakeFinancialGateway();
+    await pumpTrade(tester, gateway, FinancialKind.sale);
+    await tester.enterText(find.byKey(const Key('trade-name-0')), 'خاتم');
+    await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
+    await tester.dragUntilVisible(
+      find.byKey(const Key('trade-tender-amount-0')),
+      find.byType(ListView),
+      const Offset(0, -250),
+    );
+    await tester.enterText(
+      find.byKey(const Key('trade-tender-amount-0')),
+      '4200.25',
+    );
+    await tester.ensureVisible(find.byKey(const Key('trade-review')));
+    await tester.tap(find.byKey(const Key('trade-review')));
+    await tester.pumpAndSettle();
+    expect(find.text('4200.25 جنيه'), findsWidgets);
+    expect(find.textContaining('1.830 جرام'), findsOneWidget);
+    expect(gateway.keys, isEmpty);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.keys, hasLength(1));
+    expect(gateway.pendingExistedAtPost, isTrue);
+    expect(gateway.payloads.single['total_piastres'], '420025');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('partial purchase reviews paid cash, payable, and owned gold', (
+    tester,
+  ) async {
+    final gateway = FakeFinancialGateway();
+    await pumpTrade(tester, gateway, FinancialKind.purchase);
+    await tester.enterText(find.byKey(const Key('trade-name-0')), 'سوار');
+    await tester.enterText(find.byKey(const Key('trade-grams-0')), '10.000');
+    await tester.dragUntilVisible(
+      find.byKey(const Key('trade-purchase-price')),
+      find.byType(ListView),
+      const Offset(0, -250),
+    );
+    await tester.enterText(
+      find.byKey(const Key('trade-purchase-price')),
+      '60000',
+    );
+    await tester.enterText(
+      find.byKey(const Key('trade-seller-name')),
+      'تاجر تجريبي',
+    );
+    await tester.dragUntilVisible(
+      find.byKey(const Key('trade-tender-amount-0')),
+      find.byType(ListView),
+      const Offset(0, -250),
+    );
+    await tester.enterText(
+      find.byKey(const Key('trade-tender-amount-0')),
+      '20000',
+    );
+    await tester.ensureVisible(find.byKey(const Key('trade-review')));
+    await tester.tap(find.byKey(const Key('trade-review')));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('يبقى مستحقاً للبائع: 40000.00'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.payloads.single['purchase_obligation_piastres'], '4000000');
+    expect(gateway.payloads.single['total_piastres'], '6000000');
+  });
+
+  testWidgets('scrap quick sale reviews scrap loss and split cash gain', (
+    tester,
+  ) async {
+    final gateway = FakeFinancialGateway();
+    await pumpTrade(tester, gateway, FinancialKind.scrapSale);
+    expect(find.text('الفئة: كسر'), findsOneWidget);
+    expect(find.byKey(const Key('trade-count-0')), findsNothing);
+    await tester.enterText(find.byKey(const Key('trade-name-0')), 'كسر');
+    await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.375');
+    await tester.dragUntilVisible(
+      find.byKey(const Key('trade-tender-amount-0')),
+      find.byType(ListView),
+      const Offset(0, -250),
+    );
+    await tester.enterText(
+      find.byKey(const Key('trade-tender-amount-0')),
+      '100',
+    );
+    await tester.ensureVisible(find.byKey(const Key('trade-add-tender')));
+    await tester.tap(find.byKey(const Key('trade-add-tender')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('trade-tender-amount-1')));
+    await tester.enterText(
+      find.byKey(const Key('trade-tender-amount-1')),
+      '25.25',
+    );
+    await tester.ensureVisible(find.byKey(const Key('trade-review')));
+    await tester.tap(find.byKey(const Key('trade-review')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ينقص الكسر'), findsOneWidget);
+    expect(find.textContaining('0.375 جرام'), findsOneWidget);
+    expect(gateway.payloads, isEmpty);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.payloads.single['kind'], 'scrap_sale');
+    expect(gateway.payloads.single['total_piastres'], '12525');
+    expect(gateway.pendingExistedAtPost, isTrue);
+  });
+
+  testWidgets('unknown outcome retries with the same key after absent status', (
+    tester,
+  ) async {
+    final gateway = FakeFinancialGateway()..result = const FinancialUnknown();
+    await pumpTrade(tester, gateway, FinancialKind.expense);
+    await tester.enterText(find.byKey(const Key('trade-description')), 'نقل');
+    await tester.enterText(
+      find.byKey(const Key('trade-tender-amount-0')),
+      '10',
+    );
+    await tester.tap(find.byKey(const Key('trade-review')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('لم يؤكد الخادم العملية'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.keys, hasLength(2));
+    expect(gateway.keys[0], gateway.keys[1]);
+    expect(gateway.payloads[0], gateway.payloads[1]);
+  });
+}

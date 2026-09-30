@@ -13,6 +13,7 @@ final class DailyLedgerView {
     required this.stock,
     required this.scrap,
     required this.feed,
+    this.daySummary,
   });
 
   final String state;
@@ -23,6 +24,7 @@ final class DailyLedgerView {
   final List<LedgerStockLine> stock;
   final List<LedgerScrapLine> scrap;
   final List<LedgerFeedLine> feed;
+  final LedgerDaySummary? daySummary;
 
   bool get isConfirmed => state == 'confirmed';
   bool get isUninitialized => state == 'uninitialized';
@@ -43,6 +45,49 @@ final class DailyLedgerView {
         ? parsedTotal.value.poundsText
         : null;
   }
+}
+
+final class LedgerDaySummary {
+  const LedgerDaySummary({
+    required this.salePiastres,
+    required this.purchasePiastres,
+    required this.expensePiastres,
+    required this.saleCount,
+    required this.purchaseCount,
+    required this.expenseCount,
+    this.goldByBucket = const [],
+  });
+
+  final String salePiastres;
+  final String purchasePiastres;
+  final String expensePiastres;
+  final int saleCount;
+  final int purchaseCount;
+  final int expenseCount;
+  final List<LedgerGoldMovement> goldByBucket;
+
+  BigInt goldMilligrams({required String kind, required int karat}) =>
+      goldByBucket
+          .where((line) => line.kind == kind && line.karat == karat)
+          .fold(
+            BigInt.zero,
+            (sum, line) => sum + BigInt.parse(line.milligrams),
+          );
+}
+
+final class LedgerGoldMovement {
+  const LedgerGoldMovement({
+    required this.kind,
+    required this.category,
+    required this.karat,
+    required this.milligrams,
+    required this.count,
+  });
+  final String kind;
+  final String category;
+  final int karat;
+  final String milligrams;
+  final String count;
 }
 
 final class LedgerBusinessDay {
@@ -111,6 +156,7 @@ final class LedgerFeedLine {
     required this.actorDisplayName,
     required this.occurredAt,
     required this.occurredAtCairo,
+    this.hasNote = false,
   });
 
   final String kind;
@@ -119,4 +165,5 @@ final class LedgerFeedLine {
   final String actorDisplayName;
   final String occurredAt;
   final String occurredAtCairo;
+  final bool hasNote;
 }
