@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release builds do not merge the debug manifest, so the client
+         needs this permission to reach Supabase. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="الدفتر"
         android:name="${applicationName}"

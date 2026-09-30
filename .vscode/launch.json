@@ -8,7 +8,7 @@
       "cwd": "${workspaceFolder}/app",
       "program": "${workspaceFolder}/app/lib/main.dart",
       "deviceId": "emulator",
-      "preLaunchTask": "Ensure Android emulator",
+      "preLaunchTask": "Prepare Android run",
       "toolArgs": [
         "--dart-define-from-file=config/local.json"
       ]
@@ -20,6 +20,7 @@
       "cwd": "${workspaceFolder}/app",
       "program": "${workspaceFolder}/app/lib/main.dart",
       "deviceId": "windows",
+      "preLaunchTask": "Sync public Supabase config",
       "toolArgs": [
         "--dart-define-from-file=config/local.json"
       ]
@@ -29,7 +30,8 @@
       "type": "node-terminal",
       "request": "launch",
       "command": "npm run dev -- --open",
-      "cwd": "${workspaceFolder}/admin"
+      "cwd": "${workspaceFolder}/admin",
+      "preLaunchTask": "Sync public Supabase config"
     }
   ]
 }

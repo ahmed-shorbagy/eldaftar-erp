@@ -6,10 +6,18 @@ The long-term product scope, architecture, database design, roadmap, engineering
 
 Both clients provide Arabic RTL, persistent light/dark themes, and password authentication without contact verification. Flutter supports Egypt-only owner registration and email/password or Egyptian phone/password login to one Auth identity. React retains its separate platform-admin gate and has no owner signup. The reviewed registration Edge Function, nine identity migrations, Auth configuration, and rollback-only authorization tests are applied only to the owner-confirmed development project `xchapwvmvoefriqcxtvn`. Exact evidence and limits are in [Milestone 1 validation](docs/operations/milestone-1-validation.md). Local replay and staging acceptance remain pending. Onboarding, financial workflows, subscription redemption, and uploads are not operational; the ERP shell remains a prototype.
 
-Copy app/config/local.example.json to app/config/local.json, then enter the public Supabase values. Local configuration is stored in ignored files:
+Public client configuration is generated from `supabase/.env.local`. The generator copies only `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` into ignored `app/config/local.json` and `admin/.env.local`. Storage keys in that env file stay there and are not written into Flutter or Vite.
 
-- app/config/local.json, used with: flutter run -d windows --dart-define-from-file=config/local.json (from app/)
-- admin/.env.local, used with: npm run dev (from admin/)
+From the repository root:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 apk
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 windows
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 ios
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 admin
+```
+
+`sync` refreshes the two ignored files without building. Visual Studio Code launches run that step first. `app/config/local.example.json` shows the Flutter file shape; it is not filled in by hand.
 
 Routine validation for a code change:
 
@@ -21,8 +29,8 @@ Arabic RTL visual review in both themes and at the relevant widths remains requi
 
 Release and production builds are opt-in. Run them only when the user explicitly asks. They are never automatic routine task gates:
 
-- app/: flutter build apk; flutter build windows; an iOS release build
-- admin/: npm run build
+- app/: `scripts/build.ps1 apk`, `scripts/build.ps1 windows`, or `scripts/build.ps1 ios`
+- admin/: `scripts/build.ps1 admin`
 
 Documentation-only changes require a link, consistency, and privacy review and git diff --check. They do not require application tests or builds. Historical validation records stay intact.
 

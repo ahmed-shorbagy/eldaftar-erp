@@ -8,7 +8,7 @@ export const shellCopy = {
   missingBody:
     'لم يُضبط عنوان المشروع والمفتاح العام معًا، لذلك لم يُنشأ عميل Supabase.',
   missingHint:
-    'ضع القيمتين معًا في ملف البيئة المحلي. المطلوب هو المفتاح العام فقط، ولا يُوضع مفتاح الخدمة أو أسرار التخزين داخل المتصفح.',
+    'شغّل scripts/build.ps1 من جذر المستودع. ينسخ العنوان والمفتاح العام إلى ملف البيئة المحلي، ولا يُوضع مفتاح الخدمة أو أسرار التخزين داخل المتصفح.',
   defineExample: 'VITE_SUPABASE_URL=...\nVITE_SUPABASE_PUBLISHABLE_KEY=...',
   readyTitle: 'تمت تهيئة Supabase',
   readyBody:

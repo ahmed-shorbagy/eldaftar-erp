@@ -10,9 +10,9 @@ abstract final class ShellCopy {
   static const missingBody =
       'لم يُمرَّر عنوان المشروع والمفتاح العام معًا، لذلك لم تُهيأ مكتبة Supabase.';
   static const missingHint =
-      'مرّر القيمتين معًا عند التشغيل أو البناء. المطلوب هو المفتاح العام فقط، ولا يُوضع مفتاح الخدمة داخل التطبيق.';
+      'ابنِ التطبيق من جذر المستودع بالأمر scripts/build.ps1. يقرأ العنوان والمفتاح العام من ملف البيئة المحلي، ولا يُوضع مفتاح الخدمة داخل التطبيق.';
   static const defineExample =
-      '--dart-define=SUPABASE_URL=...\n--dart-define=SUPABASE_PUBLISHABLE_KEY=...';
+      'scripts/build.ps1 apk\nSUPABASE_URL\nSUPABASE_PUBLISHABLE_KEY';
 
   static const readyTitle = 'تمت تهيئة Supabase';
   static const readyBody =

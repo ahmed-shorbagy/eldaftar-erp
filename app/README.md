@@ -12,78 +12,42 @@ flutter create --platforms=android,ios,windows --project-name eldafttar app
 
 ## تهيئة Supabase
 
-القيمتان عامتان وتُمرَّران وقت الترجمة عبر `--dart-define`:
+القيمتان عامتان وتُمرَّران وقت الترجمة عبر `--dart-define-from-file`:
 
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
 
 تُستدعى `Supabase.initialize` فقط عندما تكون القيمتان غير فارغتين بعد حذف المسافات الزائدة. إذا غابت إحداهما تظهر رسالة إعداد عربية ولا يُنشأ العميل.
 
-ضع عنوان المشروع والمفتاح العام من إعدادات واجهة Supabase مكان العنصرين `https://YOUR_PROJECT_REF.supabase.co` و`YOUR_PUBLISHABLE_KEY`. المفتاح العام هو مفتاح `sb_publishable`، لا مفتاح anon القديم ولا مفتاح الخدمة.
+مصدر القيم هو `supabase/.env.local` في جذر المستودع. أمر البناء ينسخ العنوان والمفتاح العام فقط إلى `app/config/local.json`، وهو ملف متجاهَل. مفاتيح التخزين تبقى في ملف البيئة ولا تدخل التطبيق. المفتاح العام هو مفتاح `sb_publishable`، لا مفتاح الخدمة.
 
 اختيار المظهر يُحفظ محليًا في المفتاح `theme_mode` بالقيمة `light` أو `dark`. قبل أول اختيار يتبع التطبيق مظهر النظام.
 
-## التشغيل
+## التشغيل والبناء
 
-بدون تهيئة Supabase:
+من جذر المستودع. الأمر يقرأ `supabase/.env.local` ثم يشغّل Flutter:
 
 ```text
-flutter run -d windows
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 run-android
 ```
 
 ```text
-flutter run -d android
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 run-windows
 ```
 
 ```text
-flutter run -d ios
-```
-
-مع التهيئة، والقيمتان معًا:
-
-```text
-flutter run -d windows --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 apk
 ```
 
 ```text
-flutter run -d android --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 windows
 ```
 
 ```text
-flutter run -d ios --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1 ios
 ```
 
-تشغيل iOS يتطلب macOS مع Xcode.
-
-## البناء
-
-بدون تهيئة Supabase:
-
-```text
-flutter build windows
-```
-
-```text
-flutter build apk
-```
-
-```text
-flutter build ios
-```
-
-مع التهيئة، والقيمتان معًا:
-
-```text
-flutter build windows --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-```
-
-```text
-flutter build apk --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-```
-
-```text
-flutter build ios --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-```
+تشغيل وبناء iOS يتطلبان macOS مع Xcode. ملف `app/config/local.example.json` يوضّح شكل ملف الإعداد فقط.
 
 ## الفحص
 
