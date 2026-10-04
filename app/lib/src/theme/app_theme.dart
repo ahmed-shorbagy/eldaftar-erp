@@ -50,6 +50,38 @@ abstract final class AppTheme {
         displayColor: scheme.onSurface,
       ),
       iconTheme: IconThemeData(color: scheme.onSurface),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(
+            AppTokens.minControlSize,
+            AppTokens.minControlSize,
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(
+            AppTokens.minControlSize,
+            AppTokens.minControlSize,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(
+            AppTokens.minControlSize,
+            AppTokens.minControlSize,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(
+            AppTokens.minControlSize,
+            AppTokens.minControlSize,
+          ),
+        ),
+      ),
     );
   }
 }

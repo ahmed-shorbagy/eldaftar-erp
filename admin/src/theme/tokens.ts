@@ -12,6 +12,7 @@ export const tokens = {
   darkOutline: '#4A433A',
   brandGold: '#E6C36A',
   contentMaxWidth: 720,
+  minControlSize: 48,
   wideBreakpoint: 840,
   fontFamily:
     '"Segoe UI", Tahoma, "Noto Naskh Arabic", "Noto Sans Arabic", Arial, sans-serif',

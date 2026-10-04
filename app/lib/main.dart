@@ -6,7 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/app.dart';
 import 'src/config/supabase_public_config.dart';
 import 'src/config/supabase_startup.dart';
+import 'src/features/auth/data/recovery_session_storage.dart';
 import 'src/features/auth/data/supabase_auth_gateway.dart';
+import 'src/features/auth/domain/password_recovery.dart';
 import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
 import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
@@ -23,12 +25,14 @@ Future<void> main() async {
     store: SharedPreferencesThemeStore(preferences),
   );
   await themeController.load();
+  final authGateway = supabaseStatus == SupabaseStartupStatus.ready
+      ? SupabaseAuthGateway(Supabase.instance.client)
+      : null;
   runApp(
     ElDafttarApp(
       supabaseStatus: supabaseStatus,
-      authGateway: supabaseStatus == SupabaseStartupStatus.ready
-          ? SupabaseAuthGateway(Supabase.instance.client)
-          : null,
+      authGateway: authGateway,
+      recoveryGateway: authGateway,
       themeController: themeController,
       shopAccountGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopAccountGateway(Supabase.instance.client)
@@ -57,5 +61,18 @@ Future<void> main() async {
 }
 
 Future<void> _startSupabase(String url, String publishableKey) async {
-  await Supabase.initialize(url: url, publishableKey: publishableKey);
+  final projectHost = Uri.parse(url).host.split('.').first;
+  await Supabase.initialize(
+    url: url,
+    publishableKey: publishableKey,
+    authOptions: FlutterAuthClientOptions(
+      localStorage: RecoverySessionStorage(
+        SharedPreferencesLocalStorage(
+          persistSessionKey: 'sb-$projectHost-auth-token',
+        ),
+      ),
+      // Only the fixed recovery callback may be exchanged for a session.
+      detectSessionInUriPredicate: RecoveryCallback.allows,
+    ),
+  );
 }

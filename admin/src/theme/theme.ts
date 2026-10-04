@@ -34,6 +34,14 @@ export function createAppTheme(mode: ResolvedTheme) {
       fontFamily: tokens.fontFamily,
     },
     components: {
+      MuiButton: {
+        styleOverrides: { root: { minHeight: tokens.minControlSize } },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: { minWidth: tokens.minControlSize, minHeight: tokens.minControlSize },
+        },
+      },
       MuiCssBaseline: {
         styleOverrides: {
           html: { colorScheme: mode },

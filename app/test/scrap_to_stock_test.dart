@@ -234,10 +234,12 @@ void main() {
         await tester.runAsync(() async {
           final image = await boundary.toImage(pixelRatio: 1);
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          await File(
-            '../docs/reviews/daily-ledger-financial-2026-09-28/'
+          final file = File(
+            '${Platform.environment['ELDAFTTAR_CAPTURE_DIR'] ?? 'build/scrap-to-stock-review'}/'
             'scrap-to-stock-${dark ? 'dark' : 'light'}-${width.toInt()}.png',
-          ).writeAsBytes(bytes!.buffer.asUint8List());
+          );
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
       });

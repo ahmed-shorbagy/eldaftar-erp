@@ -337,7 +337,7 @@ Future<void> captureGuide(WidgetTester tester, String name) async {
     final image = await boundary.toImage(pixelRatio: 1);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     final file = File(
-      '../docs/reviews/onboarding-entry-2026-09-28/widget/$name',
+      '${Platform.environment['ELDAFTTAR_CAPTURE_DIR'] ?? 'build/onboarding-review'}/$name',
     );
     await file.parent.create(recursive: true);
     await file.writeAsBytes(data!.buffer.asUint8List(), flush: true);

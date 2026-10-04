@@ -14,4 +14,5 @@ abstract final class AppTokens {
 
   static const double wideBreakpoint = 840;
   static const double contentMaxWidth = 720;
+  static const double minControlSize = 48;
 }

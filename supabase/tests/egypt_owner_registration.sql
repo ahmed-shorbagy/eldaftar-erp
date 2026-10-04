@@ -3,6 +3,26 @@
 -- psql -v ON_ERROR_STOP=1 -f supabase/tests/egypt_owner_registration.sql
 begin;
 
+-- Preserve nonempty development baselines. Fixture-specific queries below still
+-- require exactly one reservation; unrelated rows cannot satisfy assertions.
+create temp table registration_test_baseline as
+select (select count(*) from private.owner_registration_reservations) as reservations,
+  (select count(*) from public.shops where email is not null) as registered_shops,
+  (select count(*) from public.shop_entitlements) as entitlements;
+
+do $fixture_guard$
+begin
+  if exists (select 1 from private.owner_registration_reservations
+    where request_key::text like 'c0c0c0c0-0000-4000-8000-%'
+      or email in ('owner@example.test', 'taken@example.test', 'fresh@example.test', 'other@example.test'))
+    or exists (select 1 from auth.users
+      where lower(email) in ('owner@example.test', 'taken@example.test', 'fresh@example.test', 'other@example.test')
+        or phone in ('201012345678', '201111111111', '+201012345678', '+201111111111')) then
+    raise exception 'registration_fixture_collision';
+  end if;
+end;
+$fixture_guard$;
+
 create procedure pg_temp.expect_error(p_sql text, p_sqlstate text, p_message text)
 language plpgsql
 as $procedure$
@@ -414,8 +434,10 @@ call pg_temp.expect_error(
 
 do $test$
 begin
-  if exists (select 1 from private.owner_registration_reservations)
-    or exists (select 1 from public.shops where email is not null) then
+  if (select count(*) from private.owner_registration_reservations)
+      <> (select reservations from registration_test_baseline)
+    or (select count(*) from public.shops where email is not null)
+      <> (select registered_shops from registration_test_baseline) then
     raise exception 'invalid registration persisted a profile';
   end if;
 end;
@@ -457,7 +479,7 @@ begin
     raise exception 'replay allocated a second Auth id';
   end if;
   select count(*) into v_count from private.owner_registration_reservations;
-  if v_count <> 1 then
+  if v_count <> (select reservations + 1 from registration_test_baseline) then
     raise exception 'replay created another reservation';
   end if;
   if exists (
@@ -479,7 +501,8 @@ begin
   end if;
   if exists (select 1 from auth.users where id = v_reserved)
     or exists (select 1 from public.shop_memberships where user_id = v_reserved)
-    or exists (select 1 from public.shop_entitlements) then
+    or (select count(*) from public.shop_entitlements)
+      <> (select entitlements from registration_test_baseline) then
     raise exception 'reservation created an Auth user, membership, or entitlement';
   end if;
   if (
@@ -566,10 +589,12 @@ call pg_temp.expect_error(
 
 do $test$
 begin
-  if (select count(*) from private.owner_registration_reservations) <> 1 then
+  if (select count(*) from private.owner_registration_reservations)
+      <> (select reservations + 1 from registration_test_baseline) then
     raise exception 'duplicate identifier created a reservation';
   end if;
-  if (select owner_display_name from private.owner_registration_reservations) <> 'مالك الاختبار' then
+  if (select owner_display_name from private.owner_registration_reservations
+      where request_key = 'c0c0c0c0-0000-4000-8000-000000000001') <> 'مالك الاختبار' then
     raise exception 'rejected replay changed the reserved name';
   end if;
 end;
@@ -840,7 +865,8 @@ call pg_temp.expect_error(
 do $test$
 begin
   if (select count(*) from public.shops where created_by = current_setting('test.reserved_user_id')::uuid) <> 1
-    or (select count(*) from private.owner_registration_reservations) <> 1 then
+    or (select count(*) from private.owner_registration_reservations)
+      <> (select reservations + 1 from registration_test_baseline) then
     raise exception 'retry after completion duplicated a shop or reservation';
   end if;
 end;

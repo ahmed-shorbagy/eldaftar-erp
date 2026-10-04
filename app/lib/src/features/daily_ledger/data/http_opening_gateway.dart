@@ -2,6 +2,13 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../inventory/application/inventory_contract.dart';
+import '../../inventory/application/inventory_gateway.dart';
+import '../../inventory/data/inventory_codec.dart';
+import '../../daily_notes/application/notes_gateway.dart';
+import '../../daily_notes/data/note_codec.dart';
+import '../../daily_notes/domain/daily_note_draft.dart';
+import '../application/ledger_activity.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
 import '../application/idempotency_key.dart';
@@ -11,6 +18,12 @@ import '../domain/financial_draft.dart';
 import 'daily_ledger_codec.dart';
 
 const _errorCodes = <String>{
+  'attachment_rejected',
+  'note_too_long',
+  'image_too_large',
+  'method_archived',
+  'stale_version',
+  'last_method_active',
   'invalid_input',
   'negative_amount',
   'overflow',
@@ -25,6 +38,7 @@ const _errorCodes = <String>{
   'forbidden',
   'tender_mismatch',
   'line_price_mismatch',
+  'pricing_mismatch',
   'insufficient_stock',
   'negative_owned_balance',
   'stock_pair_mismatch',
@@ -35,6 +49,10 @@ const _errorCodes = <String>{
   'journal_imbalance',
   'already_settled',
   'settlement_exceeds_obligation',
+  'not_found',
+  'already_allocated',
+  'custody_requires_transfer',
+  'insufficient_lot',
 };
 
 class HttpOpeningGateway
@@ -45,7 +63,10 @@ class HttpOpeningGateway
         PurchaseSettlementGateway,
         CashTransferGateway,
         ScrapToStockGateway,
-        LinkedReturnGateway {
+        LinkedReturnGateway,
+        InventoryGateway,
+        NotesGateway,
+        LedgerFeedGateway {
   HttpOpeningGateway({
     required http.Client client,
     required String supabaseUrl,
@@ -186,6 +207,13 @@ class HttpOpeningGateway
     required String callerUserId,
     required PendingFinancialCommand command,
   }) {
+    if (matchesExplicitLotSale(command.key, command.kind, command.body)) {
+      return _financialCommand(
+        callerUserId,
+        'post_daily_ledger_trade_v2',
+        command.body,
+      );
+    }
     final rpc = switch (command.kind) {
       'sale' ||
       'purchase' ||
@@ -197,9 +225,12 @@ class HttpOpeningGateway
       'cash_transfer' => 'post_daily_ledger_cash_transfer',
       'scrap_to_stock' => 'post_daily_ledger_scrap_to_stock',
       'sale_return' || 'purchase_return' => 'post_daily_ledger_return',
-      _ => throw const FormatException('pending_financial'),
+      _ => null,
     };
-    return _financialCommand(callerUserId, rpc, command.body);
+    if (rpc != null) return _financialCommand(callerUserId, rpc, command.body);
+    final inventory = inventoryRpcs[command.kind];
+    if (inventory == null) throw const FormatException('pending_financial');
+    return _inventoryCommand(callerUserId, inventory, command.body);
   }
 
   @override
@@ -253,6 +284,8 @@ class HttpOpeningGateway
       );
     } on _CallerRejected catch (error) {
       throw LedgerReadException(error.code);
+    } on _OwnerChanged {
+      throw const LedgerReadException('session_expired');
     } on LedgerReadException {
       rethrow;
     } catch (_) {
@@ -301,6 +334,8 @@ class HttpOpeningGateway
       return Map<String, Object?>.from(value);
     } on _CallerRejected catch (error) {
       throw LedgerReadException(error.code);
+    } on _OwnerChanged {
+      throw const LedgerReadException('session_expired');
     } on LedgerReadException {
       rethrow;
     } catch (_) {
@@ -448,6 +483,471 @@ class HttpOpeningGateway
     'p_note': note,
   });
 
+  @override
+  Future<InventoryTotals> totals({
+    required String callerUserId,
+    String? category,
+    int? karat,
+  }) => _parsed(callerUserId, 'get_inventory_totals_v1', {
+    'p_category': ?category,
+    'p_karat': ?karat,
+  }, parseInventoryTotals);
+
+  @override
+  Future<LotPage> lots({
+    required String callerUserId,
+    String? category,
+    int? karat,
+    String? stockClass,
+    String? query,
+    String? cursor,
+  }) {
+    _boundedQuery(query);
+    return _parsed(callerUserId, 'list_inventory_lots_v1', {
+      'p_category': ?category,
+      'p_karat': ?karat,
+      'p_stock_class': ?stockClass,
+      if (query != null && query.isNotEmpty) 'p_query': query,
+      'p_limit': 50,
+      'p_cursor': ?cursor,
+    }, parseLotPage);
+  }
+
+  @override
+  Future<MovementPage> movements({
+    required String callerUserId,
+    required String lotId,
+    String? cursor,
+  }) {
+    if (!isUuid(lotId)) throw const InventoryReadException('invalid_input');
+    return _parsed(callerUserId, 'list_lot_movements_v1', {
+      'p_lot_id': lotId,
+      'p_limit': 50,
+      'p_cursor': ?cursor,
+    }, parseMovementPage);
+  }
+
+  @override
+  Future<TraderPage> traders({
+    required String callerUserId,
+    String? query,
+    String? cursor,
+  }) {
+    _boundedQuery(query);
+    return _parsed(callerUserId, 'search_traders_v1', {
+      if (query != null && query.isNotEmpty) 'p_query': query,
+      'p_limit': 50,
+      'p_cursor': ?cursor,
+    }, parseTraderPage);
+  }
+
+  @override
+  Future<TraderDetail> trader({
+    required String callerUserId,
+    required String traderId,
+  }) {
+    if (!isUuid(traderId)) throw const InventoryReadException('invalid_input');
+    return _parsed(callerUserId, 'get_trader_v1', {
+      'p_trader_id': traderId,
+    }, parseTraderDetail);
+  }
+
+  @override
+  Future<TraderActivityPage> traderActivity({
+    required String callerUserId,
+    required String traderId,
+    String? cursor,
+  }) {
+    if (!isUuid(traderId)) throw const InventoryReadException('invalid_input');
+    return _parsed(callerUserId, 'list_trader_activity_v1', {
+      'p_trader_id': traderId,
+      'p_limit': 50,
+      'p_cursor': ?cursor,
+    }, parseTraderActivity);
+  }
+
+  void _boundedQuery(String? query) {
+    if (query != null && query.length > 120) {
+      throw const InventoryReadException('invalid_input');
+    }
+  }
+
+  Future<T> _parsed<T>(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+    T Function(Object? raw) parse,
+  ) async {
+    try {
+      final response = await _rpc(callerUserId, rpc, body);
+      return parse(jsonDecode(response.body));
+    } on InventoryReadException {
+      rethrow;
+    } catch (_) {
+      throw const InventoryReadException();
+    }
+  }
+
+  @override
+  Future<FinancialCommandResult> postStored({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) {
+    if (matchesExplicitLotSale(command.key, command.kind, command.body)) {
+      return _financialCommand(
+        callerUserId,
+        'post_daily_ledger_trade_v2',
+        command.body,
+      );
+    }
+    final rpc = inventoryRpcs[command.kind];
+    if (rpc == null ||
+        !matchesInventoryEnvelope(command.key, command.kind, command.body)) {
+      return Future.value(const FinancialRejected('invalid_input'));
+    }
+    return _inventoryCommand(callerUserId, rpc, command.body);
+  }
+
+  @override
+  Future<ReceiptPage> receipts({
+    required String callerUserId,
+    String? ownerKind,
+    String? traderId,
+    String? recognition,
+    String? cursor,
+  }) async {
+    if (traderId != null && !isUuid(traderId)) {
+      throw const InventoryReadException('invalid_input');
+    }
+    final response =
+        await _readResponse(callerUserId, 'list_inventory_receipts_v1', {
+          'p_owner_kind': ?ownerKind,
+          'p_trader_id': ?traderId,
+          'p_recognition_policy': ?recognition,
+          'p_limit': 50,
+          'p_cursor': ?cursor,
+        });
+    if (_rpcMissing(response)) return const ReceiptPage.missing();
+    if (response.statusCode >= 400) {
+      throw InventoryReadException(_errorCode(response.body));
+    }
+    try {
+      return parseReceiptPage(jsonDecode(response.body));
+    } on FormatException {
+      throw const InventoryReadException();
+    }
+  }
+
+  @override
+  Future<ReadPage<CatalogProduct>> products({
+    required String callerUserId,
+    String? query,
+    String? cursor,
+  }) => _catalogPage(
+    callerUserId: callerUserId,
+    table: 'inventory_products',
+    select: 'id,name,category_code,karat,created_at',
+    idColumn: 'id',
+    query: query,
+    queryColumn: 'name',
+    cursor: cursor,
+    parse: parseProductRow,
+  );
+
+  @override
+  Future<ReadPage<CatalogDenomination>> denominations({
+    required String callerUserId,
+    String? query,
+    String? cursor,
+  }) => _catalogPage(
+    callerUserId: callerUserId,
+    table: 'bullion_denominations',
+    select: 'id,label,nominal_milligrams::text,active,created_at',
+    idColumn: 'id',
+    query: query,
+    queryColumn: 'label',
+    cursor: cursor,
+    parse: parseDenominationRow,
+  );
+
+  @override
+  Future<ReadPage<CatalogCoin>> coins({
+    required String callerUserId,
+    String? query,
+    String? cursor,
+  }) => _catalogPage(
+    callerUserId: callerUserId,
+    table: 'coin_types',
+    select: 'id,label,nominal_milligrams::text,active,created_at',
+    idColumn: 'id',
+    query: query,
+    queryColumn: 'label',
+    cursor: cursor,
+    parse: parseCoinRow,
+  );
+
+  @override
+  Future<ReadPage<GoldObligationView>> goldObligations({
+    required String callerUserId,
+    String? cursor,
+  }) => _catalogPage(
+    callerUserId: callerUserId,
+    table: 'gold_obligations',
+    select:
+        'operation_id,trader_id,karat,initial_milligrams::text,remaining_milligrams::text,created_at',
+    idColumn: 'operation_id',
+    cursor: cursor,
+    parse: parseGoldObligationRow,
+  );
+
+  @override
+  Future<ReadPage<TraderObligation>> traderObligations({
+    required String callerUserId,
+    required String traderId,
+    String? unit,
+    String? cursor,
+  }) async {
+    if (!isUuid(traderId)) throw const InventoryReadException('invalid_input');
+    if (unit != null && unit != 'egp_piastres' && unit != 'gold_mg') {
+      throw const InventoryReadException('invalid_input');
+    }
+    try {
+      final response = await _rpc(callerUserId, 'list_trader_obligations_v1', {
+        'p_trader_id': traderId,
+        'p_unit': ?unit,
+        'p_limit': 50,
+        'p_cursor': ?cursor,
+      });
+      return parseTraderObligations(jsonDecode(response.body));
+    } on InventoryReadException {
+      rethrow;
+    } on FormatException {
+      throw const InventoryReadException();
+    } catch (_) {
+      throw const InventoryReadException();
+    }
+  }
+
+  @override
+  Future<StatusResult> catalogStatus({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async {
+    if (!isUuid(idempotencyKey)) return const StatusUnknown();
+    final http.Response response;
+    try {
+      response = await _get(callerUserId, 'inventory_catalog_requests', {
+        'select': 'result',
+        'idempotency_key': 'eq.$idempotencyKey',
+        'limit': '1',
+      });
+    } on _OwnerChanged {
+      return const StatusUnknown();
+    } on _CallerRejected {
+      return const StatusUnknown();
+    } catch (_) {
+      return const StatusUnknown();
+    }
+    if (_missingRelation(response) || response.statusCode >= 400) {
+      return const StatusUnknown();
+    }
+    try {
+      final rows = jsonDecode(response.body);
+      if (rows is! List) return const StatusUnknown();
+      if (rows.isEmpty) return const StatusAbsent();
+      final row = rows.single;
+      if (row is! Map) return const StatusUnknown();
+      final result = row['result'];
+      final value = result is String ? jsonDecode(result) : result;
+      if (value is! Map) return const StatusUnknown();
+      final id = value['id'];
+      if (value['ok'] == true && id is String && isUuid(id)) {
+        return StatusCompleted(id);
+      }
+      return const StatusUnknown();
+    } catch (_) {
+      return const StatusUnknown();
+    }
+  }
+
+  Future<ReadPage<T>> _catalogPage<T>({
+    required String callerUserId,
+    required String table,
+    required String select,
+    required String idColumn,
+    required T Function(Map<String, Object?> row) parse,
+    String? query,
+    String? queryColumn,
+    String? cursor,
+  }) async {
+    _boundedQuery(query);
+    if (query != null &&
+        query.isNotEmpty &&
+        !RegExp(r'^[0-9A-Za-z\u0600-\u06FF _.-]+$').hasMatch(query)) {
+      throw const InventoryReadException('invalid_input');
+    }
+    final filter = _cursorFilter(cursor, idColumn);
+    final http.Response response;
+    try {
+      response = await _get(callerUserId, table, {
+        'select': select,
+        'order': 'created_at.desc,$idColumn.desc',
+        'limit': '51',
+        if (query != null && query.isNotEmpty && queryColumn != null)
+          queryColumn: 'ilike.*$query*',
+        'or': ?filter,
+      });
+    } on _OwnerChanged {
+      throw const InventoryReadException('discarded');
+    } on _CallerRejected catch (error) {
+      throw InventoryReadException(error.code);
+    } catch (_) {
+      throw const InventoryReadException();
+    }
+    if (_missingRelation(response)) return const ReadPage.missing();
+    if (response.statusCode >= 400) {
+      throw InventoryReadException(_errorCode(response.body));
+    }
+    try {
+      final rows = jsonDecode(response.body);
+      if (rows is! List) throw const InventoryReadException();
+      final parsed = <T>[];
+      for (final row in rows) {
+        if (parsed.length == 50) break;
+        parsed.add(parse(Map<String, Object?>.from(row as Map)));
+      }
+      String? next;
+      if (rows.length > 50) {
+        final last = Map<String, Object?>.from(rows[49] as Map);
+        final stamp = last['created_at'];
+        final id = last[idColumn];
+        if (stamp is! String || id is! String || stamp.contains('|')) {
+          throw const InventoryReadException();
+        }
+        next = '$stamp|$id';
+      }
+      return ReadPage.ready(parsed, next);
+    } on InventoryReadException {
+      rethrow;
+    } catch (_) {
+      throw const InventoryReadException();
+    }
+  }
+
+  String? _cursorFilter(String? cursor, String idColumn) {
+    if (cursor == null) return null;
+    final split = cursor.split('|');
+    if (split.length != 2 || split[0].isEmpty || !isUuid(split[1])) {
+      throw const InventoryReadException('invalid_input');
+    }
+    final stamp = split[0];
+    final id = split[1];
+    return '(created_at.lt.$stamp,and(created_at.eq.$stamp,$idColumn.lt.$id))';
+  }
+
+  Future<http.Response> _readResponse(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      return await _post(callerUserId, rpc, body);
+    } on _OwnerChanged {
+      throw const InventoryReadException('discarded');
+    } on _CallerRejected catch (error) {
+      throw InventoryReadException(error.code);
+    } catch (_) {
+      throw const InventoryReadException();
+    }
+  }
+
+  Future<http.Response> _rpc(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+  ) async {
+    final http.Response response;
+    try {
+      response = await _post(callerUserId, rpc, body);
+    } on _OwnerChanged {
+      throw const InventoryReadException('discarded');
+    } on _CallerRejected catch (error) {
+      throw InventoryReadException(error.code);
+    } catch (_) {
+      throw const InventoryReadException();
+    }
+    if (response.statusCode >= 400) {
+      throw InventoryReadException(_errorCode(response.body));
+    }
+    return response;
+  }
+
+  Future<FinancialCommandResult> _inventoryCommand(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      final response = await _post(callerUserId, rpc, body);
+      if (response.statusCode >= 500) return const FinancialUnknown();
+      if (response.statusCode >= 400) {
+        return FinancialRejected(_errorCode(response.body) ?? 'unavailable');
+      }
+      final value = jsonDecode(response.body);
+      if (value is! Map) return const FinancialUnknown();
+      final id = value['operation_id'] ?? value['id'];
+      final replayed = value['replayed'];
+      if (value['ok'] == true &&
+          id is String &&
+          isUuid(id) &&
+          replayed is bool) {
+        return FinancialCommitted(id, replayed: replayed);
+      }
+      return const FinancialUnknown();
+    } on _OwnerChanged {
+      return const FinancialUnknown();
+    } on _CallerRejected catch (error) {
+      return FinancialRejected(error.code);
+    } catch (_) {
+      return const FinancialUnknown();
+    }
+  }
+
+  Future<http.Response> _get(
+    String callerUserId,
+    String table,
+    Map<String, String> query,
+  ) async {
+    final token = _callerToken(callerUserId);
+    final request = http.Request(
+      'GET',
+      Uri.parse('$_supabaseUrl/rest/v1/$table').replace(queryParameters: query),
+    );
+    request.headers['apikey'] = _publishableKey;
+    request.headers['Authorization'] = 'Bearer $token';
+    request.headers['Accept'] = 'application/json';
+    final response = await _client
+        .send(request)
+        .then(http.Response.fromStream)
+        .timeout(timeout);
+    _sameOwner(callerUserId, token);
+    return response;
+  }
+
+  bool _missingRelation(http.Response response) {
+    if (response.statusCode != 404) return false;
+    try {
+      final json = jsonDecode(response.body);
+      if (json is Map) {
+        final code = json['code'];
+        return code == 'PGRST205' || code == '42P01' || code == 'PGRST202';
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
+  }
+
   Future<FinancialCommandResult> _financialCommand(
     String callerUserId,
     String rpc,
@@ -480,6 +980,8 @@ class HttpOpeningGateway
         return FinancialCommitted(operationId, replayed: replayed);
       }
       return const FinancialUnknown();
+    } on _OwnerChanged {
+      return const FinancialUnknown();
     } on _CallerRejected catch (error) {
       return FinancialRejected(error.code);
     } catch (_) {
@@ -487,11 +989,8 @@ class HttpOpeningGateway
     }
   }
 
-  Future<http.Response> _post(
-    String callerUserId,
-    String rpc,
-    Map<String, Object?> body,
-  ) {
+  /// The token that authorized this call. A later mismatch is [_OwnerChanged].
+  String _callerToken(String callerUserId) {
     final owner = _currentUserId();
     final token = _accessToken();
     if (owner == null || owner.isEmpty || token.isEmpty) {
@@ -500,6 +999,27 @@ class HttpOpeningGateway
     if (owner != callerUserId) {
       throw const _CallerRejected('session_expired');
     }
+    return token;
+  }
+
+  void _sameOwner(String callerUserId, String token) {
+    final owner = _currentUserId();
+    final current = _accessToken();
+    if (owner != callerUserId ||
+        owner == null ||
+        owner.isEmpty ||
+        current.isEmpty ||
+        current != token) {
+      throw const _OwnerChanged();
+    }
+  }
+
+  Future<http.Response> _post(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+  ) async {
+    final token = _callerToken(callerUserId);
     final request = http.Request(
       'POST',
       Uri.parse('$_supabaseUrl/rest/v1/rpc/$rpc'),
@@ -509,10 +1029,12 @@ class HttpOpeningGateway
     request.headers['Content-Type'] = 'application/json';
     request.headers['Accept'] = 'application/json';
     request.body = jsonEncode(body);
-    return _client
+    final response = await _client
         .send(request)
         .then(http.Response.fromStream)
         .timeout(timeout);
+    _sameOwner(callerUserId, token);
+    return response;
   }
 
   String? _errorCode(String body) {
@@ -531,9 +1053,348 @@ class HttpOpeningGateway
   bool _rpcMissing(http.Response response) =>
       response.statusCode == 404 &&
       _errorCode(response.body) == 'rpc_unavailable';
+  bool _callerStill(String callerUserId) {
+    final owner = _currentUserId();
+    return owner != null && owner.isNotEmpty && owner == callerUserId;
+  }
+
+  String? _lockedSignedUrl(String signed, String objectName) {
+    if (signed.isEmpty || signed.contains('service_role')) return null;
+    final configured = Uri.parse(_supabaseUrl);
+    final Uri resolved;
+    if (signed.startsWith('http://') || signed.startsWith('https://')) {
+      final absolute = Uri.parse(signed);
+      if (absolute.scheme != configured.scheme ||
+          absolute.host != configured.host ||
+          absolute.port != configured.port) {
+        return null;
+      }
+      if (absolute.userInfo.isNotEmpty) return null;
+      resolved = absolute;
+    } else if (signed.contains('://')) {
+      return null;
+    } else {
+      final relative = signed.startsWith('/') ? signed : '/$signed';
+      final parsed = Uri.parse(relative);
+      resolved = configured.replace(
+        path: '/storage/v1${parsed.path}',
+        query: parsed.hasQuery ? parsed.query : null,
+      );
+    }
+    final expected =
+        '/storage/v1/object/sign/eldafttar-private-notes/$objectName';
+    if (resolved.path != expected) return null;
+    return resolved.toString();
+  }
+
+  @override
+  Future<NoteCommandResult> postNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) async {
+    try {
+      final response = await _post(callerUserId, 'post_daily_note', {
+        'p_idempotency_key': idempotencyKey,
+        'p_payload': payload,
+      });
+      if (!_callerStill(callerUserId)) return const NoteUnknown();
+      if (response.statusCode >= 500) return const NoteUnknown();
+      if (response.statusCode >= 400) {
+        return NoteRejected(_errorCode(response.body) ?? 'unavailable');
+      }
+      return parseNoteCommand(jsonDecode(response.body));
+    } on _CallerRejected catch (error) {
+      return NoteRejected(error.code);
+    } catch (_) {
+      return const NoteUnknown();
+    }
+  }
+
+  @override
+  Future<NoteStatusResult> noteStatus({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _post(callerUserId, 'get_daily_note_status', {
+        'p_idempotency_key': idempotencyKey,
+      });
+      if (!_callerStill(callerUserId)) return const NoteStatusUnknown();
+      if (response.statusCode >= 500) return const NoteStatusUnknown();
+      if (response.statusCode >= 400) {
+        return NoteStatusRejected(_errorCode(response.body) ?? 'unavailable');
+      }
+      return parseNoteStatus(jsonDecode(response.body));
+    } on _CallerRejected catch (error) {
+      return NoteStatusRejected(error.code);
+    } catch (_) {
+      return const NoteStatusUnknown();
+    }
+  }
+
+  @override
+  Future<DailyNotePage> listNotes({
+    required String callerUserId,
+    required String shopId,
+    String? dayId,
+    String? beforeSequence,
+    String? query,
+    int limit = 30,
+  }) async {
+    final trimmed = query?.trim();
+    if (limit < 1 ||
+        limit > 50 ||
+        (trimmed != null && trimmed.runes.length > noteSearchMaxChars)) {
+      throw const FormatException('notes');
+    }
+    try {
+      final response = await _post(callerUserId, 'list_daily_notes', {
+        'p_day_id': dayId,
+        'p_before_sequence': beforeSequence,
+        'p_limit': limit,
+        'p_query': trimmed == null || trimmed.isEmpty ? null : trimmed,
+      });
+      if (!_callerStill(callerUserId)) {
+        throw const NoteReadException('session_expired');
+      }
+      if (response.statusCode >= 400) {
+        throw NoteReadException(_errorCode(response.body));
+      }
+      return parseDailyNotePage(
+        jsonDecode(response.body),
+        expectedShopId: shopId,
+      );
+    } on _OwnerChanged {
+      throw const NoteReadException('session_expired');
+    } on NoteReadException {
+      rethrow;
+    } on _CallerRejected catch (error) {
+      throw NoteReadException(error.code);
+    } on FormatException {
+      throw const NoteReadException();
+    } catch (_) {
+      throw const NoteReadException();
+    }
+  }
+
+  @override
+  Future<DailyNoteView> noteDetail({
+    required String callerUserId,
+    required String shopId,
+    required String noteId,
+  }) async {
+    try {
+      final response = await _post(callerUserId, 'get_daily_note', {
+        'p_note_id': noteId,
+      });
+      if (!_callerStill(callerUserId)) {
+        throw const NoteReadException('session_expired');
+      }
+      if (response.statusCode >= 400) {
+        throw NoteReadException(_errorCode(response.body));
+      }
+      return parseDailyNote(jsonDecode(response.body), expectedShopId: shopId);
+    } on _OwnerChanged {
+      throw const NoteReadException('session_expired');
+    } on NoteReadException {
+      rethrow;
+    } on _CallerRejected catch (error) {
+      throw NoteReadException(error.code);
+    } on FormatException {
+      throw const NoteReadException();
+    } catch (_) {
+      throw const NoteReadException();
+    }
+  }
+
+  @override
+  Future<NoteUploadResult> uploadNoteImage({
+    required String callerUserId,
+    required String objectName,
+    required String mimeType,
+    required List<int> bytes,
+  }) async {
+    if (!_noteObjectName(objectName) ||
+        !noteMimeExtensions.containsKey(mimeType) ||
+        bytes.isEmpty ||
+        bytes.length > noteImageMaxBytes ||
+        !objectName.endsWith('.${noteMimeExtensions[mimeType]}')) {
+      return const NoteUploadResult(
+        NoteUploadDisposition.rejected,
+        code: 'attachment_rejected',
+      );
+    }
+    try {
+      final response = await _storage(
+        callerUserId,
+        'POST',
+        'object/eldafttar-private-notes/${_encodePath(objectName)}',
+        headers: {'Content-Type': mimeType, 'x-upsert': 'false'},
+        body: bytes,
+      );
+      if (!_callerStill(callerUserId)) {
+        return const NoteUploadResult(NoteUploadDisposition.unknown);
+      }
+      if (response.statusCode == 200) {
+        return const NoteUploadResult(NoteUploadDisposition.stored);
+      }
+      if (response.statusCode == 409) {
+        return const NoteUploadResult(NoteUploadDisposition.alreadyPresent);
+      }
+      if (response.statusCode >= 400 && response.statusCode < 500) {
+        return NoteUploadResult(
+          NoteUploadDisposition.rejected,
+          code: _errorCode(response.body) ?? 'attachment_rejected',
+        );
+      }
+      return const NoteUploadResult(NoteUploadDisposition.unknown);
+    } on _CallerRejected catch (error) {
+      return NoteUploadResult(NoteUploadDisposition.rejected, code: error.code);
+    } catch (_) {
+      return const NoteUploadResult(NoteUploadDisposition.unknown);
+    }
+  }
+
+  @override
+  Future<String> noteReadUrl({
+    required String callerUserId,
+    required String objectName,
+  }) async {
+    if (!_noteObjectName(objectName)) {
+      throw const NoteReadException('attachment_rejected');
+    }
+    try {
+      final response = await _storage(
+        callerUserId,
+        'POST',
+        'object/sign/eldafttar-private-notes/${_encodePath(objectName)}',
+        headers: const {'Content-Type': 'application/json'},
+        body: utf8.encode(jsonEncode({'expiresIn': 300})),
+      );
+      if (!_callerStill(callerUserId)) {
+        throw const NoteReadException('session_expired');
+      }
+      if (response.statusCode >= 400) {
+        throw NoteReadException(_errorCode(response.body));
+      }
+      final json = jsonDecode(response.body);
+      if (json is! Map) throw const NoteReadException();
+      final expires = json['expiresIn'];
+      if (expires is int && expires > 300) throw const NoteReadException();
+      final signed = json['signedURL'] ?? json['signedUrl'];
+      if (signed is! String) throw const NoteReadException();
+      final locked = _lockedSignedUrl(signed, objectName);
+      if (locked == null) throw const NoteReadException();
+      return locked;
+    } on _OwnerChanged {
+      throw const NoteReadException('session_expired');
+    } on NoteReadException {
+      rethrow;
+    } on _CallerRejected catch (error) {
+      throw NoteReadException(error.code);
+    } catch (_) {
+      throw const NoteReadException();
+    }
+  }
+
+  @override
+  Future<LedgerOperationPage> operationPage({
+    required String callerUserId,
+    required String shopId,
+    required String? dayId,
+    required String? beforeSequence,
+    required String? afterSequence,
+    required int limit,
+  }) async {
+    if ((beforeSequence != null && afterSequence != null) ||
+        limit < 1 ||
+        limit > 100) {
+      throw const FormatException('page');
+    }
+    try {
+      final response = await _post(callerUserId, 'get_ledger_operation_page', {
+        'p_day_id': dayId,
+        'p_before_sequence': beforeSequence,
+        'p_after_sequence': afterSequence,
+        'p_limit': limit,
+      });
+      if (!_callerStill(callerUserId)) {
+        throw const LedgerReadException('session_expired');
+      }
+      if (response.statusCode >= 400) {
+        throw LedgerReadException(_errorCode(response.body));
+      }
+      return parseLedgerOperationPage(
+        jsonDecode(response.body),
+        expectedShopId: shopId,
+      );
+    } on _OwnerChanged {
+      throw const LedgerReadException('session_expired');
+    } on LedgerReadException {
+      rethrow;
+    } on _CallerRejected catch (error) {
+      throw LedgerReadException(error.code);
+    } on FormatException {
+      throw const LedgerReadException();
+    } catch (_) {
+      throw const LedgerReadException();
+    }
+  }
+
+  Future<http.Response> _storage(
+    String callerUserId,
+    String method,
+    String path, {
+    required Map<String, String> headers,
+    required List<int> body,
+  }) {
+    final owner = _currentUserId();
+    final token = _accessToken();
+    if (owner == null || owner.isEmpty || token.isEmpty) {
+      throw const _CallerRejected('unauthenticated');
+    }
+    if (owner != callerUserId) {
+      throw const _CallerRejected('session_expired');
+    }
+    final request = http.Request(
+      method,
+      Uri.parse('$_supabaseUrl/storage/v1/$path'),
+    );
+    request.headers.addAll(headers);
+    request.headers['apikey'] = _publishableKey;
+    request.headers['Authorization'] = 'Bearer $token';
+    request.bodyBytes = body;
+    return _client
+        .send(request)
+        .then(http.Response.fromStream)
+        .timeout(timeout);
+  }
 }
+
+bool _noteObjectName(String name) {
+  final parts = name.split('/');
+  if (parts.length != 3) return false;
+  final dot = parts[2].lastIndexOf('.');
+  if (dot <= 0) return false;
+  final objectId = parts[2].substring(0, dot);
+  final extension = parts[2].substring(dot + 1);
+  return isCanonicalNoteId(parts[0]) &&
+      isCanonicalNoteId(parts[1]) &&
+      isCanonicalNoteId(objectId) &&
+      const {'jpg', 'png', 'webp'}.contains(extension) &&
+      name == '${parts[0]}/${parts[1]}/$objectId.$extension';
+}
+
+String _encodePath(String name) =>
+    name.split('/').map(Uri.encodeComponent).join('/');
 
 class _CallerRejected implements Exception {
   const _CallerRejected(this.code);
   final String code;
+}
+
+/// The response arrived after the signed-in owner or token changed.
+class _OwnerChanged implements Exception {
+  const _OwnerChanged();
 }

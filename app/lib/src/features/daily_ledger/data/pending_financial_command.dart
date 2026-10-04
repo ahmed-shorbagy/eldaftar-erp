@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../inventory/application/inventory_contract.dart';
 import '../application/idempotency_key.dart';
 import '../application/pending_financial_command.dart';
 
 /// Stores one in-flight financial command per owner and shop.
-final class PendingFinancialCommands {
+final class PendingFinancialCommands implements FinancialCommandLocker {
   const PendingFinancialCommands({this.storage = const FlutterSecureStorage()});
 
   final FlutterSecureStorage storage;
@@ -15,6 +16,7 @@ final class PendingFinancialCommands {
   String _storageKey(String userId, String shopId) =>
       'pending_financial_${userId}_$shopId';
 
+  @override
   Future<PendingFinancialCommand?> read(String userId, String shopId) async {
     final key = _storageKey(userId, shopId);
     var raw = await storage.read(key: key);
@@ -36,7 +38,7 @@ final class PendingFinancialCommands {
       throw const FormatException('pending_financial');
     }
     final kind = decoded['kind'] as String;
-    if (!const {
+    if (!{
       'sale',
       'purchase',
       'expense',
@@ -48,6 +50,7 @@ final class PendingFinancialCommands {
       'scrap_to_stock',
       'sale_return',
       'purchase_return',
+      ...inventoryRpcs.keys,
     }.contains(kind)) {
       throw const FormatException('pending_financial');
     }
@@ -69,6 +72,7 @@ final class PendingFinancialCommands {
     return command;
   }
 
+  @override
   Future<void> save(
     String userId,
     String shopId,
@@ -97,6 +101,7 @@ final class PendingFinancialCommands {
     );
   }
 
+  @override
   Future<void> clear(String userId, String shopId, String key) async {
     final existing = await read(userId, shopId);
     if (existing == null || existing.key != key) return;
@@ -142,6 +147,9 @@ final class PendingFinancialCommands {
           body['p_idempotency_key'] == key &&
           body['p_original_operation_id'] is String &&
           body['p_note'] is String;
+    }
+    if (inventoryRpcs.containsKey(kind)) {
+      return matchesInventoryEnvelope(key, kind, body);
     }
     return kind == 'open_day' && body.length == 1;
   }

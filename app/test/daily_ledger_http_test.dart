@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:eldafttar/src/features/daily_ledger/application/opening_flow.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/pending_opening_store.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/http_opening_gateway.dart';
@@ -108,6 +109,96 @@ void expectHeaders(http.Request request) {
 }
 
 void main() {
+  test(
+    'a delayed ledger response is discarded after the owner changes',
+    () async {
+      var owner = 'owner-a';
+      final started = Completer<void>();
+      final response = Completer<http.Response>();
+      final api = gateway(
+        MockClient((request) {
+          started.complete();
+          return response.future;
+        }),
+        currentUserId: () => owner,
+      );
+      final read = api.ledger(callerUserId: 'owner-a');
+      final rejected = expectLater(read, throwsA(isA<LedgerReadException>()));
+      await started.future;
+      owner = 'owner-b';
+      response.complete(
+        http.Response(
+          jsonEncode(confirmedBody()),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
+      await rejected;
+    },
+  );
+
+  test('a delayed completed status remains unknown after sign-out', () async {
+    String? owner = 'owner-a';
+    final started = Completer<void>();
+    final response = Completer<http.Response>();
+    final api = gateway(
+      MockClient((request) {
+        started.complete();
+        return response.future;
+      }),
+      currentUserId: () => owner,
+    );
+    final read = api.status(
+      callerUserId: 'owner-a',
+      idempotencyKey: operationId,
+    );
+    await started.future;
+    owner = null;
+    response.complete(
+      http.Response(
+        jsonEncode({'status': 'completed', 'operation_id': operationId}),
+        200,
+      ),
+    );
+    expect(await read, isA<StatusUnknown>());
+  });
+
+  test(
+    'a possibly committed settlement remains unknown after owner switch',
+    () async {
+      var owner = 'owner-a';
+      final started = Completer<void>();
+      final response = Completer<http.Response>();
+      final api = gateway(
+        MockClient((request) {
+          started.complete();
+          return response.future;
+        }),
+        currentUserId: () => owner,
+      );
+      final pending = api.settlePurchaseCash(
+        callerUserId: 'owner-a',
+        idempotencyKey: operationId,
+        purchaseOperationId: dayId,
+        tenders: [
+          {'method': 'cash', 'piastres': '100'},
+        ],
+      );
+      await started.future;
+      owner = 'owner-b';
+      response.complete(
+        http.Response(
+          jsonEncode({
+            'ok': true,
+            'operation_id': operationId,
+            'replayed': false,
+          }),
+          200,
+        ),
+      );
+      expect(await pending, isA<FinancialUnknown>());
+    },
+  );
   test('version two parses exact daily movement totals', () {
     final body = confirmedBody();
     body['read_model_version'] = 2;

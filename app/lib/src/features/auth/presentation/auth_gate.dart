@@ -12,8 +12,11 @@ import '../../onboarding/application/onboarding_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
 import '../domain/auth_gateway.dart';
+import '../domain/password_recovery.dart';
 import 'auth_copy.dart';
 import 'auth_screen.dart';
+import 'password_recovery_screen.dart';
+import 'recovery_copy.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({
@@ -26,10 +29,12 @@ class AuthGate extends StatefulWidget {
     this.pendingOpeningStore,
     this.onboardingStore,
     this.currentUserId,
+    this.recoveryGateway,
   });
 
   final SupabaseStartupStatus supabaseStatus;
   final AuthGateway? authGateway;
+  final PasswordRecoveryGateway? recoveryGateway;
   final ShopAccountGateway? shopAccountGateway;
   final Future<void> Function(Brightness) onToggleTheme;
   final OpeningGateway? openingGateway;
@@ -43,8 +48,18 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   StreamSubscription<AuthStatus>? _subscription;
+  StreamSubscription<bool>? _recoverySub;
   AuthStatus _status = AuthStatus.signedOut;
   bool _hold = false;
+  bool _requestingReset = false;
+  bool _resetSuccess = false;
+
+  /// Stays set until the reset screen reports success or abandon.
+  ///
+  /// The gateway clears [PasswordRecoveryGateway.recoveryPending] before that
+  /// callback. Dropping the screen on the event would dispose it first and a
+  /// cached signed-in status could open shop data.
+  bool _awaitingRecoveryEnd = false;
 
   @override
   void initState() {
@@ -55,8 +70,10 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void didUpdateWidget(covariant AuthGate oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.authGateway != widget.authGateway) {
+    if (oldWidget.authGateway != widget.authGateway ||
+        oldWidget.recoveryGateway != widget.recoveryGateway) {
       _subscription?.cancel();
+      _recoverySub?.cancel();
       _hold = false;
       _listen();
     }
@@ -67,9 +84,16 @@ class _AuthGateState extends State<AuthGate> {
     _status = _hold
         ? AuthStatus.signedOut
         : gateway?.status ?? AuthStatus.signedOut;
+    _awaitingRecoveryEnd = widget.recoveryGateway?.recoveryPending ?? false;
     _subscription = gateway?.changes.listen((status) {
       if (!mounted || _hold) return;
       setState(() => _status = status);
+    });
+    _recoverySub = widget.recoveryGateway?.recoveryChanges.listen((pending) {
+      if (!mounted || _hold) return;
+      setState(() {
+        if (pending) _awaitingRecoveryEnd = true;
+      });
     });
   }
 
@@ -91,6 +115,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _recoverySub?.cancel();
     super.dispose();
   }
 
@@ -106,6 +131,42 @@ class _AuthGateState extends State<AuthGate> {
     final shops = widget.shopAccountGateway;
     if (gateway == null || shops == null) {
       return _AuthUnavailable(onToggleTheme: widget.onToggleTheme);
+    }
+    final recovery = widget.recoveryGateway;
+    if (!_hold &&
+        recovery != null &&
+        (_awaitingRecoveryEnd || recovery.recoveryPending)) {
+      return PasswordResetScreen(
+        gateway: recovery,
+        onToggleTheme: widget.onToggleTheme,
+        onFinished: () {
+          if (!mounted) return;
+          setState(() {
+            _awaitingRecoveryEnd = false;
+            _resetSuccess = true;
+            _requestingReset = false;
+            _status = AuthStatus.signedOut;
+          });
+        },
+        onAbandoned: () {
+          if (!mounted) return;
+          setState(() {
+            _awaitingRecoveryEnd = false;
+            _requestingReset = false;
+            _status = AuthStatus.signedOut;
+          });
+        },
+      );
+    }
+    if (!_hold && _requestingReset && recovery != null) {
+      return RecoveryRequestScreen(
+        gateway: recovery,
+        onToggleTheme: widget.onToggleTheme,
+        onBack: () {
+          if (!mounted) return;
+          setState(() => _requestingReset = false);
+        },
+      );
     }
     if (!_hold && _status == AuthStatus.signedIn) {
       final userId = widget.currentUserId?.call();
@@ -123,12 +184,29 @@ class _AuthGateState extends State<AuthGate> {
         },
       );
     }
+    final failure = recovery?.linkFailure;
+    final notice = _resetSuccess
+        ? RecoveryCopy.resetSuccess
+        : failure == null
+        ? null
+        : RecoveryCopy.messageFor(failure);
     return AuthScreen(
       gateway: gateway,
       onToggleTheme: widget.onToggleTheme,
       onHold: _setHold,
       onSessionSettled: _syncStatus,
       onboardingStore: widget.onboardingStore,
+      onForgotPassword: recovery == null
+          ? null
+          : () {
+              recovery.clearLinkFailure();
+              setState(() {
+                _requestingReset = true;
+                _resetSuccess = false;
+              });
+            },
+      recoveryNotice: notice,
+      recoveryNoticeIsError: !_resetSuccess && failure != null,
     );
   }
 }

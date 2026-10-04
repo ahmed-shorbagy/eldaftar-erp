@@ -6,6 +6,16 @@ abstract final class PostgresInteger {
 
   static bool fits(BigInt value) => value >= min && value <= max;
 
+  /// Canonical nonnegative wire value within PostgreSQL bigint bounds.
+  static BigInt? parseCanonical(String value, {bool allowZero = false}) {
+    final pattern = allowZero
+        ? RegExp(r'^(0|[1-9][0-9]{0,18})$')
+        : RegExp(r'^[1-9][0-9]{0,18}$');
+    if (!pattern.hasMatch(value)) return null;
+    final parsed = BigInt.parse(value);
+    return fits(parsed) ? parsed : null;
+  }
+
   /// Adds [left] and [right] only when both already fit and the sum fits.
   static BigInt? checkedAdd(BigInt left, BigInt right) {
     if (!fits(left) || !fits(right)) return null;

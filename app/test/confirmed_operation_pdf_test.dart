@@ -6,6 +6,48 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'confirmed adjusted price preserves exact components in Arabic PDF',
+    () async {
+      final bytes = await buildConfirmedOperationPdf({
+        'kind': 'sale',
+        'shop_name': 'متجر تجريبي',
+        'shop_sequence': '44',
+        'occurred_at_cairo': '2026-10-01T09:00:00',
+        'payload': {
+          'total_piastres': '104002',
+          'customer_name': 'عميل تجريبي',
+          'pricing': {
+            'base_piastres': '100001',
+            'workmanship_piastres': '5002',
+            'other_charges_piastres': '1003',
+            'other_charges_label':
+                'تغليف وتسليم متفق عليهما مع العميل قبل تأكيد البيع',
+            'discount_piastres': '2004',
+          },
+          'items': [
+            {
+              'item_name': 'خاتم',
+              'karat': 18,
+              'milligrams': '1830',
+              'count': '1',
+              'line_price_piastres': '100001',
+            },
+          ],
+          'tenders': [
+            {'method': 'cash', 'piastres': '50000'},
+            {'method': 'card', 'piastres': '54002'},
+          ],
+        },
+      });
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      expect(bytes.length, greaterThan(4000));
+      final output = File('build/pricing-operation-fixture.pdf');
+      await output.parent.create(recursive: true);
+      await output.writeAsBytes(bytes);
+    },
+  );
+
   test('confirmed multi-item sale produces a shareable Arabic PDF', () async {
     final bytes = await buildConfirmedOperationPdf({
       'kind': 'sale',

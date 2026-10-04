@@ -4,7 +4,7 @@
 
 The product owner revised D25 in [ADR 0002](adr/0002-egypt-password-auth.md). The product is Egypt-only. Login accepts email and password or Egyptian phone and password on the same account, without email verification, OTP, or SMS confirmation. Owner signup requires owner name, business name, email, phone, Egyptian governorate, and password. The default shop time zone is `Africa/Cairo`.
 
-Normalize Egyptian phone identifiers consistently and validate governorates against an Egyptian list. Passwords belong only to Supabase Auth. Contact identifiers are not proof of ownership and must not confer membership. New shops remain pending activation without a trial; expired shops retain owner read/export access and reject writes. Password recovery needs a separate design.
+Normalize Egyptian phone identifiers consistently and validate governorates against an Egyptian list. Passwords belong only to Supabase Auth. Contact identifiers are not proof of ownership and must not confer membership. New shops remain pending activation without a trial; expired shops retain owner read/export access and reject writes. The user's completion request adds the separate email recovery path in [ADR 0008](adr/0008-email-password-recovery.md), without adding signup confirmation, SMS or OTP. Hosted redirect/delivery evidence remains tracked in the [current progress record](operations/milestones-0-3-progress-2026-10-04.md).
 
 ## Accepted owner-only access — 2026-09-26
 

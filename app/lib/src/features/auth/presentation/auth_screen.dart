@@ -10,6 +10,8 @@ import '../../onboarding/application/onboarding_store.dart';
 import '../../onboarding/presentation/guide_card.dart';
 import '../domain/auth_gateway.dart';
 import 'auth_copy.dart';
+import 'auth_form_theme.dart';
+import 'recovery_copy.dart';
 
 enum AuthFormMode { signIn, signUp }
 
@@ -26,6 +28,9 @@ class AuthScreen extends StatefulWidget {
     required this.onHold,
     required this.onSessionSettled,
     this.onboardingStore,
+    this.onForgotPassword,
+    this.recoveryNotice,
+    this.recoveryNoticeIsError = false,
   });
 
   final AuthGateway gateway;
@@ -33,6 +38,9 @@ class AuthScreen extends StatefulWidget {
   final ValueChanged<bool> onHold;
   final VoidCallback onSessionSettled;
   final OnboardingStore? onboardingStore;
+  final VoidCallback? onForgotPassword;
+  final String? recoveryNotice;
+  final bool recoveryNoticeIsError;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -531,106 +539,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  ThemeData _authTheme(ThemeData theme) {
-    theme = theme.copyWith(
-      textTheme: theme.textTheme.apply(fontFamily: 'NotoSansArabic'),
-      primaryTextTheme: theme.primaryTextTheme.apply(
-        fontFamily: 'NotoSansArabic',
-      ),
-    );
-    final scheme = theme.colorScheme;
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(_radius),
-      borderSide: BorderSide(color: scheme.outlineVariant),
-    );
-    final buttonText = theme.textTheme.titleMedium;
-    final buttonShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(_radius),
-    );
-    return theme.copyWith(
-      visualDensity: VisualDensity.standard,
-      appBarTheme: theme.appBarTheme.copyWith(
-        centerTitle: false,
-        toolbarHeight: _control + 8,
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: scheme.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        floatingLabelBehavior: FloatingLabelBehavior.never,
-        errorMaxLines: 8,
-        helperMaxLines: 4,
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.outlineVariant),
-        ),
-        focusedBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.primary, width: 2),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.error),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.error, width: 2),
-        ),
-        hintStyle: theme.textTheme.bodyLarge?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-        helperStyle: theme.textTheme.bodyMedium?.copyWith(
-          color: scheme.onSurfaceVariant,
-          height: 1.5,
-        ),
-        errorStyle: theme.textTheme.bodyMedium?.copyWith(
-          color: scheme.error,
-          height: 1.5,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(_control),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: buttonShape,
-          textStyle: buttonText,
-          tapTargetSize: MaterialTapTargetSize.padded,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, _control),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: buttonShape,
-          side: BorderSide(color: scheme.outline),
-          foregroundColor: scheme.onSurface,
-          textStyle: buttonText,
-          tapTargetSize: MaterialTapTargetSize.padded,
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          minimumSize: const Size(48, _control),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          foregroundColor: scheme.primary,
-          textStyle: theme.textTheme.titleSmall,
-          tapTargetSize: MaterialTapTargetSize.padded,
-        ),
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          minimumSize: const Size(_control, _control),
-          tapTargetSize: MaterialTapTargetSize.padded,
-        ),
-      ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(color: scheme.primary),
-    );
-  }
+  ThemeData _authTheme(ThemeData theme) => authFormTheme(theme);
 
   @override
   Widget build(BuildContext context) {
@@ -744,6 +653,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                           ],
                                           const SizedBox(height: 16),
                                           _panel(theme, [
+                                            if (widget.recoveryNotice !=
+                                                null) ...[
+                                              _recoveryNotice(theme),
+                                              const SizedBox(height: 12),
+                                            ],
                                             _modeSwitch(theme),
                                             const SizedBox(height: 16),
                                             if (!_signingUp)
@@ -764,6 +678,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                             _status(theme.colorScheme),
                                             const SizedBox(height: 8),
                                             _submit(),
+                                            if (!_signingUp &&
+                                                widget.onForgotPassword != null)
+                                              _forgotPassword(),
                                           ]),
                                         ],
                                       ),
@@ -1172,6 +1089,57 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 16),
         ],
       ],
+    );
+  }
+
+  Widget _recoveryNotice(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    final error = widget.recoveryNoticeIsError;
+    final message = widget.recoveryNotice ?? '';
+    return Semantics(
+      key: const Key('auth-recovery-notice'),
+      liveRegion: true,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: error ? scheme.errorContainer : scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: error ? scheme.error : scheme.primary),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            message,
+            softWrap: true,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: error
+                  ? scheme.onErrorContainer
+                  : scheme.onPrimaryContainer,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _forgotPassword() {
+    return _order(
+      7,
+      SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          key: const Key('forgot-password'),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, _control),
+            alignment: AlignmentDirectional.centerStart,
+          ),
+          onPressed: _busy ? null : widget.onForgotPassword,
+          child: const Text(
+            RecoveryCopy.forgotPassword,
+            textAlign: TextAlign.start,
+          ),
+        ),
+      ),
     );
   }
 

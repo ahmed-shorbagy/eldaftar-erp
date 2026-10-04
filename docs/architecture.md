@@ -2,9 +2,9 @@
 
 ## Architecture goal and present state
 
-ElDafttar ERP is a greenfield, multi-tenant subscription service for many independent gold shops. Each shop is operated by exactly one owner account, and that account belongs to exactly one shop ([ADR 0003](adr/0003-owner-only-shop-access.md)). One subscription entitlement covers that shop and its owner under the revised D28. There is no staff invitation, partner, employee, or per-user permission grant. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. Cloudflare R2 stores private binary attachments through server-authorized access. The architecture must favor correctness of cash and grams over apparent speed.
+ElDafttar ERP is a greenfield, multi-tenant subscription service for many independent gold shops. Each shop is operated by exactly one owner account, and that account belongs to exactly one shop ([ADR 0003](adr/0003-owner-only-shop-access.md)). One subscription entitlement covers that shop and its owner under the revised D28. There is no staff invitation, partner, employee, or per-user permission grant. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. The current daily-note requirement uses private Supabase Storage. Cloudflare R2 remains an earlier proposal for later attachment workflows, not an implemented dependency. The architecture favors correctness of cash and grams over apparent speed.
 
-Today the repository has starter clients and connection checks only. Paths below are the target layout. No database schema, RLS, transaction RPC, or attachment endpoint should be assumed to exist.
+The repository now implements owner authentication/registration, exact opening and daily-ledger commands, immutable operation copies and Arabic PDFs, protected pending retries, and a shared Arabic workspace. The inventory/custody/one-unit obligation backend is applied to development. Its Flutter client, private notes, bounded activity catch-up, compensation and payment-method configuration are under integration. [Current evidence](operations/milestones-0-3-progress-2026-10-04.md) distinguishes applied contracts from reviewed clients and external acceptance. The layout below remains architectural guidance; a listed later feature is not evidence that it exists.
 
 ## Runtime boundaries
 
@@ -14,8 +14,8 @@ flowchart LR
   A[React platform admin] -->|JWT, admin commands| S
   S --> P[(PostgreSQL + RLS)]
   S --> E[Edge Functions]
-  E --> R[(Private R2 bucket)]
-  E --> N[Notification and dispatch providers]
+  S --> R[(Private Supabase Storage for daily notes)]
+  E --> N[Later notification and dispatch providers]
   W[Scheduled workers] --> P
   W --> N
   P --> Q[Scoped read models and realtime hints]
@@ -112,7 +112,7 @@ Supabase Auth proves identity. The one-to-one owner association, revocation stat
 
 Use narrow SECURITY DEFINER functions only for protected commands and authorization helpers; fix search_path, use qualified table names, and revoke public execute. Keep table policies simple enough to test. Ordinary clients cannot write postings, audit events, subscription entitlements, or dispatch evidence directly. Audit events capture actor, shop, command, before/after references, server time, and correlation ID. Database roles and backup controls should prevent ordinary users from editing audit history.
 
-For R2, use a private bucket. An authenticated Edge Function validates the user and shop, attachment purpose, size/type, and record access, then issues a short-lived presigned upload/download URL. Persist metadata and object key in Postgres. Object keys must be opaque; they must not expose customer names or phone numbers. Complete upload by validating server-visible object metadata. Plan orphan cleanup and malware scanning according to chosen file types. Never put R2 secret keys in Flutter or Vite.
+For current daily notes, use a private Supabase Storage bucket with owner/shop/business-day policies, constrained MIME types and size, opaque object identities and short-lived signed reads. Persist object metadata and keys, never signed URLs. Pending local image storage must be encrypted and scoped to the owner and shop. Confirmation verifies server-visible ownership and object metadata. Later R2 workflows would require a separately implemented authenticated authorization endpoint; never put provider secret keys in Flutter or Vite.
 
 ## Read models and performance
 

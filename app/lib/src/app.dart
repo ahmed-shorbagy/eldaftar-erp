@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'config/supabase_startup.dart';
 import 'features/auth/domain/auth_gateway.dart';
+import 'features/auth/domain/password_recovery.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
@@ -23,6 +24,7 @@ class ElDafttarApp extends StatelessWidget {
     this.pendingOpeningStore,
     this.onboardingStore,
     this.currentUserId,
+    this.recoveryGateway,
   });
 
   final SupabaseStartupStatus supabaseStatus;
@@ -33,6 +35,7 @@ class ElDafttarApp extends StatelessWidget {
   final PendingOpeningStore? pendingOpeningStore;
   final OnboardingStore? onboardingStore;
   final String? Function()? currentUserId;
+  final PasswordRecoveryGateway? recoveryGateway;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +64,7 @@ class ElDafttarApp extends StatelessWidget {
             pendingOpeningStore: pendingOpeningStore,
             onboardingStore: onboardingStore,
             currentUserId: currentUserId,
+            recoveryGateway: recoveryGateway,
             onToggleTheme: themeController.toggle,
           ),
         );

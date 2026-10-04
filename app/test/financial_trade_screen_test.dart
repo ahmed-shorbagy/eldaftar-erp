@@ -312,4 +312,53 @@ void main() {
     expect(gateway.keys[0], gateway.keys[1]);
     expect(gateway.payloads[0], gateway.payloads[1]);
   });
+
+  testWidgets(
+    'explicit pricing is reviewed before the exact adjusted amount posts',
+    (tester) async {
+      final gateway = FakeFinancialGateway();
+      await pumpTrade(tester, gateway, FinancialKind.sale);
+      await tester.enterText(find.byKey(const Key('trade-name-0')), 'خاتم');
+      await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
+      await tester.dragUntilVisible(
+        find.byKey(const Key('trade-price-details')),
+        find.byType(ListView),
+        const Offset(0, -250),
+      );
+      await tester.tap(find.byKey(const Key('trade-price-details')));
+      await tester.pumpAndSettle();
+      for (final entry in {
+        'trade-base-price': '1000.01',
+        'trade-workmanship': '50.02',
+        'trade-discount': '20.04',
+        'trade-other-charges': '10.03',
+        'trade-other-label': 'تغليف',
+        'trade-tender-amount-0': '1040.02',
+      }.entries) {
+        await tester.dragUntilVisible(
+          find.byKey(Key(entry.key)),
+          find.byType(ListView),
+          const Offset(0, -180),
+        );
+        await tester.enterText(find.byKey(Key(entry.key)), entry.value);
+      }
+      await tester.tap(find.byKey(const Key('trade-review')));
+      await tester.pumpAndSettle();
+      await tester.dragUntilVisible(
+        find.text('الخصم: 20.04 جنيه'),
+        find.byType(ListView),
+        const Offset(0, -180),
+      );
+      expect(find.text('المصنعية: 50.02 جنيه'), findsOneWidget);
+      expect(gateway.payloads, isEmpty);
+      await tester.tap(find.byKey(const Key('trade-confirm')));
+      await tester.pumpAndSettle();
+      expect(gateway.payloads.single['total_piastres'], '104002');
+      expect(
+        (gateway.payloads.single['pricing'] as Map)['discount_piastres'],
+        '2004',
+      );
+      expect(gateway.pendingExistedAtPost, isTrue);
+    },
+  );
 }

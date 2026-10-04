@@ -31,6 +31,8 @@ Flutter uses the bundled Noto Sans Arabic variable font under the SIL Open Font 
 
 Use logical start/end spacing, alignment and icon direction. Ensure numbers, customer names and phone numbers remain readable within mixed Arabic/Latin content. Preserve theme choice and respect system preference until the user makes a choice.
 
+Both clients now expose `minControlSize = 48` in their shared token files. Flutter button/icon-button themes and React MUI button/icon-button themes apply this minimum globally. Feature forms must preserve that target and accessible Arabic names; a visible field caption must be linked to its text-field semantics. Signed-out React owners can also change and persist the theme. The [2026-10-04 review](reviews/milestones-0-3-2026-10-04/validation.md) covers the recovery and workspace additions.
+
 ## Rules for every UI change
 
 1. Read this guide and both client token files before designing the screen. Reuse theme roles from ThemeData/ColorScheme in Flutter and MUI theme/tokens in React. Do not place raw hex values or ad hoc Color literals in feature widgets or components.

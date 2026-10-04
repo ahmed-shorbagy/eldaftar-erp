@@ -25,6 +25,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
   final paper = _pdfColor(AppTokens.lightSurface);
   final items = payload['items'];
   final tenders = payload['tenders'];
+  final pricing = payload['pricing'];
   final amount = _pounds(payload['total_piastres']);
   document.addPage(
     pw.MultiPage(
@@ -95,6 +96,25 @@ Future<Uint8List> buildConfirmedOperationPdf(
                 ),
               ),
         pw.SizedBox(height: 18),
+        if (pricing is Map) ...[
+          _row(
+            'السعر الأساسي',
+            '${_pounds(pricing['base_piastres'])} جنيه',
+            ink,
+          ),
+          _row(
+            'المصنعية',
+            '${_pounds(pricing['workmanship_piastres'])} جنيه',
+            ink,
+          ),
+          _row(
+            'الرسوم الأخرى (${pricing['other_charges_label'] ?? ''})',
+            '${_pounds(pricing['other_charges_piastres'])} جنيه',
+            ink,
+          ),
+          _row('الخصم', '${_pounds(pricing['discount_piastres'])} جنيه', ink),
+          pw.SizedBox(height: 12),
+        ],
         pw.Container(
           padding: const pw.EdgeInsets.all(12),
           color: paper,
@@ -141,8 +161,17 @@ pw.Widget _row(String label, String value, PdfColor ink) => pw.Padding(
   child: pw.Row(
     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
     children: [
-      pw.Text(label, style: pw.TextStyle(color: ink)),
-      pw.Text(value, style: pw.TextStyle(color: ink)),
+      pw.Expanded(
+        flex: 2,
+        child: pw.Text(label, style: pw.TextStyle(color: ink)),
+      ),
+      pw.Expanded(
+        child: pw.Text(
+          value,
+          textAlign: pw.TextAlign.end,
+          style: pw.TextStyle(color: ink),
+        ),
+      ),
     ],
   ),
 );

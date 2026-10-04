@@ -2,11 +2,51 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <string>
+
 #include "flutter_window.h"
 #include "utils.h"
+#include "app_links/app_links_plugin_c_api.h"
+#include "recovery_protocol.h"
+
+namespace {
+
+constexpr wchar_t kWindowTitle[] = L"\u0627\u0644\u062F\u0641\u062A\u0631";
+
+bool SendAppLinkToInstance(const std::wstring& title) {
+  HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", title.c_str());
+  if (hwnd == nullptr) {
+    return false;
+  }
+
+  SendAppLink(hwnd);
+
+  WINDOWPLACEMENT place = {sizeof(WINDOWPLACEMENT)};
+  ::GetWindowPlacement(hwnd, &place);
+  switch (place.showCmd) {
+    case SW_SHOWMAXIMIZED:
+      ::ShowWindow(hwnd, SW_SHOWMAXIMIZED);
+      break;
+    case SW_SHOWMINIMIZED:
+      ::ShowWindow(hwnd, SW_RESTORE);
+      break;
+    default:
+      ::ShowWindow(hwnd, SW_NORMAL);
+      break;
+  }
+  ::SetWindowPos(
+      hwnd, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+  ::SetForegroundWindow(hwnd);
+  return true;
+}
+
+}  // namespace
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  if (SendAppLinkToInstance(kWindowTitle)) {
+    return EXIT_SUCCESS;
+  }
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {
@@ -16,6 +56,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+  RegisterEldafttarRecoveryProtocol();
 
   flutter::DartProject project(L"data");
 
@@ -27,7 +68,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"\u0627\u0644\u062F\u0641\u062A\u0631", origin, size)) {
+  if (!window.Create(kWindowTitle, origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

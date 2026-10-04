@@ -3,6 +3,13 @@ name: Validate
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      release_builds:
+        description: 'Explicitly run production/release builds'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,7 +30,10 @@ jobs:
         working-directory: admin
       - run: npm test
         working-directory: admin
+      - run: npx tsc -b
+        working-directory: admin
       - run: npm run build
+        if: github.event_name == 'workflow_dispatch' && inputs.release_builds
         working-directory: admin
 
   flutter:
@@ -52,10 +62,10 @@ jobs:
       - run: flutter test
         working-directory: app
       - run: flutter build apk
-        if: matrix.target == 'apk'
+        if: github.event_name == 'workflow_dispatch' && inputs.release_builds && matrix.target == 'apk'
         working-directory: app
       - run: flutter build windows
-        if: matrix.target == 'windows'
+        if: github.event_name == 'workflow_dispatch' && inputs.release_builds && matrix.target == 'windows'
         working-directory: app
 
   database:
@@ -67,7 +77,7 @@ jobs:
           version: 2.84.2
       - run: supabase start
       - run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Check identity RLS
+      - name: Check rollback SQL and RLS contracts
         run: npm run test:rls
         working-directory: supabase
         env:

@@ -1,6 +1,7 @@
 import 'opening_catalog.dart';
 import 'opening_issue.dart';
 import 'quantities.dart';
+import 'invoice_pricing.dart';
 
 enum FinancialKind { sale, purchase, expense, scrapSale }
 
@@ -13,6 +14,7 @@ enum FinancialIssue {
   missingDescription,
   invalidCustomer,
   missingSeller,
+  pricingMismatch,
 }
 
 final class FinancialItemInput {
@@ -61,6 +63,7 @@ final class FinancialDraft {
     required this.note,
     required this.cashPaid,
     required this.purchasePayable,
+    this.pricing,
   });
 
   final FinancialKind kind;
@@ -73,6 +76,7 @@ final class FinancialDraft {
   final String note;
   final Piastres cashPaid;
   final Piastres? purchasePayable;
+  final InvoicePricing? pricing;
 
   static FinancialDraftResult compose({
     required FinancialKind kind,
@@ -83,11 +87,17 @@ final class FinancialDraft {
     String customerName = '',
     String customerPhone = '',
     String note = '',
+    InvoicePricing? pricing,
   }) {
     final parsedTotal = Piastres.parsePounds(totalPounds.trim());
     if (parsedTotal is! Accepted<Piastres> ||
         parsedTotal.value.value == BigInt.zero) {
       return const FinancialDraftResult._(null, FinancialIssue.invalidTotal);
+    }
+    if (pricing != null &&
+        (pricing.total != parsedTotal.value ||
+            (kind != FinancialKind.sale && kind != FinancialKind.purchase))) {
+      return const FinancialDraftResult._(null, FinancialIssue.pricingMismatch);
     }
     if (description.length > 300 ||
         (kind == FinancialKind.expense && description.trim().isEmpty)) {
@@ -194,7 +204,7 @@ final class FinancialDraft {
     }
     if (pricedLines != 0 &&
         (pricedLines != items.length ||
-            linePriceSum != parsedTotal.value.value)) {
+            linePriceSum != (pricing?.base.value ?? parsedTotal.value.value))) {
       return const FinancialDraftResult._(
         null,
         FinancialIssue.linePriceMismatch,
@@ -214,13 +224,14 @@ final class FinancialDraft {
         purchasePayable: parsedPayable == null
             ? null
             : (parsedPayable as Accepted<Piastres>).value,
+        pricing: pricing,
       ),
       null,
     );
   }
 
   Map<String, Object?> toJson() => {
-    'version': 1,
+    'version': pricing == null ? 1 : 2,
     'kind': kind == FinancialKind.scrapSale ? 'scrap_sale' : kind.name,
     'total_piastres': total.wire,
     'tenders': tenders,
@@ -229,6 +240,7 @@ final class FinancialDraft {
     'customer_name': customerName,
     'customer_phone': customerPhone,
     'note': note,
+    if (pricing != null) 'pricing': pricing!.toJson(),
     if (purchasePayable != null)
       'purchase_obligation_piastres': purchasePayable!.wire,
   };

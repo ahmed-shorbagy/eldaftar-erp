@@ -8,9 +8,15 @@ import '../../../theme/brand_mark.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../onboarding/presentation/guide_card.dart';
+import '../../daily_notes/application/notes_gateway.dart';
+import '../../daily_notes/data/note_image_file_store.dart';
+import '../../daily_notes/data/platform_note_image_source.dart';
+import '../../daily_notes/data/secure_note_draft_store.dart';
+import '../../daily_notes/presentation/daily_notes_screen.dart';
 import '../application/opening_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
+import '../application/ledger_activity.dart';
 import '../application/idempotency_key.dart';
 import '../application/pending_opening_store.dart';
 import '../application/pending_financial_command.dart';
@@ -46,6 +52,7 @@ class DailyLedgerScreen extends StatefulWidget {
     this.refreshGeneration = 0,
     this.newKey,
     this.onboardingStore,
+    this.guideResumeGeneration = 0,
   });
 
   final ShopAccount shop;
@@ -59,6 +66,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final int refreshGeneration;
   final String Function()? newKey;
   final OnboardingStore? onboardingStore;
+  final int guideResumeGeneration;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -85,9 +93,19 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   bool _pendingStatusUnknown = false;
   Timer? _syncTimer;
   bool _syncing = false;
+  bool _loadingOlder = false;
+  bool _caughtUp = false;
+  final _activity = LedgerActivityController();
 
   FinancialGateway? get _financialGateway => widget.gateway is FinancialGateway
       ? widget.gateway! as FinancialGateway
+      : null;
+
+  NotesGateway? get _notesGateway =>
+      widget.gateway is NotesGateway ? widget.gateway! as NotesGateway : null;
+
+  LedgerFeedGateway? get _feedGateway => widget.gateway is LedgerFeedGateway
+      ? widget.gateway! as LedgerFeedGateway
       : null;
 
   bool get _expired => widget.shop.entitlement == ShopEntitlement.expired;
@@ -98,6 +116,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     WidgetsBinding.instance.addObserver(this);
     _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) => _sync());
     _attach();
+    _guideVisible = widget.guideResumeGeneration > 0;
     _loadGuide();
   }
 
@@ -117,7 +136,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     _syncing = true;
     try {
       await _controller?.refresh();
-      if (mounted) await _maybeLoadFinancialDay(force: true);
+      if (mounted) {
+        await _catchUpFeed();
+        await _maybeLoadFinancialDay(force: true);
+      }
     } catch (_) {
       if (mounted) {
         setState(
@@ -163,6 +185,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   void _refreshWithGuide() {
     (widget.onRefreshShops ?? _controller?.refresh)?.call();
     _maybeLoadFinancialDay(force: true);
+    _catchUpFeed();
     if (_guideVisible && _guideStep == 0) {
       setState(() => _guideStep = 1);
       widget.onboardingStore?.saveStep(_guidePath, 1);
@@ -191,8 +214,81 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
 
   void _onController() {
     if (!mounted) return;
+    _adoptFeed();
+    if (!_caughtUp &&
+        _controller?.phase == LedgerPhase.confirmed &&
+        _feedGateway != null) {
+      _caughtUp = true;
+      _catchUpFeed();
+    }
     setState(() {});
     _maybeLoadFinancialDay();
+  }
+
+  void _adoptFeed() {
+    final userId = widget.userId;
+    final controller = _controller;
+    if (userId == null || controller == null || _feedGateway == null) return;
+    _activity.adoptSummary(
+      userId: userId,
+      shopId: widget.shop.id,
+      ledger: controller.ledger,
+    );
+  }
+
+  Future<void> _catchUpFeed() async {
+    final gateway = _feedGateway;
+    final userId = widget.userId;
+    if (gateway == null || userId == null) return;
+    _adoptFeed();
+    final added = await _activity.catchUp(gateway: gateway, userId: userId);
+    if (added > 0) await _controller?.refresh();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadOlder() async {
+    final gateway = _feedGateway;
+    final userId = widget.userId;
+    if (gateway == null || userId == null || _loadingOlder) return;
+    setState(() => _loadingOlder = true);
+    try {
+      await _activity.loadOlder(gateway: gateway, userId: userId);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _financialError =
+              'تعذر تحميل العمليات الأقدم. الحركة المعروضة لم تُحذف.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingOlder = false);
+    }
+  }
+
+  void _openDailyNotes() {
+    final gateway = _notesGateway;
+    final userId = widget.userId;
+    if (gateway == null || userId == null) return;
+    final day = _controller?.ledger?.businessDay;
+    final canWrite =
+        !_expired &&
+        (_financialGateway == null || _financialDay?.isOpen == true) &&
+        day != null;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => DailyNotesScreen(
+          gateway: gateway,
+          userId: userId,
+          shopId: widget.shop.id,
+          businessDayId: day?.id,
+          canWrite: canWrite,
+          drafts: const SecureNoteDraftStore(),
+          files: ApplicationNoteImageFileStore(),
+          images: const PlatformNoteImageSource(),
+          newKey: widget.newKey,
+        ),
+      ),
+    );
   }
 
   Future<void> _maybeLoadFinancialDay({bool force = false}) async {
@@ -561,6 +657,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   @override
   void didUpdateWidget(covariant DailyLedgerScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.guideResumeGeneration != widget.guideResumeGeneration) {
+      _guideVisible = true;
+    }
     final identityChanged =
         oldWidget.userId != widget.userId ||
         oldWidget.shop.id != widget.shop.id ||
@@ -570,6 +669,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       _financialDay = null;
       _financialPending = null;
       _financialError = null;
+      _activity.reset();
+      _caughtUp = false;
       _controller?.removeListener(_onController);
       _controller?.dispose();
       _controller = null;
@@ -891,6 +992,19 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                         _financialGateway is InvoiceDispatchGateway
                         ? _openPendingInvoices
                         : null,
+                    onDailyNotes: _notesGateway != null && widget.userId != null
+                        ? _openDailyNotes
+                        : null,
+                    onLoadOlder:
+                        _feedGateway != null &&
+                            (_activity.state.hasOlder || _loadingOlder)
+                        ? _loadOlder
+                        : null,
+                    loadingOlder: _loadingOlder,
+                    activityLines:
+                        _feedGateway == null || _activity.state.userId.isEmpty
+                        ? null
+                        : _activity.state.lines,
                   ),
                 ],
               ],
@@ -918,6 +1032,10 @@ class _LedgerBody extends StatelessWidget {
     this.onOpenDay,
     this.onOperation,
     this.onPendingInvoices,
+    this.onDailyNotes,
+    this.onLoadOlder,
+    this.loadingOlder = false,
+    this.activityLines,
   });
 
   final DailyLedgerController controller;
@@ -934,6 +1052,10 @@ class _LedgerBody extends StatelessWidget {
   final VoidCallback? onOpenDay;
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onPendingInvoices;
+  final VoidCallback? onDailyNotes;
+  final VoidCallback? onLoadOlder;
+  final bool loadingOlder;
+  final List<LedgerFeedLine>? activityLines;
 
   @override
   Widget build(BuildContext context) {
@@ -987,6 +1109,10 @@ class _LedgerBody extends StatelessWidget {
             onOpenDay: dayBusy ? null : onOpenDay,
             onOperation: onOperation,
             onPendingInvoices: onPendingInvoices,
+            onDailyNotes: onDailyNotes,
+            onLoadOlder: onLoadOlder,
+            loadingOlder: loadingOlder,
+            activityLines: activityLines,
           ),
           LedgerPhase.refreshFailed => const _RefreshFailedNotice(),
           LedgerPhase.accessDenied => const SizedBox.shrink(),

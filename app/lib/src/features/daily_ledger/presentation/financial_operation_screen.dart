@@ -280,6 +280,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
     final sequence = operation?['shop_sequence'];
     final items = details['items'];
     final tenders = details['tenders'];
+    final pricing = details['pricing'];
     return Scaffold(
       appBar: AppBar(title: Text(widget.line.labelAr)),
       body: SafeArea(
@@ -336,6 +337,21 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                             ),
                           ),
                         ),
+                      ],
+                      if (pricing is Map) ...[
+                        Text(
+                          'السعر الأساسي: ${_pounds(pricing['base_piastres'])} جنيه',
+                        ),
+                        Text(
+                          'المصنعية: ${_pounds(pricing['workmanship_piastres'])} جنيه',
+                        ),
+                        Text(
+                          'الرسوم الأخرى (${pricing['other_charges_label'] ?? ''}): ${_pounds(pricing['other_charges_piastres'])} جنيه',
+                        ),
+                        Text(
+                          'الخصم: ${_pounds(pricing['discount_piastres'])} جنيه',
+                        ),
+                        const SizedBox(height: 12),
                       ],
                       if (widget.line.kind == 'cash_transfer' &&
                           details['amount_piastres'] is String) ...[

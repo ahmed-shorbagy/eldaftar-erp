@@ -49,7 +49,7 @@ export function App({
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {supabaseStatus === 'ready' && access !== 'admin' ? (
-          <AdminAuthScreen status={access} gateway={authGateway} />
+          <AdminAuthScreen status={access} gateway={authGateway} themeMode={resolved} onToggleTheme={toggleTheme} />
         ) : (
           <HomeShell
             supabaseStatus={supabaseStatus}

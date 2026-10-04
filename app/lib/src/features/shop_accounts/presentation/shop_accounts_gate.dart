@@ -5,9 +5,14 @@ import 'package:flutter/material.dart';
 import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
 import '../../../theme/app_tokens.dart';
+import '../../daily_ledger/application/financial_gateway.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
-import '../../daily_ledger/presentation/daily_ledger_screen.dart';
+import '../../daily_ledger/data/pending_financial_command.dart';
+import '../../../shell/shop_workspace.dart';
+import '../../inventory/application/inventory_gateway.dart';
+import '../../inventory/presentation/inventory_screen.dart';
+import '../../inventory/presentation/trader_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_account_gateway.dart';
@@ -147,18 +152,57 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   Widget build(BuildContext context) {
     final selected = _selected;
     if (selected != null && selected.entitlement != ShopEntitlement.pending) {
-      return DailyLedgerScreen(
+      final opening = widget.openingGateway;
+      final userId = widget.currentUserId?.call();
+      final inventory = opening is InventoryGateway
+          ? opening as InventoryGateway
+          : null;
+      final readOnly = selected.entitlement != ShopEntitlement.active;
+      return ShopWorkspace(
         key: ValueKey('${widget.currentUserId?.call()}:${selected.id}'),
         shop: selected,
-        gateway: widget.openingGateway,
+        gateway: opening,
         store: widget.pendingOpeningStore,
-        userId: widget.currentUserId?.call(),
+        userId: userId,
         refreshGeneration: _ledgerGeneration,
         onSignOut: widget.onSignOut,
         onToggleTheme: widget.onToggleTheme,
         onChangeShop: () => setState(() => _selected = null),
         onRefreshShops: _refresh,
         onboardingStore: widget.onboardingStore,
+        inventoryBuilder: inventory == null || userId == null
+            ? null
+            : (context) => InventoryScreen(
+                gateway: inventory,
+                statusGateway: opening as OpeningGateway,
+                dayGateway: opening is FinancialGateway
+                    ? opening as FinancialGateway
+                    : null,
+                userId: userId,
+                shopId: selected.id,
+                shopName: selected.name,
+                readOnly: readOnly,
+                onboardingStore: widget.onboardingStore,
+                store: const PendingFinancialCommands(),
+              ),
+        traderBuilder: inventory == null || userId == null
+            ? null
+            : (context) => TraderScreen(
+                gateway: inventory,
+                statusGateway: opening as OpeningGateway,
+                dayGateway: opening is FinancialGateway
+                    ? opening as FinancialGateway
+                    : null,
+                settlementGateway: opening is PurchaseSettlementGateway
+                    ? opening as PurchaseSettlementGateway
+                    : null,
+                userId: userId,
+                shopId: selected.id,
+                shopName: selected.name,
+                readOnly: readOnly,
+                onboardingStore: widget.onboardingStore,
+                store: const PendingFinancialCommands(),
+              ),
       );
     }
     return Scaffold(

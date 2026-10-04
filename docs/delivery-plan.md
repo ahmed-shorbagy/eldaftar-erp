@@ -1,5 +1,13 @@
 # Long-term delivery plan
 
+## Current Milestones 0–3 execution — 2026-10-04
+
+The user's completion request authorizes executable work through Milestone 3 and additive backend updates only to the currently connected development project `xchapwvmvoefriqcxtvn`. It does not authorize application deployment, commits, pushes, production/release builds, data resets, or creation of paid cloud environments. Historical slice plans below record earlier sequencing; they do not defer work explicitly included in the current request.
+
+Working accounting rules and synthetic examples are prepared under [ADR 0009](adr/0009-milestone-3-accounting-working-rules.md). Arabic workspace navigation, Help resume, safe first-sale practice, explicit price components and the reviewed recovery client are implemented. The pricing migration is applied to development. Inventory/trader backend and client, private daily notes, bounded ledger catch-up, discrepancy correction, partial returns and atomic exchanges are being integrated and verified. [The current progress record](operations/milestones-0-3-progress-2026-10-04.md) distinguishes reviewed implementation from pending application and gates.
+
+The current daily-note scope uses private Supabase Storage, as the completion request specifies, rather than the earlier R2 proposal. No user-facing action is complete until its backend contract, critical tests and representative RTL light/dark review pass. Milestones 0–3 are still open; absent human signatures, separate environments and iOS hardware evidence must not be presented as completed acceptance.
+
 ## Milestone 1 policy revision and bounded implementation queue — 2026-09-26
 
 Follow [ADR 0002](adr/0002-egypt-password-auth.md) for the Egypt-only authentication policy. The bounded owner registration/password slice is implemented in the current work: the forward migration is applied to development and rollback-only SQL tests pass. The development Edge deployment, completed client review and gates, and exact evidence are tracked in [the validation record](operations/milestone-1-validation.md). Historical verified-email tests alone do not satisfy the revised policy.

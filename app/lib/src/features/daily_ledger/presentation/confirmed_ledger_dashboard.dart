@@ -23,6 +23,10 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
     this.onOpenDay,
     this.onOperation,
     this.onPendingInvoices,
+    this.onDailyNotes,
+    this.onLoadOlder,
+    this.loadingOlder = false,
+    this.activityLines,
     this.dayClosed = false,
   });
 
@@ -38,6 +42,10 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
   final VoidCallback? onOpenDay;
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onPendingInvoices;
+  final VoidCallback? onDailyNotes;
+  final VoidCallback? onLoadOlder;
+  final bool loadingOlder;
+  final List<LedgerFeedLine>? activityLines;
   final bool dayClosed;
 
   @override
@@ -204,6 +212,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
           onCloseDay: widget.onCloseDay,
           onOpenDay: widget.onOpenDay,
           onPendingInvoices: widget.onPendingInvoices,
+          onDailyNotes: widget.onDailyNotes,
         ),
         const SizedBox(height: 8),
         Align(
@@ -261,7 +270,10 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
               'gold' => _GoldSection(view: view),
               _ => _ActivitySection(
                 view: view,
+                lines: widget.activityLines,
                 onOperation: widget.onOperation,
+                onLoadOlder: widget.onLoadOlder,
+                loadingOlder: widget.loadingOlder,
               ),
             },
             const SizedBox(height: 20),
@@ -283,6 +295,7 @@ class _OperationsPanel extends StatelessWidget {
     this.onCloseDay,
     this.onOpenDay,
     this.onPendingInvoices,
+    this.onDailyNotes,
   });
 
   final bool dayClosed;
@@ -295,6 +308,7 @@ class _OperationsPanel extends StatelessWidget {
   final VoidCallback? onCloseDay;
   final VoidCallback? onOpenDay;
   final VoidCallback? onPendingInvoices;
+  final VoidCallback? onDailyNotes;
 
   bool get _hasActions =>
       dayClosed ||
@@ -306,7 +320,8 @@ class _OperationsPanel extends StatelessWidget {
       onScrapToStock != null ||
       onCloseDay != null ||
       onOpenDay != null ||
-      onPendingInvoices != null;
+      onPendingInvoices != null ||
+      onDailyNotes != null;
 
   @override
   Widget build(BuildContext context) {
@@ -437,6 +452,15 @@ class _OperationsPanel extends StatelessWidget {
                     stockMoves[index],
                   ],
                 ],
+              ],
+              if (onDailyNotes != null) ...[
+                const SizedBox(height: 12),
+                _LedgerActionButton(
+                  buttonKey: const Key('ledger-daily-notes'),
+                  label: 'ملاحظات اليوم',
+                  icon: Icons.sticky_note_2_outlined,
+                  onPressed: onDailyNotes,
+                ),
               ],
               if (onCloseDay != null || onPendingInvoices != null) ...[
                 const SizedBox(height: 8),
@@ -1295,48 +1319,89 @@ class _GoldSection extends StatelessWidget {
 }
 
 class _ActivitySection extends StatelessWidget {
-  const _ActivitySection({required this.view, this.onOperation});
+  const _ActivitySection({
+    required this.view,
+    this.lines,
+    this.onOperation,
+    this.onLoadOlder,
+    this.loadingOlder = false,
+  });
   final DailyLedgerView view;
+  final List<LedgerFeedLine>? lines;
   final ValueChanged<LedgerFeedLine>? onOperation;
+  final VoidCallback? onLoadOlder;
+  final bool loadingOlder;
 
   @override
-  Widget build(BuildContext context) => _SectionCard(
-    title: 'حركة الدفتر',
-    subtitle: 'عمليات أكدها الخادم',
-    icon: Icons.receipt_long_outlined,
-    child: view.feed.isEmpty
-        ? const Text('لا توجد عمليات معروضة حتى الآن.')
-        : Column(
-            children: [
-              for (final line in view.feed)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const CircleAvatar(child: Icon(Icons.check)),
-                  title: Row(
-                    children: [
-                      Text(line.labelAr),
-                      if (line.hasNote) ...[
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.sticky_note_2_outlined,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                          semanticLabel: 'توجد ملاحظة',
-                        ),
+  Widget build(BuildContext context) {
+    final rows = lines ?? view.feed;
+    return _SectionCard(
+      title: 'حركة الدفتر',
+      subtitle: 'عمليات أكدها الخادم',
+      icon: Icons.receipt_long_outlined,
+      child: rows.isEmpty
+          ? const Text('لا توجد عمليات معروضة حتى الآن.')
+          : Column(
+              children: [
+                for (final line in rows)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(child: Icon(Icons.check)),
+                    title: Row(
+                      children: [
+                        Flexible(child: Text(line.labelAr)),
+                        if (line.isReturn) ...[
+                          const SizedBox(width: 8),
+                          const Text('مرتجع'),
+                        ],
+                        if (line.isDailyNote) ...[
+                          const SizedBox(width: 8),
+                          const Text('ملاحظة'),
+                        ],
+                        if (line.hasNote) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.primary,
+                            semanticLabel: 'توجد ملاحظة',
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
+                    subtitle: Text(
+                      [
+                        line.actorDisplayName,
+                        formatServerCairoTimestamp(line.displayTime),
+                        if (line.shopSequence != null) line.shopSequence!,
+                      ].join(' · '),
+                    ),
+                    onTap: onOperation == null
+                        ? null
+                        : () => onOperation!(line),
+                    trailing: onOperation == null
+                        ? null
+                        : const Icon(Icons.chevron_left),
                   ),
-                  subtitle: Text(
-                    '${line.actorDisplayName} · ${formatServerCairoTimestamp(line.occurredAtCairo)}',
+                if (onLoadOlder != null) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    key: const Key('ledger-load-older'),
+                    onPressed: loadingOlder ? null : onLoadOlder,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: Text(
+                      loadingOlder
+                          ? 'جارٍ تحميل عمليات أقدم'
+                          : 'تحميل عمليات أقدم',
+                    ),
                   ),
-                  onTap: onOperation == null ? null : () => onOperation!(line),
-                  trailing: onOperation == null
-                      ? null
-                      : const Icon(Icons.chevron_left),
-                ),
-            ],
-          ),
-  );
+                ],
+              ],
+            ),
+    );
+  }
 }
 
 class _SectionCard extends StatelessWidget {

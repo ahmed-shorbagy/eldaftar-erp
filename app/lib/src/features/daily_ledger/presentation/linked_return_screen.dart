@@ -41,9 +41,8 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
   String get _kind => widget.operation['kind'] == 'purchase'
       ? 'purchase_return'
       : 'sale_return';
-  Map<String, Object?> get _payload => Map<String, Object?>.from(
-    widget.operation['payload']! as Map,
-  );
+  Map<String, Object?> get _payload =>
+      Map<String, Object?>.from(widget.operation['payload']! as Map);
 
   String get _cashReturn {
     final total = _parse(_payload['total_piastres']);
@@ -214,14 +213,17 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                         children: [
                           Text('النقد المرتجع: $_cashReturn جنيه'),
                           if (_kind == 'purchase_return' &&
-                              _parse(widget.operation[
-                                    'purchase_payable_remaining_piastres'
-                                  ]) >
+                              _parse(
+                                    widget
+                                        .operation['purchase_payable_remaining_piastres'],
+                                  ) >
                                   BigInt.zero)
                             Text(
                               'يلغى المستحق المتبقي: ${_pounds(_parse(widget.operation['purchase_payable_remaining_piastres']))} جنيه',
                             ),
-                          const Text('تعكس كل أوزان الذهب وأعداد القطع الأصلية.'),
+                          const Text(
+                            'تعكس كل أوزان الذهب وأعداد القطع الأصلية.',
+                          ),
                         ],
                       ),
                     ),
@@ -231,7 +233,9 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                       if (raw is Map)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text('${raw['item_name']} · عيار ${raw['karat']}'),
+                          title: Text(
+                            '${raw['item_name']} · عيار ${raw['karat']}',
+                          ),
                           subtitle: Text(
                             '${_grams(raw['milligrams'])} جرام${raw['count'] == null ? '' : ' · ${raw['count']} قطعة'}',
                           ),

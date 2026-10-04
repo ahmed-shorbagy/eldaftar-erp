@@ -44,6 +44,7 @@ class GuideCard extends StatelessWidget {
                 ),
                 Text(
                   progress,
+                  textDirection: TextDirection.ltr,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: scheme.onPrimaryContainer,
                   ),

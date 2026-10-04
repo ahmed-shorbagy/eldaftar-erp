@@ -14,6 +14,7 @@ final class DailyLedgerView {
     required this.scrap,
     required this.feed,
     this.daySummary,
+    this.feedCursor,
   });
 
   final String state;
@@ -25,6 +26,7 @@ final class DailyLedgerView {
   final List<LedgerScrapLine> scrap;
   final List<LedgerFeedLine> feed;
   final LedgerDaySummary? daySummary;
+  final LedgerFeedCursor? feedCursor;
 
   bool get isConfirmed => state == 'confirmed';
   bool get isUninitialized => state == 'uninitialized';
@@ -148,6 +150,24 @@ final class LedgerScrapLine {
   final String grams;
 }
 
+final class LedgerFeedCursor {
+  const LedgerFeedCursor({
+    required this.limit,
+    required this.hasMore,
+    required this.direction,
+    required this.serverSequence,
+    required this.snapshotSequence,
+    this.nextBeforeSequence,
+  });
+
+  final int limit;
+  final bool hasMore;
+  final String direction;
+  final String serverSequence;
+  final String snapshotSequence;
+  final String? nextBeforeSequence;
+}
+
 final class LedgerFeedLine {
   const LedgerFeedLine({
     required this.kind,
@@ -156,7 +176,11 @@ final class LedgerFeedLine {
     required this.actorDisplayName,
     required this.occurredAt,
     required this.occurredAtCairo,
+    this.occurredAtShop,
     this.hasNote = false,
+    this.shopSequence,
+    this.isDailyNote = false,
+    this.isReturn = false,
   });
 
   final String kind;
@@ -165,5 +189,11 @@ final class LedgerFeedLine {
   final String actorDisplayName;
   final String occurredAt;
   final String occurredAtCairo;
+  final String? occurredAtShop;
   final bool hasNote;
+  final String? shopSequence;
+  final bool isDailyNote;
+  final bool isReturn;
+
+  String get displayTime => occurredAtShop ?? occurredAtCairo;
 }

@@ -6,6 +6,9 @@ port = 54322
 [auth]
 enable_signup = false
 enable_anonymous_sign_ins = false
+# Exact recovery callback. Do not add a wildcard. Hosted projects must
+# allow this same URL; this file is not a remote configuration push.
+additional_redirect_urls = ["eldafttar://auth/recovery"]
 
 [auth.email]
 enable_signup = true

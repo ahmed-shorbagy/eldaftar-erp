@@ -9,6 +9,9 @@ import '../domain/financial_draft.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
+import '../domain/invoice_pricing.dart';
+import '../../onboarding/application/onboarding_store.dart';
+import '../../onboarding/presentation/guide_card.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
@@ -20,6 +23,8 @@ class FinancialTradeScreen extends StatefulWidget {
     required this.statusGateway,
     required this.userId,
     required this.shopId,
+    this.practice = false,
+    this.onboardingStore,
   });
 
   final FinancialKind kind;
@@ -27,6 +32,8 @@ class FinancialTradeScreen extends StatefulWidget {
   final OpeningGateway statusGateway;
   final String userId;
   final String shopId;
+  final bool practice;
+  final OnboardingStore? onboardingStore;
 
   @override
   State<FinancialTradeScreen> createState() => _FinancialTradeScreenState();
@@ -75,12 +82,24 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   final _customerName = TextEditingController();
   final _customerPhone = TextEditingController();
   final _note = TextEditingController();
+  final _basePrice = TextEditingController();
+  final _workmanship = TextEditingController(text: '0');
+  final _otherCharges = TextEditingController(text: '0');
+  final _otherChargesLabel = TextEditingController();
+  final _discount = TextEditingController(text: '0');
+  bool _priceDetails = false;
   FinancialDraft? _review;
   String? _error;
   String? _key;
   bool _busy = false;
   bool _unknown = false;
   final _pending = const PendingFinancialCommands();
+  final _guideScroll = ScrollController();
+  final _gramsFocus = FocusNode();
+  final _tenderFocus = FocusNode();
+  bool _guideVisible = false;
+  int _guideStep = 0;
+  String get _guidePath => 'first_sale_${widget.userId}_${widget.shopId}';
 
   String get _title => switch (widget.kind) {
     FinancialKind.sale => 'إضافة بيع',
@@ -96,6 +115,39 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       _items.add(_ItemEntry(scrap: widget.kind == FinancialKind.scrapSale));
     }
     _tenders.add(_TenderEntry(CashMethod.cash));
+    if (widget.practice) _loadPracticeGuide();
+  }
+
+  Future<void> _loadPracticeGuide() async {
+    final step = await widget.onboardingStore?.readStep(_guidePath) ?? 0;
+    if (mounted) {
+      setState(() {
+        _guideStep = step.clamp(0, 3);
+        _guideVisible = true;
+      });
+    }
+  }
+
+  void _guideAction() {
+    final focus = switch (_guideStep) {
+      0 => _items.first.nameFocus,
+      1 => _gramsFocus,
+      2 => _tenderFocus,
+      _ => null,
+    };
+    if (focus == null) {
+      _startReview();
+      return;
+    }
+    focus.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = focus.context;
+      if (mounted && target != null) {
+        Scrollable.ensureVisible(target, alignment: .25);
+      }
+    });
+    setState(() => _guideStep++);
+    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
   }
 
   @override
@@ -111,6 +163,14 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     _customerName.dispose();
     _customerPhone.dispose();
     _note.dispose();
+    _basePrice.dispose();
+    _workmanship.dispose();
+    _otherCharges.dispose();
+    _otherChargesLabel.dispose();
+    _discount.dispose();
+    _guideScroll.dispose();
+    _gramsFocus.dispose();
+    _tenderFocus.dispose();
     super.dispose();
   }
 
@@ -130,11 +190,27 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   void _startReview() {
+    InvoicePricing? pricing;
+    if (_priceDetails) {
+      final result = _composePricing();
+      if (result is! Accepted<InvoicePricing>) {
+        setState(() {
+          _error =
+              'راجع السعر الأساسي والمصنعية والرسوم واسمها والخصم. يجب أن يكون الإجمالي أكبر من صفر.';
+          _review = null;
+        });
+        return;
+      }
+      pricing = result.value;
+    }
     final result = FinancialDraft.compose(
       kind: widget.kind,
-      totalPounds: widget.kind == FinancialKind.purchase
-          ? _purchaseTotal.text
-          : _totalPounds() ?? '',
+      pricing: pricing,
+      totalPounds:
+          pricing?.total.poundsText ??
+          (widget.kind == FinancialKind.purchase
+              ? _purchaseTotal.text
+              : _totalPounds() ?? ''),
       items: [
         for (final item in _items)
           FinancialItemInput(
@@ -166,9 +242,80 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     });
   }
 
+  DomainResult<InvoicePricing> _composePricing() => InvoicePricing.compose(
+    basePounds: _basePrice.text,
+    workmanshipPounds: _workmanship.text,
+    otherChargesPounds: _otherCharges.text,
+    otherChargesLabel: _otherChargesLabel.text,
+    discountPounds: _discount.text,
+  );
+
+  Widget _priceField(
+    String key,
+    String label,
+    TextEditingController controller,
+  ) => TextField(
+    key: Key(key),
+    controller: controller,
+    textDirection: TextDirection.ltr,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    textInputAction: TextInputAction.next,
+    onChanged: (_) => setState(() {}),
+    onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+    decoration: ledgerFieldDecoration(context, label: label),
+  );
+
+  List<Widget> _pricingFields(ThemeData theme) {
+    final result = _composePricing();
+    return [
+      _priceField('trade-base-price', 'السعر الأساسي بالجنيه', _basePrice),
+      const SizedBox(height: 12),
+      LedgerFieldPair(
+        first: _priceField(
+          'trade-workmanship',
+          'المصنعية بالجنيه',
+          _workmanship,
+        ),
+        second: _priceField('trade-discount', 'الخصم بالجنيه', _discount),
+      ),
+      const SizedBox(height: 12),
+      LedgerFieldPair(
+        first: _priceField(
+          'trade-other-charges',
+          'رسوم أخرى بالجنيه',
+          _otherCharges,
+        ),
+        second: TextField(
+          key: const Key('trade-other-label'),
+          controller: _otherChargesLabel,
+          maxLength: 120,
+          textInputAction: TextInputAction.next,
+          onChanged: (_) => setState(() {}),
+          decoration: ledgerFieldDecoration(
+            context,
+            label: 'اسم الرسوم الأخرى',
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        'الإجمالي بعد التعديلات: ${result is Accepted<InvoicePricing> ? result.value.total.poundsText : '—'} جنيه',
+        key: const Key('trade-adjusted-total'),
+        style: theme.textTheme.titleMedium,
+      ),
+      const SizedBox(height: 20),
+    ];
+  }
+
   Future<void> _submit() async {
     final draft = _review;
     if (draft == null || _busy) return;
+    // Practice is a local draft. This guard precedes keys, persistence and RPCs.
+    if (widget.practice) {
+      await widget.onboardingStore?.markComplete(_guidePath);
+      if (mounted) Navigator.pop(context, false);
+      return;
+    }
     var commandSaved = false;
     setState(() {
       _busy = true;
@@ -258,15 +405,55 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     return PopScope(
       canPop: !_busy && !_unknown,
       child: Scaffold(
-        appBar: AppBar(title: Text(_title)),
+        appBar: AppBar(
+          title: Text(widget.practice ? 'تدريب على أول بيع' : _title),
+          actions: [
+            if (widget.practice)
+              IconButton(
+                tooltip: 'استئناف الإرشاد',
+                onPressed: () => setState(() => _guideVisible = true),
+                icon: const Icon(Icons.help_outline),
+              ),
+          ],
+        ),
         body: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
+                controller: _guideScroll,
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 children: [
+                  if (widget.practice) ...[
+                    const Text(
+                      'مسودة تدريب فقط — لن يُحفظ بيع ولن يتغير النقد أو الذهب.',
+                      key: Key('practice-draft-label'),
+                    ),
+                    const SizedBox(height: 12),
+                    if (_guideVisible && _review == null)
+                      GuideCard(
+                        title: 'جرّب أدوات البيع',
+                        description: const [
+                          'ابدأ باسم الصنف في الحقل الحقيقي أدناه.',
+                          'أدخل الوزن حتى ثلاث منازل عشرية، ثم راجع العدد والعيار.',
+                          'أدخل المبلغ في وسيلة الدفع. يمكنك إضافة وسيلة أخرى لتقسيمه.',
+                          'راجع أثر النقد والذهب. زر إنهاء التدريب لا يرسل أي عملية.',
+                        ][_guideStep],
+                        progress: '${_guideStep + 1} / 4',
+                        actionLabel: _guideStep == 3
+                            ? 'مراجعة المسودة'
+                            : 'الانتقال إلى الحقل',
+                        onAction: _guideAction,
+                        onSkip: () {
+                          setState(() => _guideVisible = false);
+                          widget.onboardingStore?.saveStep(
+                            _guidePath,
+                            _guideStep,
+                          );
+                        },
+                      ),
+                  ],
                   if (_review == null)
                     ..._entryWidgets(theme)
                   else
@@ -325,6 +512,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                                 ? 'بانتظار تأكيد الخادم'
                                 : _review == null
                                 ? 'مراجعة الأثر'
+                                : widget.practice
+                                ? 'إنهاء التدريب دون حفظ'
                                 : 'تأكيد $_title',
                           ),
                         ),
@@ -340,7 +529,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   List<Widget> _entryWidgets(ThemeData theme) => [
     Text(_title, style: theme.textTheme.headlineSmall),
     const SizedBox(height: 6),
-    const Text('تُحفظ العملية بعد مراجعة أثر النقد والذهب وتأكيد الخادم فقط.'),
+    Text(
+      widget.practice
+          ? 'استخدم الحقول للمراجعة والتجربة. تبقى البيانات داخل هذه المسودة.'
+          : 'تُحفظ العملية بعد مراجعة أثر النقد والذهب وتأكيد الخادم فقط.',
+    ),
     const SizedBox(height: 20),
     if (widget.kind == FinancialKind.expense) ...[
       TextField(
@@ -371,20 +564,33 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       ),
       const SizedBox(height: 20),
     ],
-    if (widget.kind == FinancialKind.purchase) ...[
-      TextField(
-        key: const Key('trade-purchase-price'),
-        controller: _purchaseTotal,
-        textDirection: TextDirection.ltr,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textInputAction: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        decoration: ledgerFieldDecoration(
-          context,
-          label: 'سعر الشراء الكلي بالجنيه',
-        ),
+    if (widget.kind == FinancialKind.sale ||
+        widget.kind == FinancialKind.purchase) ...[
+      CheckboxListTile(
+        key: const Key('trade-price-details'),
+        value: _priceDetails,
+        title: const Text('تفصيل السعر والمصنعية والرسوم والخصم'),
+        contentPadding: EdgeInsets.zero,
+        onChanged: (value) => setState(() => _priceDetails = value ?? false),
       ),
-      const SizedBox(height: 16),
+      if (_priceDetails) ..._pricingFields(theme),
+    ],
+    if (widget.kind == FinancialKind.purchase) ...[
+      if (!_priceDetails) ...[
+        TextField(
+          key: const Key('trade-purchase-price'),
+          controller: _purchaseTotal,
+          textDirection: TextDirection.ltr,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+          decoration: ledgerFieldDecoration(
+            context,
+            label: 'سعر الشراء الكلي بالجنيه',
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
       TextField(
         key: const Key('trade-seller-name'),
         controller: _customerName,
@@ -502,6 +708,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 12),
             if (widget.kind == FinancialKind.scrapSale)
               Text('الفئة: كسر', style: theme.textTheme.titleSmall)
             else
@@ -557,6 +764,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 second: TextField(
                   key: Key('trade-grams-$index'),
                   controller: row.grams,
+                  focusNode: index == 0 ? _gramsFocus : null,
                   textDirection: TextDirection.ltr,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -574,6 +782,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               TextField(
                 key: Key('trade-grams-$index'),
                 controller: row.grams,
+                focusNode: index == 0 ? _gramsFocus : null,
                 textDirection: TextDirection.ltr,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -614,8 +823,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                 decoration: ledgerFieldDecoration(
                   context,
-                  label: 'سعر الصنف (اختياري)',
-                  helper: 'اتركه فارغاً لسعر الفاتورة الكلي',
+                  label: _priceDetails
+                      ? 'السعر الأساسي للصنف (اختياري)'
+                      : 'سعر الصنف (اختياري)',
+                  helper: _priceDetails
+                      ? 'مجموع أسعار الأصناف يساوي السعر الأساسي'
+                      : 'اتركه فارغاً لسعر الفاتورة الكلي',
                 ),
               ),
             ),
@@ -656,6 +869,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 second: TextField(
                   key: Key('trade-tender-amount-$index'),
                   controller: row.amount,
+                  focusNode: index == 0 ? _tenderFocus : null,
                   onChanged: (_) => setState(() {}),
                   textDirection: TextDirection.ltr,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -688,8 +902,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     return [
       Text('مراجعة أثر العملية', style: theme.textTheme.headlineSmall),
       const SizedBox(height: 8),
-      const Text(
-        'لن تظهر العملية محفوظة حتى يؤكدها الخادم. راجع المبلغ والذهب قبل المتابعة.',
+      Text(
+        widget.practice
+            ? 'هذه آثار افتراضية للمراجعة فقط. إنهاء التدريب لا يرسل الطلب.'
+            : 'لن تظهر العملية محفوظة حتى يؤكدها الخادم. راجع المبلغ والذهب قبل المتابعة.',
       ),
       const SizedBox(height: 16),
       Card(
@@ -734,6 +950,16 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         ),
       ),
       const SizedBox(height: 16),
+      if (draft.pricing case final pricing?) ...[
+        Text('السعر الأساسي: ${pricing.base.poundsText} جنيه'),
+        Text('المصنعية: ${pricing.workmanship.poundsText} جنيه'),
+        Text(
+          'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${pricing.otherCharges.poundsText} جنيه',
+        ),
+        Text('الخصم: ${pricing.discount.poundsText} جنيه'),
+        Text('الإجمالي المتفق عليه: ${pricing.total.poundsText} جنيه'),
+        const SizedBox(height: 16),
+      ],
       for (final item in draft.items)
         ListTile(
           title: Text('${item['item_name']} · عيار ${item['karat']}'),
@@ -783,6 +1009,8 @@ String _issueCopy(FinancialIssue issue) => switch (issue) {
   FinancialIssue.missingDescription => 'أدخل وصفاً للمصروف.',
   FinancialIssue.invalidCustomer => 'راجع بيانات العميل والملاحظة.',
   FinancialIssue.missingSeller => 'أدخل اسم البائع للمبلغ المستحق.',
+  FinancialIssue.pricingMismatch =>
+    'راجع السعر الأساسي والمصنعية والرسوم والخصم وإجمالي الدفع.',
 };
 
 String _serverCopy(String code) => switch (code) {

@@ -1,7 +1,9 @@
 import '../application/daily_ledger_view.dart';
 import '../application/idempotency_key.dart';
+import '../application/ledger_activity.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
+import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
 
 const _cashLabels = <String, String>{
@@ -98,8 +100,11 @@ DailyLedgerView parseDailyLedger(Object? json) {
     throw const FormatException('version');
   }
   final allowedFields = version == 2 ? {...fields, 'day_summary'} : fields;
-  if (json.length != allowedFields.length ||
-      json.keys.any((key) => !allowedFields.contains(key))) {
+  final keys = json.keys.toSet();
+  final extra = keys.difference(allowedFields);
+  if (!keys.containsAll(allowedFields) ||
+      extra.any((key) => key != 'feed_page') ||
+      (extra.contains('feed_page') && version != 2)) {
     throw const FormatException('ledger');
   }
   final state = json['state'];
@@ -127,6 +132,12 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final feed = _feed(json['feed'], confirmed: confirmed);
   final daySummary = version == 2 ? _daySummary(json['day_summary']) : null;
   if (version == 2 && !confirmed) throw const FormatException('day_summary');
+  if (json.containsKey('feed_page') && !confirmed) {
+    throw const FormatException('feed_page');
+  }
+  final feedCursor = json.containsKey('feed_page')
+      ? _feedCursor(json['feed_page'])
+      : null;
   if (confirmed && businessDay == null) {
     throw const FormatException('business_day');
   }
@@ -140,6 +151,7 @@ DailyLedgerView parseDailyLedger(Object? json) {
     scrap: scrap,
     feed: feed,
     daySummary: daySummary,
+    feedCursor: feedCursor,
   );
   if (confirmed && view.totalCashPounds == null) {
     throw const FormatException('cash_total');
@@ -407,6 +419,7 @@ LedgerScrapLine _scrapLine(Object? row) {
   );
 }
 
+/// One ledger response holds at most 200 lines. That bound is not the history.
 List<LedgerFeedLine> _feed(Object? value, {required bool confirmed}) {
   if (value is! List) throw const FormatException('feed');
   if (confirmed) {
@@ -421,17 +434,25 @@ List<LedgerFeedLine> _feed(Object? value, {required bool confirmed}) {
 
 LedgerFeedLine _feedLine(Object? row) {
   if (row is! Map) throw const FormatException('feed');
-  const fields = {
+  const required = {
     'kind',
     'label_ar',
     'operation_id',
     'actor_display_name',
     'occurred_at',
     'occurred_at_cairo',
-    'has_note',
   };
-  if ((row.length != fields.length && row.length != fields.length - 1) ||
-      row.keys.any((key) => !fields.contains(key))) {
+  const optional = {
+    'has_note',
+    'shop_sequence',
+    'is_daily_note',
+    'is_return',
+    'occurred_at_shop',
+  };
+  if (required.any((key) => !row.containsKey(key)) ||
+      row.keys.any(
+        (key) => !required.contains(key) && !optional.contains(key),
+      )) {
     throw const FormatException('feed');
   }
   final kind = row['kind'];
@@ -455,7 +476,14 @@ LedgerFeedLine _feedLine(Object? row) {
     'purchase_return': 'مرتجع شراء',
     'close_day': 'تقفيل اليومية',
     'open_day': 'فتح اليومية',
+    'daily_note': 'ملاحظة يومية',
   };
+  final shopSequence = row['shop_sequence'];
+  final shopTime = row['occurred_at_shop'];
+  final dailyNote = row.containsKey('is_daily_note')
+      ? row['is_daily_note']
+      : false;
+  final isReturn = row.containsKey('is_return') ? row['is_return'] : false;
   if (kind is! String ||
       label != labels[kind] ||
       operationId is! String ||
@@ -463,10 +491,19 @@ LedgerFeedLine _feedLine(Object? row) {
       occurredAt is! String ||
       cairo is! String ||
       hasNote is! bool ||
+      dailyNote is! bool ||
+      isReturn is! bool ||
+      (shopSequence != null && shopSequence is! String) ||
+      (shopTime != null && shopTime is! String) ||
+      (dailyNote && kind != 'daily_note') ||
+      (isReturn && kind != 'sale_return' && kind != 'purchase_return') ||
       !isUuid(operationId) ||
       !_plainText(actor) ||
       !_utcTimestamp(occurredAt) ||
-      !_cairoLocal(cairo)) {
+      !_cairoLocal(cairo) ||
+      (shopSequence is String &&
+          PostgresInteger.parseCanonical(shopSequence) == null) ||
+      (shopTime is String && !_cairoLocal(shopTime))) {
     throw const FormatException('feed');
   }
   return LedgerFeedLine(
@@ -476,6 +513,142 @@ LedgerFeedLine _feedLine(Object? row) {
     actorDisplayName: actor,
     occurredAt: occurredAt,
     occurredAtCairo: cairo,
+    occurredAtShop: shopTime is String ? shopTime : null,
     hasNote: hasNote,
+    shopSequence: shopSequence is String ? shopSequence : null,
+    isDailyNote: dailyNote,
+    isReturn: isReturn,
+  );
+}
+
+LedgerFeedCursor _feedCursor(Object? value) {
+  if (value is! Map) throw const FormatException('feed_page');
+  const fields = {
+    'limit',
+    'has_more',
+    'direction',
+    'next_before_sequence',
+    'server_sequence',
+    'snapshot_sequence',
+  };
+  if (value.length != fields.length ||
+      value.keys.any((key) => !fields.contains(key))) {
+    throw const FormatException('feed_page');
+  }
+  final limit = value['limit'];
+  final hasMore = value['has_more'];
+  final direction = value['direction'];
+  final before = value['next_before_sequence'];
+  final server = value['server_sequence'];
+  final snapshot = value['snapshot_sequence'];
+  if (limit is! int ||
+      limit < 1 ||
+      limit > 100 ||
+      hasMore is! bool ||
+      (direction != 'desc' && direction != 'asc') ||
+      server is! String ||
+      snapshot is! String ||
+      PostgresInteger.parseCanonical(server, allowZero: true) == null ||
+      PostgresInteger.parseCanonical(snapshot, allowZero: true) == null ||
+      (before != null &&
+          (before is! String ||
+              PostgresInteger.parseCanonical(before) == null)) ||
+      (hasMore && direction == 'desc' && before == null) ||
+      (!hasMore && before != null)) {
+    throw const FormatException('feed_page');
+  }
+  return LedgerFeedCursor(
+    limit: limit,
+    hasMore: hasMore,
+    direction: direction,
+    serverSequence: server,
+    snapshotSequence: snapshot,
+    nextBeforeSequence: before is String ? before : null,
+  );
+}
+
+/// A bounded operation page. [expectedShopId] rejects another shop's payload.
+LedgerOperationPage parseLedgerOperationPage(
+  Object? json, {
+  required String expectedShopId,
+}) {
+  if (json is! Map) throw const FormatException('page');
+  const fields = {
+    'shop_id',
+    'day_id',
+    'direction',
+    'limit',
+    'has_more',
+    'server_sequence',
+    'snapshot_sequence',
+    'next_before_sequence',
+    'next_after_sequence',
+    'items',
+  };
+  if (json.length != fields.length ||
+      json.keys.any((key) => !fields.contains(key))) {
+    throw const FormatException('page');
+  }
+  final shopId = json['shop_id'];
+  if (shopId is! String || shopId != expectedShopId) {
+    throw const FormatException('shop');
+  }
+  final dayId = json['day_id'];
+  final direction = json['direction'];
+  final limit = json['limit'];
+  final hasMore = json['has_more'];
+  final server = json['server_sequence'];
+  final snapshot = json['snapshot_sequence'];
+  final before = json['next_before_sequence'];
+  final after = json['next_after_sequence'];
+  final items = json['items'];
+  if ((dayId != null && (dayId is! String || !isUuid(dayId))) ||
+      (direction != 'desc' && direction != 'asc') ||
+      limit is! int ||
+      limit < 1 ||
+      limit > 100 ||
+      hasMore is! bool ||
+      server is! String ||
+      snapshot is! String ||
+      PostgresInteger.parseCanonical(server, allowZero: true) == null ||
+      PostgresInteger.parseCanonical(snapshot, allowZero: true) == null ||
+      before != null && after != null ||
+      (direction == 'desc' && after != null) ||
+      (direction == 'asc' && before != null) ||
+      (before != null &&
+          (before is! String ||
+              PostgresInteger.parseCanonical(before) == null)) ||
+      (after != null &&
+          (after is! String ||
+              PostgresInteger.parseCanonical(after) == null)) ||
+      (hasMore && direction == 'desc' && before == null) ||
+      (hasMore && direction == 'asc' && after == null) ||
+      (!hasMore && (before != null || after != null)) ||
+      items is! List ||
+      items.length > limit) {
+    throw const FormatException('page');
+  }
+  final lines = <LedgerFeedLine>[];
+  for (final row in items) {
+    if (row is! Map ||
+        !row.containsKey('shop_sequence') ||
+        !row.containsKey('occurred_at_shop') ||
+        !row.containsKey('is_daily_note') ||
+        !row.containsKey('is_return')) {
+      throw const FormatException('page');
+    }
+    lines.add(_feedLine(row));
+  }
+  return LedgerOperationPage(
+    shopId: shopId,
+    dayId: dayId is String ? dayId : null,
+    direction: direction,
+    limit: limit,
+    hasMore: hasMore,
+    serverSequence: server,
+    snapshotSequence: snapshot,
+    nextBeforeSequence: before is String ? before : null,
+    nextAfterSequence: after is String ? after : null,
+    items: lines,
   );
 }
