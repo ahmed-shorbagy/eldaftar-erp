@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import 'package:flutter/material.dart';
 
 import '../application/financial_gateway.dart';
@@ -187,7 +188,7 @@ class _PurchaseCashSettlementScreenState
                 children: [
                   Text('المستحق الحالي', style: theme.textTheme.titleMedium),
                   Text(
-                    '${widget.remaining.poundsText} جنيه',
+                    displayPounds(widget.remaining.poundsText),
                     textDirection: TextDirection.ltr,
                     style: theme.textTheme.headlineSmall,
                   ),
@@ -218,7 +219,7 @@ class _PurchaseCashSettlementScreenState
                         decimal: true,
                       ),
                       decoration: const InputDecoration(
-                        labelText: 'المبلغ المدفوع الآن بالجنيه',
+                        labelText: 'المبلغ المدفوع الآن ',
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -230,8 +231,10 @@ class _PurchaseCashSettlementScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text('ينقص النقد: ${review.poundsText} جنيه'),
-                            Text('يبقى مستحقاً: ${_pounds(after!)} جنيه'),
+                            Text(
+                              'ينقص النقد: ${displayPounds(review.poundsText)}',
+                            ),
+                            Text('يبقى مستحقاً: ${_pounds(after!)}'),
                             const Text('لا يتغير الذهب أو عدد القطع.'),
                           ],
                         ),
@@ -279,7 +282,7 @@ class _PurchaseCashSettlementScreenState
                     : _unknown
                     ? 'التحقق من الحالة'
                     : review == null
-                    ? 'مراجعة الأثر'
+                    ? 'مراجعة العملية'
                     : 'تأكيد السداد',
               ),
             ),
@@ -292,5 +295,7 @@ class _PurchaseCashSettlementScreenState
 
 String _pounds(BigInt piastres) {
   final parsed = Piastres.parseWire(piastres.toString());
-  return parsed is Accepted<Piastres> ? parsed.value.poundsText : '—';
+  return parsed is Accepted<Piastres>
+      ? displayPounds(parsed.value.poundsText)
+      : '—';
 }

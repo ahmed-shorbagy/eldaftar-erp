@@ -85,7 +85,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     for (final entry in expectedCash.entries) {
       final parsed = Piastres.parsePounds(_cash[entry.key]!.text.trim());
       if (parsed is! Accepted<Piastres>) {
-        setState(() => _error = 'أدخل النقد الفعلي لكل وسيلة بالجنيه.');
+        setState(() => _error = 'أدخل النقد الفعلي لكل وسيلة .');
         return;
       }
       cash[entry.key as String] = parsed.value.wire;
@@ -285,7 +285,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       ),
                       decoration: ledgerFieldDecoration(
                         context,
-                        label: '${cashMethodLabel(method)} بالجنيه',
+                        label: '${cashMethodLabel(method)} ',
                       ),
                     ),
                     const SizedBox(height: 12),

@@ -451,7 +451,7 @@ class _TraderScreenState extends State<TraderScreen> {
             key: const Key('trader-holding'),
           ),
           Text(
-            'مستحق الجنيه المتبقي ${poundsOf(detail.cashPayableRemainingPiastres)} جنيه '
+            'المبلغ المستحق المتبقي ${poundsOf(detail.cashPayableRemainingPiastres)} '
             '(${detail.cashPayableRemainingPiastres} قرشاً).',
             key: const Key('trader-cash-remaining'),
           ),
@@ -506,11 +506,11 @@ class _TraderScreenState extends State<TraderScreen> {
                 key: Key('trader-obligation-${item.operationId}'),
                 title: Text(
                   item.unit == 'egp_piastres'
-                      ? 'جنيه ${item.operationId}'
+                      ? 'مستحق نقدي'
                       : 'ذهب عيار ${item.karat} ${item.operationId}',
                 ),
                 subtitle: Text(
-                  'المتبقي ${item.unit == 'egp_piastres' ? '${poundsOf(item.remaining)} جنيه' : '${gramsOf(item.remaining)} جرام'}',
+                  'المتبقي ${item.unit == 'egp_piastres' ? poundsOf(item.remaining) : '${gramsOf(item.remaining)} جرام'}',
                 ),
                 onTap:
                     item.unit == 'egp_piastres' &&

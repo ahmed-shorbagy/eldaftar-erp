@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -17,7 +18,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
       operation['shop_sequence'] is! String) {
     throw const FormatException('confirmed_operation_pdf');
   }
-  final fontData = await rootBundle.load('assets/fonts/NotoSansArabic.ttf');
+  final fontData = await rootBundle.load('assets/fonts/Cairo.ttf');
   final font = pw.Font.ttf(fontData);
   final document = pw.Document();
   final primary = _pdfColor(AppTokens.seed);
@@ -60,11 +61,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
         _row('رقم العملية', '${operation['shop_sequence']}', ink),
         _row('وقت العملية', _displayTime(operation['occurred_at_cairo']), ink),
         if ((payload['customer_name'] ?? '').toString().isNotEmpty)
-          _row(
-            kind == 'purchase' ? 'البائع' : 'العميل',
-            '${payload['customer_name']}',
-            ink,
-          ),
+          _row('العميل', '${payload['customer_name']}', ink),
         pw.SizedBox(height: 18),
         pw.Text('الأصناف', style: pw.TextStyle(color: primary, fontSize: 14)),
         if (items is List)
@@ -90,29 +87,21 @@ Future<Uint8List> buildConfirmedOperationPdf(
                     ),
                     if (raw['line_price_piastres'] is String)
                       pw.Text(
-                        'سعر الصنف: ${_pounds(raw['line_price_piastres'])} جنيه',
+                        'سعر الصنف: ${_pounds(raw['line_price_piastres'])}',
                       ),
                   ],
                 ),
               ),
         pw.SizedBox(height: 18),
         if (pricing is Map) ...[
-          _row(
-            'السعر الأساسي',
-            '${_pounds(pricing['base_piastres'])} جنيه',
-            ink,
-          ),
-          _row(
-            'المصنعية',
-            '${_pounds(pricing['workmanship_piastres'])} جنيه',
-            ink,
-          ),
+          _row('السعر الأساسي', _pounds(pricing['base_piastres']), ink),
+          _row('المصنعية', _pounds(pricing['workmanship_piastres']), ink),
           _row(
             'الرسوم الأخرى (${pricing['other_charges_label'] ?? ''})',
-            '${_pounds(pricing['other_charges_piastres'])} جنيه',
+            _pounds(pricing['other_charges_piastres']),
             ink,
           ),
-          _row('الخصم', '${_pounds(pricing['discount_piastres'])} جنيه', ink),
+          _row('الخصم', _pounds(pricing['discount_piastres']), ink),
           pw.SizedBox(height: 12),
         ],
         pw.Container(
@@ -120,16 +109,16 @@ Future<Uint8List> buildConfirmedOperationPdf(
           color: paper,
           child: _row(
             'إجمالي ${kind == 'sale' ? 'البيع' : 'الشراء'}',
-            '$amount جنيه',
+            amount,
             ink,
           ),
         ),
         if (kind == 'purchase') ...[
-          _row('المدفوع عند الشراء', '${_paidPounds(tenders)} جنيه', ink),
+          _row('المدفوع عند الشراء', _paidPounds(tenders), ink),
           if (payload['purchase_obligation_piastres'] is String)
             _row(
               'المستحق عند الشراء',
-              '${_pounds(payload['purchase_obligation_piastres'])} جنيه',
+              _pounds(payload['purchase_obligation_piastres']),
               ink,
             ),
         ],
@@ -141,11 +130,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
         if (tenders is List)
           for (final raw in tenders)
             if (raw is Map)
-              _row(
-                _method(raw['method']),
-                '${_pounds(raw['piastres'])} جنيه',
-                ink,
-              ),
+              _row(_method(raw['method']), _pounds(raw['piastres']), ink),
         if ((payload['note'] ?? '').toString().isNotEmpty) ...[
           pw.SizedBox(height: 12),
           pw.Text('ملاحظة: ${payload['note']}'),
@@ -182,7 +167,7 @@ String _pounds(Object? value) {
   if (value is! String) throw const FormatException('pdf_amount');
   final parsed = Piastres.parseWire(value);
   if (parsed is! Accepted<Piastres>) throw const FormatException('pdf_amount');
-  return parsed.value.poundsText;
+  return displayPounds(parsed.value.poundsText);
 }
 
 String _paidPounds(Object? tenders) {

@@ -131,7 +131,9 @@ void main() {
       items: [ring],
       tenders: const [],
     );
-    expect(anonymous.issue, FinancialIssue.missingSeller);
+    expect(anonymous.isValid, isTrue);
+    expect(anonymous.draft!.customerName, isEmpty);
+    expect(anonymous.draft!.purchasePayable?.wire, '6000000');
     final unpaid = FinancialDraft.compose(
       kind: FinancialKind.purchase,
       totalPounds: '60000',

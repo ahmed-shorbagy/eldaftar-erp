@@ -16,13 +16,26 @@ class MemoryThemePreferenceStore implements ThemePreferenceStore {
 }
 
 void main() {
-  test('unknown or empty preference follows the system', () async {
+  test(
+    'fresh installation starts dark and an explicit system preference remains respected',
+    () async {
+      final store = MemoryThemePreferenceStore();
+      final controller = ThemeController(store: store);
+      expect(controller.mode, ThemeMode.dark);
+      await controller.load();
+      expect(controller.mode, ThemeMode.dark);
+      store.value = 'system';
+      await controller.load();
+      expect(controller.mode, ThemeMode.system);
+    },
+  );
+  test('unknown or empty preference defaults to dark', () async {
     final store = MemoryThemePreferenceStore()..value = 'nope';
     final controller = ThemeController(store: store);
 
     await controller.load();
 
-    expect(controller.mode, ThemeMode.system);
+    expect(controller.mode, ThemeMode.dark);
   });
 
   test('loads a persisted light or dark choice', () async {

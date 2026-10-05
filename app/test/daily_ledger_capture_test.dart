@@ -275,7 +275,11 @@ void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
   expect(find.text('الدفتر اليومي'), findsOneWidget);
 }
 
-void expectConfirmedFeed(WidgetTester tester) {
+Future<void> expectConfirmedFeed(WidgetTester tester) async {
+  await show(tester, const Key('ledger-other-movements'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('عرض الحركات الأخرى'));
+  await tester.pumpAndSettle();
   expect(find.text('رصيد افتتاحي'), findsOneWidget);
   expect(find.text(cairoStamp), findsOneWidget);
   expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
@@ -472,9 +476,9 @@ Future<void> fillFullExample(WidgetTester tester) async {
   await tester.pump();
   expectNoException(tester);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-  expect(find.text('10000.00'), findsWidgets);
+  expect(find.text('10,000'), findsWidgets);
   expect(find.text('500.50'), findsWidgets);
-  expect(find.text('2500.00'), findsWidgets);
+  expect(find.text('2,500'), findsWidgets);
   expect(find.text('75.25'), findsWidgets);
   expect(find.text('مشغولات عيار 18'), findsOneWidget);
   expect(find.text('مشغولات عيار 21'), findsOneWidget);
@@ -633,8 +637,8 @@ Future<void> captureMatrix(
     await tester.tap(find.byKey(const Key('review-values')));
     await tester.pump();
     expectReviewEnabled(tester);
-    expect(find.text('92233720368547758.07'), findsOneWidget);
-    expect(find.text('92233720368547758.07 جنيه'), findsWidgets);
+    expect(find.text('92,233,720,368,547,758.07'), findsWidgets);
+    expect(find.text('92,233,720,368,547,758.07'), findsWidgets);
     await jump(tester, 0);
     expectOnScreen(tester, find.text('مراجعة الأرصدة الافتتاحية'));
     await capture(tester, 'review-bigint-top-$label.png');
@@ -648,8 +652,10 @@ Future<void> captureMatrix(
     gateway: CaptureGateway(confirmedLedger()),
     screenKey: 'confirmed-$label',
   );
-  expectConfirmedFeed(tester);
-  expect(find.text('نقدي · 10,000 جنيه'), findsOneWidget);
+  await expectConfirmedFeed(tester);
+  Navigator.of(tester.element(find.text('رصيد افتتاحي'))).pop();
+  await tester.pumpAndSettle();
+  expect(find.text('نقدي · 10,000'), findsOneWidget);
   await show(tester, const Key('ledger-customize'));
   final inventoryDetails = find.byKey(const Key('ledger-inventory-details'));
   await show(tester, const Key('ledger-inventory-details'));
@@ -667,11 +673,24 @@ Future<void> captureMatrix(
     stem: 'confirmed',
     label: label,
     topMarker: find.byKey(const Key('ledger-confirmed-status')),
-    lowerMarker: find.text(cairoStamp),
+    lowerMarker: find.text('عرض الحركات الأخرى'),
     middleWhenTall: true,
   );
-  await tester.ensureVisible(find.text('حركة الذهب'));
-  await tester.pump();
+  await show(tester, const Key('ledger-customize'));
+  await tester.tap(find.byKey(const Key('ledger-customize')));
+  await tester.pumpAndSettle();
+  await show(tester, const Key('ledger-show-movement'));
+  await tester.tap(find.byKey(const Key('ledger-show-movement')));
+  await tester.pumpAndSettle();
+  await show(tester, const Key('ledger-customize'));
+  await tester.tap(find.byKey(const Key('ledger-customize')));
+  await tester.pumpAndSettle();
+  await tester.dragUntilVisible(
+    find.text('حركة الذهب'),
+    find.byKey(const Key('ledger-scroll')),
+    const Offset(0, -180),
+  );
+  await tester.pumpAndSettle();
   await tester.tap(find.text('حركة الذهب'));
   await tester.pump();
   await show(tester, const Key('ledger-karat-18'));
@@ -762,13 +781,15 @@ Future<void> captureMatrix(
     screenKey: 'expired-confirmed-$label',
   );
   expectExpiredNoWrite(tester);
-  expectConfirmedFeed(tester);
+  await expectConfirmedFeed(tester);
+  Navigator.of(tester.element(find.text('رصيد افتتاحي'))).pop();
+  await tester.pumpAndSettle();
   await captureScrollSlots(
     tester,
     stem: 'expired-confirmed',
     label: label,
     topMarker: find.text('منتهي - للقراءة فقط'),
-    lowerMarker: find.text(cairoStamp),
+    lowerMarker: find.text('عرض الحركات الأخرى'),
     middleWhenTall: true,
   );
 

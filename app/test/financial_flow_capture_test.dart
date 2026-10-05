@@ -42,9 +42,9 @@ void main() {
   });
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future<ByteData>.value(ByteData.sublistView(font)))).load();
     final icons = await File(
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
@@ -86,10 +86,6 @@ void main() {
         await _save(tester, 'sale-entry-$suffix');
         await beginTrade(tester);
         await _save(tester, 'sale-items-$suffix');
-        await tester.enterText(
-          find.byKey(const Key('trade-name-0')),
-          'خاتم ذهب',
-        );
         await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
         await nextTrade(tester);
         await tester.dragUntilVisible(
@@ -183,7 +179,6 @@ void main() {
           ),
         );
         await beginTrade(tester);
-        await tester.enterText(find.byKey(const Key('trade-name-0')), 'سوار');
         await tester.enterText(
           find.byKey(const Key('trade-grams-0')),
           '10.000',
@@ -217,7 +212,7 @@ void main() {
         await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
-        expect(find.textContaining('يبقى مستحقاً للبائع'), findsOneWidget);
+        expect(find.textContaining('يبقى مستحقاً للعميل'), findsOneWidget);
         await _save(tester, 'partial-purchase-review-$suffix');
       });
       testWidgets('captures scrap cash review $suffix', (tester) async {
@@ -248,7 +243,6 @@ void main() {
         );
         await _save(tester, 'scrap-sale-entry-$suffix');
         await beginTrade(tester);
-        await tester.enterText(find.byKey(const Key('trade-name-0')), 'كسر');
         await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.375');
         await nextTrade(tester);
         await tester.dragUntilVisible(

@@ -5,7 +5,7 @@ import 'theme_preference_store.dart';
 class ThemeController extends ChangeNotifier {
   ThemeController({
     ThemePreferenceStore? store,
-    ThemeMode initial = ThemeMode.system,
+    ThemeMode initial = ThemeMode.dark,
   }) : _store = store,
        _mode = initial;
 
@@ -32,7 +32,8 @@ class ThemeController extends ChangeNotifier {
     return switch (stored) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.dark,
     };
   }
 }

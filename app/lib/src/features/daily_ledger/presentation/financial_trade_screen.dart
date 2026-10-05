@@ -49,16 +49,15 @@ class _ItemEntry {
       karat = 18;
 
   String category;
+  bool customName = false;
   int karat;
   final TextEditingController name;
-  final FocusNode nameFocus = FocusNode();
   final FocusNode priceFocus = FocusNode();
   final TextEditingController grams;
   final TextEditingController count;
   final TextEditingController price;
 
   void dispose() {
-    nameFocus.dispose();
     priceFocus.dispose();
     name.dispose();
     grams.dispose();
@@ -235,23 +234,15 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   List<Widget> _pricingFields(ThemeData theme) {
     final result = _composePricing();
     return [
-      _priceField('trade-base-price', 'السعر الأساسي بالجنيه', _basePrice),
+      _priceField('trade-base-price', 'السعر الأساسي ', _basePrice),
       const SizedBox(height: 12),
       LedgerFieldPair(
-        first: _priceField(
-          'trade-workmanship',
-          'المصنعية بالجنيه',
-          _workmanship,
-        ),
-        second: _priceField('trade-discount', 'الخصم بالجنيه', _discount),
+        first: _priceField('trade-workmanship', 'المصنعية ', _workmanship),
+        second: _priceField('trade-discount', 'الخصم ', _discount),
       ),
       const SizedBox(height: 12),
       LedgerFieldPair(
-        first: _priceField(
-          'trade-other-charges',
-          'رسوم أخرى بالجنيه',
-          _otherCharges,
-        ),
+        first: _priceField('trade-other-charges', 'رسوم أخرى ', _otherCharges),
         second: TextField(
           key: const Key('trade-other-label'),
           controller: _otherChargesLabel,
@@ -266,7 +257,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       ),
       const SizedBox(height: 12),
       Text(
-        'الإجمالي بعد التعديلات: ${result is Accepted<InvoicePricing> ? result.value.total.poundsText : '—'} جنيه',
+        'الإجمالي بعد التعديلات: ${result is Accepted<InvoicePricing> ? displayPounds(result.value.total.poundsText) : '—'}',
         key: const Key('trade-adjusted-total'),
         style: theme.textTheme.titleMedium,
       ),
@@ -502,8 +493,13 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   void _nextStep() {
     FocusScope.of(context).unfocus();
+    for (final row in _items) {
+      if (row.customName && row.name.text.trim().isEmpty) {
+        row.name.text = 'أخرى';
+      }
+    }
     if (_step == 0 && _items.any((row) => row.name.text.trim().isEmpty)) {
-      setState(() => _error = 'اختر الصنف أو اكتب اسمه.');
+      setState(() => _error = 'اختر الصنف.');
       return;
     }
     if (_step == 1) {
@@ -587,6 +583,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               ('حلق', 'worked_jewelry', Icons.link_outlined),
               ('سلسلة', 'worked_jewelry', Icons.all_inclusive),
               ('تعليقة', 'worked_jewelry', Icons.diamond_outlined),
+              ('دبلة', 'worked_jewelry', Icons.circle_outlined),
+              ('غويشة', 'worked_jewelry', Icons.circle_outlined),
+              ('إسورة', 'worked_jewelry', Icons.link_outlined),
+              ('خلخال', 'worked_jewelry', Icons.link_outlined),
+              ('طقم', 'worked_jewelry', Icons.diamond_outlined),
               ('جنيهات', 'coin', Icons.monetization_on_outlined),
               ('سبائك', 'bullion', Icons.view_agenda_outlined),
             ],
@@ -619,6 +620,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                     ),
                     onPressed: () => setState(() {
                       final item = _items.last;
+                      item.customName = choice.$1 == 'أخرى';
                       item.name.text = choice.$1;
                       item.category = choice.$2;
                       item.karat = choice.$2 == 'bullion'
@@ -641,11 +643,15 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         },
       ),
       const SizedBox(height: 16),
-      TextField(
-        key: const Key('trade-select-name'),
-        controller: _items.last.name,
-        decoration: ledgerFieldDecoration(context, label: 'اسم الصنف'),
-      ),
+      if (_items.last.customName)
+        TextField(
+          key: const Key('trade-select-name'),
+          controller: _items.last.name,
+          decoration: ledgerFieldDecoration(
+            context,
+            label: 'اسم الصنف (اختياري)',
+          ),
+        ),
     ],
     if (_step == 1) ...[
       Text('تفاصيل الأصناف', style: theme.textTheme.titleLarge),
@@ -683,7 +689,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: ledgerFieldDecoration(
             context,
-            label: 'سعر الشراء الكلي بالجنيه',
+            label: 'سعر الشراء الكلي ',
           ),
         ),
         const SizedBox(height: 16),
@@ -692,7 +698,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           controller: _customerName,
           decoration: ledgerFieldDecoration(
             context,
-            label: 'اسم البائع (مطلوب عند وجود مبلغ مستحق)',
+            label: 'اسم العميل (اختياري)',
           ),
         ),
         const SizedBox(height: 16),
@@ -721,7 +727,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         ),
       const SizedBox(height: 16),
       Text(
-        'الإجمالي: ${displayPounds(_totalPounds() ?? '—')} جنيه',
+        'الإجمالي: ${displayPounds(_totalPounds() ?? '—')}',
         style: theme.textTheme.titleLarge,
       ),
       if (widget.kind == FinancialKind.sale ||
@@ -811,7 +817,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             const SizedBox(height: 12),
             if (widget.kind == FinancialKind.scrapSale)
               Text('الفئة: كسر', style: theme.textTheme.titleSmall)
-            else
+            else if (row.customName)
               DropdownButtonFormField<String>(
                 key: Key('trade-category-$index'),
                 initialValue: row.category,
@@ -837,18 +843,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                       row.karat = (allowed.toList()..sort()).first;
                     }
                   });
-                  row.nameFocus.requestFocus();
                 },
               ),
             const SizedBox(height: 12),
-            TextField(
-              key: Key('trade-name-$index'),
-              controller: row.name,
-              focusNode: row.nameFocus,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: ledgerFieldDecoration(context, label: 'اسم الصنف'),
-            ),
+            Text(row.name.text, style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             if (categoryCode != 'scrap')
               LedgerFieldPair(
@@ -977,10 +975,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   ),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                  decoration: ledgerFieldDecoration(
-                    context,
-                    label: 'المبلغ بالجنيه',
-                  ),
+                  decoration: ledgerFieldDecoration(context, label: 'المبلغ'),
                 ),
               ),
             ),
@@ -1017,7 +1012,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     ),
     const SizedBox(height: 12),
     Text(
-      'الإجمالي: ${displayPounds(_review!.total.poundsText)} جنيه',
+      'الإجمالي: ${displayPounds(_review!.total.poundsText)}',
       textAlign: TextAlign.center,
       style: theme.textTheme.titleLarge,
     ),
@@ -1036,19 +1031,19 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       Text('مراجعة العملية', style: theme.textTheme.headlineSmall),
       const SizedBox(height: 8),
       Text(
-        'الإجمالي: ${displayPounds(draft.total.poundsText)} جنيه',
+        'الإجمالي: ${displayPounds(draft.total.poundsText)}',
         style: theme.textTheme.headlineMedium,
       ),
       const SizedBox(height: 16),
       if (draft.pricing case final pricing?) ...[
-        Text('السعر الأساسي: ${displayPounds(pricing.base.poundsText)} جنيه'),
-        Text('المصنعية: ${displayPounds(pricing.workmanship.poundsText)} جنيه'),
+        Text('السعر الأساسي: ${displayPounds(pricing.base.poundsText)}'),
+        Text('المصنعية: ${displayPounds(pricing.workmanship.poundsText)}'),
         Text(
-          'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${displayPounds(pricing.otherCharges.poundsText)} جنيه',
+          'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${displayPounds(pricing.otherCharges.poundsText)}',
         ),
-        Text('الخصم: ${displayPounds(pricing.discount.poundsText)} جنيه'),
+        Text('الخصم: ${displayPounds(pricing.discount.poundsText)}'),
         Text(
-          'الإجمالي المتفق عليه: ${displayPounds(pricing.total.poundsText)} جنيه',
+          'الإجمالي المتفق عليه: ${displayPounds(pricing.total.poundsText)}',
         ),
         const SizedBox(height: 16),
       ],
@@ -1071,11 +1066,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               ),
             ),
           ),
-          trailing: Text('${_poundsText(tender['piastres'] as String)} جنيه'),
+          trailing: Text(_poundsText(tender['piastres'] as String)),
         ),
       if (draft.customerName.isNotEmpty)
         Text(
-          '${widget.kind == FinancialKind.purchase ? 'البائع' : 'العميل'}: ${draft.customerName}',
+          '${widget.kind == FinancialKind.purchase ? 'العميل' : 'العميل'}: ${draft.customerName}',
         ),
       if (draft.note.isNotEmpty) Text('ملاحظة: ${draft.note}'),
       Card(
@@ -1093,19 +1088,19 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 style: theme.textTheme.titleSmall,
               ),
               Text(
-                '${displayPounds(draft.cashPaid.poundsText)} جنيه',
+                displayPounds(draft.cashPaid.poundsText),
                 textDirection: TextDirection.ltr,
                 style: theme.textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
               if (draft.purchasePayable != null) ...[
                 Text(
-                  'يبقى مستحقاً للبائع: ${displayPounds(draft.purchasePayable!.poundsText)} جنيه',
+                  'يبقى مستحقاً للعميل: ${displayPounds(draft.purchasePayable!.poundsText)}',
                 ),
                 Text(
-                  'سعر الشراء الكلي: ${displayPounds(draft.total.poundsText)} جنيه',
+                  'سعر الشراء الكلي: ${displayPounds(draft.total.poundsText)}',
                 ),
-                Text('البائع: ${draft.customerName}'),
+                Text('العميل: ${draft.customerName}'),
                 const SizedBox(height: 8),
               ],
               Text(
@@ -1144,7 +1139,6 @@ String _issueCopy(FinancialIssue issue) => switch (issue) {
   FinancialIssue.linePriceMismatch => 'أسعار الأصناف لا تساوي السعر الكلي.',
   FinancialIssue.missingDescription => 'أدخل وصفاً للمصروف.',
   FinancialIssue.invalidCustomer => 'راجع بيانات العميل والملاحظة.',
-  FinancialIssue.missingSeller => 'أدخل اسم البائع للمبلغ المستحق.',
   FinancialIssue.pricingMismatch =>
     'راجع السعر الأساسي والمصنعية والرسوم والخصم وإجمالي الدفع.',
 };

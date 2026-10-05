@@ -39,8 +39,8 @@ void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     await (FontLoader(
-      'NotoSansArabic',
-    )..addFont(rootBundle.load('assets/fonts/NotoSansArabic.ttf'))).load();
+      'Cairo',
+    )..addFont(rootBundle.load('assets/fonts/Cairo.ttf'))).load();
     final sdkRoot = Platform.resolvedExecutable
         .split(RegExp(r'[/\\]bin[/\\]cache[/\\]'))
         .first;

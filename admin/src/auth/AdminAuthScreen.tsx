@@ -61,7 +61,7 @@ export function AdminAuthScreen({
           <Typography component="p" variant="h4" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
             الدفتر
           </Typography>
-          <Typography color="text.secondary">دفتر محلات الذهب</Typography>
+          <Typography color="text.secondary">دفتر لإدارة محلات الذهب والمجوهرات</Typography>
         </Box>
         <Typography component="h1" variant="h5" sx={{ mb: 1, textAlign: 'center' }}>إدارة الدفتر</Typography>
         <Typography sx={{ mb: 3, textAlign: 'center' }}>سجّل الدخول بالبريد الإلكتروني وكلمة المرور.</Typography>

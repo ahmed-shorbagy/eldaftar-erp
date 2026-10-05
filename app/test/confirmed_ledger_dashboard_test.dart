@@ -140,11 +140,13 @@ void main() {
     tester,
   ) async {
     await pumpDashboard(tester);
-    expect(find.text('مشغولات · عيار 18'), findsNothing);
+    expect(find.text('مشغولات'), findsNothing);
     await tester.ensureVisible(find.text('المخزون والكسر').last);
     await tester.tap(find.text('المخزون والكسر').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('مشغولات'), findsWidgets);
+    expect(find.text('مشغولات'), findsOneWidget);
+    expect(find.textContaining('عيار 18'), findsWidgets);
+    expect(find.textContaining('1.250 جرام'), findsWidgets);
   });
 
   testWidgets('full karat and payment cards fit phone and desktop', (

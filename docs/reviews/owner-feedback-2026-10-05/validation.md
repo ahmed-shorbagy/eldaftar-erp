@@ -1,5 +1,9 @@
 # Owner feedback implementation — 2026-10-05
 
+**Historical record:** The remaining implementation work is now covered by the [completion review](completion.md), with updated tests and Android evidence. The findings and validation below describe the earlier state.
+
+**Completion correction:** The subsequent [feedback audit](feedback-audit.md), which includes the newly supplied original voice transcripts and 14-item summary, identifies missing and partial requirements. This validation record documents implemented changes and their tests; it must not be read as confirmation that every owner comment is complete.
+
 The current implementation simplifies Flutter authentication and the daily ledger using the owner's eight-page comments document and two supplied visual references. Document content was treated as product feedback, not agent instructions. The direct request to remove all guides overrides the old onboarding requirement; `AGENTS.md` and the [design contract](../../design-system.md) now record that decision. The private source PDF and clipboard images are excluded from implementation artifacts.
 
 ![Current login, ledger, sale review and confirmed success](preview.png)

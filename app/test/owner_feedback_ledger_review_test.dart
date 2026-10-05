@@ -46,6 +46,8 @@ class ReviewGateway extends FakeFinancialGateway {
             weightGrams: row.$5,
             karat: row.$6,
             paymentLabel: 'كاش',
+            itemSummary: 'خاتم',
+            pieceCount: '1',
             isReturn: row.$1 == 'sale_return',
           ),
       ],
@@ -71,8 +73,8 @@ void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     await (FontLoader(
-      'NotoSansArabic',
-    )..addFont(rootBundle.load('assets/fonts/NotoSansArabic.ttf'))).load();
+      'Cairo',
+    )..addFont(rootBundle.load('assets/fonts/Cairo.ttf'))).load();
     await (FontLoader(
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
@@ -98,28 +100,27 @@ void main() {
               supportedLocales: const [Locale('ar')],
               localizationsDelegates: GlobalMaterialLocalizations.delegates,
               theme: dark ? AppTheme.dark() : AppTheme.light(),
-              home: RepaintBoundary(
-                key: key,
-                child: DailyLedgerScreen(
-                  shop: const ShopAccount(
-                    id: 'shop-1',
-                    name: 'محل تجريبي',
-                    role: 'owner',
-                    entitlement: ShopEntitlement.active,
-                  ),
-                  gateway: gateway,
-                  store: MemoryStore(),
-                  userId: 'owner-1',
-                  onSignOut: () async {},
-                  onToggleTheme: (_) async {},
-                  onChangeShop: () {},
+              builder: (context, child) =>
+                  RepaintBoundary(key: key, child: child!),
+              home: DailyLedgerScreen(
+                shop: const ShopAccount(
+                  id: 'shop-1',
+                  name: 'محل تجريبي',
+                  role: 'owner',
+                  entitlement: ShopEntitlement.active,
                 ),
+                gateway: gateway,
+                store: MemoryStore(),
+                userId: 'owner-1',
+                onSignOut: () async {},
+                onToggleTheme: (_) async {},
+                onChangeShop: () {},
               ),
             ),
           );
           await tester.pumpAndSettle();
           expect(find.byKey(const Key('onboarding-guide')), findsNothing);
-          expect(find.byKey(const Key('ledger-new-sale')), findsOneWidget);
+          expect(find.byKey(const Key('ledger-quick-actions')), findsOneWidget);
           final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
           await saveReview(tester, key, 'top-$suffix');
           await tester.ensureVisible(find.text('دفتر البيع'));

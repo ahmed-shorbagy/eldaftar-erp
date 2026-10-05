@@ -58,9 +58,9 @@ class _Gateway implements ScrapToStockGateway, OpeningGateway {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future<ByteData>.value(ByteData.sublistView(font)))).load();
     final icons = await File(
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',

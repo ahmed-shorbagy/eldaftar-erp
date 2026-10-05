@@ -46,9 +46,9 @@ class _Gateway implements PurchaseSettlementGateway, OpeningGateway {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future<ByteData>.value(ByteData.sublistView(font)))).load();
     final icons = await File(
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
@@ -90,7 +90,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('settlement-amount')), '20000');
     await tester.tap(find.byKey(const Key('settlement-review')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('يبقى مستحقاً: 20000.00'), findsOneWidget);
+    expect(find.textContaining('يبقى مستحقاً: 20,000'), findsOneWidget);
     expect(find.text('لا يتغير الذهب أو عدد القطع.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('settlement-confirm')));
     await tester.pumpAndSettle();

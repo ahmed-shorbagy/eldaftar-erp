@@ -109,7 +109,7 @@ test('signed-out visitors see the Arabic admin sign-in form', () => {
 })
 test('theme toggle switches light and dark and persists the choice', async () => {
   const user = userEvent.setup()
-  const store = renderShell('missingConfiguration')
+  const store = renderShell('missingConfiguration', new MemoryThemePreferenceStore('light'))
 
   expect(document.documentElement.style.colorScheme).toBe('light')
   await user.click(screen.getByRole('button', { name: shellCopy.toggleToDark }))

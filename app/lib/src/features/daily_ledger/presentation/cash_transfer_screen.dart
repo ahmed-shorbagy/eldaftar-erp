@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import 'package:flutter/material.dart';
 
 import '../application/daily_ledger_view.dart';
@@ -239,7 +240,9 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                           setState(() => _from = value ?? _from),
                     ),
                     const SizedBox(height: 8),
-                    Text('الرصيد المتاح: ${source?.poundsText ?? '—'} جنيه'),
+                    Text(
+                      'الرصيد المتاح: ${displayPounds(source?.poundsText ?? '—')}',
+                    ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<CashMethod>(
                       key: const Key('transfer-to'),
@@ -269,7 +272,7 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                       textInputAction: TextInputAction.next,
                       decoration: ledgerFieldDecoration(
                         context,
-                        label: 'المبلغ بالجنيه',
+                        label: 'المبلغ ',
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -291,17 +294,19 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text('التحويل: ${amount.poundsText} جنيه'),
+                            Text(
+                              'التحويل: ${displayPounds(amount.poundsText)}',
+                            ),
                             Text('من: ${cashMethodLabel(_from)}'),
                             Text('إلى: ${cashMethodLabel(_to)}'),
                             const SizedBox(height: 12),
                             Text(
                               'بعد التحويل — ${cashMethodLabel(_from)}: '
-                              '${_pounds(source!.value - amount.value)} جنيه',
+                              '${_pounds(source!.value - amount.value)}',
                             ),
                             Text(
                               'بعد التحويل — ${cashMethodLabel(_to)}: '
-                              '${_pounds(destination!.value + amount.value)} جنيه',
+                              '${_pounds(destination!.value + amount.value)}',
                             ),
                             const Text('إجمالي النقدية والذهب لا يتغيران.'),
                           ],
@@ -376,5 +381,5 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
 String _pounds(BigInt piastres) {
   final whole = piastres ~/ BigInt.from(100);
   final fraction = (piastres % BigInt.from(100)).toString().padLeft(2, '0');
-  return '$whole.$fraction';
+  return displayPounds('$whole.$fraction');
 }

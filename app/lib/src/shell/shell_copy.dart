@@ -1,7 +1,7 @@
 /// Arabic user-facing copy for the starter shell.
 abstract final class ShellCopy {
   static const appTitle = 'الدفتر';
-  static const brandTagline = 'دفتر محلات الذهب';
+  static const brandTagline = 'دفتر لإدارة محلات الذهب والمجوهرات';
   static const prototypeLabel = 'نموذج أولي';
   static const prototypeBody =
       'هذه واجهة البداية فقط. الإعداد التفاعلي وشاشات العمل غير متاحة بعد.';

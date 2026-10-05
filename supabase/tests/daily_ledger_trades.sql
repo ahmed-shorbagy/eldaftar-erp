@@ -43,6 +43,8 @@ declare
   v_before bigint;
   v_purchase_op uuid;
   v_sale_op uuid;
+  v_anonymous_op uuid;
+  v_anonymous_payload jsonb;
   v_gold_before numeric;
   v_cash_before numeric;
   v_card_before numeric;
@@ -72,6 +74,9 @@ begin
       and row.value ->> 'weight_grams' = '2.000'
       and row.value ->> 'karat' = '18'
       and row.value ->> 'payment_label' = 'فيزا + كاش'
+      and row.value ->> 'item_summary' = 'خاتم، سلسلة'
+      and row.value ->> 'piece_count' = '2'
+      and row.value ->> 'actor_display_name' = 'المالك أ'
   ) then
     raise exception 'exact business summary missing from sale journal';
   end if;
@@ -284,14 +289,37 @@ begin
   exception when others then
     if sqlerrm is distinct from 'settlement_exceeds_obligation' then raise; end if;
   end;
+  v_anonymous_payload := jsonb_set(jsonb_set(jsonb_set(v_partial,
+    '{customer_name}', '""'::jsonb), '{tenders}', '[]'::jsonb),
+    '{purchase_obligation_piastres}', '"5000"'::jsonb);
   v_result := public.post_daily_ledger_trade(
-    'd3535353-3535-4353-8353-353535353535',
-    jsonb_set(jsonb_set(v_partial, '{tenders}', '[]'::jsonb),
-      '{purchase_obligation_piastres}', '"5000"'::jsonb));
+    'd3535353-3535-4353-8353-353535353535', v_anonymous_payload);
+  v_anonymous_op := (v_result ->> 'operation_id')::uuid;
   if (select remaining_piastres from public.purchase_cash_payables
       where operation_id = (v_result ->> 'operation_id')::uuid) <> 5000 then
     raise exception 'zero-cash purchase obligation missing';
   end if;
+  if (select seller_name from public.purchase_cash_payables
+      where operation_id = v_anonymous_op) is distinct from 'عميل بدون اسم'
+    or public.get_daily_ledger_operation(v_anonymous_op) -> 'payload' ->> 'customer_name'
+      is distinct from '' then
+    raise exception 'anonymous payable must preserve absent customer identity';
+  end if;
+  if public.post_daily_ledger_trade(
+      'd3535353-3535-4353-8353-353535353535', v_anonymous_payload) ->> 'replayed'
+      is distinct from 'true'
+    or (select count(*) from public.purchase_cash_payables
+        where operation_id = v_anonymous_op) <> 1 then
+    raise exception 'anonymous purchase duplicated its obligation on retry';
+  end if;
+  v_result := public.post_daily_ledger_trade(
+    'e3535353-3535-4353-8353-353535353535', v_anonymous_payload);
+  if (v_result ->> 'operation_id')::uuid = v_anonymous_op
+    or (select remaining_piastres from public.purchase_cash_payables
+        where operation_id = (v_result ->> 'operation_id')::uuid) <> 5000 then
+    raise exception 'anonymous purchases must retain separate operation balances';
+  end if;
+
   select amount into v_cash_before from public.ledger_account_balances
   where shop_id = 'b1818181-8181-4181-8181-818181818181'
     and account_kind = 'cash_method' and method_code = 'cash';

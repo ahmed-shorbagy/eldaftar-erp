@@ -13,7 +13,7 @@ Future<Uint8List> buildTraderStatementPdf({
   required List<TraderActivity> activity,
   required bool activityHasOlder,
 }) async {
-  final fontData = await rootBundle.load('assets/fonts/NotoSansArabic.ttf');
+  final fontData = await rootBundle.load('assets/fonts/Cairo.ttf');
   final font = pw.Font.ttf(fontData);
   final document = pw.Document();
   final primary = PdfColor(
@@ -78,8 +78,8 @@ Future<Uint8List> buildTraderStatementPdf({
         ),
         _line('استلامات معلّقة', trader.pendingReceiptCount.toString(), ink),
         _line(
-          'مستحق الجنيه المتبقي',
-          '${poundsOf(trader.cashPayableRemainingPiastres)} جنيه (${trader.cashPayableRemainingPiastres} قرشاً)',
+          'المبلغ المستحق المتبقي',
+          poundsOf(trader.cashPayableRemainingPiastres),
           ink,
         ),
         for (final gold in trader.goldRemaining)

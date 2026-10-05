@@ -2,6 +2,7 @@
 // library. It talks only to an in-memory gateway and uses synthetic values.
 
 import 'dart:io';
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
@@ -105,6 +106,11 @@ Future<void> shot(WidgetTester tester, String name) async {
     image.dispose();
     // ignore: avoid_print
     print('AUTH_REVIEW_SHOT ${file.path}');
+    // Transfer only synthetic review pixels; the runner removes the test app.
+    // ignore: avoid_print
+    print(
+      'AUTH_REVIEW_BASE64 $name ${base64Encode(data.buffer.asUint8List())}',
+    );
   } catch (error) {
     // ignore: avoid_print
     print('AUTH_REVIEW_SHOT_FAILED $name $error');

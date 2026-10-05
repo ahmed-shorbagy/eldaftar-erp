@@ -77,7 +77,7 @@ bool _cairoLocal(String value) {
 
 bool _plainText(String value) =>
     value.isNotEmpty &&
-    value.length <= 200 &&
+    value.runes.length <= 200 &&
     !value.runes.any((rune) => rune < 0x20);
 
 DailyLedgerView parseDailyLedger(Object? json) {
@@ -453,6 +453,8 @@ LedgerFeedLine _feedLine(Object? row) {
     'weight_grams',
     'karat',
     'payment_label',
+    'item_summary',
+    'piece_count',
   };
   if (required.any((key) => !row.containsKey(key)) ||
       row.keys.any(
@@ -494,6 +496,16 @@ LedgerFeedLine _feedLine(Object? row) {
   final weight = row['weight_grams'];
   final karat = row['karat'];
   final payment = row['payment_label'];
+  final itemSummary = row['item_summary'];
+  final pieceCount = row['piece_count'];
+  if ((itemSummary != null &&
+          (itemSummary is! String || !_plainText(itemSummary))) ||
+      (pieceCount != null &&
+          (pieceCount is! String ||
+              pieceCount.length > 22 ||
+              !RegExp(r'^(0|[1-9][0-9]*)$').hasMatch(pieceCount)))) {
+    throw const FormatException('feed items');
+  }
   if ((party != null && (party is! String || !_plainText(party))) ||
       (total != null &&
           (total is! String ||
@@ -545,6 +557,8 @@ LedgerFeedLine _feedLine(Object? row) {
     weightGrams: weight as String?,
     karat: karat as int?,
     paymentLabel: payment as String?,
+    itemSummary: itemSummary as String?,
+    pieceCount: pieceCount as String?,
   );
 }
 

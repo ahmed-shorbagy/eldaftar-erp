@@ -4,8 +4,8 @@ begin;
 do $guard$
 begin
   if inet_server_addr() is distinct from '127.0.0.1'::inet
-    or current_database() is distinct from 'eldafttar_notes_test' then
-    raise exception 'refusing notes test outside local eldafttar_notes_test';
+    or current_database() not in ('eldafttar_notes_test', 'eldafttar_complete_test') then
+    raise exception 'refusing notes test outside a named local disposable test database';
   end if;
 end;
 $guard$;
@@ -1146,7 +1146,9 @@ begin
   end;
   execute 'reset role';
   insert into auth.sessions (id, user_id, not_after) values
-    ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', v_owner, v_at - interval '2 minutes'),
+    -- Authorization compares expiry with transaction time. A long fixture setup
+    -- can put clock_timestamp() minutes ahead of that fixed server timestamp.
+    ('a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1', v_owner, transaction_timestamp() - interval '2 minutes'),
     ('a2a2a2a2-a2a2-42a2-82a2-a2a2a2a2a2a2', v_other_owner, v_at + interval '30 minutes');
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub', v_owner::text, true);

@@ -346,9 +346,9 @@ Future<void> _capture(WidgetTester tester, GlobalKey key, String name) async {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future.value(ByteData.sublistView(font)))).load();
     final sdkRoot = Platform.resolvedExecutable
         .split(RegExp(r'[/\\]bin[/\\]cache[/\\]'))

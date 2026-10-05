@@ -64,12 +64,12 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#FFFBF5"
-  color_dark: "#141210"
+  color_dark: "#0C0D0D"
   image: assets/brand/native_splash.png
   image_dark: assets/brand/native_splash_dark.png
   android_12:
     color: "#FFFBF5"
-    color_dark: "#141210"
+    color_dark: "#0C0D0D"
     image: assets/brand/native_splash.png
     image_dark: assets/brand/native_splash_dark.png
   web: false
@@ -87,9 +87,9 @@ flutter:
   assets:
     - assets/brand/auth-jewelry.png
   fonts:
-    - family: NotoSansArabic
+    - family: Cairo
       fonts:
-        - asset: assets/fonts/NotoSansArabic.ttf
+        - asset: assets/fonts/Cairo.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

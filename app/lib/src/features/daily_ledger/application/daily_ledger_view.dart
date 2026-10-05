@@ -186,6 +186,8 @@ final class LedgerFeedLine {
     this.weightGrams,
     this.karat,
     this.paymentLabel,
+    this.itemSummary,
+    this.pieceCount,
   });
 
   final String kind;
@@ -204,6 +206,8 @@ final class LedgerFeedLine {
   final String? weightGrams;
   final int? karat;
   final String? paymentLabel;
+  final String? itemSummary;
+  final String? pieceCount;
 
   String get displayTime => occurredAtShop ?? occurredAtCairo;
 }

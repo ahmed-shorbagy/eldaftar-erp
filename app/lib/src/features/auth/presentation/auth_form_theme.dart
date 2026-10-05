@@ -6,10 +6,8 @@ const double authCornerRadius = 14;
 /// Shared auth and recovery form theme. Colors come from [ColorScheme].
 ThemeData authFormTheme(ThemeData theme) {
   theme = theme.copyWith(
-    textTheme: theme.textTheme.apply(fontFamily: 'NotoSansArabic'),
-    primaryTextTheme: theme.primaryTextTheme.apply(
-      fontFamily: 'NotoSansArabic',
-    ),
+    textTheme: theme.textTheme.apply(fontFamily: 'Cairo'),
+    primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Cairo'),
   );
   final scheme = theme.colorScheme;
   final border = OutlineInputBorder(

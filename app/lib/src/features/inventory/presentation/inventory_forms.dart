@@ -580,7 +580,7 @@ class _InventoryCorrectionFormState extends State<InventoryCorrectionForm>
         inventoryField(
           context: context,
           controller: _cash,
-          label: 'فرق الجنيه، والسالب بين قوسين بعلامة -',
+          label: 'فرق النقد، والسالب بين قوسين بعلامة -',
           fieldKey: const Key('correct-cash'),
           keyboard: const TextInputType.numberWithOptions(
             decimal: true,
@@ -1551,7 +1551,7 @@ class _OwnershipTransferFormState extends State<OwnershipTransferForm>
             label: 'وحدة الالتزام الواحدة',
           ),
           items: const [
-            DropdownMenuItem(value: 'egp', child: Text('جنيه مصري فقط')),
+            DropdownMenuItem(value: 'egp', child: Text('نقد')),
             DropdownMenuItem(
               value: 'gold',
               child: Text('ذهب من العيار نفسه فقط'),
@@ -1566,7 +1566,7 @@ class _OwnershipTransferFormState extends State<OwnershipTransferForm>
           inventoryField(
             context: context,
             controller: _price,
-            label: 'سعر الشراء بالجنيه',
+            label: 'سعر الشراء ',
             fieldKey: const Key('transfer-price'),
             keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),
@@ -1591,7 +1591,7 @@ class _OwnershipTransferFormState extends State<OwnershipTransferForm>
           inventoryField(
             context: context,
             controller: _paid,
-            label: 'المدفوع الآن بالجنيه',
+            label: 'المدفوع الآن ',
             fieldKey: const Key('transfer-paid'),
             keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),
@@ -2618,7 +2618,7 @@ class _ExplicitLotSaleFormState extends State<ExplicitLotSaleForm>
         inventoryField(
           context: context,
           controller: _total,
-          label: 'سعر البيع بالجنيه',
+          label: 'سعر البيع ',
           fieldKey: const Key('lot-sale-total'),
           keyboard: const TextInputType.numberWithOptions(decimal: true),
         ),
@@ -2643,7 +2643,7 @@ class _ExplicitLotSaleFormState extends State<ExplicitLotSaleForm>
         inventoryField(
           context: context,
           controller: _paid,
-          label: 'المبلغ المقبوض بالجنيه',
+          label: 'المبلغ المقبوض ',
           fieldKey: const Key('lot-sale-paid'),
           keyboard: const TextInputType.numberWithOptions(decimal: true),
         ),
@@ -2658,21 +2658,21 @@ class _ExplicitLotSaleFormState extends State<ExplicitLotSaleForm>
           inventoryField(
             context: context,
             controller: _base,
-            label: 'أساس السعر بالجنيه',
+            label: 'أساس السعر ',
             fieldKey: const Key('lot-sale-base'),
             keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),
           inventoryField(
             context: context,
             controller: _work,
-            label: 'المصنعية بالجنيه',
+            label: 'المصنعية ',
             fieldKey: const Key('lot-sale-work'),
             keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),
           inventoryField(
             context: context,
             controller: _other,
-            label: 'رسوم أخرى بالجنيه',
+            label: 'رسوم أخرى ',
             fieldKey: const Key('lot-sale-other'),
             keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),
@@ -2685,7 +2685,7 @@ class _ExplicitLotSaleFormState extends State<ExplicitLotSaleForm>
           inventoryField(
             context: context,
             controller: _discount,
-            label: 'الخصم بالجنيه',
+            label: 'الخصم ',
             fieldKey: const Key('lot-sale-discount'),
             keyboard: const TextInputType.numberWithOptions(decimal: true),
           ),

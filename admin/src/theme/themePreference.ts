@@ -12,7 +12,7 @@ export function decodeThemeChoice(stored: string | null): ThemeChoice {
   if (stored === 'light' || stored === 'dark') {
     return stored
   }
-  return 'system'
+  return stored === 'system' ? 'system' : 'dark'
 }
 
 export function resolveThemeChoice(

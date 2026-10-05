@@ -1,10 +1,9 @@
+import '../../../theme/amount_format.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../shell/shell_copy.dart';
 import '../../../theme/app_tokens.dart';
-import '../../../theme/brand_mark.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../daily_notes/application/notes_gateway.dart';
@@ -34,6 +33,7 @@ import 'pending_invoice_sends_screen.dart';
 import 'daily_close_screen.dart';
 import 'cash_transfer_screen.dart';
 import 'scrap_to_stock_screen.dart';
+import 'ledger_app_bar.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
@@ -672,264 +672,205 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final theme = Theme.of(context);
     final controller = _controller;
     final compact = MediaQuery.sizeOf(context).width < 400;
+    final businessDay = controller?.ledger?.businessDay?.businessDate;
+    final daySubtitle = businessDay == null
+        ? null
+        : 'يوم العمل ${formatServerDate(businessDay)}';
     return Scaffold(
-      appBar: AppBar(
-        title: BrandLockup(
-          title: 'الدفتر اليومي',
-          titleKey: const Key('ledger-title'),
-          markSize: 22,
-          maxLines: 2,
-          style: compact ? theme.textTheme.titleMedium : null,
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'تحديث الدفتر',
-            focusNode: _refreshFocus,
-            onPressed: _refreshLedger,
-            icon: const Icon(Icons.refresh),
-          ),
-          if (compact)
-            PopupMenuButton<String>(
-              tooltip: 'المزيد',
-              onSelected: (value) {
-                switch (value) {
-                  case 'shop':
-                    widget.onChangeShop?.call();
-                  case 'theme':
-                    widget.onToggleTheme(theme.brightness);
-                  case 'signout':
-                    widget.onSignOut();
-                }
-              },
-              itemBuilder: (context) => [
-                if (widget.onChangeShop != null)
-                  const PopupMenuItem(
-                    value: 'shop',
-                    child: Text('اختيار متجر آخر'),
-                  ),
-                PopupMenuItem(
-                  value: 'theme',
-                  child: Text(
-                    theme.brightness == Brightness.dark
-                        ? ShellCopy.toggleToLight
-                        : ShellCopy.toggleToDark,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'signout',
-                  child: Text('تسجيل الخروج'),
-                ),
-              ],
-            )
-          else ...[
-            if (widget.onChangeShop != null)
-              IconButton(
-                tooltip: 'اختيار متجر آخر',
-                onPressed: widget.onChangeShop,
-                icon: const Icon(Icons.storefront_outlined),
-              ),
-            IconButton(
-              key: const Key('theme-toggle'),
-              tooltip: theme.brightness == Brightness.dark
-                  ? ShellCopy.toggleToLight
-                  : ShellCopy.toggleToDark,
-              onPressed: () => widget.onToggleTheme(theme.brightness),
-              icon: Icon(
-                theme.brightness == Brightness.dark
-                    ? Icons.light_mode_outlined
-                    : Icons.dark_mode_outlined,
-              ),
-            ),
-            IconButton(
-              tooltip: 'تسجيل الخروج',
-              onPressed: widget.onSignOut,
-              icon: const Icon(Icons.logout),
-            ),
-          ],
-        ],
+      appBar: LedgerAppBar(
+        shopName: widget.shop.name,
+        subtitle: daySubtitle,
+        topInset: MediaQuery.paddingOf(context).top,
+        compact: compact,
+        refreshFocus: _refreshFocus,
+        onRefresh: _refreshLedger,
+        onToggleTheme: widget.onToggleTheme,
+        onSignOut: widget.onSignOut,
+        onChangeShop: widget.onChangeShop,
       ),
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: AppTokens.contentMaxWidth,
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: AppTokens.contentMaxWidth,
+          ),
+          child: ListView(
+            key: const Key('ledger-scroll'),
+            controller: _scroll,
+            padding: EdgeInsetsDirectional.fromSTEB(
+              compact ? 16 : 24,
+              compact ? 16 : 20,
+              compact ? 16 : 24,
+              compact ? 28 : 36,
             ),
-            child: ListView(
-              key: const Key('ledger-scroll'),
-              controller: _scroll,
-              padding: EdgeInsetsDirectional.fromSTEB(
-                compact ? 16 : 24,
-                compact ? 12 : 20,
-                compact ? 16 : 24,
-                compact ? 28 : 36,
-              ),
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.shop.name,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+            children: [
+              if (_expired || (controller?.readOnly ?? false)) ...[
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer.withValues(
+                      alpha: 0.55,
                     ),
-                  ],
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: theme.colorScheme.error.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'منتهي - للقراءة فقط',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text('الاشتراك منتهٍ. العرض للقراءة فقط.'),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'انتهى اشتراك هذا المتجر. الوصول الحالي للقراءة فقط، ولا يمكن إجراء تغييرات.',
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                if (_expired || (controller?.readOnly ?? false)) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'منتهي - للقراءة فقط',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('الاشتراك منتهٍ. العرض للقراءة فقط.'),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'انتهى اشتراك هذا المتجر. الوصول الحالي للقراءة فقط، ولا يمكن إجراء تغييرات.',
-                  ),
-                ],
-                const SizedBox(height: 20),
-                if (controller == null)
-                  const SizedBox.shrink()
-                else if (controller.phase == LedgerPhase.loading)
-                  const LinearProgressIndicator(key: Key('ledger-loading'))
-                else ...[
-                  if (_financialError != null)
-                    Text(
-                      _financialError!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  if (_financialPending != null) ...[
-                    const SizedBox(height: 8),
-                    Card(
-                      color: theme.colorScheme.primaryContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text('عملية مالية بانتظار تأكيد الخادم'),
-                            Text(
-                              _pendingStatusUnknown
-                                  ? 'تعذر تحديد حالتها بعد. تحقق قبل تسجيل عملية أخرى.'
-                                  : 'لم تظهر بعد على الخادم. أعد المحاولة بالمفتاح نفسه.',
-                            ),
-                            Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: TextButton.icon(
-                                key: const Key('ledger-retry-pending'),
-                                onPressed: _dayCommandBusy
-                                    ? null
-                                    : () =>
-                                          _resolveFinancialPending(retry: true),
-                                icon: const Icon(Icons.sync),
-                                label: const Text('التحقق وإعادة المحاولة'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                  _LedgerBody(
-                    controller: controller,
-                    expired: _expired,
-                    day: _financialDay,
-                    dayBusy: _dayCommandBusy,
-                    onSale:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null
-                        ? () => _startTrade(FinancialKind.sale)
-                        : null,
-                    onPurchase:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null
-                        ? () => _startTrade(FinancialKind.purchase)
-                        : null,
-                    onExpense:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null
-                        ? () => _startTrade(FinancialKind.expense)
-                        : null,
-                    onCashTransfer:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null &&
-                            _financialGateway is CashTransferGateway
-                        ? _transferCash
-                        : null,
-                    onScrapSale:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null
-                        ? () => _startTrade(FinancialKind.scrapSale)
-                        : null,
-                    onScrapToStock:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null &&
-                            _financialGateway is ScrapToStockGateway &&
-                            (controller.ledger?.scrap.any(
-                                  (line) =>
-                                      _positiveWireAmount(line.milligrams),
-                                ) ??
-                                false)
-                        ? _convertScrapToStock
-                        : null,
-                    onCloseDay:
-                        _financialDay?.isOpen == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null
-                        ? _closeDay
-                        : null,
-                    onOpenDay:
-                        _financialDay?.isClosed == true &&
-                            !_expired &&
-                            !controller.readOnly &&
-                            _financialPending == null
-                        ? _openDay
-                        : null,
-                    onOperation: _financialGateway == null
-                        ? null
-                        : _openOperation,
-                    onPendingInvoices:
-                        _financialGateway is InvoiceDispatchGateway
-                        ? _openPendingInvoices
-                        : null,
-                    onDailyNotes: _notesGateway != null && widget.userId != null
-                        ? _openDailyNotes
-                        : null,
-                    onLoadOlder:
-                        _feedGateway != null &&
-                            (_activity.state.hasOlder || _loadingOlder)
-                        ? _loadOlder
-                        : null,
-                    loadingOlder: _loadingOlder,
-                    activityLines:
-                        _feedGateway == null || _activity.state.userId.isEmpty
-                        ? null
-                        : _activity.state.lines,
-                  ),
-                ],
+                const SizedBox(height: 14),
               ],
-            ),
+              if (controller == null)
+                const SizedBox.shrink()
+              else if (controller.phase == LedgerPhase.loading)
+                const LinearProgressIndicator(key: Key('ledger-loading'))
+              else ...[
+                if (_financialError != null)
+                  Text(
+                    _financialError!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                if (_financialPending != null) ...[
+                  const SizedBox(height: 8),
+                  Card(
+                    color: theme.colorScheme.primaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('عملية مالية بانتظار تأكيد الخادم'),
+                          Text(
+                            _pendingStatusUnknown
+                                ? 'تعذر تحديد حالتها بعد. تحقق قبل تسجيل عملية أخرى.'
+                                : 'لم تظهر بعد على الخادم. أعد المحاولة بالمفتاح نفسه.',
+                          ),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: TextButton.icon(
+                              key: const Key('ledger-retry-pending'),
+                              onPressed: _dayCommandBusy
+                                  ? null
+                                  : () => _resolveFinancialPending(retry: true),
+                              icon: const Icon(Icons.sync),
+                              label: const Text('التحقق وإعادة المحاولة'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                _LedgerBody(
+                  controller: controller,
+                  expired: _expired,
+                  day: _financialDay,
+                  dayBusy: _dayCommandBusy,
+                  onSale:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? () => _startTrade(FinancialKind.sale)
+                      : null,
+                  onPurchase:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? () => _startTrade(FinancialKind.purchase)
+                      : null,
+                  onExpense:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? () => _startTrade(FinancialKind.expense)
+                      : null,
+                  onCashTransfer:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null &&
+                          _financialGateway is CashTransferGateway
+                      ? _transferCash
+                      : null,
+                  onScrapSale:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? () => _startTrade(FinancialKind.scrapSale)
+                      : null,
+                  onScrapToStock:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null &&
+                          _financialGateway is ScrapToStockGateway &&
+                          (controller.ledger?.scrap.any(
+                                (line) => _positiveWireAmount(line.milligrams),
+                              ) ??
+                              false)
+                      ? _convertScrapToStock
+                      : null,
+                  onCloseDay:
+                      _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? _closeDay
+                      : null,
+                  onOpenDay:
+                      _financialDay?.isClosed == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? _openDay
+                      : null,
+                  onOperation: _financialGateway == null
+                      ? null
+                      : _openOperation,
+                  onPendingInvoices: _financialGateway is InvoiceDispatchGateway
+                      ? _openPendingInvoices
+                      : null,
+                  onDailyNotes: _notesGateway != null && widget.userId != null
+                      ? _openDailyNotes
+                      : null,
+                  onLoadOlder:
+                      _feedGateway != null &&
+                          (_activity.state.hasOlder || _loadingOlder)
+                      ? _loadOlder
+                      : null,
+                  loadingOlder: _loadingOlder,
+                  activityLines:
+                      _feedGateway == null || _activity.state.userId.isEmpty
+                      ? null
+                      : _activity.state.lines,
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -1063,7 +1004,7 @@ class _EntryForm extends StatelessWidget {
         Text('إعداد الأرصدة الافتتاحية', style: theme.textTheme.headlineSmall),
         const SizedBox(height: 6),
         Text(
-          'أدخل النقد والذهب، ثم راجع الأثر قبل التأكيد على الخادم.',
+          'أدخل النقد والذهب، ثم راجع العملية قبل التأكيد.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             height: 1.5,
@@ -1073,7 +1014,7 @@ class _EntryForm extends StatelessWidget {
         _EntrySection(
           icon: Icons.account_balance_wallet_outlined,
           title: 'النقدية',
-          description: 'الرصيد الحالي لكل وسيلة دفع بالجنيه',
+          description: 'الرصيد الحالي لكل وسيلة دفع ',
           child: Column(
             children: [
               for (final method in CashMethod.canonicalOrder) ...[
@@ -1239,11 +1180,7 @@ class _AmountField extends StatelessWidget {
       readOnly: locked,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textDirection: TextDirection.ltr,
-      decoration: ledgerFieldDecoration(
-        context,
-        label: label,
-        helper: 'بالجنيه',
-      ),
+      decoration: ledgerFieldDecoration(context, label: label, helper: ''),
     );
   }
 }
@@ -1417,7 +1354,7 @@ class _Review extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'الأثر بعد التأكيد',
+                  'النقد والذهب بعد العملية',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                     fontWeight: FontWeight.w700,
@@ -1433,21 +1370,21 @@ class _Review extends StatelessWidget {
                 _ReviewEffectLine(
                   icon: Icons.account_balance_wallet_outlined,
                   label: 'النقدية بكل الوسائل',
-                  value: '${_totalCash(draft) ?? '—'} جنيه',
+                  value: _totalCash(draft) ?? '—',
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Text('النقد بالجنيه', style: theme.textTheme.titleSmall),
+        Text('النقد', style: theme.textTheme.titleSmall),
         for (final method in CashMethod.canonicalOrder)
           _ReviewLine(
             label: cashMethodLabel(method),
-            amount: draft.cash[method].poundsText,
+            amount: displayPounds(draft.cash[method].poundsText),
           ),
         if (_totalCash(draft) case final total?)
-          _ReviewLine(label: 'إجمالي النقد', amount: '$total جنيه'),
+          _ReviewLine(label: 'إجمالي النقد', amount: total),
         if (draft.stock.isNotEmpty)
           Text('المخزون', style: theme.textTheme.titleSmall),
         for (final row in draft.stock) ...[
@@ -1610,7 +1547,7 @@ String? _totalCash(OpeningDraft draft) {
   if (sum == null) return null;
   final parsed = Piastres.parseWire(sum.toString());
   if (parsed is! Accepted<Piastres>) return null;
-  return parsed.value.poundsText;
+  return displayPounds(parsed.value.poundsText);
 }
 
 String _totalGold(OpeningDraft draft) {

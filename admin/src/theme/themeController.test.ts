@@ -26,13 +26,23 @@ beforeEach(() => {
   window.localStorage.clear()
 })
 
-test('unknown or empty preference follows the system', () => {
+test('fresh installation starts dark while a saved system choice is respected', () => {
+  const store = new MemoryThemePreferenceStore()
+  const controller = new ThemeController(store)
+  controller.load()
+  expect(controller.mode).toBe('dark')
+  store.value = 'system'
+  controller.load()
+  expect(controller.mode).toBe('system')
+})
+
+test('unknown or empty preference defaults to dark', () => {
   const store = new MemoryThemePreferenceStore('nope')
   const controller = new ThemeController(store)
 
   controller.load()
 
-  expect(controller.mode).toBe('system')
+  expect(controller.mode).toBe('dark')
 })
 
 test('loads a persisted light or dark choice', () => {
@@ -77,7 +87,7 @@ test('keeps the toggled choice when storage throws', () => {
 test('persists the choice in local storage under theme_mode', () => {
   const controller = new ThemeController(new LocalStorageThemeStore())
   controller.load()
-  expect(controller.mode).toBe('system')
+  expect(controller.mode).toBe('dark')
 
   controller.toggle('light')
   expect(window.localStorage.getItem(themeStorageKey)).toBe('dark')

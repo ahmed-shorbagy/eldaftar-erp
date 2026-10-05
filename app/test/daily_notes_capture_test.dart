@@ -258,6 +258,8 @@ void main() {
           expect(tester.takeException(), isNull);
           final label = '${brightness.name}-${width.toInt()}';
           await capture(tester, 'ledger-notes-top-$label.png');
+          await tester.tap(find.byKey(const Key('ledger-quick-actions')));
+          await tester.pumpAndSettle();
           await tester.ensureVisible(find.text('المزيد من الإجراءات'));
           await tester.tap(find.text('المزيد من الإجراءات'));
           await tester.pumpAndSettle();
@@ -266,6 +268,8 @@ void main() {
           await tester.ensureVisible(notes);
           await tester.pump();
           await capture(tester, 'ledger-notes-actions-$label.png');
+          Navigator.of(tester.element(notes)).pop();
+          await tester.pumpAndSettle();
           final older = find.byKey(const Key('ledger-load-older'));
           expect(older, findsOneWidget);
           await tester.ensureVisible(older);

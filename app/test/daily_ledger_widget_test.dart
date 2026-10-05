@@ -337,6 +337,17 @@ void main() {
           ),
         );
         expect(tester.takeException(), isNull);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-customize')));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.byKey(const Key('ledger-show-movement')),
+        );
+        await tester.tap(find.byKey(const Key('ledger-show-movement')));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
+        await tester.tap(find.byKey(const Key('ledger-customize')));
+        await tester.pumpAndSettle();
         expect(find.text('حركة الذهب'), findsOneWidget);
         await tester.ensureVisible(find.text('حركة الذهب'));
         await tester.tap(find.text('حركة الذهب'));
@@ -483,9 +494,9 @@ void main() {
     expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
     expect(find.text('إجمالي النقد'), findsOneWidget);
     expect(find.text('صافي النقد'), findsNothing);
-    expect(find.text('10000.00'), findsOneWidget);
+    expect(find.text('10,000'), findsWidgets);
     expect(find.text('5.000 جرام'), findsWidgets);
-    expect(find.text('10000.00 جنيه'), findsWidgets);
+    expect(find.text('10,000'), findsWidgets);
     await tester.tap(find.byKey(const Key('confirm-opening')));
     await tester.pump();
     expect(find.text('بانتظار تأكيد الخادم'), findsOneWidget);
@@ -498,6 +509,10 @@ void main() {
     expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
     expect(find.text('إجمالي النقدية'), findsOneWidget);
     expect(find.textContaining('10,000'), findsWidgets);
+    await show(tester, const Key('ledger-other-movements'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عرض الحركات الأخرى'));
+    await tester.pumpAndSettle();
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);
     expect(find.textContaining('T'), findsNothing);
@@ -678,7 +693,7 @@ void main() {
     await tester.tap(find.byKey(const Key('review-zero')));
     await tester.pumpAndSettle();
     expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-    expect(find.text('0.00'), findsWidgets);
+    expect(find.text('0'), findsWidgets);
     expect(gateway.confirmCalls, 0);
   });
 
@@ -770,7 +785,11 @@ void main() {
       generation: 2,
     );
     await tester.pumpAndSettle();
-    expect(find.text('10,000'), findsOneWidget);
+    expect(find.text('10,000'), findsWidgets);
+    await show(tester, const Key('ledger-other-movements'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عرض الحركات الأخرى'));
+    await tester.pumpAndSettle();
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
   });
@@ -809,7 +828,7 @@ void main() {
       await tester.pump(const Duration(minutes: 1));
       await tester.pumpAndSettle();
       expect(gateway.ledgerCalls, greaterThan(firstCalls));
-      expect(find.text('20,000'), findsOneWidget);
+      expect(find.text('20,000'), findsWidgets);
     },
   );
 
@@ -838,7 +857,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('10,000'), findsOneWidget);
+    expect(find.text('10,000'), findsWidgets);
     auth.expire();
     await tester.pumpAndSettle();
     expect(find.text('10,000'), findsNothing);
@@ -867,7 +886,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('10,000'), findsOneWidget);
+    expect(find.text('10,000'), findsWidgets);
     gateShops.accounts = [];
     await tester.tap(find.byTooltip('تحديث الدفتر'));
     await tester.pumpAndSettle();
@@ -899,7 +918,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-    expect(find.text('12.50'), findsOneWidget);
+    expect(find.text('12.50'), findsWidgets);
     expect(gateway.confirmCalls, 0);
   });
 
@@ -1066,7 +1085,7 @@ void main() {
     await pump();
     await tester.pumpAndSettle();
     expect(find.text('متجر الأول'), findsOneWidget);
-    expect(find.text('10,000'), findsOneWidget);
+    expect(find.text('10,000'), findsWidgets);
     userId = 'user-2';
     await pump();
     await tester.pump();
@@ -1121,7 +1140,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('الاشتراك منتهٍ. العرض للقراءة فقط.'), findsOneWidget);
-    expect(find.text('10,000'), findsOneWidget);
+    expect(find.text('10,000'), findsWidgets);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
     expect(find.byKey(const Key('review-zero')), findsNothing);
   });

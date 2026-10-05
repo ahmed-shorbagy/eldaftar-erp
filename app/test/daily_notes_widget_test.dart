@@ -872,6 +872,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('عملية مالية بانتظار تأكيد الخادم'), findsOneWidget);
     expect(find.byKey(const Key('ledger-new-sale')), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-quick-actions')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('المزيد من الإجراءات'));
     await tester.tap(find.text('المزيد من الإجراءات'));
     await tester.pumpAndSettle();
@@ -896,8 +898,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(ledger.olderLoads, 1);
-    await revealInLedger(tester, find.text('باقي الحركات'));
-    await tester.tap(find.text('باقي الحركات'));
+    await revealInLedger(tester, find.text('عرض الحركات الأخرى'));
+    await tester.tap(find.text('عرض الحركات الأخرى'));
     await tester.pumpAndSettle();
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.text('بيع'), findsOneWidget);

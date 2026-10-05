@@ -13,7 +13,6 @@ enum FinancialIssue {
   linePriceMismatch,
   missingDescription,
   invalidCustomer,
-  missingSeller,
   pricingMismatch,
 }
 
@@ -139,11 +138,6 @@ final class FinancialDraft {
       return const FinancialDraftResult._(null, FinancialIssue.tenderMismatch);
     }
     final payableValue = parsedTotal.value.value - tenderSum;
-    if (kind == FinancialKind.purchase &&
-        payableValue > BigInt.zero &&
-        customerName.trim().isEmpty) {
-      return const FinancialDraftResult._(null, FinancialIssue.missingSeller);
-    }
     final parsedCashPaid = Piastres.parseWire(tenderSum.toString());
     final parsedPayable = payableValue == BigInt.zero
         ? null

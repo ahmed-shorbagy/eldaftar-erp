@@ -79,9 +79,9 @@ class _Gateway implements CashTransferGateway, OpeningGateway {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future<ByteData>.value(ByteData.sublistView(font)))).load();
     final icons = await File(
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
@@ -183,8 +183,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('transfer-amount')), '25');
     await tester.tap(find.byKey(const Key('transfer-review')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('75.00 جنيه'), findsOneWidget);
-    expect(find.textContaining('45.00 جنيه'), findsOneWidget);
+    expect(find.textContaining('75'), findsOneWidget);
+    expect(find.textContaining('45'), findsOneWidget);
     expect(find.text('إجمالي النقدية والذهب لا يتغيران.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('transfer-confirm')));
     await tester.pumpAndSettle();

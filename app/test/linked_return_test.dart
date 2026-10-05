@@ -69,9 +69,9 @@ class _Gateway implements LinkedReturnGateway, OpeningGateway {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future<ByteData>.value(ByteData.sublistView(font)))).load();
     final icons = await File(
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
@@ -174,8 +174,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final gateway = await pumpReturn(tester, width: 320, dark: true);
-    expect(find.text('النقد المرتجع: 3000.00 جنيه'), findsOneWidget);
-    expect(find.text('يلغى المستحق المتبقي: 2000.00 جنيه'), findsOneWidget);
+    expect(find.text('النقد المرتجع: 3,000'), findsOneWidget);
+    expect(find.text('يلغى المستحق المتبقي: 2,000'), findsOneWidget);
     expect(find.textContaining('2.500 جرام'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('return-note')), 'إلغاء متفق');
     tester
@@ -205,7 +205,7 @@ void main() {
             .onPressed!();
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('return-confirm')), findsOneWidget);
-        expect(find.textContaining('3000.00 جنيه'), findsOneWidget);
+        expect(find.textContaining('3,000'), findsOneWidget);
         expect(tester.takeException(), isNull);
         final boundary = tester.renderObject<RenderRepaintBoundary>(
           find.byKey(const Key('linked-return-capture')),

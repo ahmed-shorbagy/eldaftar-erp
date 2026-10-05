@@ -5,15 +5,16 @@ abstract final class AppTokens {
   static const Color seed = Color(0xFF6F4E1B);
   static const Color lightSurface = Color(0xFFFFFBF5);
   static const Color lightOnSurface = Color(0xFF1C1915);
-  static const Color darkSurface = Color(0xFF141210);
-  static const Color darkOnSurface = Color(0xFFF6F1E8);
+  static const Color darkSurface = Color(0xFF0C0D0D);
+  static const Color darkOnSurface = Color(0xFFEFEFEF);
   static const Color darkPrimaryContainer = Color(0xFF3A2C18);
 
   /// Brand gold, paired with neutral surfaces in the owner-approved redesign.
   static const Color brandGold = Color(0xFFE6C36A);
   static const Color lightAccent = Color(0xFF94681F);
-  static const Color darkAccent = Color(0xFFE6C36A);
-  static const Color darkCard = Color(0xFF1C1915);
+  static const Color darkAccent = Color(0xFFD4AF37);
+  static const Color darkCard = Color(0xFF161616);
+  static const Color darkOutline = Color(0xFF343434);
   static const Color lightSuccess = Color(0xFF206638);
   static const Color darkSuccess = Color(0xFF86D99F);
 

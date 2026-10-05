@@ -29,11 +29,12 @@ abstract final class AppTheme {
             primaryContainer: AppTokens.darkPrimaryContainer,
             surface: AppTokens.darkSurface,
             onSurface: AppTokens.darkOnSurface,
+            outlineVariant: AppTokens.darkOutline,
           );
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      fontFamily: 'NotoSansArabic',
+      fontFamily: 'Cairo',
     );
     return base.copyWith(
       visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -50,8 +51,8 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: scheme.outlineVariant),
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.7)),
         ),
       ),
       textTheme: base.textTheme.apply(
@@ -59,6 +60,11 @@ abstract final class AppTheme {
         displayColor: scheme.onSurface,
       ),
       iconTheme: IconThemeData(color: scheme.onSurface),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        shape: const CircleBorder(),
+      ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           minimumSize: const Size(

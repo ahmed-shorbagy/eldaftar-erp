@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
@@ -25,8 +26,7 @@ String inventoryIssueCopy(InventoryIssueCode code) => switch (code) {
   InventoryIssueCode.exceedsRemaining => 'الكمية أكبر من المتبقي.',
   InventoryIssueCode.stockPairMismatch =>
     'الوزن والعدد يجب أن ينتهيا معاً أو يبقيا معاً.',
-  InventoryIssueCode.mixedObligation =>
-    'لا يجتمع التزام بالجنيه والتزام بالذهب.',
+  InventoryIssueCode.mixedObligation => 'لا يجتمع التزام  والتزام بالذهب.',
   InventoryIssueCode.karatMismatch =>
     'التزام الذهب يجب أن يكون من عيار القطعة نفسه.',
   InventoryIssueCode.tenderMismatch => 'المدفوع أكبر من السعر المتفق عليه.',
@@ -77,15 +77,14 @@ String inventoryNoteCopy(String note) => switch (note) {
   'owned_now' => 'تنتقل الملكية الآن إلى المتاح للبيع.',
   'no_second_stock_posting' =>
     'الربط يطابق استلاماً بإضافة مؤكدة ولا يضيف مخزوناً مرة ثانية.',
-  'egp_obligation_only' => 'الالتزام بالجنيه فقط، دون التزام ذهبي للثمن نفسه.',
-  'gold_obligation_only' =>
-    'الالتزام بذهب من عيار واحد فقط، دون التزام بالجنيه.',
+  'egp_obligation_only' => 'الالتزام  فقط، دون التزام ذهبي للثمن نفسه.',
+  'gold_obligation_only' => 'الالتزام بذهب من عيار واحد فقط، دون التزام .',
   'partial_quantity' => 'حركة جزئية من الكمية المتبقية.',
   'full_quantity' => 'كامل الكمية المتبقية.',
   'partial_settlement' => 'تسوية جزئية للمستحق.',
   'full_settlement' => 'تسوية كاملة للمستحق.',
   'same_karat' =>
-    'التحويل يبقي العيار نفسه ولا يحوّل بين العيارات أو بين الذهب والجنيه.',
+    'التحويل يبقي العيار نفسه ولا يحوّل بين العيارات أو بين الذهب والنقد.',
   'adjustment_clearing' => 'فرق الجرد يبقى ظاهراً ويُقابل حساب التسوية.',
   'catalog_only' => 'حفظ في الكتالوج بلا أثر على النقد أو الذهب.',
   'explicit_obligation_karat' =>
@@ -102,19 +101,19 @@ String effectCopy(InventoryEffect effect) {
   if (effect.unit == EffectUnit.piastres) {
     final parsed = Piastres.parseWire(amount.toString());
     final pounds = parsed is Accepted<Piastres>
-        ? parsed.value.poundsText
+        ? displayPounds(parsed.value.poundsText)
         : amount.toString();
     if (effect.bucket == 'cash') {
       final method = CashMethod.byCode(effect.method ?? '');
       final label = method == null
           ? effect.method ?? ''
           : cashMethodLabel(method);
-      return '$direction النقد ($label): $pounds جنيه.';
+      return '$direction النقد ($label): $pounds.';
     }
     if (effect.bucket == 'egp_payable') {
       return effect.delta.isNegative
-          ? 'ينقص المستحق بالجنيه: $pounds جنيه، دون حركة ذهب.'
-          : 'يفتح مستحقاً بالجنيه: $pounds جنيه، دون مستحق ذهبي.';
+          ? 'ينقص المستحق : $pounds، دون حركة ذهب.'
+          : 'يفتح مستحقاً : $pounds، دون مستحق ذهبي.';
     }
   }
   if (effect.unit == EffectUnit.count) {
@@ -128,7 +127,7 @@ String effectCopy(InventoryEffect effect) {
   if (effect.bucket == 'gold_payable') {
     return effect.delta.isNegative
         ? 'ينقص المستحق بالذهب عيار ${effect.karat}: $grams جرام، دون حركة نقد.'
-        : 'يفتح مستحقاً بالذهب عيار ${effect.karat}: $grams جرام، دون مستحق بالجنيه.';
+        : 'يفتح مستحقاً بالذهب عيار ${effect.karat}: $grams جرام، دون مستحق .';
   }
   final category = inventoryCategoryLabel(effect.category ?? '');
   return '$direction $where: $grams جرام $category عيار ${effect.karat}.';
@@ -139,7 +138,7 @@ String _bucketLabel(String bucket) => switch (bucket) {
   'owned_pending' => 'المملوك بانتظار الاعتراف',
   'trader_custody' => 'أمانة التاجر',
   'cash' => 'النقد',
-  'egp_payable' => 'المستحق بالجنيه',
+  'egp_payable' => 'المستحق ',
   'gold_payable' => 'المستحق بالذهب',
   _ => bucket,
 };
@@ -156,7 +155,7 @@ String gramsOf(BigInt milligrams) {
 String poundsOf(BigInt piastres) {
   final parsed = Piastres.parseWire(piastres.toString());
   return parsed is Accepted<Piastres>
-      ? parsed.value.poundsText
+      ? displayPounds(parsed.value.poundsText)
       : piastres.toString();
 }
 

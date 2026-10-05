@@ -405,7 +405,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                           ? 'التحقق من الحالة'
                           : reviewing
                           ? 'تأكيد التحويل'
-                          : 'مراجعة الأثر',
+                          : 'مراجعة العملية',
                     ),
                   ),
                 ),

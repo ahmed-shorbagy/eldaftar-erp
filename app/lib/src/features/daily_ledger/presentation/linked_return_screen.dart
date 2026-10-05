@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import 'package:flutter/material.dart';
 
 import '../application/financial_gateway.dart';
@@ -211,7 +212,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text('النقد المرتجع: $_cashReturn جنيه'),
+                          Text('النقد المرتجع: $_cashReturn'),
                           if (_kind == 'purchase_return' &&
                               _parse(
                                     widget
@@ -219,7 +220,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                                   ) >
                                   BigInt.zero)
                             Text(
-                              'يلغى المستحق المتبقي: ${_pounds(_parse(widget.operation['purchase_payable_remaining_piastres']))} جنيه',
+                              'يلغى المستحق المتبقي: ${_pounds(_parse(widget.operation['purchase_payable_remaining_piastres']))}',
                             ),
                           const Text(
                             'تعكس كل أوزان الذهب وأعداد القطع الأصلية.',
@@ -300,7 +301,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                           ? 'التحقق من الحالة'
                           : _reviewing
                           ? 'تأكيد المرتجع الكامل'
-                          : 'مراجعة الأثر',
+                          : 'مراجعة العملية',
                     ),
                   ),
                 ),
@@ -319,10 +320,9 @@ BigInt _parse(Object? value) {
   return parsed is Accepted<Piastres> ? parsed.value.value : BigInt.zero;
 }
 
-String _pounds(BigInt value) =>
-    (Piastres.parseWire(value.toString()) as Accepted<Piastres>)
-        .value
-        .poundsText;
+String _pounds(BigInt value) => displayPounds(
+  (Piastres.parseWire(value.toString()) as Accepted<Piastres>).value.poundsText,
+);
 
 String _grams(Object? value) {
   if (value is! String) return '—';

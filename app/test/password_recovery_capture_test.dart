@@ -206,8 +206,8 @@ Future<void> _openRequest(WidgetTester tester) async {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final arabic = FontLoader('NotoSansArabic')
-      ..addFont(rootBundle.load('assets/fonts/NotoSansArabic.ttf'));
+    final arabic = FontLoader('Cairo')
+      ..addFont(rootBundle.load('assets/fonts/Cairo.ttf'));
     await arabic.load();
     final sdkRoot = Platform.resolvedExecutable
         .split(RegExp(r'[/\\]bin[/\\]cache[/\\]'))

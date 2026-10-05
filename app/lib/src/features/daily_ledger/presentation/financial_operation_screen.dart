@@ -112,7 +112,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
     final message =
         'ملخص العملية رقم $sequence\n'
         '${widget.line.labelAr}\n'
-        'الإجمالي: ${_pounds(payload['total_piastres'])} جنيه\n'
+        'الإجمالي: ${_pounds(payload['total_piastres'])}\n'
         'يرجى مراجعة تفاصيل العملية قبل الإرسال.';
     final link = Uri.https('wa.me', '/$phone', {'text': message});
     try {
@@ -330,7 +330,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                   _ => 'النقد المدفوع',
                                 }),
                                 Text(
-                                  '${_pounds(details['total_piastres'])} جنيه',
+                                  _pounds(details['total_piastres']),
                                   textDirection: TextDirection.ltr,
                                   style: theme.textTheme.headlineSmall,
                                 ),
@@ -341,17 +341,15 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       ],
                       if (pricing is Map) ...[
                         Text(
-                          'السعر الأساسي: ${_pounds(pricing['base_piastres'])} جنيه',
+                          'السعر الأساسي: ${_pounds(pricing['base_piastres'])}',
                         ),
                         Text(
-                          'المصنعية: ${_pounds(pricing['workmanship_piastres'])} جنيه',
+                          'المصنعية: ${_pounds(pricing['workmanship_piastres'])}',
                         ),
                         Text(
-                          'الرسوم الأخرى (${pricing['other_charges_label'] ?? ''}): ${_pounds(pricing['other_charges_piastres'])} جنيه',
+                          'الرسوم الأخرى (${pricing['other_charges_label'] ?? ''}): ${_pounds(pricing['other_charges_piastres'])}',
                         ),
-                        Text(
-                          'الخصم: ${_pounds(pricing['discount_piastres'])} جنيه',
-                        ),
+                        Text('الخصم: ${_pounds(pricing['discount_piastres'])}'),
                         const SizedBox(height: 12),
                       ],
                       if (widget.line.kind == 'cash_transfer' &&
@@ -364,7 +362,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  'تحويل ${_pounds(details['amount_piastres'])} جنيه',
+                                  'تحويل ${_pounds(details['amount_piastres'])}',
                                 ),
                                 Text('من ${_method(details['from_method'])}'),
                                 Text('إلى ${_method(details['to_method'])}'),
@@ -397,13 +395,11 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         ),
                       ],
                       if (widget.line.kind == 'purchase') ...[
-                        Text(
-                          'المدفوع عند الشراء: ${_paidPounds(tenders)} جنيه',
-                        ),
+                        Text('المدفوع عند الشراء: ${_paidPounds(tenders)}'),
                         if (operation?['purchase_payable_remaining_piastres']
                             is String)
                           Text(
-                            'المستحق للبائع الآن: ${_pounds(operation?['purchase_payable_remaining_piastres'])} جنيه',
+                            'المستحق للبائع الآن: ${_pounds(operation?['purchase_payable_remaining_piastres'])}',
                           ),
                         if (widget.gateway is PurchaseSettlementGateway &&
                             widget.gateway is OpeningGateway &&
@@ -421,7 +417,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               widget.line.kind == 'purchase_return') &&
                           details['cash_returned_piastres'] is String) ...[
                         Text(
-                          'النقد المرتجع: ${_pounds(details['cash_returned_piastres'])} جنيه',
+                          'النقد المرتجع: ${_pounds(details['cash_returned_piastres'])}',
                         ),
                         Text(
                           'مرتبطة بالعملية رقم ${details['original_sequence'] ?? '—'}',
@@ -430,7 +426,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           details['cancelled_payable_piastres'],
                         ))
                           Text(
-                            'المستحق الملغى: ${_pounds(details['cancelled_payable_piastres'])} جنيه',
+                            'المستحق الملغى: ${_pounds(details['cancelled_payable_piastres'])}',
                           ),
                       ],
                       if (items is List && items.isNotEmpty) ...[
@@ -453,7 +449,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                     ),
                                     if (entry['line_price_piastres'] is String)
                                       Text(
-                                        'سعر الصنف: ${_pounds(entry['line_price_piastres'])} جنيه',
+                                        'سعر الصنف: ${_pounds(entry['line_price_piastres'])}',
                                       ),
                                   ],
                                 ),
@@ -467,9 +463,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           if (entry is Map)
                             ListTile(
                               title: Text(_method(entry['method'])),
-                              trailing: Text(
-                                '${_pounds(entry['piastres'])} جنيه',
-                              ),
+                              trailing: Text(_pounds(entry['piastres'])),
                             ),
                       ],
                       if (details['description'] is String &&
@@ -478,7 +472,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       if (details['customer_name'] is String &&
                           (details['customer_name'] as String).isNotEmpty)
                         Text(
-                          '${widget.line.kind == 'purchase' ? 'البائع' : 'العميل'}: ${details['customer_name']}',
+                          '${widget.line.kind == 'purchase' ? 'العميل' : 'العميل'}: ${details['customer_name']}',
                         ),
                       if (details['note'] is String &&
                           (details['note'] as String).isNotEmpty)

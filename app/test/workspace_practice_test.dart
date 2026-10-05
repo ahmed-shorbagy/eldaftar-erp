@@ -65,9 +65,9 @@ Future<void> _capture(WidgetTester tester, GlobalKey key, String name) async {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
+    final font = await File('assets/fonts/Cairo.ttf').readAsBytes();
     await (FontLoader(
-      'NotoSansArabic',
+      'Cairo',
     )..addFont(Future.value(ByteData.sublistView(font)))).load();
     final sdkRoot = Platform.resolvedExecutable
         .split(RegExp(r'[/\\]bin[/\\]cache[/\\]'))
@@ -107,7 +107,6 @@ void main() {
     expect(find.byKey(const Key('onboarding-guide')), findsNothing);
     await beginTrade(tester);
     expect(guide.step, 0);
-    await tester.enterText(find.byKey(const Key('trade-name-0')), 'خاتم تدريب');
     await tester.ensureVisible(find.byKey(const Key('trade-grams-0')));
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
     await nextTrade(tester);
@@ -121,7 +120,7 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.text('إنهاء التدريب دون حفظ'), findsOneWidget);
-    expect(find.text('1,200.01 جنيه'), findsWidgets);
+    expect(find.text('1,200.01'), findsWidgets);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.keys, isEmpty);
