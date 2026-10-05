@@ -24,6 +24,7 @@ for (const name of [
   'identity_rls.sql',
   'identity_commands.sql',
   'egypt_owner_registration.sql',
+  'owner_feedback_registration.sql',
   'opening_balances.sql',
   'opening_rls.sql',
   'daily_ledger_trades.sql',

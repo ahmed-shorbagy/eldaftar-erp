@@ -258,6 +258,9 @@ void main() {
           expect(tester.takeException(), isNull);
           final label = '${brightness.name}-${width.toInt()}';
           await capture(tester, 'ledger-notes-top-$label.png');
+          await tester.ensureVisible(find.text('المزيد من الإجراءات'));
+          await tester.tap(find.text('المزيد من الإجراءات'));
+          await tester.pumpAndSettle();
           final notes = find.byKey(const Key('ledger-daily-notes'));
           expect(notes, findsOneWidget);
           await tester.ensureVisible(notes);

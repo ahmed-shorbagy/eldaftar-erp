@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 const double authControlHeight = 48;
-const double authCornerRadius = 12;
+const double authCornerRadius = 14;
 
 /// Shared auth and recovery form theme. Colors come from [ColorScheme].
 ThemeData authFormTheme(ThemeData theme) {
@@ -25,14 +25,14 @@ ThemeData authFormTheme(ThemeData theme) {
     appBarTheme: theme.appBarTheme.copyWith(
       centerTitle: false,
       toolbarHeight: authControlHeight + 8,
-      backgroundColor: scheme.surface,
+      backgroundColor: Colors.transparent,
       foregroundColor: scheme.onSurface,
       elevation: 0,
       scrolledUnderElevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surface,
+      fillColor: scheme.surface.withValues(alpha: 0.88),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       floatingLabelBehavior: FloatingLabelBehavior.never,
       errorMaxLines: 8,
@@ -75,7 +75,7 @@ ThemeData authFormTheme(ThemeData theme) {
         minimumSize: const Size(48, authControlHeight),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: buttonShape,
-        side: BorderSide(color: scheme.outline),
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.55)),
         foregroundColor: scheme.onSurface,
         textStyle: buttonText,
         tapTargetSize: MaterialTapTargetSize.padded,

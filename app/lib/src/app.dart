@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:phone_form_field/phone_form_field.dart';
 
 import 'config/supabase_startup.dart';
 import 'features/auth/domain/auth_gateway.dart';
@@ -52,6 +53,7 @@ class ElDafttarApp extends StatelessWidget {
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
+            ...PhoneFieldLocalization.delegates,
           ],
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),

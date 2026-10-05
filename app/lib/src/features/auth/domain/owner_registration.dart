@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'account_identifiers.dart';
-import 'egyptian_governorates.dart';
+import 'registration_country.dart';
 
 enum RegistrationFailure {
   invalidInput,
@@ -81,13 +81,19 @@ class OwnerRegistration {
     final canonicalOwner = AccountName.tryCanonical(ownerName);
     final canonicalBusiness = AccountName.tryCanonical(businessName);
     final canonicalEmail = AccountEmail.tryCanonical(email);
-    final canonicalPhone = EgyptianPhone.tryCanonical(phone);
+    final country = RegistrationCountry.byCode(
+      governorateCode.substring(
+        0,
+        governorateCode.length < 2 ? governorateCode.length : 2,
+      ),
+    );
+    final canonicalPhone = country?.canonicalPhone(phone);
     if (!IdempotencyKey.isV4(idempotencyKey) ||
         canonicalOwner == null ||
         canonicalBusiness == null ||
         canonicalEmail == null ||
         canonicalPhone == null ||
-        !EgyptianGovernorates.isValid(governorateCode) ||
+        !RegistrationCountry.validRegion(governorateCode) ||
         !AccountPassword.isAcceptable(password)) {
       return null;
     }

@@ -4,19 +4,16 @@ import '../domain/auth_gateway.dart';
 /// verified or as proof of ownership.
 abstract final class AuthCopy {
   static const signInTitle = 'تسجيل الدخول';
-  static const signUpTitle = 'إنشاء حساب المالك';
-  static const signInBody =
-      'أدخل البريد الإلكتروني أو رقم الهاتف، ثم كلمة المرور.';
+  static const signUpTitle = 'إنشاء حساب';
+  static const signInBody = 'مرحبًا بك مجددًا';
   static const signInAssurance = 'نجاح الدخول لا يثبت ملكية البريد أو الهاتف.';
-  static const signUpBody =
-      'عرّفنا بك وبمتجرك. نتعرف على البريد والهاتف من طريقة الكتابة.';
+  static const signUpBody = 'أدخل بياناتك لإنشاء حساب جديد';
   static const ownerSection = 'المالك والنشاط';
   static const contactSection = 'البريد والهاتف';
   static const contactGuide = 'اكتب كل واحد في حقل، بأي ترتيب.';
   static const contactLabel = 'البريد أو رقم الهاتف';
   static const contactHint = 'name@mail.com\n01012345678';
-  static const contactInvalid =
-      'أدخل بريدًا إلكترونيًا أو رقم هاتف مصريًا صحيحًا';
+  static const contactInvalid = 'أدخل بريدًا إلكترونيًا أو رقم هاتف صحيحًا';
   static const detectedEmail = 'تعرّفنا عليه كبريد إلكتروني';
   static const detectedPhone = 'تعرّفنا عليه كرقم هاتف';
   static const duplicateContact =
@@ -29,10 +26,10 @@ abstract final class AuthCopy {
   static const emailHint = 'name@example.com';
   static const phoneHint = '01012345678';
   static const emailLabel = 'البريد الإلكتروني';
-  static const phoneLabel = 'رقم الهاتف المصري';
+  static const phoneLabel = 'رقم الهاتف';
   static const passwordLabel = 'كلمة المرور';
-  static const ownerLabel = 'اسم المالك';
-  static const businessLabel = 'اسم النشاط';
+  static const ownerLabel = 'الاسم';
+  static const businessLabel = 'اسم المحل';
   static const governorateLabel = 'المحافظة';
   static const modeSignIn = 'دخول';
   static const modeSignUp = 'حساب جديد';
@@ -42,10 +39,10 @@ abstract final class AuthCopy {
   static const signUpBusy = 'جارٍ إرسال طلب التسجيل…';
   static const retryAction = 'إعادة المحاولة';
   static const emailInvalid = 'أدخل بريدًا إلكترونيًا صحيحًا';
-  static const phoneInvalid = 'أدخل رقم هاتف مصري صحيحًا';
-  static const ownerInvalid = 'أدخل اسم المالك من ١ إلى ١٢٠ حرفًا';
-  static const businessInvalid = 'أدخل اسم النشاط من ١ إلى ١٢٠ حرفًا';
-  static const governorateInvalid = 'اختر محافظة مصرية';
+  static const phoneInvalid = 'أدخل رقم هاتف صحيحًا للدولة المختارة';
+  static const ownerInvalid = 'أدخل الاسم من ١ إلى ١٢٠ حرفًا';
+  static const businessInvalid = 'أدخل اسم المحل من ١ إلى ١٢٠ حرفًا';
+  static const governorateInvalid = 'اختر المحافظة / المنطقة';
   static const governorateHint = 'اختر المحافظة';
   static const passwordInvalid = 'أدخل كلمة مرور صالحة من ٨ إلى ٧٢ بايتًا';
   static const signInFailed =

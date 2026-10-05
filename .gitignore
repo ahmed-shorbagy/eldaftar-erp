@@ -11,6 +11,7 @@ build/
 coverage/
 node_modules/
 dist/
+tmp/
 .next/
 *.log
 .idea/

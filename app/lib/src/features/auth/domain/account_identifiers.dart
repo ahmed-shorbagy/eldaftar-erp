@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'registration_country.dart';
 
 /// Canonical account identifiers. Passwords stay in memory for the Auth
 /// request only and are omitted from [toString].
@@ -91,7 +92,9 @@ class SignInRequest {
     if (!AccountPassword.isAcceptable(password)) return null;
     final canonical = switch (kind) {
       SignInIdentifier.email => AccountEmail.tryCanonical(identifier),
-      SignInIdentifier.phone => EgyptianPhone.tryCanonical(identifier),
+      SignInIdentifier.phone => RegistrationCountry.internationalPhone(
+        identifier,
+      ),
     };
     if (canonical == null) return null;
     return SignInRequest._(

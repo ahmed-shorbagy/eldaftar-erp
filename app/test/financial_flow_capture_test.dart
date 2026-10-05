@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
-import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_close_screen.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/financial_trade_screen.dart';
@@ -11,11 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-class _UnusedGateway implements FinancialGateway, OpeningGateway {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'financial_trade_screen_test.dart'
+    show beginTrade, nextTrade, FakeFinancialGateway;
 
 const _boundary = Key('financial-capture-boundary');
 
@@ -28,7 +26,7 @@ Future<void> _save(WidgetTester tester, String name) async {
   await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1);
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    final directory = Directory('build/financial-flow-review');
+    final directory = Directory('build/owner-feedback-review/trades');
     await directory.create(recursive: true);
     await File(
       '${directory.path}/$name.png',
@@ -38,6 +36,10 @@ Future<void> _save(WidgetTester tester, String name) async {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final font = await File('assets/fonts/NotoSansArabic.ttf').readAsBytes();
@@ -51,8 +53,8 @@ void main() {
       'MaterialIcons',
     )..addFont(Future<ByteData>.value(ByteData.sublistView(icons)))).load();
   });
-  final gateway = _UnusedGateway();
-  for (final width in [320.0, 1440.0]) {
+  final gateway = FakeFinancialGateway();
+  for (final width in [320.0, 390.0, 1440.0]) {
     for (final dark in [false, true]) {
       final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
       testWidgets('captures sale entry and review $suffix', (tester) async {
@@ -82,11 +84,14 @@ void main() {
           ),
         );
         await _save(tester, 'sale-entry-$suffix');
+        await beginTrade(tester);
+        await _save(tester, 'sale-items-$suffix');
         await tester.enterText(
           find.byKey(const Key('trade-name-0')),
           'خاتم ذهب',
         );
         await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
+        await nextTrade(tester);
         await tester.dragUntilVisible(
           find.byKey(const Key('trade-tender-amount-0')),
           find.byType(ListView),
@@ -96,10 +101,18 @@ void main() {
           find.byKey(const Key('trade-tender-amount-0')),
           '4200.25',
         );
+        await _save(tester, 'payment-$suffix');
+        await nextTrade(tester);
+        await _save(tester, 'sale-details-$suffix');
+        await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('trade-confirm')), findsOneWidget);
         await _save(tester, 'sale-review-$suffix');
+        await tester.tap(find.byKey(const Key('trade-confirm')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('trade-success')), findsOneWidget);
+        await _save(tester, 'sale-success-$suffix');
       });
       testWidgets('captures manual close $suffix', (tester) async {
         tester.view.physicalSize = Size(width, 820);
@@ -169,11 +182,13 @@ void main() {
             ),
           ),
         );
+        await beginTrade(tester);
         await tester.enterText(find.byKey(const Key('trade-name-0')), 'سوار');
         await tester.enterText(
           find.byKey(const Key('trade-grams-0')),
           '10.000',
         );
+        await nextTrade(tester);
         await tester.dragUntilVisible(
           find.byKey(const Key('trade-purchase-price')),
           find.byType(ListView),
@@ -196,6 +211,10 @@ void main() {
           find.byKey(const Key('trade-tender-amount-0')),
           '20000',
         );
+        await _save(tester, 'payment-$suffix');
+        await nextTrade(tester);
+        await _save(tester, 'sale-details-$suffix');
+        await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
         expect(find.textContaining('يبقى مستحقاً للبائع'), findsOneWidget);
@@ -228,8 +247,10 @@ void main() {
           ),
         );
         await _save(tester, 'scrap-sale-entry-$suffix');
+        await beginTrade(tester);
         await tester.enterText(find.byKey(const Key('trade-name-0')), 'كسر');
         await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.375');
+        await nextTrade(tester);
         await tester.dragUntilVisible(
           find.byKey(const Key('trade-tender-amount-0')),
           find.byType(ListView),
@@ -239,6 +260,10 @@ void main() {
           find.byKey(const Key('trade-tender-amount-0')),
           '125.25',
         );
+        await _save(tester, 'payment-$suffix');
+        await nextTrade(tester);
+        await _save(tester, 'sale-details-$suffix');
+        await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
         expect(find.textContaining('ينقص الكسر'), findsOneWidget);

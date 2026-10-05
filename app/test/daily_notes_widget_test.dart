@@ -495,7 +495,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byKey(const Key('daily-notes-help')), findsOneWidget);
+    expect(find.byKey(const Key('daily-note-text')), findsOneWidget);
     expect(find.text(DailyNoteCopy.empty), findsOneWidget);
     expect(
       tester
@@ -872,6 +872,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('عملية مالية بانتظار تأكيد الخادم'), findsOneWidget);
     expect(find.byKey(const Key('ledger-new-sale')), findsNothing);
+    await tester.ensureVisible(find.text('المزيد من الإجراءات'));
+    await tester.tap(find.text('المزيد من الإجراءات'));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('ledger-daily-notes')), findsOneWidget);
     expect(find.byKey(const Key('ledger-load-older')), findsOneWidget);
     final notesButton = find.byKey(const Key('ledger-daily-notes'));
@@ -879,7 +882,7 @@ void main() {
     await tester.tap(notesButton);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    expect(find.byKey(const Key('daily-notes-help')), findsOneWidget);
+    expect(find.byKey(const Key('daily-note-text')), findsOneWidget);
     navigatorPop(tester);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
@@ -893,13 +896,16 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(ledger.olderLoads, 1);
+    await revealInLedger(tester, find.text('باقي الحركات'));
+    await tester.tap(find.text('باقي الحركات'));
+    await tester.pumpAndSettle();
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.text('بيع'), findsOneWidget);
   });
 }
 
 void navigatorPop(WidgetTester tester) {
-  Navigator.of(tester.element(find.byKey(const Key('daily-notes-help')))).pop();
+  Navigator.of(tester.element(find.byKey(const Key('daily-note-text')))).pop();
 }
 
 /// The ledger list builds its dashboard as one tall child, so a finder can

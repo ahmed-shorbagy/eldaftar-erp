@@ -65,6 +65,16 @@ begin
   ) then
     raise exception 'sale note marker missing';
   end if;
+  if not exists (
+    select 1 from jsonb_array_elements(public.get_daily_ledger_v2() -> 'feed') as row(value)
+    where row.value ->> 'operation_id' = (v_result ->> 'operation_id')
+      and row.value ->> 'total_pounds' = '50.00'
+      and row.value ->> 'weight_grams' = '2.000'
+      and row.value ->> 'karat' = '18'
+      and row.value ->> 'payment_label' = 'فيزا + كاش'
+  ) then
+    raise exception 'exact business summary missing from sale journal';
+  end if;
   if jsonb_array_length(public.get_pending_invoice_sends(null) -> 'items') <> 1 then
     raise exception 'confirmed sale absent from pending-send queue';
   end if;

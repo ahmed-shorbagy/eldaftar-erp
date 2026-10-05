@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../features/daily_ledger/application/financial_gateway.dart';
 import '../features/daily_ledger/application/opening_gateway.dart';
 import '../features/daily_ledger/application/pending_opening_store.dart';
-import '../features/daily_ledger/domain/financial_draft.dart';
 import '../features/daily_ledger/presentation/daily_ledger_screen.dart';
-import '../features/daily_ledger/presentation/financial_trade_screen.dart';
 import '../features/onboarding/application/onboarding_store.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../theme/app_tokens.dart';
@@ -17,7 +14,7 @@ class ShopWorkspace extends StatefulWidget {
     required this.shop,
     required this.onSignOut,
     required this.onToggleTheme,
-    required this.onChangeShop,
+    this.onChangeShop,
     this.gateway,
     this.store,
     this.userId,
@@ -31,7 +28,7 @@ class ShopWorkspace extends StatefulWidget {
   final ShopAccount shop;
   final Future<void> Function() onSignOut;
   final Future<void> Function(Brightness) onToggleTheme;
-  final VoidCallback onChangeShop;
+  final VoidCallback? onChangeShop;
   final OpeningGateway? gateway;
   final PendingOpeningStore? store;
   final String? userId;
@@ -47,7 +44,6 @@ class ShopWorkspace extends StatefulWidget {
 
 class _ShopWorkspaceState extends State<ShopWorkspace> {
   int _destination = 1;
-  int _guideGeneration = 0;
   static const _labels = [
     'الرئيسية',
     'الدفتر اليومي',
@@ -66,34 +62,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   ];
 
   void _select(int index) => setState(() => _destination = index);
-
-  Future<void> _practiceSale() async {
-    final gateway = widget.gateway;
-    final userId = widget.userId;
-    if (gateway == null || gateway is! FinancialGateway || userId == null) {
-      return;
-    }
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => FinancialTradeScreen(
-          kind: FinancialKind.sale,
-          gateway: gateway as FinancialGateway,
-          statusGateway: gateway,
-          userId: userId,
-          shopId: widget.shop.id,
-          practice: true,
-          onboardingStore: widget.onboardingStore,
-        ),
-      ),
-    );
-  }
-
-  void _resumeLedger() {
-    setState(() {
-      _destination = 1;
-      _guideGeneration++;
-    });
-  }
 
   Widget _page(String title, List<Widget> children) => Scaffold(
     appBar: AppBar(title: Text(title)),
@@ -125,36 +93,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         ),
       );
 
-  Widget _help() => _page('المساعدة والإرشاد', [
-    const Text('تابع من موضعك السابق أو جرّب أدوات البيع في مسودة آمنة.'),
-    const SizedBox(height: 16),
-    _link('استئناف إرشاد الدفتر', Icons.menu_book_outlined, () {
-      Navigator.pop(context);
-      _resumeLedger();
-    }),
-    if (widget.gateway is FinancialGateway && widget.userId != null)
-      _link(
-        'تدريب على أول بيع — دون حفظ',
-        Icons.school_outlined,
-        _practiceSale,
-        key: const Key('help-practice-sale'),
-      ),
-    if (widget.inventoryBuilder != null)
-      _link('إرشاد المخزون', Icons.inventory_2_outlined, () {
-        Navigator.pop(context);
-        _select(2);
-      }),
-    if (widget.traderBuilder != null)
-      _link('إرشاد التجار والأمانات', Icons.storefront_outlined, () {
-        Navigator.pop(context);
-        _openTraders();
-      }),
-  ]);
-
-  void _openHelp() => Navigator.of(
-    context,
-  ).push<void>(MaterialPageRoute(builder: (_) => _help()));
-
   void _openTraders() {
     final builder = widget.traderBuilder;
     if (builder != null) {
@@ -175,7 +113,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         _link('عرض المخزون', Icons.inventory_2_outlined, () => _select(2)),
       if (widget.traderBuilder != null)
         _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
-      _link('المساعدة والإرشاد', Icons.help_outline, _openHelp),
     ]),
     1 => DailyLedgerScreen(
       shop: widget.shop,
@@ -183,7 +120,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       store: widget.store,
       userId: widget.userId,
       refreshGeneration: widget.refreshGeneration,
-      guideResumeGeneration: _guideGeneration,
       onSignOut: widget.onSignOut,
       onToggleTheme: widget.onToggleTheme,
       onChangeShop: widget.onChangeShop,
@@ -219,23 +155,18 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
       _link('التقارير', Icons.assessment_outlined, () => _select(4)),
       _link(
-        'المساعدة والإرشاد',
-        Icons.help_outline,
-        _openHelp,
-        key: const Key('workspace-help'),
-      ),
-      _link(
         Theme.of(context).brightness == Brightness.dark
             ? 'المظهر الفاتح'
             : 'المظهر الداكن',
         Icons.brightness_6_outlined,
         () => widget.onToggleTheme(Theme.of(context).brightness),
       ),
-      _link(
-        'العودة إلى حساب المتجر',
-        Icons.storefront_outlined,
-        widget.onChangeShop,
-      ),
+      if (widget.onChangeShop != null)
+        _link(
+          'العودة إلى حساب المتجر',
+          Icons.storefront_outlined,
+          widget.onChangeShop!,
+        ),
       _link('تسجيل الخروج', Icons.logout, widget.onSignOut),
     ]),
   };

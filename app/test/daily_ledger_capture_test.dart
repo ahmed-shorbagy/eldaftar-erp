@@ -277,7 +277,7 @@ void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
 
 void expectConfirmedFeed(WidgetTester tester) {
   expect(find.text('رصيد افتتاحي'), findsOneWidget);
-  expect(find.text('$ownerName · $cairoStamp'), findsOneWidget);
+  expect(find.text(cairoStamp), findsOneWidget);
   expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
 }
@@ -649,7 +649,17 @@ Future<void> captureMatrix(
     screenKey: 'confirmed-$label',
   );
   expectConfirmedFeed(tester);
-  expect(find.text('نقدي'), findsOneWidget);
+  expect(find.text('نقدي · 10,000 جنيه'), findsOneWidget);
+  await show(tester, const Key('ledger-customize'));
+  final inventoryDetails = find.byKey(const Key('ledger-inventory-details'));
+  await show(tester, const Key('ledger-inventory-details'));
+  await tester.tap(
+    find.descendant(
+      of: inventoryDetails,
+      matching: find.text('المخزون والكسر'),
+    ),
+  );
+  await tester.pumpAndSettle();
   expect(find.text('سبائك · عيار 24 · 1 قطعة'), findsOneWidget);
   expect(find.text('كسر · عيار 24'), findsOneWidget);
   await captureScrollSlots(
@@ -657,9 +667,13 @@ Future<void> captureMatrix(
     stem: 'confirmed',
     label: label,
     topMarker: find.byKey(const Key('ledger-confirmed-status')),
-    lowerMarker: find.text('$ownerName · $cairoStamp'),
+    lowerMarker: find.text(cairoStamp),
     middleWhenTall: true,
   );
+  await tester.ensureVisible(find.text('حركة الذهب'));
+  await tester.pump();
+  await tester.tap(find.text('حركة الذهب'));
+  await tester.pump();
   await show(tester, const Key('ledger-karat-18'));
   await capture(tester, 'confirmed-movement-$label.png');
 
@@ -694,20 +708,18 @@ Future<void> captureMatrix(
       ),
     ),
   );
-  final shopTile = find.byKey(Key('shop-$shopId'));
+  final shopName = find.byKey(Key('shop-$shopId'));
   for (
     var attempt = 0;
-    attempt < 12 && shopTile.evaluate().isEmpty;
+    attempt < 12 && shopName.evaluate().isEmpty;
     attempt++
   ) {
     await tester.pump(const Duration(milliseconds: 50));
   }
-  expect(shopTile, findsOneWidget);
+  expect(shopName, findsOneWidget);
   expect(find.text('قيد التفعيل'), findsOneWidget);
-  expect(Theme.of(tester.element(shopTile)).brightness, brightness);
-  expect(Directionality.of(tester.element(shopTile)), TextDirection.rtl);
-  await tester.tap(shopTile);
-  await tester.pump();
+  expect(Theme.of(tester.element(shopName)).brightness, brightness);
+  expect(Directionality.of(tester.element(shopName)), TextDirection.rtl);
   expectNoException(tester);
   expect(find.text('قيد التفعيل'), findsOneWidget);
   expect(
@@ -756,7 +768,7 @@ Future<void> captureMatrix(
     stem: 'expired-confirmed',
     label: label,
     topMarker: find.text('منتهي - للقراءة فقط'),
-    lowerMarker: find.text('$ownerName · $cairoStamp'),
+    lowerMarker: find.text(cairoStamp),
     middleWhenTall: true,
   );
 
@@ -850,7 +862,7 @@ void main() {
         timeout: const Timeout(Duration(minutes: 3)),
         skip: !captureFontsAvailable,
       );
-      testWidgets('ledger guide capture $label', (tester) async {
+      testWidgets('ledger without guidance capture $label', (tester) async {
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = size;
         addTearDown(tester.view.resetPhysicalSize);
@@ -865,7 +877,7 @@ void main() {
           screenKey: 'guide-$label',
           onboardingStore: CaptureGuideStore(),
         );
-        expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+        expect(find.byKey(const Key('onboarding-guide')), findsNothing);
         await captureGuide(tester, 'ledger-$label.png');
       }, skip: !captureFontsAvailable);
     }

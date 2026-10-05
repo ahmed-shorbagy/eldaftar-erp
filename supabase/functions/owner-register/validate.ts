@@ -57,8 +57,8 @@ export function validateRegistration(body: unknown): RegistrationInput | null {
   const ownerName = personName(record.owner_name);
   const businessName = personName(record.business_name);
   const email = canonicalEmail(record.email);
-  const phone = canonicalEgyptianPhone(record.phone);
   const governorateCode = governorate(record.governorate_code);
+  const phone = canonicalRegistrationPhone(record.phone, governorateCode);
   const password = passwordField(record.password);
   if (
     idempotencyKey === null || ownerName === null || businessName === null ||
@@ -114,7 +114,12 @@ function hasControlCharacter(value: string): boolean {
 function governorate(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const code = value.trim().toUpperCase();
-  return governorateSet.has(code) ? code : null;
+  if (governorateSet.has(code)) return code;
+  const country = code.slice(0, 2);
+  const region = value.trim().slice(3);
+  return countryDialCodes[country] && code[2] === ":" && region.length > 0 &&
+      [...region].length <= 120 && region === region.trim() && !hasControlCharacter(region)
+    ? `${country}:${region}` : null;
 }
 
 export function canonicalEmail(value: unknown): string | null {
@@ -172,4 +177,19 @@ function passwordField(value: unknown): string | null {
   const bytes = new TextEncoder().encode(value).length;
   if (bytes < 8 || bytes > 72) return null;
   return value;
+}
+
+export const countryDialCodes: Record<string, string> = {"EG": "20", "SA": "966", "AE": "971", "MA": "212", "LY": "218", "YE": "967", "JO": "962", "KW": "965", "QA": "974", "BH": "973", "OM": "968", "IQ": "964", "LB": "961", "PS": "970", "SY": "963", "DZ": "213", "TN": "216", "SD": "249", "MR": "222", "SO": "252", "DJ": "253", "KM": "269"};
+
+export function canonicalRegistrationPhone(value: unknown, region: string | null): string | null {
+  const dial = region === null ? null : countryDialCodes[region.slice(0, 2)];
+  if (!dial || typeof value !== "string" || /[^0-9+ \-()]/.test(value)) return null;
+  if (dial === "20") return canonicalEgyptianPhone(value);
+  let phone = value.replace(/[ \-()]/g, "");
+  if (phone.startsWith("00")) phone = `+${phone.slice(2)}`;
+  if (phone.startsWith("+")) {
+    if (!phone.startsWith(`+${dial}`)) return null;
+    phone = phone.slice(dial.length + 1);
+  } else if (phone.startsWith("0")) phone = phone.slice(1);
+  return /^[1-9][0-9]{6,11}$/.test(phone) && dial.length + phone.length <= 15 ? `+${dial}${phone}` : null;
 }

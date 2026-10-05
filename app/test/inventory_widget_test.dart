@@ -479,9 +479,7 @@ void main() {
     expect(find.textContaining('حفظ الخادم'), findsNothing);
   });
 
-  testWidgets('the guide focuses search and skip keeps the step', (
-    tester,
-  ) async {
+  testWidgets('search works directly without guidance', (tester) async {
     final guide = MemoryGuide();
     final locker = MemoryLocker();
     await tester.pumpWidget(
@@ -499,17 +497,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('onboarding-action')));
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    await tester.tap(find.byKey(const Key('inventory-search')));
     await tester.pump();
     final search = tester.widget<TextField>(
       find.byKey(const Key('inventory-search')),
     );
     expect(search.focusNode!.hasFocus, isTrue);
-    expect(guide.steps['inventory-help_${userId}_$shopId'], 1);
-    await tester.tap(find.byKey(const Key('onboarding-skip')));
-    await tester.pump();
-    expect(guide.steps['inventory-help_${userId}_$shopId'], 1);
-    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(guide.steps, isEmpty);
     expect(locker.value, isNull);
   });
 

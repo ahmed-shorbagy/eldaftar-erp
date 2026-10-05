@@ -125,11 +125,7 @@ void main() {
     tester,
   ) async {
     await pumpShell(tester, status: SupabaseStartupStatus.ready);
-    expect(find.text('اختر المتجر'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const Key('shop-11111111-1111-4111-8111-111111111111')),
-    );
-    await tester.pumpAndSettle();
+    expect(find.text('اختر المتجر'), findsNothing);
     expect(find.text('الدفتر اليومي'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     expect(find.text(ShellCopy.readyTitle), findsNothing);
@@ -178,11 +174,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('sign-in-submit')));
     await tester.pumpAndSettle();
-    expect(find.text('اختر المتجر'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const Key('shop-11111111-1111-4111-8111-111111111111')),
-    );
-    await tester.pumpAndSettle();
+    expect(find.text('اختر المتجر'), findsNothing);
     expect(find.text('الدفتر اليومي'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     await tester.tap(find.byTooltip('المزيد'));

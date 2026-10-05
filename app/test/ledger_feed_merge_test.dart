@@ -68,6 +68,42 @@ Map<String, Object?> pageJson({
 };
 
 void main() {
+  test(
+    'business summaries preserve decimal precision and reject malformed fields',
+    () {
+      final data = pageJson(
+        direction: 'desc',
+        limit: 1,
+        items: [line(1, kind: 'sale')],
+      );
+      final row = (data['items'] as List).single as Map<String, Object?>;
+      row.addAll({
+        'party_name': 'عميل تجريبي',
+        'total_pounds': '90071992547409.93',
+        'weight_grams': '1.830',
+        'karat': 21,
+        'payment_label': 'كاش',
+      });
+      final page = parseLedgerOperationPage(data, expectedShopId: shop);
+      expect(page.items.single.totalPounds, '90071992547409.93');
+      expect(page.items.single.weightGrams, '1.830');
+      expect(page.items.single.partyName, 'عميل تجريبي');
+      for (final field in {
+        'total_pounds': 1.2,
+        'weight_grams': '1.83',
+        'karat': 23,
+        'payment_label': 'bad\nlabel',
+      }.entries) {
+        final previous = row[field.key];
+        row[field.key] = field.value;
+        expect(
+          () => parseLedgerOperationPage(data, expectedShopId: shop),
+          throwsFormatException,
+        );
+        row[field.key] = previous;
+      }
+    },
+  );
   test('merges more than 200 lines without duplicates', () {
     final first = [for (var n = 250; n >= 151; n--) line(n)];
     final second = [for (var n = 150; n >= 51; n--) line(n)];

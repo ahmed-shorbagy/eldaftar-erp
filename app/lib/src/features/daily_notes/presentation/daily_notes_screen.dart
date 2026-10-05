@@ -703,24 +703,6 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            key: const Key('daily-notes-help'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    DailyNoteCopy.helpTitle,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(DailyNoteCopy.helpBody),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
           if (_restoring) ...[
             const LinearProgressIndicator(key: Key('daily-note-restoring')),
             const SizedBox(height: 12),

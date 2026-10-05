@@ -66,8 +66,6 @@ class _TraderScreenState extends State<TraderScreen> {
     store: widget.store,
   );
   int _generation = 0;
-  int _guideStep = 0;
-  bool _guideVisible = false;
   bool _loading = true;
   String? _message;
   bool _messageError = false;
@@ -82,12 +80,9 @@ class _TraderScreenState extends State<TraderScreen> {
   bool _obligationsMissing = false;
   bool _sharing = false;
 
-  String get _guidePath => 'trader-help_${widget.userId}_${widget.shopId}';
-
   @override
   void initState() {
     super.initState();
-    _loadGuide();
     _load();
   }
 
@@ -108,41 +103,6 @@ class _TraderScreenState extends State<TraderScreen> {
     _statementFocus.dispose();
     _nameFocus.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadGuide() async {
-    final store = widget.onboardingStore;
-    if (store == null) return;
-    final done = await store.isComplete(_guidePath);
-    final step = await store.readStep(_guidePath);
-    if (!mounted) return;
-    setState(() {
-      _guideStep = step.clamp(0, traderGuideSteps.length - 1);
-      _guideVisible = !done;
-    });
-  }
-
-  void _guideAction() {
-    final focus = switch (_guideStep) {
-      0 => _searchFocus,
-      1 => _listFocus,
-      2 => _statementFocus,
-      _ => _nameFocus,
-    };
-    focus.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = focus.context;
-      if (mounted && target != null) {
-        Scrollable.ensureVisible(target, alignment: .2);
-      }
-    });
-    if (_guideStep >= traderGuideSteps.length - 1) {
-      setState(() => _guideVisible = false);
-      widget.onboardingStore?.markComplete(_guidePath);
-      return;
-    }
-    setState(() => _guideStep++);
-    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
   }
 
   Future<DayAnchor?> _readDay() async {
@@ -414,26 +374,6 @@ class _TraderScreenState extends State<TraderScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        if (_guideVisible) ...[
-          InventoryGuide(
-            steps: traderGuideSteps,
-            step: _guideStep,
-            onAction: _guideAction,
-            onSkip: () {
-              setState(() => _guideVisible = false);
-              widget.onboardingStore?.saveStep(_guidePath, _guideStep);
-            },
-          ),
-          const SizedBox(height: 12),
-        ] else if (widget.onboardingStore != null)
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton(
-              key: const Key('trader-guide-resume'),
-              onPressed: () => setState(() => _guideVisible = true),
-              child: const Text('استئناف الإرشاد'),
-            ),
-          ),
         TextField(
           key: const Key('trader-search'),
           controller: _search,

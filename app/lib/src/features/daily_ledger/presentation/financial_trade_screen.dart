@@ -11,7 +11,7 @@ import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import '../domain/invoice_pricing.dart';
 import '../../onboarding/application/onboarding_store.dart';
-import '../../onboarding/presentation/guide_card.dart';
+import '../../../theme/amount_format.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
@@ -93,13 +93,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   String? _key;
   bool _busy = false;
   bool _unknown = false;
+  bool _committed = false;
   final _pending = const PendingFinancialCommands();
   final _guideScroll = ScrollController();
   final _gramsFocus = FocusNode();
   final _tenderFocus = FocusNode();
-  bool _guideVisible = false;
-  int _guideStep = 0;
-  String get _guidePath => 'first_sale_${widget.userId}_${widget.shopId}';
+  int _step = 0;
 
   String get _title => switch (widget.kind) {
     FinancialKind.sale => 'إضافة بيع',
@@ -115,39 +114,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       _items.add(_ItemEntry(scrap: widget.kind == FinancialKind.scrapSale));
     }
     _tenders.add(_TenderEntry(CashMethod.cash));
-    if (widget.practice) _loadPracticeGuide();
-  }
-
-  Future<void> _loadPracticeGuide() async {
-    final step = await widget.onboardingStore?.readStep(_guidePath) ?? 0;
-    if (mounted) {
-      setState(() {
-        _guideStep = step.clamp(0, 3);
-        _guideVisible = true;
-      });
-    }
-  }
-
-  void _guideAction() {
-    final focus = switch (_guideStep) {
-      0 => _items.first.nameFocus,
-      1 => _gramsFocus,
-      2 => _tenderFocus,
-      _ => null,
-    };
-    if (focus == null) {
-      _startReview();
-      return;
-    }
-    focus.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = focus.context;
-      if (mounted && target != null) {
-        Scrollable.ensureVisible(target, alignment: .25);
-      }
-    });
-    setState(() => _guideStep++);
-    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
+    if (widget.kind == FinancialKind.expense) _step = 2;
   }
 
   @override
@@ -312,7 +279,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     if (draft == null || _busy) return;
     // Practice is a local draft. This guard precedes keys, persistence and RPCs.
     if (widget.practice) {
-      await widget.onboardingStore?.markComplete(_guidePath);
       if (mounted) Navigator.pop(context, false);
       return;
     }
@@ -344,7 +310,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       if (result is FinancialCommitted) {
         await _pending.clear(widget.userId, widget.shopId, _key!);
         if (!mounted) return;
-        Navigator.pop(context, true);
+        setState(() {
+          _committed = true;
+          _unknown = false;
+          _error = null;
+        });
         return;
       }
       if (result is FinancialRejected) {
@@ -373,6 +343,20 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     }
   }
 
+  Future<void> _checkStatus() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await _reconcile();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'تعذر التحقق من الحالة. حاول مرة أخرى.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _reconcile() async {
     final key = _key;
     if (key == null) return;
@@ -384,7 +368,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     if (status is StatusCompleted) {
       await _pending.clear(widget.userId, widget.shopId, key);
       if (!mounted) return;
-      Navigator.pop(context, true);
+      setState(() {
+        _committed = true;
+        _unknown = false;
+        _error = null;
+      });
     } else if (status is StatusAbsent) {
       setState(() {
         _unknown = false;
@@ -407,14 +395,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.practice ? 'تدريب على أول بيع' : _title),
-          actions: [
-            if (widget.practice)
-              IconButton(
-                tooltip: 'استئناف الإرشاد',
-                onPressed: () => setState(() => _guideVisible = true),
-                icon: const Icon(Icons.help_outline),
-              ),
-          ],
         ),
         body: SafeArea(
           child: Align(
@@ -423,41 +403,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
                 controller: _guideScroll,
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 children: [
-                  if (widget.practice) ...[
-                    const Text(
-                      'مسودة تدريب فقط — لن يُحفظ بيع ولن يتغير النقد أو الذهب.',
-                      key: Key('practice-draft-label'),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_guideVisible && _review == null)
-                      GuideCard(
-                        title: 'جرّب أدوات البيع',
-                        description: const [
-                          'ابدأ باسم الصنف في الحقل الحقيقي أدناه.',
-                          'أدخل الوزن حتى ثلاث منازل عشرية، ثم راجع العدد والعيار.',
-                          'أدخل المبلغ في وسيلة الدفع. يمكنك إضافة وسيلة أخرى لتقسيمه.',
-                          'راجع أثر النقد والذهب. زر إنهاء التدريب لا يرسل أي عملية.',
-                        ][_guideStep],
-                        progress: '${_guideStep + 1} / 4',
-                        actionLabel: _guideStep == 3
-                            ? 'مراجعة المسودة'
-                            : 'الانتقال إلى الحقل',
-                        onAction: _guideAction,
-                        onSkip: () {
-                          setState(() => _guideVisible = false);
-                          widget.onboardingStore?.saveStep(
-                            _guidePath,
-                            _guideStep,
-                          );
-                        },
-                      ),
-                  ],
-                  if (_review == null)
-                    ..._entryWidgets(theme)
-                  else
-                    ..._reviewWidgets(theme),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -468,6 +415,19 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                       ),
                     ),
                   ],
+                  if (widget.practice) ...[
+                    const Text(
+                      'مسودة تدريب فقط — لن يُحفظ بيع ولن يتغير النقد أو الذهب.',
+                      key: Key('practice-draft-label'),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (_committed)
+                    ..._successWidgets(theme)
+                  else if (_review == null)
+                    ..._stepWidgets(theme)
+                  else
+                    ..._reviewWidgets(theme),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -485,19 +445,30 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: SizedBox(
                   width: double.infinity,
-                  child: _unknown
+                  child: _committed
+                      ? FilledButton(
+                          key: const Key('trade-done'),
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('العودة إلى الدفتر'),
+                        )
+                      : _unknown
                       ? FilledButton.icon(
                           key: const Key('trade-check-status'),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
                           ),
-                          onPressed: _busy ? null : _reconcile,
+                          onPressed: _busy ? null : _checkStatus,
                           icon: const Icon(Icons.sync),
                           label: const Text('التحقق من الحالة'),
                         )
                       : FilledButton(
                           key: Key(
-                            _review == null ? 'trade-review' : 'trade-confirm',
+                            _review != null
+                                ? 'trade-confirm'
+                                : _step == 3 ||
+                                      widget.kind == FinancialKind.expense
+                                ? 'trade-review'
+                                : 'trade-next',
                           ),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
@@ -505,13 +476,16 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                           onPressed: _busy
                               ? null
                               : _review == null
-                              ? _startReview
+                              ? _nextStep
                               : _submit,
                           child: Text(
                             _busy
                                 ? 'بانتظار تأكيد الخادم'
                                 : _review == null
-                                ? 'مراجعة الأثر'
+                                ? (_step == 3 ||
+                                          widget.kind == FinancialKind.expense
+                                      ? 'مراجعة العملية'
+                                      : 'التالي')
                                 : widget.practice
                                 ? 'إنهاء التدريب دون حفظ'
                                 : 'تأكيد $_title',
@@ -526,152 +500,278 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     );
   }
 
-  List<Widget> _entryWidgets(ThemeData theme) => [
-    Text(_title, style: theme.textTheme.headlineSmall),
-    const SizedBox(height: 6),
-    Text(
-      widget.practice
-          ? 'استخدم الحقول للمراجعة والتجربة. تبقى البيانات داخل هذه المسودة.'
-          : 'تُحفظ العملية بعد مراجعة أثر النقد والذهب وتأكيد الخادم فقط.',
+  void _nextStep() {
+    FocusScope.of(context).unfocus();
+    if (_step == 0 && _items.any((row) => row.name.text.trim().isEmpty)) {
+      setState(() => _error = 'اختر الصنف أو اكتب اسمه.');
+      return;
+    }
+    if (_step == 1) {
+      for (final row in _items) {
+        final grams = Milligrams.parseGrams(row.grams.text);
+        final count = PieceCount.parseWire(row.count.text);
+        if (row.name.text.trim().isEmpty ||
+            grams is! Accepted<Milligrams> ||
+            grams.value.value == BigInt.zero ||
+            (row.category != 'scrap' &&
+                (count is! Accepted<PieceCount> ||
+                    count.value.value == BigInt.zero))) {
+          setState(() => _error = 'راجع اسم الصنف والعدد والوزن.');
+          return;
+        }
+      }
+    }
+    if (_step == 3 || widget.kind == FinancialKind.expense) {
+      _startReview();
+      return;
+    }
+    setState(() {
+      _step++;
+      _error = null;
+    });
+    _guideScroll.jumpTo(0);
+  }
+
+  Widget _progress(ThemeData theme) => Padding(
+    padding: const EdgeInsets.only(bottom: 20),
+    child: Row(
+      children: [
+        for (var index = 0; index < 5; index++)
+          Expanded(
+            child: Semantics(
+              selected: (_review == null ? _step : 4) == index,
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundColor: (_review == null ? _step : 4) == index
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.surfaceContainerHighest,
+                    foregroundColor: (_review == null ? _step : 4) == index
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurfaceVariant,
+                    child: Text(
+                      '${index + 1}',
+                      style: theme.textTheme.labelSmall,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    const [
+                      'الصنف',
+                      'البيانات',
+                      'الدفع',
+                      'التفاصيل',
+                      'تأكيد',
+                    ][index],
+                    style: theme.textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     ),
-    const SizedBox(height: 20),
-    if (widget.kind == FinancialKind.expense) ...[
-      TextField(
-        key: const Key('trade-description'),
-        controller: _description,
-        textInputAction: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        decoration: ledgerFieldDecoration(context, label: 'وصف المصروف'),
+  );
+
+  List<Widget> _stepWidgets(ThemeData theme) => [
+    if (widget.kind != FinancialKind.expense) _progress(theme),
+    if (_step == 0) ...[
+      Text('اختر الصنف', style: theme.textTheme.titleLarge),
+      const SizedBox(height: 16),
+      LayoutBuilder(
+        builder: (context, size) {
+          final choices = <(String, String, IconData)>[
+            if (widget.kind != FinancialKind.scrapSale) ...[
+              ('خاتم', 'worked_jewelry', Icons.circle_outlined),
+              ('حلق', 'worked_jewelry', Icons.link_outlined),
+              ('سلسلة', 'worked_jewelry', Icons.all_inclusive),
+              ('تعليقة', 'worked_jewelry', Icons.diamond_outlined),
+              ('جنيهات', 'coin', Icons.monetization_on_outlined),
+              ('سبائك', 'bullion', Icons.view_agenda_outlined),
+            ],
+            if (widget.kind == FinancialKind.purchase ||
+                widget.kind == FinancialKind.scrapSale)
+              ('كسر', 'scrap', Icons.content_cut_outlined),
+            if (widget.kind != FinancialKind.scrapSale)
+              ('أخرى', 'worked_jewelry', Icons.category_outlined),
+          ];
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final choice in choices)
+                SizedBox(
+                  width: (size.maxWidth - 24) / 4,
+                  child: OutlinedButton(
+                    key: Key('trade-select-${choice.$1}'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 12,
+                      ),
+                      backgroundColor: _items.last.name.text == choice.$1
+                          ? theme.colorScheme.primaryContainer
+                          : null,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () => setState(() {
+                      final item = _items.last;
+                      item.name.text = choice.$1;
+                      item.category = choice.$2;
+                      item.karat = choice.$2 == 'bullion'
+                          ? 24
+                          : choice.$2 == 'coin'
+                          ? 21
+                          : 18;
+                    }),
+                    child: Column(
+                      children: [
+                        Icon(choice.$3),
+                        const SizedBox(height: 8),
+                        Text(choice.$1),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
-      const SizedBox(height: 20),
+      const SizedBox(height: 16),
+      TextField(
+        key: const Key('trade-select-name'),
+        controller: _items.last.name,
+        decoration: ledgerFieldDecoration(context, label: 'اسم الصنف'),
+      ),
     ],
-    if (widget.kind != FinancialKind.expense) ...[
-      Text('الأصناف', style: theme.textTheme.titleMedium),
+    if (_step == 1) ...[
+      Text('تفاصيل الأصناف', style: theme.textTheme.titleLarge),
       const SizedBox(height: 12),
       for (var index = 0; index < _items.length; index++) ...[
         _itemCard(index, theme),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
       ],
       OutlinedButton.icon(
         key: const Key('trade-add-item'),
-        onPressed: () => setState(
-          () => _items.add(
-            _ItemEntry(scrap: widget.kind == FinancialKind.scrapSale),
-          ),
-        ),
         icon: const Icon(Icons.add),
         label: const Text('إضافة صنف آخر'),
+        onPressed: () => setState(() {
+          _items.add(_ItemEntry(scrap: widget.kind == FinancialKind.scrapSale));
+          _step = 0;
+        }),
       ),
-      const SizedBox(height: 20),
     ],
-    if (widget.kind == FinancialKind.sale ||
-        widget.kind == FinancialKind.purchase) ...[
-      CheckboxListTile(
-        key: const Key('trade-price-details'),
-        value: _priceDetails,
-        title: const Text('تفصيل السعر والمصنعية والرسوم والخصم'),
-        contentPadding: EdgeInsets.zero,
-        onChanged: (value) => setState(() => _priceDetails = value ?? false),
-      ),
-      if (_priceDetails) ..._pricingFields(theme),
-    ],
-    if (widget.kind == FinancialKind.purchase) ...[
-      if (!_priceDetails) ...[
+    if (_step == 2) ...[
+      Text('طرق الدفع', style: theme.textTheme.titleLarge),
+      const SizedBox(height: 16),
+      if (widget.kind == FinancialKind.expense) ...[
+        TextField(
+          key: const Key('trade-description'),
+          controller: _description,
+          decoration: ledgerFieldDecoration(context, label: 'وصف المصروف'),
+        ),
+        const SizedBox(height: 16),
+      ],
+      if (widget.kind == FinancialKind.purchase) ...[
         TextField(
           key: const Key('trade-purchase-price'),
           controller: _purchaseTotal,
           textDirection: TextDirection.ltr,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textInputAction: TextInputAction.next,
-          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
           decoration: ledgerFieldDecoration(
             context,
             label: 'سعر الشراء الكلي بالجنيه',
           ),
         ),
         const SizedBox(height: 16),
+        TextField(
+          key: const Key('trade-seller-name'),
+          controller: _customerName,
+          decoration: ledgerFieldDecoration(
+            context,
+            label: 'اسم البائع (مطلوب عند وجود مبلغ مستحق)',
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+      for (var index = 0; index < _tenders.length; index++) ...[
+        _tenderCard(index),
+        const SizedBox(height: 12),
+      ],
+      if (_tenders.length < 4)
+        OutlinedButton.icon(
+          key: const Key('trade-add-tender'),
+          onPressed: () {
+            final used = _tenders.map((r) => r.method).toSet();
+            setState(
+              () => _tenders.add(
+                _TenderEntry(
+                  CashMethod.canonicalOrder.firstWhere(
+                    (method) => !used.contains(method),
+                  ),
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('إضافة طريقة دفع'),
+        ),
+      const SizedBox(height: 16),
+      Text(
+        'الإجمالي: ${displayPounds(_totalPounds() ?? '—')} جنيه',
+        style: theme.textTheme.titleLarge,
+      ),
+      if (widget.kind == FinancialKind.sale ||
+          widget.kind == FinancialKind.purchase) ...[
+        CheckboxListTile(
+          key: const Key('trade-price-details'),
+          value: _priceDetails,
+          title: const Text('تفصيل السعر والمصنعية'),
+          contentPadding: EdgeInsets.zero,
+          onChanged: (value) => setState(() => _priceDetails = value ?? false),
+        ),
+        if (_priceDetails) ..._pricingFields(theme),
+      ],
+    ],
+    if (_step == 3) ...[
+      Text('تفاصيل إضافية (اختياري)', style: theme.textTheme.titleLarge),
+      const SizedBox(height: 16),
+      if (widget.kind != FinancialKind.purchase) ...[
+        TextField(
+          key: const Key('trade-customer-name'),
+          controller: _customerName,
+          decoration: ledgerFieldDecoration(context, label: 'اسم العميل'),
+        ),
+        const SizedBox(height: 16),
       ],
       TextField(
-        key: const Key('trade-seller-name'),
-        controller: _customerName,
-        textInputAction: TextInputAction.next,
-        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        decoration: ledgerFieldDecoration(
-          context,
-          label: 'اسم البائع (مطلوب عند وجود مبلغ مستحق)',
-        ),
+        key: const Key('trade-customer-phone'),
+        controller: _customerPhone,
+        textDirection: TextDirection.ltr,
+        keyboardType: TextInputType.phone,
+        decoration: ledgerFieldDecoration(context, label: 'رقم الهاتف'),
       ),
-      const SizedBox(height: 20),
-    ],
-    Text('الدفع', style: theme.textTheme.titleMedium),
-    const SizedBox(height: 4),
-    Text(
-      widget.kind == FinancialKind.purchase
-          ? 'أدخل ما دفعه المتجر الآن. اترك المبلغ فارغاً إذا لم يُدفع نقد.'
-          : 'يمكن تقسيم المبلغ بين أكثر من وسيلة. يُحسب الإجمالي تلقائياً.',
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.5,
-      ),
-    ),
-    const SizedBox(height: 12),
-    for (var index = 0; index < _tenders.length; index++) ...[
-      _tenderCard(index),
-      const SizedBox(height: 12),
-    ],
-    if (_tenders.length < 4)
-      OutlinedButton.icon(
-        key: const Key('trade-add-tender'),
-        onPressed: () {
-          final used = _tenders.map((row) => row.method).toSet();
-          final next = CashMethod.canonicalOrder.firstWhere(
-            (method) => !used.contains(method),
-          );
-          setState(() => _tenders.add(_TenderEntry(next)));
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('إضافة وسيلة دفع'),
-      ),
-    const SizedBox(height: 12),
-    Text(
-      'إجمالي ${widget.kind == FinancialKind.purchase || widget.kind == FinancialKind.expense ? 'المدفوع' : 'المحصّل'}: ${_totalPounds() ?? '—'} جنيه',
-      style: theme.textTheme.titleMedium,
-    ),
-    if (widget.kind != FinancialKind.expense) ...[
-      const SizedBox(height: 20),
-      ExpansionTile(
-        title: Text(
-          widget.kind == FinancialKind.purchase
-              ? 'هاتف البائع والملاحظات (اختياري)'
-              : 'بيانات العميل والملاحظات (اختياري)',
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
-        children: [
-          if (widget.kind != FinancialKind.purchase)
-            TextField(
-              controller: _customerName,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: ledgerFieldDecoration(context, label: 'اسم العميل'),
-            ),
-          if (widget.kind != FinancialKind.purchase) const SizedBox(height: 12),
-          TextField(
-            controller: _customerPhone,
-            textDirection: TextDirection.ltr,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-            decoration: ledgerFieldDecoration(context, label: 'رقم الهاتف'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _note,
-            maxLines: 3,
-            decoration: ledgerFieldDecoration(context, label: 'ملاحظة العملية'),
-          ),
-        ],
+      const SizedBox(height: 16),
+      TextField(
+        key: const Key('trade-note'),
+        controller: _note,
+        maxLines: 3,
+        decoration: ledgerFieldDecoration(context, label: 'ملاحظات'),
       ),
     ],
+    if (_step > 0 && widget.kind != FinancialKind.expense)
+      TextButton.icon(
+        key: const Key('trade-back'),
+        onPressed: () => setState(() {
+          _step--;
+          _error = null;
+        }),
+        icon: const Icon(Icons.arrow_back),
+        label: const Text('رجوع'),
+      ),
   ];
 
   Widget _itemCard(int index, ThemeData theme) {
@@ -897,67 +997,59 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     );
   }
 
+  String _reviewWeight() {
+    final weight = _review!.items.fold(
+      BigInt.zero,
+      (sum, item) => sum + BigInt.parse(item['milligrams'] as String),
+    );
+    return _gramsText(weight.toString());
+  }
+
+  List<Widget> _successWidgets(ThemeData theme) => [
+    const SizedBox(height: 40),
+    Icon(Icons.check_circle, size: 72, color: theme.colorScheme.tertiary),
+    const SizedBox(height: 20),
+    Text(
+      'تمت العملية بنجاح',
+      key: const Key('trade-success'),
+      textAlign: TextAlign.center,
+      style: theme.textTheme.headlineSmall,
+    ),
+    const SizedBox(height: 12),
+    Text(
+      'الإجمالي: ${displayPounds(_review!.total.poundsText)} جنيه',
+      textAlign: TextAlign.center,
+      style: theme.textTheme.titleLarge,
+    ),
+    if (_review!.items.isNotEmpty)
+      Text(
+        'وزن الذهب: ${_reviewWeight()} جرام',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.titleMedium,
+      ),
+  ];
+
   List<Widget> _reviewWidgets(ThemeData theme) {
     final draft = _review!;
     return [
-      Text('مراجعة أثر العملية', style: theme.textTheme.headlineSmall),
+      _progress(theme),
+      Text('مراجعة العملية', style: theme.textTheme.headlineSmall),
       const SizedBox(height: 8),
       Text(
-        widget.practice
-            ? 'هذه آثار افتراضية للمراجعة فقط. إنهاء التدريب لا يرسل الطلب.'
-            : 'لن تظهر العملية محفوظة حتى يؤكدها الخادم. راجع المبلغ والذهب قبل المتابعة.',
-      ),
-      const SizedBox(height: 16),
-      Card(
-        color: theme.colorScheme.primaryContainer,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.kind == FinancialKind.sale ||
-                        widget.kind == FinancialKind.scrapSale
-                    ? 'يزيد النقد'
-                    : 'ينقص النقد الآن',
-                style: theme.textTheme.titleSmall,
-              ),
-              Text(
-                '${draft.cashPaid.poundsText} جنيه',
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              if (draft.purchasePayable != null) ...[
-                Text(
-                  'يبقى مستحقاً للبائع: ${draft.purchasePayable!.poundsText} جنيه',
-                ),
-                Text('سعر الشراء الكلي: ${draft.total.poundsText} جنيه'),
-                Text('البائع: ${draft.customerName}'),
-                const SizedBox(height: 8),
-              ],
-              Text(
-                widget.kind == FinancialKind.sale
-                    ? 'ينقص المخزون بالأوزان أدناه'
-                    : widget.kind == FinancialKind.scrapSale
-                    ? 'ينقص الكسر بالأوزان أدناه'
-                    : widget.kind == FinancialKind.purchase
-                    ? 'تنتقل الملكية إلى المتجر الآن ويزيد المخزون أو الكسر بالأوزان أدناه'
-                    : 'لا يتغير الذهب',
-              ),
-            ],
-          ),
-        ),
+        'الإجمالي: ${displayPounds(draft.total.poundsText)} جنيه',
+        style: theme.textTheme.headlineMedium,
       ),
       const SizedBox(height: 16),
       if (draft.pricing case final pricing?) ...[
-        Text('السعر الأساسي: ${pricing.base.poundsText} جنيه'),
-        Text('المصنعية: ${pricing.workmanship.poundsText} جنيه'),
+        Text('السعر الأساسي: ${displayPounds(pricing.base.poundsText)} جنيه'),
+        Text('المصنعية: ${displayPounds(pricing.workmanship.poundsText)} جنيه'),
         Text(
-          'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${pricing.otherCharges.poundsText} جنيه',
+          'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${displayPounds(pricing.otherCharges.poundsText)} جنيه',
         ),
-        Text('الخصم: ${pricing.discount.poundsText} جنيه'),
-        Text('الإجمالي المتفق عليه: ${pricing.total.poundsText} جنيه'),
+        Text('الخصم: ${displayPounds(pricing.discount.poundsText)} جنيه'),
+        Text(
+          'الإجمالي المتفق عليه: ${displayPounds(pricing.total.poundsText)} جنيه',
+        ),
         const SizedBox(height: 16),
       ],
       for (final item in draft.items)
@@ -986,6 +1078,50 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           '${widget.kind == FinancialKind.purchase ? 'البائع' : 'العميل'}: ${draft.customerName}',
         ),
       if (draft.note.isNotEmpty) Text('ملاحظة: ${draft.note}'),
+      Card(
+        color: theme.colorScheme.primaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.kind == FinancialKind.sale ||
+                        widget.kind == FinancialKind.scrapSale
+                    ? 'يزيد النقد'
+                    : 'ينقص النقد الآن',
+                style: theme.textTheme.titleSmall,
+              ),
+              Text(
+                '${displayPounds(draft.cashPaid.poundsText)} جنيه',
+                textDirection: TextDirection.ltr,
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              if (draft.purchasePayable != null) ...[
+                Text(
+                  'يبقى مستحقاً للبائع: ${displayPounds(draft.purchasePayable!.poundsText)} جنيه',
+                ),
+                Text(
+                  'سعر الشراء الكلي: ${displayPounds(draft.total.poundsText)} جنيه',
+                ),
+                Text('البائع: ${draft.customerName}'),
+                const SizedBox(height: 8),
+              ],
+              Text(
+                widget.kind == FinancialKind.sale
+                    ? 'ينقص المخزون بمقدار ${_reviewWeight()} جرام'
+                    : widget.kind == FinancialKind.scrapSale
+                    ? 'ينقص الكسر بمقدار ${_reviewWeight()} جرام'
+                    : widget.kind == FinancialKind.purchase
+                    ? 'تنتقل الملكية إلى المتجر الآن ويزيد الذهب بمقدار ${_reviewWeight()} جرام'
+                    : 'لا يتغير الذهب',
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
       const SizedBox(height: 8),
       TextButton.icon(
         key: const Key('trade-edit'),
@@ -1028,5 +1164,6 @@ String _serverCopy(String code) => switch (code) {
 String _gramsText(String wire) =>
     (Milligrams.parseWire(wire) as Accepted<Milligrams>).value.gramsText;
 
-String _poundsText(String wire) =>
-    (Piastres.parseWire(wire) as Accepted<Piastres>).value.poundsText;
+String _poundsText(String wire) => displayPounds(
+  (Piastres.parseWire(wire) as Accepted<Piastres>).value.poundsText,
+);

@@ -260,6 +260,49 @@ void main() {
   );
 
   test(
+    'slow directory resolution cannot let deletion overtake an earlier read',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'note-directory-race-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final normal = ApplicationNoteImageFileStore(directory: () async => root);
+      await normal.write(
+        userId: user,
+        shopId: shop,
+        clientObjectId: objectId,
+        bytes: [1],
+      );
+      final entered = Completer<void>();
+      final directory = Completer<Directory>();
+      final slow = ApplicationNoteImageFileStore(
+        directory: () {
+          entered.complete();
+          return directory.future;
+        },
+      );
+      final read = slow.read(
+        userId: user,
+        shopId: shop,
+        clientObjectId: objectId,
+      );
+      await entered.future;
+      final delete = normal.delete(
+        userId: user,
+        shopId: shop,
+        clientObjectId: objectId,
+      );
+      directory.complete(root);
+      expect(await read, [1]);
+      await delete;
+      expect(
+        await normal.read(userId: user, shopId: shop, clientObjectId: objectId),
+        isNull,
+      );
+    },
+  );
+
+  test(
     'draft and image scopes isolate owner shop and object including AAD copies',
     () async {
       const otherShop = '55555555-5555-4555-8555-555555555555';

@@ -154,7 +154,7 @@ void main() {
         identifier: '+966512345678',
         password: 'example-password',
       ),
-      isNull,
+      isNotNull,
     );
   });
 
@@ -180,7 +180,7 @@ void main() {
           identifier: '+966512345678',
           password: 'example-password',
         ),
-        isNull,
+        isNotNull,
       );
       expect(
         SignInRequest.tryCreate(

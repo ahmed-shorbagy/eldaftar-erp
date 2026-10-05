@@ -482,33 +482,37 @@ void main() {
         expect(find.textContaining('4.998'), findsWidgets);
       }, timeout: const Timeout(Duration(minutes: 2)));
 
-      testWidgets('inventory guide $suffix', (tester) async {
-        tester.view.physicalSize = Size(width, 1100);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        final capture = GlobalKey();
-        await tester.pumpWidget(
-          _host(
-            InventoryScreen(
-              gateway: _Inventory(),
-              statusGateway: _Opening(),
-              dayGateway: _Day(),
-              userId: userId,
-              shopId: shopId,
-              shopName: 'متجر تجريبي',
-              readOnly: false,
-              onboardingStore: _Guide(),
-              store: _Locker(),
+      testWidgets(
+        'inventory without guidance $suffix',
+        (tester) async {
+          tester.view.physicalSize = Size(width, 1100);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final capture = GlobalKey();
+          await tester.pumpWidget(
+            _host(
+              InventoryScreen(
+                gateway: _Inventory(),
+                statusGateway: _Opening(),
+                dayGateway: _Day(),
+                userId: userId,
+                shopId: shopId,
+                shopName: 'متجر تجريبي',
+                readOnly: false,
+                onboardingStore: _Guide(),
+                store: _Locker(),
+              ),
+              brightness,
+              capture,
             ),
-            brightness,
-            capture,
-          ),
-        );
-        await _capture(tester, capture, 'guide-$suffix');
-        expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
-        expect(find.byKey(const Key('onboarding-skip')), findsOneWidget);
-      }, timeout: const Timeout(Duration(minutes: 2)));
+          );
+          await _capture(tester, capture, 'guide-$suffix');
+          expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+          expect(find.byKey(const Key('onboarding-skip')), findsNothing);
+        },
+        timeout: const Timeout(Duration(minutes: 2)),
+      );
     }
   }
 }

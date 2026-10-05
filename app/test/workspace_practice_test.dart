@@ -16,7 +16,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'financial_trade_screen_test.dart' show FakeFinancialGateway;
+import 'financial_trade_screen_test.dart'
+    show FakeFinancialGateway, beginTrade, nextTrade;
 
 class _GuideStore implements OnboardingStore {
   int step = 0;
@@ -103,25 +104,24 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('onboarding-action')));
-    await tester.pumpAndSettle();
-    final name = tester.widget<TextField>(
-      find.byKey(const Key('trade-name-0')),
-    );
-    expect(name.focusNode!.hasFocus, isTrue);
-    expect(guide.step, 1);
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    await beginTrade(tester);
+    expect(guide.step, 0);
     await tester.enterText(find.byKey(const Key('trade-name-0')), 'خاتم تدريب');
     await tester.ensureVisible(find.byKey(const Key('trade-grams-0')));
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
+    await nextTrade(tester);
     await tester.ensureVisible(find.byKey(const Key('trade-tender-amount-0')));
     await tester.enterText(
       find.byKey(const Key('trade-tender-amount-0')),
       '1200.01',
     );
+    await nextTrade(tester);
+    await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.text('إنهاء التدريب دون حفظ'), findsOneWidget);
-    expect(find.text('1200.01 جنيه'), findsWidgets);
+    expect(find.text('1,200.01 جنيه'), findsWidgets);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.keys, isEmpty);
@@ -130,44 +130,14 @@ void main() {
       await const PendingFinancialCommands().read('owner-1', 'shop-1'),
       isNull,
     );
-    expect(guide.complete, isTrue);
+    expect(guide.complete, isFalse);
     expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('skipped practice resumes its persisted step from Help', (
-    tester,
-  ) async {
-    final gateway = FakeFinancialGateway();
-    final guide = _GuideStore()..step = 2;
-    await tester.pumpWidget(
-      _host(
-        FinancialTradeScreen(
-          kind: FinancialKind.sale,
-          gateway: gateway,
-          statusGateway: gateway,
-          userId: 'owner-1',
-          shopId: 'shop-1',
-          practice: true,
-          onboardingStore: guide,
-        ),
-        Brightness.dark,
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('3 / 4'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('onboarding-skip')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
-    await tester.tap(find.byTooltip('استئناف الإرشاد'));
-    await tester.pumpAndSettle();
-    expect(find.text('3 / 4'), findsOneWidget);
-    expect(gateway.keys, isEmpty);
   });
 
   for (final width in [320.0, 1440.0]) {
     for (final brightness in Brightness.values) {
       testWidgets(
-        'Arabic workspace and Help ${width.toInt()} ${brightness.name}',
+        'Arabic workspace without guides ${width.toInt()} ${brightness.name}',
         (tester) async {
           tester.view.physicalSize = Size(width, 1000);
           tester.view.devicePixelRatio = 1;
@@ -219,22 +189,9 @@ void main() {
             capture,
             'more-${width.toInt()}-${brightness.name}',
           );
-          await tester.tap(find.byKey(const Key('workspace-help')));
-          await tester.pumpAndSettle();
-          expect(find.byKey(const Key('help-practice-sale')), findsOneWidget);
-          await _capture(
-            tester,
-            capture,
-            'help-${width.toInt()}-${brightness.name}',
-          );
-          await tester.tap(find.byKey(const Key('help-practice-sale')));
-          await tester.pumpAndSettle();
-          expect(find.byKey(const Key('practice-draft-label')), findsOneWidget);
-          await _capture(
-            tester,
-            capture,
-            'practice-${width.toInt()}-${brightness.name}',
-          );
+          expect(find.byKey(const Key('workspace-help')), findsNothing);
+          expect(find.byKey(const Key('help-practice-sale')), findsNothing);
+          expect(find.byKey(const Key('onboarding-guide')), findsNothing);
           expect(tester.takeException(), isNull);
         },
       );

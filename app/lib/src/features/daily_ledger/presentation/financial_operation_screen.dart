@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/amount_format.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -310,7 +311,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         'المسجل: ${operation?['actor_display_name'] ?? widget.line.actorDisplayName}',
                       ),
                       Text(
-                        'الوقت: ${formatServerCairoTimestamp(widget.line.occurredAtCairo)}',
+                        'الوقت: ${formatServerCairoTimestamp(widget.line.displayTime)}',
                       ),
                       const SizedBox(height: 16),
                       if (details['total_piastres'] is String) ...[
@@ -579,7 +580,9 @@ String? whatsappPhone(Object? value) {
 String _pounds(Object? value) {
   if (value is! String) return '—';
   final result = Piastres.parseWire(value);
-  return result is Accepted<Piastres> ? result.value.poundsText : '—';
+  return result is Accepted<Piastres>
+      ? displayPounds(result.value.poundsText)
+      : '—';
 }
 
 String _paidPounds(Object? tenders) {

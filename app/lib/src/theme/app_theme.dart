@@ -14,10 +14,19 @@ abstract final class AppTheme {
     );
     final scheme = brightness == Brightness.light
         ? seeded.copyWith(
+            primary: AppTokens.lightAccent,
+            onPrimary: AppTokens.lightSurface,
+            tertiary: AppTokens.lightSuccess,
             surface: AppTokens.lightSurface,
             onSurface: AppTokens.lightOnSurface,
           )
         : seeded.copyWith(
+            primary: AppTokens.darkAccent,
+            onPrimary: AppTokens.darkSurface,
+            tertiary: AppTokens.darkSuccess,
+            surfaceContainerLow: AppTokens.darkCard,
+            surfaceContainer: AppTokens.darkCard,
+            primaryContainer: AppTokens.darkPrimaryContainer,
             surface: AppTokens.darkSurface,
             onSurface: AppTokens.darkOnSurface,
           );
@@ -41,7 +50,7 @@ abstract final class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
@@ -60,6 +69,9 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           minimumSize: const Size(
             AppTokens.minControlSize,
             AppTokens.minControlSize,
@@ -68,6 +80,9 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           minimumSize: const Size(
             AppTokens.minControlSize,
             AppTokens.minControlSize,

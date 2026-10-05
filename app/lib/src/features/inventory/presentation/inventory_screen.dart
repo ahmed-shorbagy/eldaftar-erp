@@ -59,8 +59,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     store: widget.store,
   );
   int _generation = 0;
-  int _guideStep = 0;
-  bool _guideVisible = false;
   bool _loading = true;
   bool _otherPending = false;
   bool _inventoryPending = false;
@@ -95,15 +93,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
   int? _karat;
   String? _stockClass;
 
-  String get _guidePath => 'inventory-help_${widget.userId}_${widget.shopId}';
-
   bool get _writesEnabled =>
       !widget.readOnly && _day != null && !_otherPending && !_inventoryPending;
 
   @override
   void initState() {
     super.initState();
-    _loadGuide();
     _load();
   }
 
@@ -125,41 +120,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     _classFocus.dispose();
     _addFocus.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadGuide() async {
-    final store = widget.onboardingStore;
-    if (store == null) return;
-    final done = await store.isComplete(_guidePath);
-    final step = await store.readStep(_guidePath);
-    if (!mounted) return;
-    setState(() {
-      _guideStep = step.clamp(0, inventoryGuideSteps.length - 1);
-      _guideVisible = !done;
-    });
-  }
-
-  void _guideAction() {
-    final focus = switch (_guideStep) {
-      0 => _searchFocus,
-      1 => _totalsFocus,
-      2 => _classFocus,
-      _ => _addFocus,
-    };
-    focus.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final target = focus.context;
-      if (mounted && target != null) {
-        Scrollable.ensureVisible(target, alignment: .2);
-      }
-    });
-    if (_guideStep >= inventoryGuideSteps.length - 1) {
-      setState(() => _guideVisible = false);
-      widget.onboardingStore?.markComplete(_guidePath);
-      return;
-    }
-    setState(() => _guideStep++);
-    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
   }
 
   Future<DayAnchor?> _readDay() async {
@@ -506,26 +466,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             key: const Key('inventory-retry'),
             onPressed: _retryPending,
             child: const Text('التحقق من الأمر المعلق بالمفتاح نفسه'),
-          ),
-        if (_guideVisible) ...[
-          InventoryGuide(
-            steps: inventoryGuideSteps,
-            step: _guideStep,
-            onAction: _guideAction,
-            onSkip: () {
-              setState(() => _guideVisible = false);
-              widget.onboardingStore?.saveStep(_guidePath, _guideStep);
-            },
-          ),
-          const SizedBox(height: 12),
-        ] else if (widget.onboardingStore != null)
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton(
-              key: const Key('inventory-guide-resume'),
-              onPressed: () => setState(() => _guideVisible = true),
-              child: const Text('استئناف الإرشاد'),
-            ),
           ),
         TextField(
           key: const Key('inventory-search'),

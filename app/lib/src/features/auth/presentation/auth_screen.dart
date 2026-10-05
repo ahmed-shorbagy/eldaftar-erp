@@ -2,12 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../shell/shell_copy.dart';
-import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
 import '../../onboarding/application/onboarding_store.dart';
-import '../../onboarding/presentation/guide_card.dart';
+import '../domain/registration_country.dart';
 import '../domain/auth_gateway.dart';
 import 'auth_copy.dart';
 import 'auth_form_theme.dart';
@@ -52,7 +52,9 @@ class _AuthScreenState extends State<AuthScreen> {
   final _owner = TextEditingController();
   final _business = TextEditingController();
   final _email = TextEditingController();
-  final _phone = TextEditingController();
+  final _phone = PhoneController(
+    initialValue: const PhoneNumber(isoCode: IsoCode.EG, nsn: ''),
+  );
   final _password = TextEditingController();
   final _ownerFocus = FocusNode();
   final _businessFocus = FocusNode();
@@ -76,105 +78,26 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _serverMessage;
   String? _fieldAlert;
   int _governorateLoadGeneration = 0;
-  bool _guideVisible = false;
-  int _guideStep = 0;
+  int _signupStep = 0;
+  RegistrationCountry _country = RegistrationCountry.all.first;
+  final _region = TextEditingController();
+  final _confirmPassword = TextEditingController();
+  final _confirmFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _email.addListener(_refreshContacts);
-    _phone.addListener(_refreshContacts);
-    _emailFocus.addListener(_onGuideFocus);
-    _ownerFocus.addListener(_onGuideFocus);
-    _passwordFocus.addListener(_onGuideFocus);
-    _loadGuide();
-  }
-
-  String get _guidePath => _signingUp ? 'auth_signup' : 'auth_signin';
-
-  Future<void> _loadGuide() async {
-    final store = widget.onboardingStore;
-    if (store == null) return;
-    final path = _guidePath;
-    final complete = await store.isComplete(path);
-    final step = await store.readStep(path);
-    if (mounted && _guidePath == path && !complete) {
-      setState(() {
-        _guideVisible = true;
-        _guideStep = step.clamp(0, 2);
-      });
-    }
-  }
-
-  void _onGuideFocus() {
-    if (!_guideVisible) return;
-    if (_guideStep == 0 &&
-        (_signingUp ? _ownerFocus.hasFocus : _emailFocus.hasFocus)) {
-      setState(() => _guideStep = 1);
-      widget.onboardingStore?.saveStep(_guidePath, 1);
-    } else if (_guideStep == 1 &&
-        (_signingUp ? _emailFocus.hasFocus : _passwordFocus.hasFocus)) {
-      setState(() => _guideStep = 2);
-      widget.onboardingStore?.saveStep(_guidePath, 2);
-    }
-  }
-
-  void _skipGuide() {
-    setState(() => _guideVisible = false);
-    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
-  }
-
-  void _finishGuide() {
-    setState(() => _guideVisible = false);
-    widget.onboardingStore?.markComplete(_guidePath);
-  }
-
-  void _resumeGuide() {
-    setState(() => _guideVisible = true);
-  }
-
-  Widget _guide() {
-    final signup = _signingUp;
-    final titles = signup
-        ? const ['ابدأ باسم المالك', 'أضف وسيلة التواصل', 'أكمل بيانات المتجر']
-        : const ['مرحبًا بك', 'أدخل كلمة المرور', 'راجع ثم ادخل'];
-    final descriptions = signup
-        ? const [
-            'المس اسم المالك الحقيقي في النموذج.',
-            'اكتب البريد الإلكتروني والهاتف المصري في الحقلين.',
-            'اختر المحافظة وكلمة المرور، ثم راجع الطلب قبل إرساله.',
-          ]
-        : const [
-            'استخدم البريد الإلكتروني أو رقم الهاتف المصري في الحقل نفسه.',
-            'أدخل كلمة المرور الخاصة بالحساب. يمكنك إظهارها للتأكد.',
-            'اضغط دخول بعد مراجعة البيانات. لن يفتح المتجر إلا بعد تأكيد الخادم.',
-          ];
-    return GuideCard(
-      title: titles[_guideStep],
-      description: descriptions[_guideStep],
-      progress: const ['١/٣', '٢/٣', '٣/٣'][_guideStep],
-      actionLabel: _guideStep == 2 ? 'الانتقال إلى الإجراء' : 'تجربة الحقل',
-      onAction: () {
-        if (_guideStep == 2) {
-          _finishGuide();
-          _submitFocus.requestFocus();
-        } else if (_guideStep == 0) {
-          (signup ? _ownerFocus : _emailFocus).requestFocus();
-        } else {
-          (signup ? _emailFocus : _passwordFocus).requestFocus();
-        }
-      },
-      onSkip: _skipGuide,
-    );
+    _phone.addListener(_refreshPhone);
   }
 
   @override
   void dispose() {
     _email.removeListener(_refreshContacts);
-    _phone.removeListener(_refreshContacts);
-    _emailFocus.removeListener(_onGuideFocus);
-    _ownerFocus.removeListener(_onGuideFocus);
-    _passwordFocus.removeListener(_onGuideFocus);
+    _phone.removeListener(_refreshPhone);
+    _region.dispose();
+    _confirmPassword.dispose();
+    _confirmFocus.dispose();
     _scroll.dispose();
     _owner.dispose();
     _business.dispose();
@@ -194,6 +117,16 @@ class _AuthScreenState extends State<AuthScreen> {
   bool get _locked => _busy || _unknown;
 
   bool get _signingUp => _mode == AuthFormMode.signUp;
+
+  void _refreshPhone() {
+    final country = RegistrationCountry.byCode(_phone.value.isoCode.name);
+    if (country != null && country.code != _country.code) {
+      _country = country;
+      _governorateCode = null;
+      _region.clear();
+    }
+    _refreshContacts();
+  }
 
   void _refreshContacts() {
     if (!mounted) return;
@@ -240,8 +173,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _fieldAlert = null;
       _formKey = GlobalKey<FormState>();
       _validated = false;
-      _guideVisible = false;
-      _guideStep = 0;
+      _signupStep = 0;
     });
     if (mode == AuthFormMode.signUp &&
         _governorates.isEmpty &&
@@ -249,7 +181,6 @@ class _AuthScreenState extends State<AuthScreen> {
       _loadGovernorates();
     }
     if (_scroll.hasClients) _scroll.jumpTo(0);
-    if (widget.onboardingStore != null) _loadGuide();
   }
 
   Future<void> _submitSignIn() async {
@@ -294,14 +225,6 @@ class _AuthScreenState extends State<AuthScreen> {
       await _sendRegistration(_attempt!);
       return;
     }
-    if (_governorates.isEmpty) {
-      setState(() {
-        _serverMessage = AuthCopy.governorateFailed;
-        _fieldAlert = null;
-      });
-      _revealStatus();
-      return;
-    }
     if (_rejected(_signUpChecks())) return;
     final registration = _registrationFromFields();
     if (registration == null) return;
@@ -323,7 +246,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ? AuthCopy.emailInvalid
           : null;
     }
-    return EgyptianPhone.tryCanonical(value) == null
+    return RegistrationCountry.internationalPhone(value) == null
         ? AuthCopy.phoneInvalid
         : null;
   }
@@ -333,84 +256,67 @@ class _AuthScreenState extends State<AuthScreen> {
     String other, {
     required bool secondary,
   }) {
-    final ownKind = AccountIdentifier.detect(own);
-    final otherKind = AccountIdentifier.detect(other);
-    if (own.trim().isEmpty) {
-      if (otherKind == SignInIdentifier.email) return AuthCopy.phoneInvalid;
-      if (otherKind == SignInIdentifier.phone) return AuthCopy.emailInvalid;
-      return AuthCopy.contactInvalid;
-    }
-    if (ownKind == SignInIdentifier.email) {
-      if (AccountEmail.tryCanonical(own) == null) return AuthCopy.emailInvalid;
-      if (secondary &&
-          otherKind == SignInIdentifier.email &&
-          AccountEmail.tryCanonical(other) != null) {
-        return AuthCopy.duplicateContact;
-      }
-      return null;
-    }
-    if (ownKind == SignInIdentifier.phone) {
-      if (EgyptianPhone.tryCanonical(own) == null) return AuthCopy.phoneInvalid;
-      if (secondary &&
-          otherKind == SignInIdentifier.phone &&
-          EgyptianPhone.tryCanonical(other) != null) {
-        return AuthCopy.duplicateContact;
-      }
-      return null;
-    }
-    return AuthCopy.contactInvalid;
+    return secondary
+        ? (_country.canonicalPhone(own) == null ? AuthCopy.phoneInvalid : null)
+        : (AccountEmail.tryCanonical(own) == null
+              ? AuthCopy.emailInvalid
+              : null);
   }
 
   ({String email, String phone})? _resolvedContacts() {
-    final found = <SignInIdentifier, String>{};
-    for (final raw in [_email.text, _phone.text]) {
-      final kind = AccountIdentifier.detect(raw);
-      if (kind == null) return null;
-      final canonical = switch (kind) {
-        SignInIdentifier.email => AccountEmail.tryCanonical(raw),
-        SignInIdentifier.phone => EgyptianPhone.tryCanonical(raw),
-      };
-      if (canonical == null || found.containsKey(kind)) return null;
-      found[kind] = canonical;
-    }
-    final email = found[SignInIdentifier.email];
-    final phone = found[SignInIdentifier.phone];
-    if (email == null || phone == null) return null;
-    return (email: email, phone: phone);
+    final email = AccountEmail.tryCanonical(_email.text);
+    final phone = _country.canonicalPhone(_phone.value.international);
+    return email == null || phone == null ? null : (email: email, phone: phone);
   }
 
-  List<_FieldCheck> _signUpChecks() {
-    return [
-      _FieldCheck(
-        _ownerFocus,
-        AccountName.tryCanonical(_owner.text) == null
-            ? AuthCopy.ownerInvalid
-            : null,
-      ),
-      _FieldCheck(
-        _businessFocus,
-        AccountName.tryCanonical(_business.text) == null
-            ? AuthCopy.businessInvalid
-            : null,
-      ),
-      _FieldCheck(
-        _emailFocus,
-        _signupContactError(_email.text, _phone.text, secondary: false),
-      ),
-      _FieldCheck(
-        _phoneFocus,
-        _signupContactError(_phone.text, _email.text, secondary: true),
-      ),
-      _FieldCheck(
-        _governorateFocus,
-        _governorateCode == null ||
-                !EgyptianGovernorates.isValid(_governorateCode!)
-            ? AuthCopy.governorateInvalid
-            : null,
-      ),
-      _passwordCheck(),
-    ];
-  }
+  List<_FieldCheck> _signUpChecks() => _signupStep == 1
+      ? [
+          _FieldCheck(
+            _businessFocus,
+            AccountName.tryCanonical(_business.text) == null
+                ? AuthCopy.businessInvalid
+                : null,
+          ),
+          _FieldCheck(
+            _governorateFocus,
+            (_country.code == 'EG' && _governorates.isNotEmpty
+                    ? _governorateCode == null
+                    : _country.regionCode(_region.text) == null)
+                ? AuthCopy.governorateInvalid
+                : null,
+          ),
+        ]
+      : [
+          _FieldCheck(
+            _ownerFocus,
+            AccountName.tryCanonical(_owner.text) == null
+                ? AuthCopy.ownerInvalid
+                : null,
+          ),
+          _FieldCheck(
+            _emailFocus,
+            _signupContactError(
+              _email.text,
+              _phone.value.international,
+              secondary: false,
+            ),
+          ),
+          _FieldCheck(
+            _phoneFocus,
+            _signupContactError(
+              _phone.value.international,
+              _email.text,
+              secondary: true,
+            ),
+          ),
+          _passwordCheck(),
+          _FieldCheck(
+            _confirmFocus,
+            _confirmPassword.text == _password.text
+                ? null
+                : 'كلمتا المرور غير متطابقتين',
+          ),
+        ];
 
   _FieldCheck _passwordCheck() {
     return _FieldCheck(
@@ -477,7 +383,9 @@ class _AuthScreenState extends State<AuthScreen> {
     final owner = AccountName.tryCanonical(_owner.text);
     final business = AccountName.tryCanonical(_business.text);
     final contacts = _resolvedContacts();
-    final governorate = _governorateCode;
+    final governorate = _country.code == 'EG' && _governorates.isNotEmpty
+        ? _governorateCode
+        : _country.regionCode(_region.text);
     if (owner == null ||
         business == null ||
         contacts == null ||
@@ -544,40 +452,24 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = _authTheme(Theme.of(context));
+    final scheme = theme.colorScheme;
     return PopScope(
       canPop: !_signingUp && !_busy,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _signingUp && !_busy) {
-          _showMode(AuthFormMode.signIn);
-        }
+        if (!didPop && !_busy) _back();
       },
       child: Theme(
         data: theme,
         child: RepaintBoundary(
           key: const Key('auth-capture-boundary'),
           child: Scaffold(
-            resizeToAvoidBottomInset: true,
+            backgroundColor: scheme.surface,
             body: Stack(
+              fit: StackFit.expand,
               children: [
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          theme.colorScheme.primaryContainer,
-                          theme.colorScheme.surface,
-                          theme.colorScheme.surface,
-                        ],
-                        stops: const [0, 0.42, 1],
-                      ),
-                    ),
-                  ),
-                ),
+                const _AuthAtmosphere(),
                 SafeArea(
-                  child: Align(
-                    alignment: Alignment.topCenter,
+                  child: Center(
                     child: ConstrainedBox(
                       key: const Key('auth-measure'),
                       constraints: const BoxConstraints(maxWidth: _measure),
@@ -589,104 +481,78 @@ class _AuthScreenState extends State<AuthScreen> {
                         child: AutofillGroup(
                           child: FocusTraversalGroup(
                             policy: OrderedTraversalPolicy(),
-                            child: ScrollConfiguration(
-                              // Avoid an animated edge effect during form
-                              // replacement; retain platform scrollbars/physics.
-                              behavior: ScrollConfiguration.of(
-                                context,
-                              ).copyWith(overscroll: false),
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final wide =
-                                      MediaQuery.sizeOf(context).width >=
-                                      AppTokens.wideBreakpoint;
-                                  final keyboard =
-                                      MediaQuery.viewInsetsOf(context).bottom >
-                                      0;
-                                  final bounded =
-                                      constraints.maxHeight.isFinite;
-                                  final roomy =
-                                      bounded &&
-                                      constraints.maxHeight >= 760 &&
-                                      !keyboard;
-                                  final topPad = wide ? 40.0 : 8.0;
-                                  const bottomPad = 24.0;
-                                  final minHeight = roomy
-                                      ? (constraints.maxHeight -
-                                                topPad -
-                                                bottomPad)
-                                            .clamp(0.0, double.infinity)
-                                      : 0.0;
-                                  return SingleChildScrollView(
-                                    key: const Key('auth-scroll'),
-                                    controller: _scroll,
-                                    keyboardDismissBehavior:
-                                        ScrollViewKeyboardDismissBehavior
-                                            .onDrag,
-                                    padding: EdgeInsets.fromLTRB(
-                                      16,
-                                      topPad,
-                                      16,
-                                      bottomPad,
-                                    ),
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        minHeight: minHeight,
+                            child: SingleChildScrollView(
+                              key: const Key('auth-scroll'),
+                              controller: _scroll,
+                              keyboardDismissBehavior:
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
+                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _header(theme),
+                                  const SizedBox(height: 8),
+                                  const BrandHero(markSize: 56),
+                                  SizedBox(height: _signingUp ? 28 : 120),
+                                  _panel(theme, [
+                                    _headline(theme),
+                                    const SizedBox(height: 20),
+                                    if (widget.recoveryNotice != null) ...[
+                                      _recoveryNotice(theme),
+                                      const SizedBox(height: 12),
+                                    ],
+                                    if (_signingUp) ...[
+                                      _signupProgress(theme),
+                                      const SizedBox(height: 20),
+                                      ..._signUpFields(theme),
+                                    ] else
+                                      ..._signInFields(theme),
+                                    if (!_signingUp &&
+                                        widget.onForgotPassword != null)
+                                      _forgotPassword(),
+                                    if (_fieldAlert != null)
+                                      Semantics(
+                                        key: const Key('auth-field-alert'),
+                                        liveRegion: true,
+                                        label: _fieldAlert,
+                                        child: const SizedBox.shrink(),
                                       ),
-                                      child: Column(
-                                        mainAxisAlignment: roomy
-                                            ? MainAxisAlignment.center
-                                            : MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
+                                    _status(theme.colorScheme),
+                                    const SizedBox(height: 8),
+                                    _submit(),
+                                    if (!_signingUp) ...[
+                                      const SizedBox(height: 16),
+                                      Row(
                                         children: [
-                                          _header(theme),
-                                          if (_signingUp) ...[
-                                            const SizedBox(height: 4),
-                                            _backButton(),
-                                          ],
-                                          const SizedBox(height: 20),
-                                          _headline(theme),
-                                          if (_guideVisible) ...[
-                                            const SizedBox(height: 12),
-                                            _guide(),
-                                          ],
-                                          const SizedBox(height: 16),
-                                          _panel(theme, [
-                                            if (widget.recoveryNotice !=
-                                                null) ...[
-                                              _recoveryNotice(theme),
-                                              const SizedBox(height: 12),
-                                            ],
-                                            _modeSwitch(theme),
-                                            const SizedBox(height: 16),
-                                            if (!_signingUp)
-                                              ..._signInFields(theme),
-                                            if (_signingUp)
-                                              ..._signUpFields(theme),
-                                            if (_fieldAlert != null)
-                                              Semantics(
-                                                key: const Key(
-                                                  'auth-field-alert',
-                                                ),
-                                                liveRegion: true,
-                                                label: _fieldAlert,
-                                                child: const SizedBox(
-                                                  width: double.infinity,
-                                                ),
-                                              ),
-                                            _status(theme.colorScheme),
-                                            const SizedBox(height: 8),
-                                            _submit(),
-                                            if (!_signingUp &&
-                                                widget.onForgotPassword != null)
-                                              _forgotPassword(),
-                                          ]),
+                                          const Expanded(child: Divider()),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Text(
+                                              'أو',
+                                              style: theme.textTheme.bodyMedium,
+                                            ),
+                                          ),
+                                          const Expanded(child: Divider()),
                                         ],
                                       ),
-                                    ),
-                                  );
-                                },
+                                      const SizedBox(height: 16),
+                                      OutlinedButton.icon(
+                                        key: const Key('show-signup'),
+                                        onPressed: _busy
+                                            ? null
+                                            : () => _showMode(
+                                                AuthFormMode.signUp,
+                                              ),
+                                        icon: const Icon(
+                                          Icons.person_add_outlined,
+                                        ),
+                                        label: const Text('إنشاء حساب جديد'),
+                                      ),
+                                    ],
+                                  ]),
+                                ],
                               ),
                             ),
                           ),
@@ -703,150 +569,111 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _header(ThemeData theme) {
-    final dark = theme.brightness == Brightness.dark;
-    return Row(
-      children: [
-        const Expanded(child: BrandHero(markSize: 40, compact: true)),
-        const SizedBox(width: 8),
-        _order(
-          0.01,
-          IconButton(
-            key: const Key('auth-help'),
-            tooltip: 'إعادة الإرشاد',
-            onPressed: _resumeGuide,
-            icon: const Icon(Icons.help_outline),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _order(
-          0.02,
-          IconButton(
-            key: const Key('auth-theme-toggle'),
-            tooltip: dark ? ShellCopy.toggleToLight : ShellCopy.toggleToDark,
-            onPressed: () => widget.onToggleTheme(theme.brightness),
-            icon: Icon(
-              dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+  void _back() {
+    if (_signingUp && _signupStep > 0 && !_unknown) {
+      setState(() {
+        _signupStep--;
+        _validated = false;
+        _formKey = GlobalKey<FormState>();
+      });
+    } else {
+      _showMode(AuthFormMode.signIn);
+    }
+  }
+
+  void _nextSignup() {
+    if (_busy) return;
+    if (_signupStep == 2 || _unknown) {
+      _submitSignUp();
+      return;
+    }
+    if (_rejected(_signUpChecks())) return;
+    setState(() {
+      _signupStep++;
+      _validated = false;
+      _formKey = GlobalKey<FormState>();
+    });
+    _scroll.jumpTo(0);
+  }
+
+  Widget _signupProgress(ThemeData theme) => Row(
+    children: [
+      for (var i = 0; i < 3; i++)
+        Expanded(
+          child: Semantics(
+            selected: _signupStep == i,
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: _signupStep == i
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.surfaceContainerHighest,
+                  foregroundColor: _signupStep == i
+                      ? theme.colorScheme.onPrimary
+                      : theme.colorScheme.onSurfaceVariant,
+                  child: Text('${i + 1}'),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  const ['بيانات الحساب', 'بيانات المحل', 'مراجعة'][i],
+                  style: theme.textTheme.labelMedium,
+                ),
+              ],
             ),
           ),
         ),
-      ],
-    );
-  }
+    ],
+  );
+
+  Widget _header(ThemeData theme) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      if (_signingUp)
+        IconButton(
+          key: const Key('signup-back'),
+          tooltip: AuthCopy.backToSignIn,
+          onPressed: _busy ? null : _back,
+          icon: const Icon(Icons.arrow_back),
+        )
+      else
+        const SizedBox(width: 48),
+      IconButton(
+        key: const Key('auth-theme-toggle'),
+        tooltip: theme.brightness == Brightness.dark
+            ? ShellCopy.toggleToLight
+            : ShellCopy.toggleToDark,
+        onPressed: () => widget.onToggleTheme(theme.brightness),
+        icon: Icon(
+          theme.brightness == Brightness.dark
+              ? Icons.light_mode_outlined
+              : Icons.dark_mode_outlined,
+        ),
+      ),
+    ],
+  );
 
   Widget _panel(ThemeData theme, List<Widget> children) {
     final scheme = theme.colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
+        color: scheme.surfaceContainerLow.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: scheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: children,
         ),
-      ),
-    );
-  }
-
-  Widget _modeSwitch(ThemeData theme) {
-    final scheme = theme.colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          children: [
-            Expanded(
-              child: _modeButton(
-                theme: theme,
-                order: 0.1,
-                buttonKey: const Key('show-sign-in'),
-                label: AuthCopy.modeSignIn,
-                selected: !_signingUp,
-                onPressed: () => _showMode(AuthFormMode.signIn),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _modeButton(
-                theme: theme,
-                order: 0.2,
-                buttonKey: const Key('show-signup'),
-                label: AuthCopy.modeSignUp,
-                selected: _signingUp,
-                onPressed: () => _showMode(AuthFormMode.signUp),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _modeButton({
-    required ThemeData theme,
-    required double order,
-    required Key buttonKey,
-    required String label,
-    required bool selected,
-    required VoidCallback onPressed,
-  }) {
-    final scheme = theme.colorScheme;
-    final style = ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(_control)),
-      padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-      elevation: const WidgetStatePropertyAll(0),
-      tapTargetSize: MaterialTapTargetSize.padded,
-      backgroundColor: WidgetStatePropertyAll(
-        selected ? scheme.primary : scheme.surface,
-      ),
-      foregroundColor: WidgetStatePropertyAll(
-        selected ? scheme.onPrimary : scheme.onSurface,
-      ),
-      side: WidgetStatePropertyAll(
-        BorderSide(color: selected ? scheme.primary : scheme.outlineVariant),
-      ),
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
-      ),
-      textStyle: WidgetStatePropertyAll(
-        theme.textTheme.titleSmall?.copyWith(
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-        ),
-      ),
-    );
-    final child = Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.center,
-    );
-    return _order(
-      order,
-      Semantics(
-        selected: selected,
-        child: selected
-            ? FilledButton(
-                key: buttonKey,
-                style: style,
-                onPressed: _busy ? null : onPressed,
-                child: child,
-              )
-            : OutlinedButton(
-                key: buttonKey,
-                style: style,
-                onPressed: _busy ? null : onPressed,
-                child: child,
-              ),
       ),
     );
   }
@@ -893,7 +720,7 @@ class _AuthScreenState extends State<AuthScreen> {
         next: _passwordFocus,
         label: kind == null ? AuthCopy.contactLabel : _kindLabel(kind),
         hint: _kindHint(kind),
-        helper: kind == null ? null : _detectedCopy(kind),
+        helper: null,
         icon: _kindIcon(kind),
         keyboardType: TextInputType.emailAddress,
         autofillHints: const [
@@ -913,89 +740,196 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   List<Widget> _signUpFields(ThemeData theme) {
-    final scheme = theme.colorScheme;
+    if (_signupStep == 2) {
+      return [
+        _registrationLine('الاسم', _owner.text),
+        _registrationLine('البريد الإلكتروني', _email.text),
+        _registrationLine(
+          'رقم الهاتف',
+          _country.canonicalPhone(_phone.value.international) ??
+              _phone.value.international,
+        ),
+        _registrationLine('اسم المحل', _business.text),
+        _registrationLine('الدولة', _country.nameAr),
+        _registrationLine(
+          'المحافظة / المنطقة',
+          _country.code == 'EG' && _governorates.isNotEmpty
+              ? _governorates
+                        .where((g) => g.code == _governorateCode)
+                        .firstOrNull
+                        ?.nameAr ??
+                    ''
+              : _region.text,
+        ),
+        const SizedBox(height: 16),
+      ];
+    }
+    if (_signupStep == 1) {
+      return [
+        _nameField(
+          order: 1,
+          key: const Key('signup-business-name'),
+          controller: _business,
+          focusNode: _businessFocus,
+          next: _governorateFocus,
+          label: AuthCopy.businessLabel,
+          invalid: AuthCopy.businessInvalid,
+          icon: Icons.storefront_outlined,
+          autofillHints: const [AutofillHints.organizationName],
+        ),
+        if (_country.code == 'EG' &&
+            (_loadingGovernorates || _governorates.isNotEmpty))
+          _governorateBlock(theme, theme.colorScheme)
+        else
+          _labeled(
+            order: 2,
+            label: 'المحافظة / المنطقة',
+            theme: theme,
+            field: TextFormField(
+              key: const Key('signup-region'),
+              controller: _region,
+              focusNode: _governorateFocus,
+              enabled: !_locked,
+              decoration: const InputDecoration(hintText: 'اكتب المنطقة'),
+              validator: (value) => _country.regionCode(value ?? '') == null
+                  ? 'أدخل المنطقة'
+                  : null,
+            ),
+          ),
+      ];
+    }
     return [
-      _caption(theme, AuthCopy.ownerSection),
-      const SizedBox(height: 8),
       _nameField(
-        order: 2,
+        order: 1,
         key: const Key('signup-owner-name'),
         controller: _owner,
         focusNode: _ownerFocus,
-        next: _businessFocus,
+        next: _emailFocus,
         label: AuthCopy.ownerLabel,
         invalid: AuthCopy.ownerInvalid,
         icon: Icons.person_outline,
         autofillHints: const [AutofillHints.name],
       ),
-      _nameField(
-        order: 3,
-        key: const Key('signup-business-name'),
-        controller: _business,
-        focusNode: _businessFocus,
-        next: _emailFocus,
-        label: AuthCopy.businessLabel,
-        invalid: AuthCopy.businessInvalid,
-        icon: Icons.storefront_outlined,
-        autofillHints: const [AutofillHints.organizationName],
-      ),
-      _caption(theme, AuthCopy.contactSection),
-      const SizedBox(height: 4),
-      Text(
-        AuthCopy.contactGuide,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: scheme.onSurfaceVariant,
-          height: 1.5,
-        ),
-      ),
-      const SizedBox(height: 8),
       _contactField(
-        order: 4,
+        order: 2,
         key: const Key('signup-email'),
         controller: _email,
         focusNode: _emailFocus,
         next: _phoneFocus,
-        label: _signupLabel(_email.text, _phone.text),
-        hint: _kindHint(AccountIdentifier.detect(_email.text)),
-        helper: _detectedHelper(_email.text),
-        icon: _kindIcon(AccountIdentifier.detect(_email.text)),
+        label: AuthCopy.emailLabel,
+        hint: AuthCopy.emailHint,
+        helper: null,
+        icon: Icons.mail_outline,
         keyboardType: TextInputType.emailAddress,
-        autofillHints: const [
-          AutofillHints.email,
-          AutofillHints.telephoneNumber,
-        ],
-        validator: (value) =>
-            _signupContactError(value ?? '', _phone.text, secondary: false),
+        autofillHints: const [AutofillHints.email],
+        validator: (value) => AccountEmail.tryCanonical(value ?? '') == null
+            ? AuthCopy.emailInvalid
+            : null,
       ),
-      _contactField(
-        order: 5,
-        key: const Key('signup-phone'),
-        controller: _phone,
-        focusNode: _phoneFocus,
-        next: _governorateFocus,
-        label: _signupLabel(_phone.text, _email.text),
-        hint: _kindHint(AccountIdentifier.detect(_phone.text)),
-        helper: _detectedHelper(_phone.text),
-        icon: _kindIcon(AccountIdentifier.detect(_phone.text)),
-        keyboardType: TextInputType.emailAddress,
-        autofillHints: const [
-          AutofillHints.email,
-          AutofillHints.telephoneNumber,
-        ],
-        validator: (value) =>
-            _signupContactError(value ?? '', _email.text, secondary: true),
+      _labeled(
+        order: 3,
+        label: AuthCopy.phoneLabel,
+        theme: theme,
+        field: Localizations.override(
+          context: context,
+          locale: const Locale('ar'),
+          delegates: PhoneFieldLocalization.delegates.toList(),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: PhoneFormField(
+              key: const Key('signup-phone'),
+              controller: _phone,
+              focusNode: _phoneFocus,
+              enabled: !_locked,
+              isCountrySelectionEnabled: !_locked,
+              shouldLimitLengthByCountry: false,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => _passwordFocus.requestFocus(),
+              scrollPadding: _fieldScrollPadding,
+              autofillHints: const [AutofillHints.telephoneNumber],
+              autovalidateMode: _validated
+                  ? AutovalidateMode.onUserInteraction
+                  : AutovalidateMode.disabled,
+              countryButtonStyle: CountryButtonStyle(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                flagSize: 24,
+                textStyle: theme.textTheme.bodyMedium,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              countrySelectorNavigator: CountrySelectorNavigator.dialog(
+                countries: [
+                  for (final country in RegistrationCountry.all)
+                    IsoCode.values.firstWhere(
+                      (iso) => iso.name == country.code,
+                    ),
+                ],
+                favorites: const [IsoCode.EG, IsoCode.SA, IsoCode.AE],
+                searchAutofocus: false,
+                backgroundColor: theme.colorScheme.surface,
+                titleStyle: theme.textTheme.bodyLarge,
+                subtitleStyle: theme.textTheme.bodyMedium,
+                searchBoxDecoration: const InputDecoration(
+                  labelText: 'ابحث عن الدولة أو كودها',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                noResultMessage: 'لا توجد دولة مطابقة',
+              ),
+              decoration: const InputDecoration(
+                hintText: 'رقم الهاتف',
+                hintTextDirection: TextDirection.rtl,
+              ),
+              validator: (value) =>
+                  value == null ||
+                      value.nsn.isEmpty ||
+                      RegistrationCountry.byCode(value.isoCode.name) == null ||
+                      _country.canonicalPhone(value.international) == null
+                  ? AuthCopy.phoneInvalid
+                  : null,
+            ),
+          ),
+        ),
       ),
-      _governorateBlock(theme, scheme),
-      _caption(theme, AuthCopy.credentialsSection),
-      const SizedBox(height: 8),
       _passwordField(
-        order: 8,
+        order: 5,
         key: const Key('signup-password'),
         autofillHints: const [AutofillHints.newPassword],
-        onDone: _submitSignUp,
+        onDone: _nextSignup,
+      ),
+      _labeled(
+        order: 6,
+        label: 'تأكيد كلمة المرور',
+        theme: theme,
+        field: TextFormField(
+          key: const Key('signup-password-confirm'),
+          controller: _confirmPassword,
+          focusNode: _confirmFocus,
+          enabled: !_locked,
+          obscureText: !_passwordVisible,
+          textDirection: TextDirection.ltr,
+          autofillHints: const [AutofillHints.newPassword],
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.lock_outline),
+          ),
+          validator: (value) =>
+              value == _password.text && (value ?? '').isNotEmpty
+              ? null
+              : 'كلمتا المرور غير متطابقتين',
+        ),
       ),
     ];
   }
+
+  Widget _registrationLine(String label, String value) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 4),
+        Text(value, style: Theme.of(context).textTheme.titleMedium),
+      ],
+    ),
+  );
 
   Widget _governorateBlock(ThemeData theme, ColorScheme scheme) {
     final showFailure =
@@ -1205,33 +1139,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _backButton() {
-    return _order(
-      0.05,
-      SizedBox(
-        width: double.infinity,
-        child: TextButton(
-          key: const Key('signup-back'),
-          style: TextButton.styleFrom(
-            minimumSize: const Size(48, _control),
-            alignment: AlignmentDirectional.centerStart,
-            padding: const EdgeInsetsDirectional.only(end: 8),
-          ),
-          onPressed: _busy ? null : () => _showMode(AuthFormMode.signIn),
-          child: const Row(
-            children: [
-              Icon(Icons.arrow_back),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(AuthCopy.backToSignIn, textAlign: TextAlign.start),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _motionBar(String label) {
     final scheme = Theme.of(context).colorScheme;
     if (MediaQuery.disableAnimationsOf(context)) {
@@ -1251,7 +1158,11 @@ class _AuthScreenState extends State<AuthScreen> {
     final label = _busy
         ? (_signingUp ? AuthCopy.signUpBusy : AuthCopy.signInBusy)
         : _signingUp
-        ? (_attempt == null ? AuthCopy.signUpAction : AuthCopy.retryAction)
+        ? (_signupStep < 2 && !_unknown
+              ? 'التالي'
+              : _attempt == null
+              ? AuthCopy.signUpAction
+              : AuthCopy.retryAction)
         : AuthCopy.signInAction;
     return _order(
       _signingUp ? 10 : 6,
@@ -1266,41 +1177,10 @@ class _AuthScreenState extends State<AuthScreen> {
           onPressed: _busy
               ? null
               : _signingUp
-              ? _submitSignUp
+              ? _nextSignup
               : _submitSignIn,
           child: Text(label, textAlign: TextAlign.center),
         ),
-      ),
-    );
-  }
-
-  Widget _caption(ThemeData theme, String text) {
-    final scheme = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
-      child: Row(
-        children: [
-          ExcludeSemantics(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: scheme.primary,
-                borderRadius: BorderRadius.circular(2),
-              ),
-              child: const SizedBox(width: 3, height: 16),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1394,6 +1274,7 @@ class _AuthScreenState extends State<AuthScreen> {
           hintText: hint,
           helperText: helper,
           helperMaxLines: 3,
+
           prefixIcon: ExcludeSemantics(
             child: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -1401,21 +1282,6 @@ class _AuthScreenState extends State<AuthScreen> {
         validator: validator,
       ),
     );
-  }
-
-  String _signupLabel(String own, String other) {
-    final ownKind = AccountIdentifier.detect(own);
-    if (ownKind != null) return _kindLabel(ownKind);
-    final otherKind = AccountIdentifier.detect(other);
-    if (otherKind == SignInIdentifier.email) return AuthCopy.phoneLabel;
-    if (otherKind == SignInIdentifier.phone) return AuthCopy.emailLabel;
-    return AuthCopy.contactLabel;
-  }
-
-  String? _detectedHelper(String value) {
-    final kind = AccountIdentifier.detect(value);
-    if (kind == null) return null;
-    return _detectedCopy(kind);
   }
 
   String _kindLabel(SignInIdentifier kind) {
@@ -1430,13 +1296,6 @@ class _AuthScreenState extends State<AuthScreen> {
       SignInIdentifier.email => AuthCopy.emailHint,
       SignInIdentifier.phone => AuthCopy.phoneHint,
       null => null,
-    };
-  }
-
-  String _detectedCopy(SignInIdentifier kind) {
-    return switch (kind) {
-      SignInIdentifier.email => AuthCopy.detectedEmail,
-      SignInIdentifier.phone => AuthCopy.detectedPhone,
     };
   }
 
@@ -1480,7 +1339,7 @@ class _AuthScreenState extends State<AuthScreen> {
           if (!_busy) onDone();
         },
         decoration: InputDecoration(
-          helperText: _signingUp ? AuthCopy.passwordHelper : null,
+          helperText: null,
           helperMaxLines: 4,
           prefixIcon: ExcludeSemantics(
             child: Icon(
@@ -1518,7 +1377,7 @@ class _AuthScreenState extends State<AuthScreen> {
     return _order(
       order,
       Padding(
-        padding: EdgeInsets.only(bottom: _guideVisible ? 8 : 16),
+        padding: const EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1541,4 +1400,73 @@ class _FieldCheck {
 
   final FocusNode focus;
   final String? invalid;
+}
+
+/// Full-bleed jewelry photo that fades into the page surface.
+class _AuthAtmosphere extends StatelessWidget {
+  const _AuthAtmosphere();
+
+  static const _asset = 'assets/brand/auth-jewelry.png';
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final height = MediaQuery.sizeOf(context).height;
+    return ExcludeSemantics(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              height: height * 0.58,
+              width: double.infinity,
+              child: Image.asset(
+                _asset,
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, 0.55),
+                color: dark
+                    ? scheme.surface.withValues(alpha: 0.42)
+                    : scheme.surface.withValues(alpha: 0.12),
+                colorBlendMode: BlendMode.darken,
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SizedBox(
+              height: height * 0.28,
+              width: double.infinity,
+              child: Opacity(
+                opacity: dark ? 0.34 : 0.22,
+                child: Image.asset(
+                  _asset,
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0, -0.35),
+                  color: scheme.surface.withValues(alpha: dark ? 0.55 : 0.35),
+                  colorBlendMode: BlendMode.darken,
+                ),
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  scheme.surface.withValues(alpha: dark ? 0.55 : 0.28),
+                  scheme.surface.withValues(alpha: dark ? 0.18 : 0.08),
+                  scheme.surface.withValues(alpha: 0.82),
+                  scheme.surface,
+                ],
+                stops: const [0, 0.28, 0.52, 0.72],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -448,6 +448,11 @@ LedgerFeedLine _feedLine(Object? row) {
     'is_daily_note',
     'is_return',
     'occurred_at_shop',
+    'party_name',
+    'total_pounds',
+    'weight_grams',
+    'karat',
+    'payment_label',
   };
   if (required.any((key) => !row.containsKey(key)) ||
       row.keys.any(
@@ -484,6 +489,23 @@ LedgerFeedLine _feedLine(Object? row) {
       ? row['is_daily_note']
       : false;
   final isReturn = row.containsKey('is_return') ? row['is_return'] : false;
+  final party = row['party_name'];
+  final total = row['total_pounds'];
+  final weight = row['weight_grams'];
+  final karat = row['karat'];
+  final payment = row['payment_label'];
+  if ((party != null && (party is! String || !_plainText(party))) ||
+      (total != null &&
+          (total is! String ||
+              !RegExp(r'^[0-9]+\.[0-9]{2}$').hasMatch(total))) ||
+      (weight != null &&
+          (weight is! String ||
+              !RegExp(r'^[0-9]+\.[0-9]{3}$').hasMatch(weight))) ||
+      (karat != null &&
+          (karat is! int || !{14, 18, 21, 22, 24}.contains(karat))) ||
+      (payment != null && (payment is! String || !_plainText(payment)))) {
+    throw const FormatException('feed summary');
+  }
   if (kind is! String ||
       label != labels[kind] ||
       operationId is! String ||
@@ -518,6 +540,11 @@ LedgerFeedLine _feedLine(Object? row) {
     shopSequence: shopSequence is String ? shopSequence : null,
     isDailyNote: dailyNote,
     isReturn: isReturn,
+    partyName: party as String?,
+    totalPounds: total as String?,
+    weightGrams: weight as String?,
+    karat: karat as int?,
+    paymentLabel: payment as String?,
   );
 }
 

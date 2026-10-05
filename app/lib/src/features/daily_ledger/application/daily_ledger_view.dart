@@ -181,6 +181,11 @@ final class LedgerFeedLine {
     this.shopSequence,
     this.isDailyNote = false,
     this.isReturn = false,
+    this.partyName,
+    this.totalPounds,
+    this.weightGrams,
+    this.karat,
+    this.paymentLabel,
   });
 
   final String kind;
@@ -194,6 +199,11 @@ final class LedgerFeedLine {
   final String? shopSequence;
   final bool isDailyNote;
   final bool isReturn;
+  final String? partyName;
+  final String? totalPounds;
+  final String? weightGrams;
+  final int? karat;
+  final String? paymentLabel;
 
   String get displayTime => occurredAtShop ?? occurredAtCairo;
 }

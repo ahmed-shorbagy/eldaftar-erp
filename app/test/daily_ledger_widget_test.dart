@@ -241,7 +241,6 @@ Future<void> pumpScreen(
         onboardingStore: onboardingStore,
         onSignOut: () async {},
         onToggleTheme: (_) async {},
-        onChangeShop: () {},
         newKey: () => '99999999-9999-4999-8999-999999999999',
       ),
     ),
@@ -339,6 +338,9 @@ void main() {
         );
         expect(tester.takeException(), isNull);
         expect(find.text('حركة الذهب'), findsOneWidget);
+        await tester.ensureVisible(find.text('حركة الذهب'));
+        await tester.tap(find.text('حركة الذهب'));
+        await tester.pumpAndSettle();
         expect(find.text('2.000 جرام'), findsOneWidget);
         expect(find.text('بيع: 2.000 جرام'), findsOneWidget);
         expect(
@@ -400,13 +402,13 @@ void main() {
       expect(find.byTooltip('تسجيل الخروج'), findsNothing);
       await tester.tap(find.byTooltip('المزيد'));
       await tester.pumpAndSettle();
-      expect(find.text('اختيار متجر آخر'), findsOneWidget);
+      expect(find.text('اختيار متجر آخر'), findsNothing);
       expect(find.text('تسجيل الخروج'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('ledger guide resumes after skip and uses real refresh', (
+  testWidgets('ledger has no guidance and refresh reads the real ledger', (
     tester,
   ) async {
     final gateway = ScriptGateway();
@@ -419,23 +421,15 @@ void main() {
       onboardingStore: guide,
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
+    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(find.byKey(const Key('ledger-help')), findsNothing);
     final reads = gateway.ledgerCalls;
     await tester.tap(find.byTooltip('تحديث الدفتر'));
     await tester.pumpAndSettle();
     expect(gateway.ledgerCalls, greaterThan(reads));
-    expect(guide.steps.values, contains(1));
-    await tester.tap(find.byKey(const Key('onboarding-skip')));
-    await tester.pump();
-    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
-    await tester.tap(find.byKey(const Key('ledger-help')));
-    await tester.pump();
-    expect(find.text('راجع الأرصدة قبل أي تأكيد'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('onboarding-action')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('onboarding-guide')), findsNothing);
-    expect(guide.complete, contains('ledger_${user}_$shopId'));
-    expect(gateway.confirmCalls, 0, reason: 'Guidance never posts balances');
+    expect(guide.steps, isEmpty);
+    expect(guide.complete, isEmpty);
+    expect(gateway.confirmCalls, 0);
   });
 
   test('confirmed cash total uses exact piastres above double precision', () {
@@ -503,9 +497,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
     expect(find.text('إجمالي النقدية'), findsOneWidget);
-    expect(find.text('10000.00 جنيه'), findsOneWidget);
+    expect(find.textContaining('10,000'), findsWidgets);
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
-    expect(find.text('منى حسن · 26 سبتمبر 2026، 03:30:00'), findsOneWidget);
+    expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);
     expect(find.textContaining('T'), findsNothing);
     expect(gateway.confirmCalls, 1);
   });
@@ -713,8 +707,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
-    await tester.pumpAndSettle();
     expect(find.text('قيد التفعيل'), findsOneWidget);
     expect(gateway.ledgerCalls, 0);
     expect(gateway.confirmCalls, 0);
@@ -778,7 +770,7 @@ void main() {
       generation: 2,
     );
     await tester.pumpAndSettle();
-    expect(find.text('10000.00'), findsOneWidget);
+    expect(find.text('10,000'), findsOneWidget);
     expect(find.text('رصيد افتتاحي'), findsOneWidget);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
   });
@@ -817,7 +809,7 @@ void main() {
       await tester.pump(const Duration(minutes: 1));
       await tester.pumpAndSettle();
       expect(gateway.ledgerCalls, greaterThan(firstCalls));
-      expect(find.text('20000.00'), findsOneWidget);
+      expect(find.text('20,000'), findsOneWidget);
     },
   );
 
@@ -846,12 +838,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
-    await tester.pumpAndSettle();
-    expect(find.text('10000.00'), findsOneWidget);
+    expect(find.text('10,000'), findsOneWidget);
     auth.expire();
     await tester.pumpAndSettle();
-    expect(find.text('10000.00'), findsNothing);
+    expect(find.text('10,000'), findsNothing);
     expect(find.text('تسجيل الدخول'), findsOneWidget);
     await auth.controller.close();
 
@@ -877,13 +867,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
-    await tester.pumpAndSettle();
-    expect(find.text('10000.00'), findsOneWidget);
+    expect(find.text('10,000'), findsOneWidget);
     gateShops.accounts = [];
     await tester.tap(find.byTooltip('تحديث الدفتر'));
     await tester.pumpAndSettle();
-    expect(find.text('10000.00'), findsNothing);
+    expect(find.text('10,000'), findsNothing);
     expect(find.textContaining('لم يعد لديك وصول'), findsOneWidget);
   });
 
@@ -1077,15 +1065,13 @@ void main() {
 
     await pump();
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
-    await tester.pumpAndSettle();
     expect(find.text('متجر الأول'), findsOneWidget);
-    expect(find.text('10000.00'), findsOneWidget);
+    expect(find.text('10,000'), findsOneWidget);
     userId = 'user-2';
     await pump();
     await tester.pump();
     expect(find.text('متجر الأول'), findsNothing);
-    expect(find.text('10000.00'), findsNothing);
+    expect(find.text('10,000'), findsNothing);
     await tester.pumpAndSettle();
     expect(find.text('متجر الثاني'), findsOneWidget);
     await auth.controller.close();
@@ -1135,7 +1121,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('الاشتراك منتهٍ. العرض للقراءة فقط.'), findsOneWidget);
-    expect(find.text('10000.00'), findsOneWidget);
+    expect(find.text('10,000'), findsOneWidget);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
     expect(find.byKey(const Key('review-zero')), findsNothing);
   });

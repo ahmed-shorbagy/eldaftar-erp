@@ -7,7 +7,6 @@ import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../../onboarding/application/onboarding_store.dart';
-import '../../onboarding/presentation/guide_card.dart';
 import '../../daily_notes/application/notes_gateway.dart';
 import '../../daily_notes/data/note_image_file_store.dart';
 import '../../daily_notes/data/platform_note_image_source.dart';
@@ -44,7 +43,7 @@ class DailyLedgerScreen extends StatefulWidget {
     required this.shop,
     required this.onSignOut,
     required this.onToggleTheme,
-    required this.onChangeShop,
+    this.onChangeShop,
     this.onRefreshShops,
     this.gateway,
     this.store,
@@ -58,7 +57,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final ShopAccount shop;
   final Future<void> Function() onSignOut;
   final Future<void> Function(Brightness) onToggleTheme;
-  final VoidCallback onChangeShop;
+  final VoidCallback? onChangeShop;
   final Future<void> Function()? onRefreshShops;
   final OpeningGateway? gateway;
   final PendingOpeningStore? store;
@@ -82,8 +81,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   DailyLedgerController? _controller;
   final _scroll = ScrollController();
   final _refreshFocus = FocusNode();
-  bool _guideVisible = false;
-  int _guideStep = 0;
   FinancialDayState? _financialDay;
   String? _financialError;
   bool _financialLoading = false;
@@ -116,8 +113,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     WidgetsBinding.instance.addObserver(this);
     _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) => _sync());
     _attach();
-    _guideVisible = widget.guideResumeGeneration > 0;
-    _loadGuide();
   }
 
   @override
@@ -152,44 +147,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     }
   }
 
-  String get _guidePath => 'ledger_${widget.userId}_${widget.shop.id}';
-
-  Future<void> _loadGuide() async {
-    final store = widget.onboardingStore;
-    if (store == null || widget.userId == null) return;
-    final path = _guidePath;
-    final complete = await store.isComplete(path);
-    final step = await store.readStep(path);
-    if (mounted && _guidePath == path && !complete) {
-      setState(() {
-        _guideVisible = true;
-        _guideStep = step.clamp(0, 1);
-      });
-    }
-  }
-
-  void _skipGuide() {
-    setState(() => _guideVisible = false);
-    widget.onboardingStore?.saveStep(_guidePath, _guideStep);
-  }
-
-  void _finishGuide() {
-    setState(() => _guideVisible = false);
-    widget.onboardingStore?.markComplete(_guidePath);
-  }
-
-  void _resumeGuide() {
-    setState(() => _guideVisible = true);
-  }
-
-  void _refreshWithGuide() {
+  void _refreshLedger() {
     (widget.onRefreshShops ?? _controller?.refresh)?.call();
     _maybeLoadFinancialDay(force: true);
     _catchUpFeed();
-    if (_guideVisible && _guideStep == 0) {
-      setState(() => _guideStep = 1);
-      widget.onboardingStore?.saveStep(_guidePath, 1);
-    }
   }
 
   void _attach() {
@@ -455,9 +416,12 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
-      await _controller?.refresh();
-      await _maybeLoadFinancialDay(force: true);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
     }
+    await _controller?.refresh();
+    await _maybeLoadFinancialDay(force: true);
   }
 
   Future<void> _closeDay() async {
@@ -483,6 +447,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
@@ -512,6 +479,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
@@ -543,6 +513,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
@@ -657,9 +630,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   @override
   void didUpdateWidget(covariant DailyLedgerScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.guideResumeGeneration != widget.guideResumeGeneration) {
-      _guideVisible = true;
-    }
     final identityChanged =
         oldWidget.userId != widget.userId ||
         oldWidget.shop.id != widget.shop.id ||
@@ -715,7 +685,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           IconButton(
             tooltip: 'تحديث الدفتر',
             focusNode: _refreshFocus,
-            onPressed: _refreshWithGuide,
+            onPressed: _refreshLedger,
             icon: const Icon(Icons.refresh),
           ),
           if (compact)
@@ -724,7 +694,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               onSelected: (value) {
                 switch (value) {
                   case 'shop':
-                    widget.onChangeShop();
+                    widget.onChangeShop?.call();
                   case 'theme':
                     widget.onToggleTheme(theme.brightness);
                   case 'signout':
@@ -732,10 +702,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'shop',
-                  child: Text('اختيار متجر آخر'),
-                ),
+                if (widget.onChangeShop != null)
+                  const PopupMenuItem(
+                    value: 'shop',
+                    child: Text('اختيار متجر آخر'),
+                  ),
                 PopupMenuItem(
                   value: 'theme',
                   child: Text(
@@ -751,11 +722,12 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               ],
             )
           else ...[
-            IconButton(
-              tooltip: 'اختيار متجر آخر',
-              onPressed: widget.onChangeShop,
-              icon: const Icon(Icons.storefront_outlined),
-            ),
+            if (widget.onChangeShop != null)
+              IconButton(
+                tooltip: 'اختيار متجر آخر',
+                onPressed: widget.onChangeShop,
+                icon: const Icon(Icons.storefront_outlined),
+              ),
             IconButton(
               key: const Key('theme-toggle'),
               tooltip: theme.brightness == Brightness.dark
@@ -806,59 +778,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    if (compact)
-                      IconButton(
-                        key: const Key('ledger-help'),
-                        tooltip: 'إرشاد الشاشة',
-                        onPressed: _resumeGuide,
-                        icon: const Icon(Icons.help_outline),
-                      )
-                    else
-                      TextButton.icon(
-                        key: const Key('ledger-help'),
-                        onPressed: _resumeGuide,
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(48, 48),
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                        icon: const Icon(Icons.help_outline),
-                        label: const Text('إرشاد الشاشة'),
-                      ),
                   ],
                 ),
-                if (_guideVisible) ...[
-                  const SizedBox(height: 16),
-                  GuideCard(
-                    title: _guideStep == 0
-                        ? 'تحديث الدفتر'
-                        : 'راجع الأرصدة قبل أي تأكيد',
-                    description: _guideStep == 0
-                        ? 'اضغط زر التحديث أعلى الشاشة لجلب أحدث حالة من الخادم.'
-                        : 'اعرض النقد والذهب هنا. إدخال الأرصدة لا يُحفظ حتى تراجع وتؤكد العملية.',
-                    progress: const ['١/٢', '٢/٢'][_guideStep],
-                    actionLabel: _guideStep == 0
-                        ? 'تحديد زر التحديث'
-                        : 'عرض الأرصدة',
-                    onAction: () {
-                      if (_guideStep == 0) {
-                        _refreshFocus.requestFocus();
-                      } else {
-                        _finishGuide();
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (_scroll.hasClients) {
-                            _scroll.animateTo(
-                              _scroll.position.maxScrollExtent,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        });
-                      }
-                    },
-                    onSkip: _skipGuide,
-                  ),
-                ],
                 if (_expired || (controller?.readOnly ?? false)) ...[
                   const SizedBox(height: 12),
                   Text(

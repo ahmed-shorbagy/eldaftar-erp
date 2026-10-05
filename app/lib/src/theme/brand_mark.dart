@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../shell/shell_copy.dart';
-import 'app_tokens.dart';
 
 /// Open ledger and gold ingot. Geometry matches `assets/brand/mark.svg`.
 class BrandMark extends StatelessWidget {
@@ -15,7 +14,7 @@ class BrandMark extends StatelessWidget {
       child: CustomPaint(
         key: const Key('brand-mark'),
         size: Size.square(size),
-        painter: const _BrandMarkPainter(),
+        painter: _BrandMarkPainter(Theme.of(context).colorScheme),
       ),
     );
   }
@@ -122,59 +121,77 @@ class BrandLockup extends StatelessWidget {
 }
 
 class _BrandMarkPainter extends CustomPainter {
-  const _BrandMarkPainter();
-
+  const _BrandMarkPainter(this.scheme);
+  final ColorScheme scheme;
   @override
   void paint(Canvas canvas, Size size) {
-    final scale = size.width / 32;
-    canvas.scale(scale);
-    final brown = Paint()..color = AppTokens.seed;
-    final page = Paint()..color = AppTokens.lightSurface;
-    final spine = Paint()..color = AppTokens.darkPrimaryContainer;
-    final gold = Paint()..color = AppTokens.brandGold;
-    final ink = Paint()
-      ..color = AppTokens.seed
+    canvas.scale(size.width / 64);
+    final background = Paint()..color = scheme.surface;
+    final gold = Paint()..color = scheme.primary;
+    final line = Paint()
+      ..color = scheme.primary
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.25
-      ..strokeCap = StrokeCap.round;
-
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        const Rect.fromLTWH(0, 0, 32, 32),
-        const Radius.circular(8),
+        const Rect.fromLTWH(1, 1, 62, 62),
+        const Radius.circular(14),
       ),
-      brown,
+      background,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(1, 1, 62, 62),
+        const Radius.circular(14),
+      ),
+      line,
     );
     canvas.drawPath(
       Path()
-        ..moveTo(6.5, 10.2)
-        ..lineTo(15, 12.2)
-        ..lineTo(15, 23.2)
-        ..lineTo(6.5, 21.2)
+        ..moveTo(8, 24)
+        ..lineTo(30, 30)
+        ..lineTo(30, 55)
+        ..lineTo(8, 49)
         ..close(),
-      page,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(17, 12.2)
-        ..lineTo(25.5, 10.2)
-        ..lineTo(25.5, 21.2)
-        ..lineTo(17, 23.2)
-        ..close(),
-      page,
-    );
-    canvas.drawRect(const Rect.fromLTWH(15, 12.2, 2, 11), spine);
-    canvas.drawLine(const Offset(8.3, 15), const Offset(13.2, 15), ink);
-    canvas.drawLine(const Offset(8.4, 17.6), const Offset(12.4, 17.6), ink);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(18.7, 15.4, 5, 3.1),
-        const Radius.circular(0.7),
-      ),
       gold,
     );
+    canvas.drawPath(
+      Path()
+        ..moveTo(34, 30)
+        ..lineTo(56, 24)
+        ..lineTo(56, 49)
+        ..lineTo(34, 55)
+        ..close(),
+      line,
+    );
+    final ink = Paint()
+      ..color = scheme.surface
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    for (var y = 33.0; y <= 45; y += 6) {
+      canvas.drawLine(Offset(13, y), Offset(24, y + 3), ink);
+    }
+    canvas.drawRect(const Rect.fromLTWH(39, 42, 3, 7), gold);
+    canvas.drawRect(const Rect.fromLTWH(44, 37, 3, 10), gold);
+    canvas.drawRect(const Rect.fromLTWH(49, 32, 3, 13), gold);
+    canvas.drawPath(
+      Path()
+        ..moveTo(24, 13)
+        ..lineTo(28, 8)
+        ..lineTo(36, 8)
+        ..lineTo(40, 13)
+        ..lineTo(32, 23)
+        ..close(),
+      line,
+    );
+    canvas.drawLine(const Offset(24, 13), const Offset(40, 13), line);
+    canvas.drawLine(const Offset(28, 8), const Offset(32, 23), line);
+    canvas.drawLine(const Offset(36, 8), const Offset(32, 23), line);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BrandMarkPainter oldDelegate) =>
+      oldDelegate.scheme != scheme;
 }

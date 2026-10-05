@@ -20,10 +20,11 @@ export function createAppTheme(mode: ResolvedTheme) {
     },
     palette: {
       mode,
-      primary: { main: tokens.seed },
+      primary: { main: isLight ? tokens.lightAccent : tokens.darkAccent, contrastText: isLight ? tokens.lightSurface : tokens.darkSurface },
+      success: { main: isLight ? tokens.lightSuccess : tokens.darkSuccess },
       background: {
         default: surface,
-        paper: surface,
+        paper: isLight ? surface : tokens.darkCard,
       },
       text: {
         primary: onSurface,

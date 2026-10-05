@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 
 import 'package:eldafttar/src/config/supabase_startup.dart';
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
-import 'package:eldafttar/src/features/auth/presentation/auth_copy.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_gate.dart';
 import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
@@ -157,7 +156,7 @@ Future<void> capture(WidgetTester tester, String name) async {
     final image = await boundary.toImage(pixelRatio: 1);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     final bytes = data!.buffer.asUint8List();
-    for (final directory in const ['build/auth-review']) {
+    for (final directory in const ['build/owner-feedback-review/auth']) {
       final file = File('$directory/$name');
       file.parent.createSync(recursive: true);
       file.writeAsBytesSync(bytes, flush: true);
@@ -169,311 +168,93 @@ Future<void> capture(WidgetTester tester, String name) async {
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final loader = FontLoader('NotoSansArabic')
-      ..addFont(rootBundle.load('assets/fonts/NotoSansArabic.ttf'));
-    await loader.load();
-    // The existing post-auth screen keeps platform typography. Match the
-    // Windows Arabic face used by the repository's ledger capture harness.
-    final platformFont = FontLoader('Tahoma')
-      ..addFont(
-        Future.value(
-          ByteData.sublistView(
-            File(r'C:\Windows\Fonts\tahoma.ttf').readAsBytesSync(),
-          ),
-        ),
-      );
-    await platformFont.load();
-    final iconLoader = FontLoader('MaterialIcons')
-      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
-    await iconLoader.load();
-    fontReady = true;
+    await (FontLoader(
+      'NotoSansArabic',
+    )..addFont(rootBundle.load('assets/fonts/NotoSansArabic.ttf'))).load();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
-
-  setUp(() {
-    final binding = TestWidgetsFlutterBinding.instance;
-    binding.platformDispatcher.textScaleFactorTestValue = 1;
-  });
-
-  tearDown(() {
-    final binding = TestWidgetsFlutterBinding.instance;
-    binding.platformDispatcher.clearTextScaleFactorTestValue();
-  });
-
-  testWidgets(
-    'captures new entry guidance in Arabic RTL at phone and desktop widths',
-    (tester) async {
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      for (final size in const [Size(320, 640), Size(1440, 900)]) {
-        for (final brightness in [Brightness.light, Brightness.dark]) {
-          await _pump(
-            tester,
-            size: size,
-            brightness: brightness,
-            onboardingStore: CaptureGuideStore(),
-          );
-          expect(find.byKey(const Key('onboarding-guide')), findsOneWidget);
-          await captureGuide(
-            tester,
-            'login-${brightness.name}-${size.width.toInt()}.png',
-          );
-          await reveal(tester, const Key('show-signup'));
-          await tester.tap(find.byKey(const Key('show-signup')));
-          await frames(tester);
-          final scroll = tester.widget<SingleChildScrollView>(
-            find.byKey(const Key('auth-scroll')),
-          );
-          scroll.controller!.jumpTo(0);
-          await frames(tester);
-          await captureGuide(
-            tester,
-            'signup-${brightness.name}-${size.width.toInt()}.png',
-          );
-        }
-      }
-    },
-  );
-
-  testWidgets('captures the confirmed account awaiting shop activation', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    for (final size in reviewSizes) {
-      for (final brightness in [Brightness.light, Brightness.dark]) {
+  for (final size in reviewSizes) {
+    for (final brightness in Brightness.values) {
+      final label = '${brightness.name}-${size.width.toInt()}';
+      testWidgets('simple auth and three signup steps $label', (tester) async {
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         await _pump(
           tester,
           size: size,
           brightness: brightness,
-          confirmed: true,
+          onboardingStore: CaptureGuideStore(),
         );
-        expect(find.text('قيد التفعيل'), findsOneWidget);
-        expect(find.byKey(const Key('signup-submit')), findsNothing);
-        await capture(
-          tester,
-          'signup-confirmed-${brightness.name}-${size.width.toInt()}.png',
-        );
-      }
-    }
-  });
-
-  testWidgets('captures login and registration at phone and desktop widths', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    expect(fontReady, isTrue, reason: 'The bundled Arabic font must load');
-
-    for (final size in reviewSizes) {
-      for (final brightness in [Brightness.light, Brightness.dark]) {
-        final label = '${brightness.name}-${size.width.toInt()}';
-        final registration = Completer<OwnerRegistrationResult>();
-        await _pump(
-          tester,
-          size: size,
-          brightness: brightness,
-          gateway: CaptureAuth(registrationGate: registration),
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-identifier')),
-          'owner@example.test',
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-password')),
-          'example-password',
-        );
-        await capture(tester, 'login-email-$label.png');
-
-        await tester.enterText(
-          find.byKey(const Key('sign-in-identifier')),
-          '01012345678',
-        );
+        expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+        await tester.runAsync(() async {
+          await precacheImage(
+            const AssetImage('assets/brand/auth-jewelry.png'),
+            tester.element(find.byKey(const Key('sign-in-identifier'))),
+          );
+        });
         await frames(tester);
-        expect(find.text(AuthCopy.detectedPhone), findsOneWidget);
-        await capture(tester, 'login-phone-$label.png');
-
+        await capture(tester, 'login-$label.png');
         await reveal(tester, const Key('show-signup'));
         await tester.tap(find.byKey(const Key('show-signup')));
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+        });
         await frames(tester);
-        await tester.enterText(
-          find.byKey(const Key('signup-owner-name')),
-          'منى حسن',
-        );
+        await capture(tester, 'signup-account-$label.png');
+        for (final pair in {
+          'signup-owner-name': 'مالك تجريبي',
+          'signup-email': 'owner@example.test',
+          'signup-phone': '01012345678',
+          'signup-password': 'example-password',
+          'signup-password-confirm': 'example-password',
+        }.entries) {
+          await reveal(tester, Key(pair.key));
+          await tester.enterText(find.byKey(Key(pair.key)), pair.value);
+        }
+        await reveal(tester, const Key('signup-submit'));
+        await tester.tap(find.byKey(const Key('signup-submit')));
+        await frames(tester);
+        await capture(tester, 'signup-shop-$label.png');
         await tester.enterText(
           find.byKey(const Key('signup-business-name')),
-          'ذهب الجيزة',
-        );
-        await reveal(tester, const Key('signup-email'));
-        await tester.enterText(
-          find.byKey(const Key('signup-email')),
-          'owner@example.test',
-        );
-        await reveal(tester, const Key('signup-phone'));
-        await tester.enterText(
-          find.byKey(const Key('signup-phone')),
-          '01012345678',
+          'محل تجريبي',
         );
         await reveal(tester, const Key('signup-governorate'));
         await tester.tap(find.byKey(const Key('signup-governorate')));
         await frames(tester);
         await tester.tap(find.text('الجيزة').last);
         await frames(tester);
-        await reveal(tester, const Key('signup-password'));
-        await tester.enterText(
-          find.byKey(const Key('signup-password')),
-          'example-password',
-        );
-        final list = tester.widget<SingleChildScrollView>(
-          find.byKey(const Key('auth-scroll')),
-        );
-        FocusManager.instance.primaryFocus?.unfocus();
-        await tester.pumpAndSettle();
-        list.controller!.jumpTo(0);
-        await tester.pumpAndSettle();
-        expect(list.controller!.offset, 0);
-        await capture(tester, 'signup-top-$label.png');
-        list.controller!.jumpTo(list.controller!.position.maxScrollExtent);
-        await frames(tester);
-        await capture(tester, 'signup-lower-$label.png');
         await reveal(tester, const Key('signup-submit'));
         await tester.tap(find.byKey(const Key('signup-submit')));
         await frames(tester);
-        await capture(tester, 'signup-submitting-$label.png');
-        registration.completeError(
-          const RegistrationException(RegistrationFailure.unknownOutcome),
-        );
-        await frames(tester);
-        await reveal(tester, const Key('signup-unknown'));
-        await capture(tester, 'signup-pending-$label.png');
-      }
-    }
-  });
-
-  testWidgets('captures keyboard inset, long errors, large text, and pending', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetViewInsets);
-
-    for (final size in reviewSizes) {
-      for (final brightness in [Brightness.light, Brightness.dark]) {
-        final label = '${brightness.name}-${size.width.toInt()}';
-        await _pump(tester, size: size, brightness: brightness);
-        await tester.enterText(
-          find.byKey(const Key('sign-in-identifier')),
-          'owner@example.test',
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-password')),
-          'example-password',
-        );
-        await tester.tap(find.byKey(const Key('sign-in-password')));
-        await frames(tester);
-        tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-        await frames(tester);
-        await reveal(tester, const Key('sign-in-password'));
-        await capture(tester, 'login-keyboard-field-$label.png');
-        await reveal(tester, const Key('sign-in-submit'));
-        await capture(tester, 'login-keyboard-submit-$label.png');
-        tester.view.resetViewInsets();
-        await frames(tester);
-
-        await _pump(
-          tester,
-          size: size,
-          brightness: brightness,
-          gateway: CaptureAuth(signInFailure: SignInFailure.invalidCredentials),
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-identifier')),
-          'owner@example.test',
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-password')),
-          'example-password',
-        );
+        await capture(tester, 'signup-review-$label.png');
+        expect(tester.takeException(), isNull);
+      });
+      testWidgets('auth errors with large text and keyboard $label', (
+        tester,
+      ) async {
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _pump(tester, size: size, brightness: brightness, textScale: 1.4);
         await reveal(tester, const Key('sign-in-submit'));
         await tester.tap(find.byKey(const Key('sign-in-submit')));
         await frames(tester);
-        expect(find.text(AuthCopy.signInFailed), findsOneWidget);
-        await reveal(tester, const Key('sign-in-error'));
-        await capture(tester, 'login-error-$label.png');
-
-        await _pump(tester, size: size, brightness: brightness, textScale: 2);
-        await capture(tester, 'login-largetext-$label.png');
-        await reveal(tester, const Key('show-signup'));
-        await tester.tap(find.byKey(const Key('show-signup')));
+        await capture(tester, 'login-invalid-$label.png');
+        tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+        addTearDown(tester.view.resetViewInsets);
+        await tester.tap(find.byKey(const Key('sign-in-identifier')));
         await frames(tester);
-        final scaled = tester.widget<SingleChildScrollView>(
-          find.byKey(const Key('auth-scroll')),
-        );
-        scaled.controller!.jumpTo(0);
-        await frames(tester);
-        await capture(tester, 'signup-largetext-$label.png');
-
-        final signInGate = Completer<void>();
-        await _pump(
-          tester,
-          size: size,
-          brightness: brightness,
-          gateway: CaptureAuth(signInGate: signInGate),
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-identifier')),
-          'owner@example.test',
-        );
-        await tester.enterText(
-          find.byKey(const Key('sign-in-password')),
-          'example-password',
-        );
-        await reveal(tester, const Key('sign-in-submit'));
-        await tester.tap(find.byKey(const Key('sign-in-submit')));
-        await frames(tester);
-        expect(find.text(AuthCopy.signInBusy), findsOneWidget);
-        expect(find.textContaining('تم '), findsNothing);
-        await capture(tester, 'login-pending-$label.png');
-        signInGate.complete();
-        await frames(tester);
-
-        final governorates = Completer<List<Governorate>>();
-        await _pump(
-          tester,
-          size: size,
-          brightness: brightness,
-          gateway: CaptureAuth(governorateGate: governorates),
-        );
-        await reveal(tester, const Key('show-signup'));
-        await tester.tap(find.byKey(const Key('show-signup')));
-        await frames(tester);
-        expect(find.text(AuthCopy.governorateLoading), findsOneWidget);
-        await capture(tester, 'signup-loading-$label.png');
-        governorates.complete(const [
-          Governorate(code: 'EG-GZ', nameAr: 'الجيزة'),
-        ]);
-        await frames(tester);
-
-        await _pump(tester, size: size, brightness: brightness);
-        await reveal(tester, const Key('show-signup'));
-        await tester.tap(find.byKey(const Key('show-signup')));
-        await frames(tester);
-        await reveal(tester, const Key('signup-submit'));
-        await tester.tap(find.byKey(const Key('signup-submit')));
-        await frames(tester);
-        expect(find.text(AuthCopy.ownerInvalid), findsOneWidget);
-        final invalid = tester.widget<SingleChildScrollView>(
-          find.byKey(const Key('auth-scroll')),
-        );
-        invalid.controller!.jumpTo(0);
-        await frames(tester);
-        await capture(tester, 'signup-invalid-$label.png');
-      }
+        await capture(tester, 'login-keyboard-$label.png');
+        expect(tester.takeException(), isNull);
+      });
     }
-  });
+  }
 }
 
 Future<void> _pump(

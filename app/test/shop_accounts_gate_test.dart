@@ -114,6 +114,7 @@ void main() {
     expect(find.byTooltip('تسجيل الخروج'), findsOneWidget);
     expect(find.text('إنشاء المتجر'), findsNothing);
     expect(find.byKey(const Key('shop-name')), findsNothing);
+    expect(find.text('اختر المتجر'), findsNothing);
     expect(
       Directionality.of(tester.element(find.byKey(const Key('shop-empty')))),
       TextDirection.rtl,
@@ -124,26 +125,22 @@ void main() {
     (ShopEntitlement.pending, 'قيد التفعيل'),
     (ShopEntitlement.expired, 'منتهي - للقراءة فقط'),
   ]) {
-    testWidgets('${entry.$1.name} account is not an active shell', (
+    testWidgets('${entry.$1.name} account opens without a selection step', (
       tester,
     ) async {
       final shops = FakeShops()..accounts = [account(entry.$1)];
       await pumpGate(tester, shops);
-      await tester.tap(find.byKey(const Key('shop-$shopId')));
-      await tester.pumpAndSettle();
       expect(find.text(entry.$2), findsOneWidget);
+      expect(find.text('اختر المتجر'), findsNothing);
       expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     });
   }
 
-  testWidgets('active account enters shell only after selection', (
-    tester,
-  ) async {
+  testWidgets('active account opens the daily ledger directly', (tester) async {
     final shops = FakeShops()..accounts = [account(ShopEntitlement.active)];
     await pumpGate(tester, shops);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
-    await tester.pumpAndSettle();
+    expect(find.text('اختر المتجر'), findsNothing);
     expect(find.text('الدفتر اليومي'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
   });
@@ -162,17 +159,12 @@ void main() {
     expect(find.text('إنشاء المتجر'), findsNothing);
   });
 
-  testWidgets('revocation closes selected shop on refresh', (tester) async {
+  testWidgets('revocation closes the ledger on shop refresh', (tester) async {
     final shops = FakeShops()..accounts = [account(ShopEntitlement.active)];
     await pumpGate(tester, shops);
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
-    await tester.pumpAndSettle();
+    expect(find.text('الدفتر اليومي'), findsOneWidget);
     shops.accounts = [];
-    await tester.tap(find.byTooltip('المزيد'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('اختيار متجر آخر'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('تحديث المتاجر'));
+    await tester.tap(find.byTooltip('تحديث الدفتر'));
     await tester.pumpAndSettle();
     expect(find.textContaining('لم يعد لديك وصول'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
@@ -192,8 +184,6 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('shop-$shopId')));
     await tester.pumpAndSettle();
     expect(find.text('الدفتر اليومي'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
@@ -235,16 +225,17 @@ void main() {
     expect(find.byKey(const Key('shop-$shopId')), findsNothing);
   });
 
-  testWidgets('selector fits narrow and desktop in both themes', (
+  testWidgets('pending status fits narrow and desktop in both themes', (
     tester,
   ) async {
     for (final size in [const Size(320, 640), const Size(1440, 900)]) {
       for (final brightness in [Brightness.light, Brightness.dark]) {
         final shops = FakeShops()
-          ..accounts = [account(ShopEntitlement.expired)];
+          ..accounts = [account(ShopEntitlement.pending)];
         await pumpGate(tester, shops, size: size, brightness: brightness);
         expect(tester.takeException(), isNull);
-        expect(find.text('اختر المتجر'), findsOneWidget);
+        expect(find.text('قيد التفعيل'), findsOneWidget);
+        expect(find.text('اختر المتجر'), findsNothing);
       }
     }
   });

@@ -116,7 +116,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           _accessLost = true;
         }
         _accounts = accounts;
-        if (accounts.isNotEmpty) _accessLost = false;
         if (_selected != null) {
           final matching = accounts.where((item) => item.id == _selected!.id);
           if (matching.isEmpty) {
@@ -125,6 +124,13 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           } else {
             _selected = matching.first;
           }
+        }
+        // One owner owns one shop: enter the ledger without a selection step.
+        if (_selected == null && accounts.isNotEmpty) {
+          _selected = _preferredShop(accounts);
+          _accessLost = false;
+        } else if (accounts.isNotEmpty) {
+          _accessLost = false;
         }
         _ledgerGeneration++;
       });
@@ -167,7 +173,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         refreshGeneration: _ledgerGeneration,
         onSignOut: widget.onSignOut,
         onToggleTheme: widget.onToggleTheme,
-        onChangeShop: () => setState(() => _selected = null),
         onRefreshShops: _refresh,
         onboardingStore: widget.onboardingStore,
         inventoryBuilder: inventory == null || userId == null
@@ -269,49 +274,24 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 if (selected != null) ...[
                   Text(
                     selected.name,
+                    key: Key('shop-${selected.id}'),
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 16),
                   _EntitlementCard(account: selected),
+                ] else if (_accounts != null && !_accessLost) ...[
+                  const Text(
+                    'لا توجد عضويات مرتبطة بهذا الحساب.',
+                    key: Key('shop-empty'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('سجّل الخروج للدخول بحساب له عضوية قائمة.'),
                   const SizedBox(height: 16),
                   OutlinedButton(
-                    onPressed: () => setState(() => _selected = null),
-                    child: const Text('اختيار متجر آخر'),
+                    key: const Key('shop-empty-sign-out'),
+                    onPressed: widget.onSignOut,
+                    child: const Text('تسجيل الخروج'),
                   ),
-                ] else if (_accounts != null && !_accessLost) ...[
-                  if (_accounts!.isNotEmpty) ...[
-                    Text(
-                      'اختر المتجر',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (_accounts!.isEmpty) ...[
-                    const Text(
-                      'لا توجد عضويات مرتبطة بهذا الحساب.',
-                      key: Key('shop-empty'),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('سجّل الخروج للدخول بحساب له عضوية قائمة.'),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      key: const Key('shop-empty-sign-out'),
-                      onPressed: widget.onSignOut,
-                      child: const Text('تسجيل الخروج'),
-                    ),
-                  ],
-                  for (final account in _accounts!) ...[
-                    Card(
-                      child: ListTile(
-                        key: Key('shop-${account.id}'),
-                        title: Text(account.name),
-                        subtitle: Text(_statusLabel(account.entitlement)),
-                        trailing: const Icon(Icons.chevron_left),
-                        onTap: () => setState(() => _selected = account),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
                 ],
               ],
             ),
@@ -350,6 +330,16 @@ class _EntitlementCard extends StatelessWidget {
       ),
     );
   }
+}
+
+ShopAccount _preferredShop(List<ShopAccount> accounts) {
+  for (final account in accounts) {
+    if (account.entitlement == ShopEntitlement.active) return account;
+  }
+  for (final account in accounts) {
+    if (account.entitlement == ShopEntitlement.expired) return account;
+  }
+  return accounts.first;
 }
 
 String _statusLabel(ShopEntitlement status) => switch (status) {

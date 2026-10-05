@@ -31,7 +31,7 @@ test('light and dark themes stay right-to-left and readable', () => {
   expect(dark.direction).toBe('rtl')
   expect(light.palette.mode).toBe('light')
   expect(dark.palette.mode).toBe('dark')
-  expect(light.palette.primary.main).toBe(tokens.seed)
+  expect(light.palette.primary.main).toBe(tokens.lightAccent)
   expect(light.palette.text.primary).toBe(tokens.lightOnSurface)
   expect(light.palette.background.default).toBe(tokens.lightSurface)
   expect(dark.palette.text.primary).toBe(tokens.darkOnSurface)
@@ -49,4 +49,12 @@ test('light and dark themes stay right-to-left and readable', () => {
   expect(
     contrast(tokens.darkOnPrimaryContainer, tokens.darkPrimaryContainer),
   ).toBeGreaterThanOrEqual(4.5)
+})
+
+
+test('gold actions and financial statuses have readable contrast in both themes', () => {
+  expect(contrast(tokens.lightSurface, tokens.lightAccent)).toBeGreaterThanOrEqual(4.5)
+  expect(contrast(tokens.darkSurface, tokens.darkAccent)).toBeGreaterThanOrEqual(4.5)
+  expect(contrast(tokens.lightSuccess, tokens.lightSurface)).toBeGreaterThanOrEqual(4.5)
+  expect(contrast(tokens.darkSuccess, tokens.darkCard)).toBeGreaterThanOrEqual(4.5)
 })

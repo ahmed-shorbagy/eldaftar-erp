@@ -118,6 +118,19 @@ Future<void> pumpTrade(
   await tester.pumpAndSettle();
 }
 
+Future<void> nextTrade(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('trade-next')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> beginTrade(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const Key('trade-select-name')),
+    'صنف تجريبي',
+  );
+  await nextTrade(tester);
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -184,8 +197,10 @@ void main() {
   ) async {
     final gateway = FakeFinancialGateway();
     await pumpTrade(tester, gateway, FinancialKind.sale);
+    await beginTrade(tester);
     await tester.enterText(find.byKey(const Key('trade-name-0')), 'خاتم');
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
+    await nextTrade(tester);
     await tester.dragUntilVisible(
       find.byKey(const Key('trade-tender-amount-0')),
       find.byType(ListView),
@@ -195,17 +210,22 @@ void main() {
       find.byKey(const Key('trade-tender-amount-0')),
       '4200.25',
     );
+    if (find.byKey(const Key('trade-next')).evaluate().isNotEmpty) {
+      await nextTrade(tester);
+    }
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
-    expect(find.text('4200.25 جنيه'), findsWidgets);
-    expect(find.textContaining('1.830 جرام'), findsOneWidget);
+    expect(find.text('4,200.25 جنيه'), findsWidgets);
+    expect(find.text('1.830 جرام'), findsOneWidget);
     expect(gateway.keys, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.keys, hasLength(1));
     expect(gateway.pendingExistedAtPost, isTrue);
     expect(gateway.payloads.single['total_piastres'], '420025');
+    expect(find.byKey(const Key('trade-success')), findsOneWidget);
+    expect(find.byKey(const Key('trade-confirm')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -214,8 +234,10 @@ void main() {
   ) async {
     final gateway = FakeFinancialGateway();
     await pumpTrade(tester, gateway, FinancialKind.purchase);
+    await beginTrade(tester);
     await tester.enterText(find.byKey(const Key('trade-name-0')), 'سوار');
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '10.000');
+    await nextTrade(tester);
     await tester.dragUntilVisible(
       find.byKey(const Key('trade-purchase-price')),
       find.byType(ListView),
@@ -238,13 +260,13 @@ void main() {
       find.byKey(const Key('trade-tender-amount-0')),
       '20000',
     );
+    if (find.byKey(const Key('trade-next')).evaluate().isNotEmpty) {
+      await nextTrade(tester);
+    }
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('يبقى مستحقاً للبائع: 40000.00'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('يبقى مستحقاً للبائع: 40,000'), findsOneWidget);
     expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
@@ -257,10 +279,11 @@ void main() {
   ) async {
     final gateway = FakeFinancialGateway();
     await pumpTrade(tester, gateway, FinancialKind.scrapSale);
-    expect(find.text('الفئة: كسر'), findsOneWidget);
+    await beginTrade(tester);
     expect(find.byKey(const Key('trade-count-0')), findsNothing);
     await tester.enterText(find.byKey(const Key('trade-name-0')), 'كسر');
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.375');
+    await nextTrade(tester);
     await tester.dragUntilVisible(
       find.byKey(const Key('trade-tender-amount-0')),
       find.byType(ListView),
@@ -278,11 +301,14 @@ void main() {
       find.byKey(const Key('trade-tender-amount-1')),
       '25.25',
     );
+    if (find.byKey(const Key('trade-next')).evaluate().isNotEmpty) {
+      await nextTrade(tester);
+    }
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.textContaining('ينقص الكسر'), findsOneWidget);
-    expect(find.textContaining('0.375 جرام'), findsOneWidget);
+    expect(find.text('0.375 جرام'), findsOneWidget);
     expect(gateway.payloads, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
@@ -318,8 +344,10 @@ void main() {
     (tester) async {
       final gateway = FakeFinancialGateway();
       await pumpTrade(tester, gateway, FinancialKind.sale);
+      await beginTrade(tester);
       await tester.enterText(find.byKey(const Key('trade-name-0')), 'خاتم');
       await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
+      await nextTrade(tester);
       await tester.dragUntilVisible(
         find.byKey(const Key('trade-price-details')),
         find.byType(ListView),
@@ -327,13 +355,16 @@ void main() {
       );
       await tester.tap(find.byKey(const Key('trade-price-details')));
       await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('trade-tender-amount-0')),
+        '1040.02',
+      );
       for (final entry in {
         'trade-base-price': '1000.01',
         'trade-workmanship': '50.02',
         'trade-discount': '20.04',
         'trade-other-charges': '10.03',
         'trade-other-label': 'تغليف',
-        'trade-tender-amount-0': '1040.02',
       }.entries) {
         await tester.dragUntilVisible(
           find.byKey(Key(entry.key)),
@@ -342,6 +373,7 @@ void main() {
         );
         await tester.enterText(find.byKey(Key(entry.key)), entry.value);
       }
+      await nextTrade(tester);
       await tester.tap(find.byKey(const Key('trade-review')));
       await tester.pumpAndSettle();
       await tester.dragUntilVisible(

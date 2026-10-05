@@ -15,6 +15,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:phone_form_field/phone_form_field.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -55,10 +56,15 @@ void main() {
       find.byKey(const Key('signup-owner-name')),
       'منى حسن',
     );
-    await tester.enterText(
-      find.byKey(const Key('signup-business-name')),
-      'ذهب الجيزة',
-    );
+    for (final entry in {
+      'signup-email': 'owner@example.test',
+      'signup-phone': '01012345678',
+      'signup-password': 'example-password',
+      'signup-password-confirm': 'example-password',
+    }.entries) {
+      await tester.ensureVisible(find.byKey(Key(entry.key)));
+      await tester.enterText(find.byKey(Key(entry.key)), entry.value);
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     tester
@@ -71,6 +77,15 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('signup-submit')));
     await tester.pumpAndSettle();
     await shot(tester, 'signup-lower-dark');
+    await tester.tap(find.byKey(const Key('signup-submit')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('signup-business-name')),
+      'محل تجريبي',
+    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await shot(tester, 'signup-shop-dark');
 
     expect(find.textContaining('تم إنشاء'), findsNothing);
     expect(find.textContaining('تم حفظ'), findsNothing);
@@ -144,6 +159,7 @@ class _AuthReviewHostState extends State<AuthReviewHost> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
+        ...PhoneFieldLocalization.delegates,
       ],
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),

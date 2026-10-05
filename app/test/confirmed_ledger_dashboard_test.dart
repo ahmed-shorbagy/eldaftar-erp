@@ -93,21 +93,17 @@ Future<void> pumpDashboard(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('cash and gold summaries use confirmed exact values', (
+  testWidgets('cash and gold summaries use exact readable values', (
     tester,
   ) async {
     await pumpDashboard(tester);
-    expect(find.text('124.00'), findsOneWidget);
+    expect(find.text('124'), findsOneWidget);
     expect(find.text('1.750'), findsOneWidget);
-    expect(find.text('عيار 18'), findsOneWidget);
-    expect(find.text('عيار 21'), findsOneWidget);
-    expect(find.text('71.5%'), findsOneWidget);
-    expect(find.text('28.5%'), findsOneWidget);
-    expect(find.text('99.6%'), findsOneWidget);
-    expect(find.text('0.4%'), findsOneWidget);
-    expect(find.text('أعلى وزن: عيار 18 · 1.250 جرام'), findsOneWidget);
-    expect(find.text('أعلى رصيد: نقدي · 123.45 جنيه'), findsOneWidget);
-    expect(find.text('لا توجد عمليات معروضة حتى الآن.'), findsOneWidget);
+    expect(find.textContaining('عيار 18'), findsOneWidget);
+    expect(find.textContaining('عيار 21'), findsOneWidget);
+    expect(find.textContaining('123.45'), findsOneWidget);
+    expect(find.byKey(const Key('ledger-gold-chart')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('section visibility is saved and restored', (tester) async {
@@ -117,10 +113,10 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('ledger-show-cash')));
     await tester.tap(find.byKey(const Key('ledger-show-cash')));
     await tester.pumpAndSettle();
-    expect(find.text('مقارنة طرق النقدية'), findsNothing);
+    expect(find.textContaining('123.45'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpDashboard(tester);
-    expect(find.text('مقارنة طرق النقدية'), findsNothing);
+    expect(find.textContaining('123.45'), findsNothing);
     expect(find.text('الذهب حسب العيار'), findsOneWidget);
   });
 
@@ -133,42 +129,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('wide light charts have no overflow', (tester) async {
+  testWidgets('wide light cards have no overflow', (tester) async {
     await pumpDashboard(tester, size: const Size(840, 1400));
-    expect(find.byKey(const Key('ledger-gold-chart')), findsOneWidget);
-    expect(find.byKey(const Key('ledger-cash-chart')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-gold-chart')), findsNothing);
+    expect(find.byKey(const Key('ledger-cash-chart')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('tapping a karat highlights that share', (tester) async {
-    final handle = tester.ensureSemantics();
-    await pumpDashboard(tester, disableAnimations: true);
-    await tester.ensureVisible(find.byKey(const Key('ledger-gold-share-18')));
-    await tester.tap(find.byKey(const Key('ledger-gold-share-18')));
+  testWidgets('inventory details start collapsed and expand on demand', (
+    tester,
+  ) async {
+    await pumpDashboard(tester);
+    expect(find.text('مشغولات · عيار 18'), findsNothing);
+    await tester.ensureVisible(find.text('المخزون والكسر').last);
+    await tester.tap(find.text('المخزون والكسر').last);
     await tester.pumpAndSettle();
-    expect(
-      tester.getSemantics(find.byKey(const Key('ledger-gold-share-18'))),
-      matchesSemantics(
-        label: 'عيار 18، 1.250 جرام، 71.5% من الإجمالي',
-        isButton: true,
-        isSelected: true,
-        hasSelectedState: true,
-      ),
-    );
-    await tester.tap(find.byKey(const Key('ledger-gold-share-18')));
-    await tester.pumpAndSettle();
-    expect(
-      tester.getSemantics(find.byKey(const Key('ledger-gold-share-18'))),
-      matchesSemantics(
-        isButton: true,
-        isSelected: false,
-        hasSelectedState: true,
-      ),
-    );
-    handle.dispose();
+    expect(find.textContaining('مشغولات'), findsWidgets);
   });
 
-  testWidgets('full karat and payment charts fit phone and desktop', (
+  testWidgets('full karat and payment cards fit phone and desktop', (
     tester,
   ) async {
     const dense = DailyLedgerView(
@@ -261,8 +240,8 @@ void main() {
       size: const Size(320, 900),
       disableAnimations: true,
     );
-    expect(find.text('عيار 24'), findsOneWidget);
-    expect(find.text('عيار 14'), findsOneWidget);
+    expect(find.textContaining('عيار 24'), findsOneWidget);
+    expect(find.textContaining('عيار 14'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await pumpDashboard(
       tester,
