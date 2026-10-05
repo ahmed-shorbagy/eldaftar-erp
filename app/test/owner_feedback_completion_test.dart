@@ -108,9 +108,12 @@ void main() {
       expect(find.byKey(const Key('ledger-metric-operations')), findsNothing);
       await tapVisible(tester, find.byKey(const Key('ledger-more-metrics')));
       expect(find.byKey(const Key('ledger-metric-operations')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('detail-close')));
+      await tester.pumpAndSettle();
       await tapVisible(tester, find.byKey(const Key('ledger-customize')));
       await tapVisible(tester, find.byKey(const Key('ledger-show-total_cash')));
       await tapVisible(tester, find.byKey(const Key('ledger-show-total_gold')));
+      await tapVisible(tester, find.byTooltip('نقل المشتريات إلى الأعلى'));
       await tapVisible(tester, find.byTooltip('نقل المشتريات إلى الأعلى'));
       await tapVisible(tester, find.byTooltip('نقل المشتريات إلى الأعلى'));
       final prefs = await SharedPreferences.getInstance();
@@ -127,6 +130,8 @@ void main() {
       expect(find.byKey(const Key('ledger-total-gold')), findsNothing);
       await tapVisible(tester, find.byKey(const Key('ledger-customize')));
       await tapVisible(tester, find.byKey(const Key('ledger-show-total_cash')));
+      await tester.tap(find.byKey(const Key('detail-close')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
     },
   );
@@ -141,12 +146,17 @@ void main() {
         callerUserId: 'synthetic-owner',
       );
       await host(tester, view: view);
+      await tapVisible(tester, find.byKey(const Key('ledger-other-movements')));
       expect(find.text('دفتر المرتجعات'), findsOneWidget);
       expect(find.text('المسجل: مالك تجريبي'), findsWidgets);
+      await tester.tap(find.byKey(const Key('detail-close')));
+      await tester.pumpAndSettle();
       await tapVisible(tester, find.byKey(const Key('ledger-customize')));
       await tapVisible(tester, find.byKey(const Key('ledger-show-returns')));
       await tester.pumpWidget(const SizedBox.shrink());
       await host(tester, view: view);
+      expect(find.text('دفتر المرتجعات'), findsNothing);
+      await tapVisible(tester, find.byKey(const Key('ledger-other-movements')));
       expect(find.text('دفتر المرتجعات'), findsNothing);
       expect(find.text('دفتر البيع'), findsOneWidget);
       expect(find.text('دفتر الشراء'), findsOneWidget);

@@ -278,9 +278,9 @@ void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
 Future<void> expectConfirmedFeed(WidgetTester tester) async {
   await show(tester, const Key('ledger-other-movements'));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('عرض الحركات الأخرى'));
+  await tester.tap(find.byKey(const Key('ledger-other-movements')));
   await tester.pumpAndSettle();
-  expect(find.text('رصيد افتتاحي'), findsOneWidget);
+  expect(find.text('رصيد افتتاحي'), findsWidgets);
   expect(find.text(cairoStamp), findsOneWidget);
   expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
@@ -653,47 +653,38 @@ Future<void> captureMatrix(
     screenKey: 'confirmed-$label',
   );
   await expectConfirmedFeed(tester);
-  Navigator.of(tester.element(find.text('رصيد افتتاحي'))).pop();
+  await tester.tap(find.byKey(const Key('detail-close')));
   await tester.pumpAndSettle();
-  expect(find.text('نقدي · 10,000'), findsOneWidget);
-  await show(tester, const Key('ledger-customize'));
-  final inventoryDetails = find.byKey(const Key('ledger-inventory-details'));
-  await show(tester, const Key('ledger-inventory-details'));
-  await tester.tap(
-    find.descendant(
-      of: inventoryDetails,
-      matching: find.text('المخزون والكسر'),
-    ),
-  );
-  await tester.pumpAndSettle();
-  expect(find.text('سبائك · عيار 24 · 1 قطعة'), findsOneWidget);
-  expect(find.text('كسر · عيار 24'), findsOneWidget);
   await captureScrollSlots(
     tester,
     stem: 'confirmed',
     label: label,
     topMarker: find.byKey(const Key('ledger-confirmed-status')),
-    lowerMarker: find.text('عرض الحركات الأخرى'),
+    lowerMarker: find.byKey(const Key('ledger-other-movements')),
     middleWhenTall: true,
   );
-  await show(tester, const Key('ledger-customize'));
-  await tester.tap(find.byKey(const Key('ledger-customize')));
+  await show(tester, const Key('ledger-view-gold'));
+  await tester.tap(find.byKey(const Key('ledger-view-gold')));
   await tester.pumpAndSettle();
-  await show(tester, const Key('ledger-show-movement'));
-  await tester.tap(find.byKey(const Key('ledger-show-movement')));
-  await tester.pumpAndSettle();
-  await show(tester, const Key('ledger-customize'));
-  await tester.tap(find.byKey(const Key('ledger-customize')));
-  await tester.pumpAndSettle();
-  await tester.dragUntilVisible(
-    find.text('حركة الذهب'),
-    find.byKey(const Key('ledger-scroll')),
-    const Offset(0, -180),
+  await tester.ensureVisible(find.byKey(const Key('ledger-inventory-details')));
+  await tester.tap(
+    find.descendant(
+      of: find.byKey(const Key('ledger-inventory-details')),
+      matching: find.text('المخزون والكسر'),
+    ),
   );
   await tester.pumpAndSettle();
+  expect(find.text('سبائك'), findsOneWidget);
+  expect(find.text('كسر'), findsOneWidget);
+  await tester.tap(find.byKey(const Key('detail-close')));
+  await tester.pumpAndSettle();
+  await show(tester, const Key('ledger-more-metrics'));
+  await tester.tap(find.byKey(const Key('ledger-more-metrics')));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('حركة الذهب'));
   await tester.tap(find.text('حركة الذهب'));
-  await tester.pump();
-  await show(tester, const Key('ledger-karat-18'));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.byKey(const Key('ledger-karat-18')));
   await capture(tester, 'confirmed-movement-$label.png');
 
   await blank(tester);
@@ -782,14 +773,14 @@ Future<void> captureMatrix(
   );
   expectExpiredNoWrite(tester);
   await expectConfirmedFeed(tester);
-  Navigator.of(tester.element(find.text('رصيد افتتاحي'))).pop();
+  await tester.tap(find.byKey(const Key('detail-close')));
   await tester.pumpAndSettle();
   await captureScrollSlots(
     tester,
     stem: 'expired-confirmed',
     label: label,
     topMarker: find.text('منتهي - للقراءة فقط'),
-    lowerMarker: find.text('عرض الحركات الأخرى'),
+    lowerMarker: find.byKey(const Key('ledger-other-movements')),
     middleWhenTall: true,
   );
 

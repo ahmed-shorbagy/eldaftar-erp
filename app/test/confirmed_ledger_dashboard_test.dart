@@ -99,9 +99,17 @@ void main() {
     await pumpDashboard(tester);
     expect(find.text('124'), findsOneWidget);
     expect(find.text('1.750'), findsOneWidget);
+    expect(find.textContaining('عيار 18'), findsNothing);
+    expect(find.textContaining('123.45'), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-view-cash')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('123.45'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('detail-close')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ledger-view-gold')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('عيار 18'), findsOneWidget);
     expect(find.textContaining('عيار 21'), findsOneWidget);
-    expect(find.textContaining('123.45'), findsOneWidget);
     expect(find.byKey(const Key('ledger-gold-chart')), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -117,7 +125,8 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpDashboard(tester);
     expect(find.textContaining('123.45'), findsNothing);
-    expect(find.text('الذهب حسب العيار'), findsOneWidget);
+    expect(find.byKey(const Key('ledger-view-cash')), findsNothing);
+    expect(find.byKey(const Key('ledger-view-gold')), findsOneWidget);
   });
 
   testWidgets('narrow dark layout has no overflow', (tester) async {
@@ -141,6 +150,8 @@ void main() {
   ) async {
     await pumpDashboard(tester);
     expect(find.text('مشغولات'), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-view-gold')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('المخزون والكسر').last);
     await tester.tap(find.text('المخزون والكسر').last);
     await tester.pumpAndSettle();
@@ -242,9 +253,13 @@ void main() {
       size: const Size(320, 900),
       disableAnimations: true,
     );
+    await tester.tap(find.byKey(const Key('ledger-view-gold')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('عيار 24'), findsOneWidget);
     expect(find.textContaining('عيار 14'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('detail-close')));
+    await tester.pumpAndSettle();
     await pumpDashboard(
       tester,
       view: dense,

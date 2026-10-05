@@ -198,7 +198,6 @@ class _PurchaseCashSettlementScreenState
                       initialValue: _method,
                       decoration: const InputDecoration(
                         labelText: 'وسيلة السداد',
-                        border: OutlineInputBorder(),
                       ),
                       items: [
                         for (final method in CashMethod.canonicalOrder)
@@ -220,7 +219,6 @@ class _PurchaseCashSettlementScreenState
                       ),
                       decoration: const InputDecoration(
                         labelText: 'المبلغ المدفوع الآن ',
-                        border: OutlineInputBorder(),
                       ),
                     ),
                   ] else ...[

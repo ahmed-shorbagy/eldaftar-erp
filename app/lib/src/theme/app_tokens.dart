@@ -18,6 +18,14 @@ abstract final class AppTokens {
   static const Color lightSuccess = Color(0xFF206638);
   static const Color darkSuccess = Color(0xFF86D99F);
 
+  static const double fieldRadius = 14;
+  static const double cardRadius = 22;
+  static const double bodySize = 16;
+  static const double detailSize = 14;
+  static const double labelSize = 12;
+  static const double titleSize = 20;
+  static const double figureSize = 24;
+
   static const double wideBreakpoint = 840;
   static const double contentMaxWidth = 720;
   static const double minControlSize = 48;

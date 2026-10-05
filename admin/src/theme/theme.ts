@@ -33,11 +33,28 @@ export function createAppTheme(mode: ResolvedTheme) {
     },
     typography: {
       fontFamily: tokens.fontFamily,
+      allVariants: { letterSpacing: 0, fontVariantNumeric: 'tabular-nums', lineHeight: 1.5 },
+      h5: { fontSize: tokens.figureSize, fontWeight: 700 },
+      h6: { fontSize: tokens.titleSize, fontWeight: 700 },
+      subtitle1: { fontSize: tokens.bodySize, fontWeight: 700 },
+      subtitle2: { fontSize: tokens.detailSize, fontWeight: 600 },
+      body1: { fontSize: tokens.bodySize },
+      body2: { fontSize: tokens.detailSize },
+      caption: { fontSize: tokens.labelSize },
+      button: { fontSize: tokens.detailSize, fontWeight: 600, textTransform: 'none' },
     },
     components: {
       MuiButton: {
-        styleOverrides: { root: { minHeight: tokens.minControlSize } },
+        styleOverrides: { root: { minHeight: tokens.minControlSize, borderRadius: tokens.fieldRadius } },
       },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: { borderRadius: tokens.fieldRadius, minHeight: tokens.minControlSize, fontSize: tokens.bodySize },
+          input: { padding: '16px', fontVariantNumeric: 'tabular-nums' },
+        },
+      },
+      MuiFormHelperText: { styleOverrides: { root: { fontSize: tokens.labelSize, lineHeight: 1.5 } } },
+      MuiDialog: { styleOverrides: { paper: { borderRadius: tokens.cardRadius, backgroundImage: 'none' } } },
       MuiIconButton: {
         styleOverrides: {
           root: { minWidth: tokens.minControlSize, minHeight: tokens.minControlSize },

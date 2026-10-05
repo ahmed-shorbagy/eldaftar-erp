@@ -338,15 +338,7 @@ void main() {
         );
         expect(tester.takeException(), isNull);
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key('ledger-customize')));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(
-          find.byKey(const Key('ledger-show-movement')),
-        );
-        await tester.tap(find.byKey(const Key('ledger-show-movement')));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
-        await tester.tap(find.byKey(const Key('ledger-customize')));
+        await tester.tap(find.byKey(const Key('ledger-more-metrics')));
         await tester.pumpAndSettle();
         expect(find.text('حركة الذهب'), findsOneWidget);
         await tester.ensureVisible(find.text('حركة الذهب'));
@@ -511,9 +503,9 @@ void main() {
     expect(find.textContaining('10,000'), findsWidgets);
     await show(tester, const Key('ledger-other-movements'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('عرض الحركات الأخرى'));
+    await tester.tap(find.byKey(const Key('ledger-other-movements')));
     await tester.pumpAndSettle();
-    expect(find.text('رصيد افتتاحي'), findsOneWidget);
+    expect(find.text('رصيد افتتاحي'), findsWidgets);
     expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);
     expect(find.textContaining('T'), findsNothing);
     expect(gateway.confirmCalls, 1);
@@ -788,9 +780,9 @@ void main() {
     expect(find.text('10,000'), findsWidgets);
     await show(tester, const Key('ledger-other-movements'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('عرض الحركات الأخرى'));
+    await tester.tap(find.byKey(const Key('ledger-other-movements')));
     await tester.pumpAndSettle();
-    expect(find.text('رصيد افتتاحي'), findsOneWidget);
+    expect(find.text('رصيد افتتاحي'), findsWidgets);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
   });
 

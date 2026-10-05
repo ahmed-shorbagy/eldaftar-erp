@@ -62,7 +62,7 @@ Future<void> saveReview(WidgetTester tester, GlobalKey key, String name) async {
   await tester.runAsync(() async {
     final picture = await boundary.toImage();
     final png = await picture.toByteData(format: ui.ImageByteFormat.png);
-    final file = File('build/owner-feedback-review/ledger/$name.png');
+    final file = File('build/compact-ledger-review/$name.png');
     file.parent.createSync(recursive: true);
     file.writeAsBytesSync(png!.buffer.asUint8List());
     picture.dispose();
@@ -123,15 +123,29 @@ void main() {
           expect(find.byKey(const Key('ledger-quick-actions')), findsOneWidget);
           final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
           await saveReview(tester, key, 'top-$suffix');
-          await tester.ensureVisible(find.text('دفتر البيع'));
+          await tester.ensureVisible(
+            find.byKey(const Key('ledger-other-movements')),
+          );
+          await tester.tap(find.byKey(const Key('ledger-other-movements')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('ledger-filter-sale')));
+          await tester.pumpAndSettle();
           await tester.pumpAndSettle();
           expect(find.text('بيع · عميل تجريبي'), findsOneWidget);
           expect(find.text('مرتجع بيع · عميل تجريبي'), findsNothing);
           await saveReview(tester, key, 'journals-$suffix');
-          await tester.ensureVisible(find.text('دفتر المرتجعات'));
-          await tester.tap(find.text('دفتر المرتجعات'));
+          await tester.ensureVisible(
+            find.byKey(const Key('ledger-filter-return')),
+          );
+          await tester.tap(find.byKey(const Key('ledger-filter-return')));
           await tester.pumpAndSettle();
           expect(find.text('مرتجع بيع · عميل تجريبي'), findsOneWidget);
+          await saveReview(tester, key, 'returns-$suffix');
+          await tester.tap(find.byKey(const Key('detail-close')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('ledger-view-gold')));
+          await tester.pumpAndSettle();
+          await saveReview(tester, key, 'gold-$suffix');
           expect(gateway.keys, isEmpty);
           expect(tester.takeException(), isNull);
           await tester.pumpWidget(const SizedBox.shrink());

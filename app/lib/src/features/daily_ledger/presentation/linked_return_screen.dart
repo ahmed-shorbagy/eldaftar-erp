@@ -250,7 +250,6 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                       maxLines: 3,
                       decoration: const InputDecoration(
                         labelText: 'سبب أو ملاحظة اختيارية',
-                        border: OutlineInputBorder(),
                       ),
                     ),
                   ] else ...[

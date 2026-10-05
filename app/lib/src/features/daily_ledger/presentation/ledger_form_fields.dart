@@ -6,17 +6,10 @@ InputDecoration ledgerFieldDecoration(
   required String label,
   String? helper,
 }) {
-  final scheme = Theme.of(context).colorScheme;
   return InputDecoration(
     labelText: label,
     helperText: helper,
-    filled: true,
-    fillColor: scheme.surface,
     alignLabelWithHint: true,
-    border: const OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(12)),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
   );
 }
 

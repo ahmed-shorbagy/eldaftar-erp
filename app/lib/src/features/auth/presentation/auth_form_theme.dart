@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_tokens.dart';
 
-const double authControlHeight = 48;
-const double authCornerRadius = 14;
+const double authControlHeight = AppTokens.minControlSize;
+const double authCornerRadius = AppTokens.fieldRadius;
 
 /// Shared auth and recovery form theme. Colors come from [ColorScheme].
 ThemeData authFormTheme(ThemeData theme) {
@@ -50,7 +51,7 @@ ThemeData authFormTheme(ThemeData theme) {
       hintStyle: theme.textTheme.bodyLarge?.copyWith(
         color: scheme.onSurfaceVariant,
       ),
-      helperStyle: theme.textTheme.bodyMedium?.copyWith(
+      helperStyle: theme.textTheme.bodySmall?.copyWith(
         color: scheme.onSurfaceVariant,
         height: 1.5,
       ),

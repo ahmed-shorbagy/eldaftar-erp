@@ -878,7 +878,7 @@ void main() {
     await tester.tap(find.text('المزيد من الإجراءات'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ledger-daily-notes')), findsOneWidget);
-    expect(find.byKey(const Key('ledger-load-older')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-load-older')), findsNothing);
     final notesButton = find.byKey(const Key('ledger-daily-notes'));
     await revealInLedger(tester, notesButton);
     await tester.tap(notesButton);
@@ -892,17 +892,25 @@ void main() {
       key: 'pending_financial_${userId}_$shopId',
     );
     expect(jsonDecode(raw!)['key'], pendingKey);
+    await revealInLedger(
+      tester,
+      find.byKey(const Key('ledger-other-movements')),
+    );
+    await tester.tap(find.byKey(const Key('ledger-other-movements')));
+    await tester.pumpAndSettle();
     final older = find.byKey(const Key('ledger-load-older'));
-    await revealInLedger(tester, older);
+    await tester.ensureVisible(older);
     await tester.tap(older);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(ledger.olderLoads, 1);
-    await revealInLedger(tester, find.text('عرض الحركات الأخرى'));
-    await tester.tap(find.text('عرض الحركات الأخرى'));
+    await tester.tap(find.byKey(const Key('ledger-filter-all')));
     await tester.pumpAndSettle();
-    expect(find.text('رصيد افتتاحي'), findsOneWidget);
-    expect(find.text('بيع'), findsOneWidget);
+    expect(find.text('رصيد افتتاحي'), findsWidgets);
+    expect(
+      find.descendant(of: find.byType(BottomSheet), matching: find.text('بيع')),
+      findsOneWidget,
+    );
   });
 }
 

@@ -79,3 +79,13 @@ String formatServerCairoTimestamp(String value) {
   if (pieces.length != 2) return value.replaceAll('T', ' ');
   return '${formatServerDate(pieces[0])}، ${pieces[1]}';
 }
+
+/// Short preview only; detail views keep the complete server timestamp.
+String formatCompactServerTimestamp(String value) {
+  final pieces = value.split('T');
+  if (pieces.length != 2) return formatServerCairoTimestamp(value);
+  final time = RegExp(r'^\d{2}:\d{2}').firstMatch(pieces[1])?.group(0);
+  if (time == null) return formatServerCairoTimestamp(value);
+  final date = formatServerDate(pieces[0]).replaceFirst(RegExp(r' \d{4}$'), '');
+  return '$date · $time';
+}
