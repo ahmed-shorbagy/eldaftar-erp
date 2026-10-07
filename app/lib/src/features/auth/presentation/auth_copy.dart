@@ -30,7 +30,16 @@ abstract final class AuthCopy {
   static const passwordLabel = 'كلمة المرور';
   static const ownerLabel = 'الاسم';
   static const businessLabel = 'اسم المحل';
-  static const governorateLabel = 'المحافظة';
+  static const countryLabel = 'الدولة';
+  static const governorateLabel = 'المحافظة / المنطقة (اختياري)';
+  static const reviewHint =
+      'راجع البيانات قبل إنشاء الحساب. يمكنك تعديل أي قسم.';
+  static const reviewEdit = 'تعديل';
+  static const reviewAccountSection = 'بيانات الحساب';
+  static const reviewShopSection = 'بيانات المحل';
+  static const stepAccount = 'بيانات الحساب';
+  static const stepShop = 'بيانات المحل';
+  static const stepReview = 'مراجعة';
   static const modeSignIn = 'دخول';
   static const modeSignUp = 'حساب جديد';
   static const signInAction = 'دخول';
@@ -42,17 +51,13 @@ abstract final class AuthCopy {
   static const phoneInvalid = 'أدخل رقم هاتف صحيحًا للدولة المختارة';
   static const ownerInvalid = 'أدخل الاسم من ١ إلى ١٢٠ حرفًا';
   static const businessInvalid = 'أدخل اسم المحل من ١ إلى ١٢٠ حرفًا';
-  static const governorateInvalid = 'اختر المحافظة / المنطقة';
-  static const governorateHint = 'اختر المحافظة';
+  static const governorateInvalid = 'اكتب المنطقة بما لا يزيد عن ١٢٠ حرفًا';
+  static const governorateHint = 'اكتب المحافظة أو المنطقة';
   static const passwordInvalid = 'أدخل كلمة مرور صالحة من ٨ إلى ٧٢ بايتًا';
   static const signInFailed =
       'تعذر تسجيل الدخول. تحقق من البريد أو الهاتف وكلمة المرور ثم حاول مجددًا.';
   static const signInUnavailable = 'خدمة تسجيل الدخول غير متاحة الآن.';
   static const unavailable = 'خدمة تسجيل الدخول غير متاحة الآن.';
-  static const governorateLoading = 'جارٍ تحميل المحافظات…';
-  static const governorateFailed =
-      'تعذر تحميل المحافظات. أعد المحاولة قبل إكمال التسجيل.';
-  static const governorateRetry = 'إعادة تحميل المحافظات';
   static const signupUnknown =
       'لم نتأكد من حفظ الحساب. لا تعتبر الطلب مكتملًا. أعد المحاولة بنفس البيانات دون تغييرها.';
   static const signupInvalidInput =

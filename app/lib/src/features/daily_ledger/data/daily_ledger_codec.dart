@@ -481,6 +481,8 @@ LedgerFeedLine _feedLine(Object? row) {
     'scrap_to_stock': 'تحويل كسر إلى مخزون',
     'sale_return': 'مرتجع بيع',
     'purchase_return': 'مرتجع شراء',
+    'ledger_correction': 'تسوية فرق الجرد',
+    'exchange': 'استبدال',
     'close_day': 'تقفيل اليومية',
     'open_day': 'فتح اليومية',
     'daily_note': 'ملاحظة يومية',

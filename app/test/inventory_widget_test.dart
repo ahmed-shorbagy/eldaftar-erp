@@ -346,7 +346,7 @@ void main() {
       find.textContaining('يزيد المتاح للبيع: 10.000 جرام'),
       findsOneWidget,
     );
-    expect(find.textContaining('حفظ الخادم الأمر'), findsNothing);
+    expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);
     expect(inventory.posts, 0);
     expect(locker.value, isNull);
   });
@@ -387,7 +387,7 @@ void main() {
       find.byKey(const Key('command-submit')),
     );
     expect(busy.onPressed, isNull);
-    expect(find.textContaining('حفظ الخادم الأمر'), findsNothing);
+    expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);
     completer.complete(const FinancialCommitted(operationId, replayed: false));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -396,7 +396,7 @@ void main() {
       scrollable: _pageScroll,
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('حفظ الخادم الأمر'), findsOneWidget);
+    expect(find.textContaining('تم حفظ العملية بنجاح'), findsOneWidget);
     expect(locker.value, isNull);
   });
 
@@ -440,7 +440,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('الرصيد المؤكد لا يكفي.'), findsOneWidget);
-    expect(find.textContaining('حفظ الخادم'), findsNothing);
+    expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);
     expect(locker.value, isNull);
   });
 
@@ -476,7 +476,7 @@ void main() {
     expect(add.onPressed, isNull);
     expect(inventory.posts, 0);
     expect(locker.value, isNull);
-    expect(find.textContaining('حفظ الخادم'), findsNothing);
+    expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);
   });
 
   testWidgets('search works directly without guidance', (tester) async {

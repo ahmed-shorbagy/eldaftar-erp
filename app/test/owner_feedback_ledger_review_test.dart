@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_screen.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
@@ -15,7 +16,16 @@ import 'daily_ledger_capture_test.dart' show confirmedLedger;
 import 'financial_trade_screen_test.dart' show FakeFinancialGateway;
 import 'daily_ledger_widget_test.dart' show MemoryStore;
 
-class ReviewGateway extends FakeFinancialGateway {
+class ReviewGateway extends FakeFinancialGateway
+    implements LinkedReturnGateway {
+  @override
+  Future<FinancialCommandResult> returnOperation({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String originalOperationId,
+    required String note,
+  }) async => throw StateError('Visual review must not post returns');
+
   @override
   Future<DailyLedgerView> ledger({required String callerUserId}) async {
     final base = confirmedLedger();
@@ -62,7 +72,7 @@ Future<void> saveReview(WidgetTester tester, GlobalKey key, String name) async {
   await tester.runAsync(() async {
     final picture = await boundary.toImage();
     final png = await picture.toByteData(format: ui.ImageByteFormat.png);
-    final file = File('build/compact-ledger-review/$name.png');
+    final file = File('build/owner-feedback-2026-10-06/ledger/$name.png');
     file.parent.createSync(recursive: true);
     file.writeAsBytesSync(png!.buffer.asUint8List());
     picture.dispose();
@@ -123,25 +133,82 @@ void main() {
           expect(find.byKey(const Key('ledger-quick-actions')), findsOneWidget);
           final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
           await saveReview(tester, key, 'top-$suffix');
+          for (final journal in ['sale', 'purchase', 'return']) {
+            await tester.ensureVisible(
+              find.byKey(Key('ledger-journal-$journal')),
+            );
+            await saveReview(tester, key, 'home-$journal-$suffix');
+          }
+          await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
+          await tester.pumpAndSettle();
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('ledger-customize')));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(
+            find.byKey(const Key('ledger-show-operations')),
+          );
+          await saveReview(tester, key, 'customization-$suffix');
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('detail-close')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('ledger-quick-actions')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('ledger-more-actions')));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(
+            find.byKey(const Key('ledger-new-return')),
+          );
+          await saveReview(tester, key, 'quick-actions-$suffix');
+          await tester.tap(find.byKey(const Key('ledger-new-return')));
+          await tester.pumpAndSettle();
+          await saveReview(tester, key, 'return-source-$suffix');
+          expect(find.byKey(const Key('ledger-filter-return')), findsNothing);
+          await tester.tap(find.byKey(const Key('detail-close')));
+          await tester.pumpAndSettle();
           await tester.ensureVisible(
             find.byKey(const Key('ledger-other-movements')),
           );
+          await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-other-movements')));
+          await tester.pumpAndSettle();
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-filter-sale')));
           await tester.pumpAndSettle();
           await tester.pumpAndSettle();
-          expect(find.text('بيع · عميل تجريبي'), findsOneWidget);
-          expect(find.text('مرتجع بيع · عميل تجريبي'), findsNothing);
+          expect(
+            find.descendant(
+              of: find.byKey(const Key('ledger-history')),
+              matching: find.text('بيع · عميل تجريبي'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(const Key('ledger-history')),
+              matching: find.text('مرتجع بيع · عميل تجريبي'),
+            ),
+            findsNothing,
+          );
           await saveReview(tester, key, 'journals-$suffix');
           await tester.ensureVisible(
             find.byKey(const Key('ledger-filter-return')),
           );
+          await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-filter-return')));
           await tester.pumpAndSettle();
-          expect(find.text('مرتجع بيع · عميل تجريبي'), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byKey(const Key('ledger-history')),
+              matching: find.text('مرتجع بيع · عميل تجريبي'),
+            ),
+            findsOneWidget,
+          );
           await saveReview(tester, key, 'returns-$suffix');
+          await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('detail-close')));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.byKey(const Key('ledger-view-gold')));
+          await tester.pumpAndSettle();
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-view-gold')));
           await tester.pumpAndSettle();

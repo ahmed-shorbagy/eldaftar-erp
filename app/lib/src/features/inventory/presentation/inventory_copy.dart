@@ -26,25 +26,26 @@ String inventoryIssueCopy(InventoryIssueCode code) => switch (code) {
   InventoryIssueCode.exceedsRemaining => 'الكمية أكبر من المتبقي.',
   InventoryIssueCode.stockPairMismatch =>
     'الوزن والعدد يجب أن ينتهيا معاً أو يبقيا معاً.',
-  InventoryIssueCode.mixedObligation => 'لا يجتمع التزام  والتزام بالذهب.',
+  InventoryIssueCode.mixedObligation =>
+    'لا يمكن الجمع بين مستحق نقدي ومستحق بالذهب في السطر نفسه.',
   InventoryIssueCode.karatMismatch =>
     'التزام الذهب يجب أن يكون من عيار القطعة نفسه.',
   InventoryIssueCode.tenderMismatch => 'المدفوع أكبر من السعر المتفق عليه.',
-  InventoryIssueCode.emptyCommand => 'أدخل أثراً واحداً على الأقل.',
+  InventoryIssueCode.emptyCommand => 'حدّد التغيير المطلوب قبل المراجعة.',
   InventoryIssueCode.duplicateLine => 'تكرر السطر أو وسيلة الدفع.',
   InventoryIssueCode.negativeBalance => 'التصحيح يجعل الرصيد سالباً.',
   InventoryIssueCode.custodyRequiresTransfer =>
-    'أمانة التاجر لا تُعترف ولا تُربط. انقل الملكية بأمر صريح.',
+    'قطع الأمانة تحتاج إلى نقل الملكية أولًا قبل إضافتها أو ربطها بالمخزون.',
 };
 
 String inventoryFailureCopy(String code) {
   if (code == 'stale_day') {
-    return 'تغيّر يوم العمل أو إصداره. راجع الأثر من جديد قبل الإرسال.';
+    return 'تغيّر يوم العمل. راجع العملية من جديد قبل التأكيد.';
   }
   if (code == 'shop_not_active') {
-    return 'الاشتراك غير نشط. العرض للقراءة فقط ولم يُرسل الأمر.';
+    return 'الاشتراك غير نشط. العرض للقراءة فقط ولم تُرسل العملية.';
   }
-  if (code == 'not_found') return 'السجل المطلوب غير موجود على الخادم.';
+  if (code == 'not_found') return 'السجل المطلوب غير موجود.';
   if (code == 'already_allocated') return 'هذه الكمية خُصصت من قبل.';
   if (code == 'custody_requires_transfer') {
     return inventoryIssueCopy(InventoryIssueCode.custodyRequiresTransfer);
@@ -56,7 +57,7 @@ String inventoryFailureCopy(String code) {
     return 'العملية تجعل رصيداً مملوكاً سالباً.';
   }
   if (code == 'other_pending') {
-    return 'توجد عملية مالية معلّقة. أكمل التحقق قبل أمر جديد.';
+    return 'توجد عملية مالية معلّقة. أكمل التحقق قبل عملية جديدة.';
   }
   if (code == 'storage') {
     return 'تعذر حفظ الطلب على هذا الجهاز. لم يُرسل شيء.';
@@ -77,8 +78,8 @@ String inventoryNoteCopy(String note) => switch (note) {
   'owned_now' => 'تنتقل الملكية الآن إلى المتاح للبيع.',
   'no_second_stock_posting' =>
     'الربط يطابق استلاماً بإضافة مؤكدة ولا يضيف مخزوناً مرة ثانية.',
-  'egp_obligation_only' => 'الالتزام  فقط، دون التزام ذهبي للثمن نفسه.',
-  'gold_obligation_only' => 'الالتزام بذهب من عيار واحد فقط، دون التزام .',
+  'egp_obligation_only' => 'المستحق نقدي فقط، دون مستحق بالذهب للثمن نفسه.',
+  'gold_obligation_only' => 'المستحق بذهب من عيار واحد فقط، دون مستحق نقدي.',
   'partial_quantity' => 'حركة جزئية من الكمية المتبقية.',
   'full_quantity' => 'كامل الكمية المتبقية.',
   'partial_settlement' => 'تسوية جزئية للمستحق.',

@@ -156,3 +156,32 @@ abstract class LinkedReturnGateway {
     required String note,
   });
 }
+
+abstract class LedgerCorrectionGateway {
+  Future<FinancialCommandResult> postCorrection({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  });
+}
+
+abstract class PartialReturnGateway {
+  Future<Map<String, Object?>> remainder({
+    required String callerUserId,
+    required String operationId,
+  });
+
+  Future<FinancialCommandResult> postPartialReturn({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  });
+}
+
+abstract class ExchangeGateway {
+  Future<FinancialCommandResult> postExchange({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  });
+}

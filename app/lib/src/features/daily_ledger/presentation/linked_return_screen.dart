@@ -83,7 +83,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
     setState(() {
       _busy = true;
       _key = key;
-      _message = 'جارٍ تأكيد المرتجع على الخادم...';
+      _message = 'جارٍ حفظ المرتجع…';
     });
     try {
       await _pending.save(
@@ -112,7 +112,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
             'negative_owned_balance' || 'insufficient_stock' =>
               'لا تكفي الأرصدة الحالية لعكس العملية بأمان.',
             'day_closed' => 'افتح يوم عمل قبل تسجيل المرتجع.',
-            _ => 'رفض الخادم المرتجع. حدّث العملية وحاول مجددًا.',
+            _ => 'تعذر حفظ المرتجع. حدّث العملية وحاول مجددًا.',
           };
         });
       } else {
@@ -149,7 +149,8 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
       } else if (status is StatusAbsent) {
         setState(() {
           _unknown = false;
-          _message = 'لم يؤكد الخادم المرتجع. أعد المحاولة بالمفتاح نفسه.';
+          _message =
+              'لم نتأكد من حفظ المرتجع. أعد المحاولة دون تغيير البيانات.';
         });
       } else {
         setState(() {
@@ -191,7 +192,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                   Text('عكس كامل مرتبط', style: theme.textTheme.headlineSmall),
                   Text('العملية الأصلية رقم $sequence'),
                   const Text(
-                    'يسجل الخادم عملية جديدة في اليوم المفتوح ويحافظ على العملية الأصلية للمراجعة.',
+                    'يُسجل المرتجع في اليوم المفتوح، وتبقى العملية الأصلية محفوظة للمراجعة.',
                   ),
                   if (_message != null) ...[
                     const SizedBox(height: 12),

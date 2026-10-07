@@ -57,17 +57,18 @@ class RegistrationCountry {
     return result.length <= 16 ? result : null;
   }
 
-  /// Egypt keeps its existing ISO region code. Other countries use a namespaced
-  /// region label until a maintained region catalog is available.
+  /// Egypt may still accept legacy ISO region codes. Typed regions use a
+  /// namespaced `CC:label` value until a maintained region catalog is required.
   String? regionCode(String input) {
     if (code == 'EG' && EgyptianGovernorates.isValid(input)) return input;
+    if (input.trim().isEmpty) return '$code:';
     final region = AccountName.tryCanonical(input);
     return region == null ? null : '$code:$region';
   }
 
   static bool validRegion(String value) {
     if (EgyptianGovernorates.isValid(value)) return true;
-    if (value.length < 4 || value[2] != ':') return false;
+    if (value.length < 3 || value[2] != ':') return false;
     final country = byCode(value.substring(0, 2));
     return country != null && country.regionCode(value.substring(3)) == value;
   }

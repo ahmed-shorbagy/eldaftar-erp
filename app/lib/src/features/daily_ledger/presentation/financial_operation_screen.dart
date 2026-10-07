@@ -13,6 +13,8 @@ import '../domain/quantities.dart';
 import 'opening_copy.dart';
 import 'purchase_cash_settlement_screen.dart';
 import 'linked_return_screen.dart';
+import 'partial_return_screen.dart';
+import 'exchange_effect_review.dart';
 
 class FinancialOperationScreen extends StatefulWidget {
   const FinancialOperationScreen({
@@ -201,14 +203,14 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
       } else {
         setState(
           () => _dispatchMessage =
-              'حالة التأكيد غير معروفة. أعد المحاولة بالمفتاح نفسه.',
+              'لم نتأكد من حفظ التأكيد. أعد المحاولة دون تغيير البيانات.',
         );
       }
     } catch (_) {
       if (mounted) {
         setState(
           () => _dispatchMessage =
-              'حالة التأكيد غير معروفة. أعد المحاولة بالمفتاح نفسه.',
+              'لم نتأكد من حفظ التأكيد. أعد المحاولة دون تغيير البيانات.',
         );
       }
     } finally {
@@ -254,6 +256,39 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         gateway is! OpeningGateway ||
         operation == null ||
         shopId is! String) {
+      return;
+    }
+    if (gateway is PartialReturnGateway) {
+      try {
+        final remainder = await (gateway as PartialReturnGateway).remainder(
+          callerUserId: widget.userId,
+          operationId: widget.line.operationId,
+        );
+        if (!mounted) return;
+        final saved = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => PartialReturnScreen(
+              gateway: gateway as PartialReturnGateway,
+              statusGateway: gateway as OpeningGateway,
+              dayGateway: gateway,
+              userId: widget.userId,
+              shopId: shopId,
+              remainder: remainder,
+            ),
+          ),
+        );
+        if (saved == true && mounted) await _load();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'تعذر قراءة المتبقي من العملية. حدّث الدفتر وأعد المحاولة.',
+              ),
+            ),
+          );
+        }
+      }
       return;
     }
     final returnGateway = gateway as LinkedReturnGateway;
@@ -325,8 +360,10 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                 Text(switch (widget.line.kind) {
                                   'sale' || 'scrap_sale' => 'النقد المحصّل',
                                   'purchase' => 'سعر الشراء الكلي',
-                                  'sale_return' ||
-                                  'purchase_return' => 'قيمة العملية الأصلية',
+                                  'sale_return' || 'purchase_return' =>
+                                    details['consideration_piastres'] is String
+                                        ? 'المقابل المرتجع المتفق عليه'
+                                        : 'قيمة العملية الأصلية',
                                   _ => 'النقد المدفوع',
                                 }),
                                 Text(
@@ -337,6 +374,22 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               ],
                             ),
                           ),
+                        ),
+                      ],
+                      if (operation?['exchange_effects'] is Map)
+                        ConfirmedCompensationEffects(
+                          effects: Map<String, Object?>.from(
+                            operation!['exchange_effects'] as Map,
+                          ),
+                          exchange: true,
+                        ),
+                      if (operation?['correction_effects'] is Map) ...[
+                        Text('سبب التسوية: ${details['reason'] ?? ''}'),
+                        ConfirmedCompensationEffects(
+                          effects: Map<String, Object?>.from(
+                            operation!['correction_effects'] as Map,
+                          ),
+                          exchange: false,
                         ),
                       ],
                       if (pricing is Map) ...[
@@ -489,7 +542,11 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                             key: const Key('operation-create-return'),
                             onPressed: _returnOperation,
                             icon: const Icon(Icons.assignment_return_outlined),
-                            label: const Text('تسجيل مرتجع كامل'),
+                            label: Text(
+                              widget.gateway is PartialReturnGateway
+                                  ? 'تسجيل مرتجع أو استبدال'
+                                  : 'تسجيل مرتجع كامل',
+                            ),
                           ),
                       ],
                       if (widget.gateway is InvoiceDispatchGateway &&

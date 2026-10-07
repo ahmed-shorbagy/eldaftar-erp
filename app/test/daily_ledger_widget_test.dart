@@ -491,7 +491,7 @@ void main() {
     expect(find.text('10,000'), findsWidgets);
     await tester.tap(find.byKey(const Key('confirm-opening')));
     await tester.pump();
-    expect(find.text('بانتظار تأكيد الخادم'), findsOneWidget);
+    expect(find.text('بانتظار تأكيد الحفظ'), findsOneWidget);
     expect(gateway.confirmCalls, 1);
     gateway.ledgerView = confirmedLedger();
     status.complete(
@@ -561,7 +561,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('confirm-opening')));
       await tester.pump();
-      expect(find.text('بانتظار تأكيد الخادم'), findsOneWidget);
+      expect(find.text('بانتظار تأكيد الحفظ'), findsOneWidget);
       expect(gateway.confirmCalls, 1);
       gateway.ledgerView = confirmedLedger();
       status.complete(

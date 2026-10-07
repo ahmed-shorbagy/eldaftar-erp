@@ -112,7 +112,7 @@ class _PurchaseCashSettlementScreenState
           _key = null;
           _message = result.code == 'settlement_exceeds_obligation'
               ? 'تغير المبلغ المستحق. حدّث العملية وراجع السداد.'
-              : 'رفض الخادم السداد. راجع الرصيد والاتصال.';
+              : 'تعذر حفظ السداد. راجع الرصيد والاتصال.';
         });
         return;
       }
@@ -148,8 +148,7 @@ class _PurchaseCashSettlementScreenState
       } else if (status is StatusAbsent) {
         setState(() {
           _unknown = false;
-          _message =
-              'لم يؤكد الخادم السداد. يمكنك إعادة المحاولة بالمفتاح نفسه.';
+          _message = 'لم نتأكد من حفظ السداد. أعد المحاولة دون تغيير البيانات.';
         });
       } else {
         setState(() {
@@ -276,7 +275,7 @@ class _PurchaseCashSettlementScreenState
                   : _submit,
               child: Text(
                 _busy
-                    ? 'بانتظار تأكيد الخادم'
+                    ? 'بانتظار تأكيد الحفظ'
                     : _unknown
                     ? 'التحقق من الحالة'
                     : review == null

@@ -9,9 +9,8 @@ import '../domain/inventory_models.dart';
 import 'inventory_copy.dart';
 import 'inventory_widgets.dart';
 
-const reviewStaleCopy = 'تغيّرت البيانات. راجع الأثر من جديد قبل الإرسال.';
-const dayStaleCopy =
-    'تغيّر يوم العمل أو إصداره. راجع الأثر من جديد قبل الإرسال.';
+const reviewStaleCopy = 'تغيّرت البيانات. راجع العملية من جديد قبل التأكيد.';
+const dayStaleCopy = 'تغيّر يوم العمل. راجع العملية من جديد قبل التأكيد.';
 
 /// Notifies when a visible field changes so a stored review cannot be sent.
 class FormRevision extends ChangeNotifier {
@@ -160,7 +159,7 @@ class _CommandHostState extends State<CommandHost> {
     setState(() {
       if (result is InventoryAccepted<ReviewedCommand>) {
         _review = result.value;
-        _message = 'راجع الأثر ثم أكد. لم يُرسل شيء بعد.';
+        _message = 'راجع العملية ثم أكد الحفظ. لم تُحفظ بعد.';
         _error = false;
       } else if (result is InventoryRejected<ReviewedCommand>) {
         _review = null;
@@ -245,8 +244,8 @@ class _CommandHostState extends State<CommandHost> {
         _unconfirmed = false;
         _error = false;
         _message = result.replayed
-            ? 'الخادم أعاد نتيجة الأمر المحفوظ نفسه. لم يُكرر الأثر.'
-            : 'حفظ الخادم الأمر. هذا التأكيد من رد الخادم.';
+            ? 'تم حفظ هذه العملية سابقًا، ولم تتكرر.'
+            : 'تم حفظ العملية بنجاح.';
       });
       return;
     }
@@ -275,7 +274,7 @@ class _CommandHostState extends State<CommandHost> {
         _error = true;
         _message = result.statusUnknown
             ? 'لم يتأكد الحفظ. الطلب محفوظ على الجهاز ولم يُحتسب في الأرصدة.'
-            : 'لم يظهر الطلب على الخادم. أعد المحاولة بالمفتاح نفسه دون إنشاء أمر جديد.';
+            : 'لم نتأكد من حفظ العملية. أعد المحاولة دون تغيير البيانات أو بدء عملية جديدة.';
       });
       return;
     }

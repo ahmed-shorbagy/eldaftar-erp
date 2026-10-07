@@ -115,9 +115,10 @@ function governorate(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const code = value.trim().toUpperCase();
   if (governorateSet.has(code)) return code;
+  if (value !== value.trim()) return null;
   const country = code.slice(0, 2);
   const region = value.trim().slice(3);
-  return countryDialCodes[country] && code[2] === ":" && region.length > 0 &&
+  return countryDialCodes[country] && code[2] === ":" &&
       [...region].length <= 120 && region === region.trim() && !hasControlCharacter(region)
     ? `${country}:${region}` : null;
 }

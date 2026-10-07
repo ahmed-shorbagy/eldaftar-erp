@@ -31,6 +31,8 @@ for (const name of [
   'invoice_price_components.sql',
   'milestone_3_inventory.sql',
   'milestone_3_inventory_rls.sql',
+  'ledger_compensation.sql',
+  'ledger_compensation_edges.sql',
 ]) {
   const file = fileURLToPath(new URL(`./tests/${name}`, import.meta.url))
   console.log(`Running ${name}`)

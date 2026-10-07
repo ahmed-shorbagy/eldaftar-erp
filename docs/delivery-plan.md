@@ -1,5 +1,9 @@
 # Long-term delivery plan
 
+## Bounded compensation completion — 2026-10-06
+
+The owner accepted the preceding app and authorized preserving it while completing discrepancy correction, partial/full remaining return and atomic exchange workflows through Milestone 3. Those controls/contracts are now implemented and deployed to development only, with the exact verification and remaining acceptance gaps in [the compensation record](reviews/ledger-compensation-2026-10-06/validation.md). The current entry/ledger direction is [ADR 0010](adr/0010-owner-feedback-registration-and-ledger.md); older onboarding/guide text below is historical and does not authorize reintroducing it. No release, distribution, commit, push, reset or payment-method-setting integration is included.
+
 ## Current Milestones 0–3 execution — 2026-10-04
 
 The user's completion request authorizes executable work through Milestone 3 and additive backend updates only to the currently connected development project `xchapwvmvoefriqcxtvn`. It does not authorize application deployment, commits, pushes, production/release builds, data resets, or creation of paid cloud environments. Historical slice plans below record earlier sequencing; they do not defer work explicitly included in the current request.

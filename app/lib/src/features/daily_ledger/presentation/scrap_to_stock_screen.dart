@@ -120,7 +120,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
     setState(() {
       _busy = true;
       _key = key;
-      _message = 'جارٍ تأكيد التحويل على الخادم...';
+      _message = 'جارٍ حفظ التحويل…';
     });
     try {
       final command = PendingFinancialCommand(
@@ -148,7 +148,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
               result.code == 'negative_owned_balance' ||
                   result.code == 'insufficient_stock'
               ? 'تغير رصيد الكسر. حدّث الدفتر وراجع الوزن.'
-              : 'رفض الخادم التحويل. راجع البيانات.';
+              : 'تعذر حفظ التحويل. راجع البيانات.';
         });
       } else {
         await _reconcile();
@@ -184,7 +184,8 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
       } else if (status is StatusAbsent) {
         setState(() {
           _unknown = false;
-          _message = 'لم يؤكد الخادم التحويل. أعد المحاولة بالمفتاح نفسه.';
+          _message =
+              'لم نتأكد من حفظ التحويل. أعد المحاولة دون تغيير البيانات.';
         });
       } else {
         setState(() {

@@ -21,7 +21,7 @@ String openingFailureCopy(String? code) => switch (code) {
   'unsupported_category_karat' => 'العيار أو الصنف غير مدعوم',
   'duplicate_bucket' => 'تكرار نفس الصنف والعيار',
   'opening_already_confirmed' => 'تم تأكيد الأرصدة الافتتاحية من قبل',
-  'payload_mismatch' => 'المفتاح لا يطابق البيانات المحفوظة',
+  'payload_mismatch' => 'بيانات الطلب تختلف عن العملية المحفوظة',
   _ => 'تعذر إتمام العملية. حاول مجددًا.',
 };
 

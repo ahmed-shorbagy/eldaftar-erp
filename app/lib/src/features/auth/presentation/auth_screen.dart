@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../shell/shell_copy.dart';
+import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../domain/registration_country.dart';
@@ -66,18 +67,13 @@ class _AuthScreenState extends State<AuthScreen> {
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   AuthFormMode _mode = AuthFormMode.signIn;
-  List<Governorate> _governorates = const [];
-  String? _governorateCode;
   OwnerRegistration? _attempt;
   bool _unknown = false;
   bool _busy = false;
-  bool _loadingGovernorates = false;
-  bool _governorateLoadFailed = false;
   bool _passwordVisible = false;
   bool _validated = false;
   String? _serverMessage;
   String? _fieldAlert;
-  int _governorateLoadGeneration = 0;
   int _signupStep = 0;
   RegistrationCountry _country = RegistrationCountry.all.first;
   final _region = TextEditingController();
@@ -122,7 +118,6 @@ class _AuthScreenState extends State<AuthScreen> {
     final country = RegistrationCountry.byCode(_phone.value.isoCode.name);
     if (country != null && country.code != _country.code) {
       _country = country;
-      _governorateCode = null;
       _region.clear();
     }
     _refreshContacts();
@@ -138,32 +133,6 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
-  Future<void> _loadGovernorates() async {
-    final generation = ++_governorateLoadGeneration;
-    setState(() {
-      _loadingGovernorates = true;
-      _governorateLoadFailed = false;
-    });
-    try {
-      final list = await widget.gateway.loadGovernorates();
-      if (!mounted || generation != _governorateLoadGeneration) return;
-      setState(() {
-        _governorates = list;
-        _loadingGovernorates = false;
-        if (_governorateCode != null &&
-            list.every((item) => item.code != _governorateCode)) {
-          _governorateCode = null;
-        }
-      });
-    } catch (_) {
-      if (!mounted || generation != _governorateLoadGeneration) return;
-      setState(() {
-        _loadingGovernorates = false;
-        _governorateLoadFailed = true;
-      });
-    }
-  }
-
   void _showMode(AuthFormMode mode) {
     if (_busy || _mode == mode) return;
     FocusManager.instance.primaryFocus?.unfocus();
@@ -175,11 +144,6 @@ class _AuthScreenState extends State<AuthScreen> {
       _validated = false;
       _signupStep = 0;
     });
-    if (mode == AuthFormMode.signUp &&
-        _governorates.isEmpty &&
-        !_loadingGovernorates) {
-      _loadGovernorates();
-    }
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
@@ -279,9 +243,7 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           _FieldCheck(
             _governorateFocus,
-            (_country.code == 'EG' && _governorates.isNotEmpty
-                    ? _governorateCode == null
-                    : _country.regionCode(_region.text) == null)
+            _country.regionCode(_region.text) == null
                 ? AuthCopy.governorateInvalid
                 : null,
           ),
@@ -383,9 +345,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final owner = AccountName.tryCanonical(_owner.text);
     final business = AccountName.tryCanonical(_business.text);
     final contacts = _resolvedContacts();
-    final governorate = _country.code == 'EG' && _governorates.isNotEmpty
-        ? _governorateCode
-        : _country.regionCode(_region.text);
+    final governorate = _country.regionCode(_region.text);
     if (owner == null ||
         business == null ||
         contacts == null ||
@@ -571,14 +531,23 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _back() {
     if (_signingUp && _signupStep > 0 && !_unknown) {
-      setState(() {
-        _signupStep--;
-        _validated = false;
-        _formKey = GlobalKey<FormState>();
-      });
+      _goToSignupStep(_signupStep - 1);
     } else {
       _showMode(AuthFormMode.signIn);
     }
+  }
+
+  void _goToSignupStep(int step) {
+    if (_busy || _unknown || step < 0 || step > 2 || step == _signupStep) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _signupStep = step;
+      _validated = false;
+      _formKey = GlobalKey<FormState>();
+    });
+    if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
   void _nextSignup() {
@@ -593,38 +562,70 @@ class _AuthScreenState extends State<AuthScreen> {
       _validated = false;
       _formKey = GlobalKey<FormState>();
     });
-    _scroll.jumpTo(0);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
-  Widget _signupProgress(ThemeData theme) => Row(
-    children: [
-      for (var i = 0; i < 3; i++)
-        Expanded(
-          child: Semantics(
-            selected: _signupStep == i,
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: _signupStep == i
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.surfaceContainerHighest,
-                  foregroundColor: _signupStep == i
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
-                  child: Text('${i + 1}'),
+  Widget _signupProgress(ThemeData theme) {
+    const labels = [
+      AuthCopy.stepAccount,
+      AuthCopy.stepShop,
+      AuthCopy.stepReview,
+    ];
+    return Row(
+      children: [
+        for (var i = 0; i < 3; i++)
+          Expanded(
+            child: Semantics(
+              selected: _signupStep == i,
+              button: i < _signupStep && !_locked && !_unknown,
+              label: labels[i],
+              child: InkWell(
+                key: Key('signup-step-$i'),
+                onTap: i < _signupStep && !_locked && !_unknown
+                    ? () => _goToSignupStep(i)
+                    : null,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 2,
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: i <= _signupStep
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceContainerHighest,
+                        foregroundColor: i <= _signupStep
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurfaceVariant,
+                        child: i < _signupStep
+                            ? const Icon(Icons.check, size: 16)
+                            : Text('${i + 1}'),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        labels[i],
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: i == _signupStep
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: i == _signupStep
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  const ['بيانات الحساب', 'بيانات المحل', 'مراجعة'][i],
-                  style: theme.textTheme.labelMedium,
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 
   Widget _header(ThemeData theme) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -741,27 +742,76 @@ class _AuthScreenState extends State<AuthScreen> {
 
   List<Widget> _signUpFields(ThemeData theme) {
     if (_signupStep == 2) {
-      return [
-        _registrationLine('الاسم', _owner.text),
-        _registrationLine('البريد الإلكتروني', _email.text),
-        _registrationLine(
-          'رقم الهاتف',
+      final phone =
           _country.canonicalPhone(_phone.value.international) ??
-              _phone.value.international,
-        ),
-        _registrationLine('اسم المحل', _business.text),
-        _registrationLine('الدولة', _country.nameAr),
-        _registrationLine(
-          'المحافظة / المنطقة',
-          _country.code == 'EG' && _governorates.isNotEmpty
-              ? _governorates
-                        .where((g) => g.code == _governorateCode)
-                        .firstOrNull
-                        ?.nameAr ??
-                    ''
-              : _region.text,
+          _phone.value.international;
+      return [
+        Text(
+          AuthCopy.reviewHint,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 16),
+        _reviewSection(
+          theme: theme,
+          sectionKey: const Key('review-account'),
+          editKey: const Key('review-edit-account'),
+          title: AuthCopy.reviewAccountSection,
+          icon: Icons.person_outline,
+          editStep: 0,
+          rows: [
+            (
+              icon: Icons.badge_outlined,
+              label: AuthCopy.ownerLabel,
+              value: _owner.text,
+              ltr: false,
+            ),
+            (
+              icon: Icons.mail_outline,
+              label: AuthCopy.emailLabel,
+              value: _email.text,
+              ltr: true,
+            ),
+            (
+              icon: Icons.phone_outlined,
+              label: AuthCopy.phoneLabel,
+              value: phone,
+              ltr: true,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _reviewSection(
+          theme: theme,
+          sectionKey: const Key('review-shop'),
+          editKey: const Key('review-edit-shop'),
+          title: AuthCopy.reviewShopSection,
+          icon: Icons.storefront_outlined,
+          editStep: 1,
+          rows: [
+            (
+              icon: Icons.storefront_outlined,
+              label: AuthCopy.businessLabel,
+              value: _business.text,
+              ltr: false,
+            ),
+            (
+              icon: Icons.public_outlined,
+              label: AuthCopy.countryLabel,
+              value: _country.nameAr,
+              ltr: false,
+            ),
+            (
+              icon: Icons.location_on_outlined,
+              label: AuthCopy.governorateLabel,
+              value: _region.text.trim().isEmpty ? 'غير محددة' : _region.text,
+              ltr: false,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
       ];
     }
     if (_signupStep == 1) {
@@ -777,25 +827,25 @@ class _AuthScreenState extends State<AuthScreen> {
           icon: Icons.storefront_outlined,
           autofillHints: const [AutofillHints.organizationName],
         ),
-        if (_country.code == 'EG' &&
-            (_loadingGovernorates || _governorates.isNotEmpty))
-          _governorateBlock(theme, theme.colorScheme)
-        else
-          _labeled(
-            order: 2,
-            label: 'المحافظة / المنطقة',
-            theme: theme,
-            field: TextFormField(
-              key: const Key('signup-region'),
-              controller: _region,
-              focusNode: _governorateFocus,
-              enabled: !_locked,
-              decoration: const InputDecoration(hintText: 'اكتب المنطقة'),
-              validator: (value) => _country.regionCode(value ?? '') == null
-                  ? 'أدخل المنطقة'
-                  : null,
+        _labeled(
+          order: 2,
+          label: AuthCopy.governorateLabel,
+          theme: theme,
+          field: TextFormField(
+            key: const Key('signup-region'),
+            controller: _region,
+            focusNode: _governorateFocus,
+            enabled: !_locked,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              hintText: AuthCopy.governorateHint,
+              prefixIcon: Icon(Icons.location_on_outlined),
             ),
+            validator: (value) => _country.regionCode(value ?? '') == null
+                ? AuthCopy.governorateInvalid
+                : null,
           ),
+        ),
       ];
     }
     return [
@@ -919,110 +969,109 @@ class _AuthScreenState extends State<AuthScreen> {
     ];
   }
 
-  Widget _registrationLine(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(height: 4),
-        Text(value, style: Theme.of(context).textTheme.titleMedium),
-      ],
-    ),
-  );
-
-  Widget _governorateBlock(ThemeData theme, ColorScheme scheme) {
-    final showFailure =
-        _governorateLoadFailed ||
-        (!_loadingGovernorates && _governorates.isEmpty);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_loadingGovernorates) ...[
-          Semantics(
-            key: const Key('governorate-loading'),
-            liveRegion: true,
-            label: AuthCopy.governorateLoading,
-            child: _motionBar(AuthCopy.governorateLoading),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AuthCopy.governorateLoading,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (showFailure) ...[
-          ExcludeSemantics(child: _label(theme, AuthCopy.governorateLabel)),
-          const SizedBox(height: 8),
-          Semantics(
-            container: true,
-            liveRegion: true,
-            child: Text(
-              AuthCopy.governorateFailed,
-              key: const Key('governorate-error'),
-              softWrap: true,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.error,
-                height: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _order(
-            6,
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                key: const Key('governorate-retry'),
-                onPressed: _loadingGovernorates ? null : _loadGovernorates,
-                child: const Text(
-                  AuthCopy.governorateRetry,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (_governorates.isNotEmpty) ...[
-          ExcludeSemantics(child: _label(theme, AuthCopy.governorateLabel)),
-          const SizedBox(height: 8),
-          _order(
-            6,
-            Semantics(
-              label: AuthCopy.governorateLabel,
-              child: DropdownButtonFormField<String>(
-                key: const Key('signup-governorate'),
-                initialValue: _governorateCode,
-                isExpanded: true,
-                focusNode: _governorateFocus,
-                decoration: const InputDecoration(
-                  hintText: AuthCopy.governorateHint,
-                ),
-                items: [
-                  for (final item in _governorates)
-                    DropdownMenuItem(
-                      value: item.code,
-                      child: Text(item.nameAr, overflow: TextOverflow.ellipsis),
+  Widget _reviewSection({
+    required ThemeData theme,
+    required Key sectionKey,
+    required Key editKey,
+    required String title,
+    required IconData icon,
+    required int editStep,
+    required List<({IconData icon, String label, String value, bool ltr})> rows,
+  }) {
+    final scheme = theme.colorScheme;
+    return DecoratedBox(
+      key: sectionKey,
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(AppTokens.fieldRadius),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: scheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
                     ),
-                ],
-                onChanged: _locked
-                    ? null
-                    : (value) => setState(() => _governorateCode = value),
-                validator: (value) =>
-                    value == null || !EgyptianGovernorates.isValid(value)
-                    ? AuthCopy.governorateInvalid
-                    : null,
-              ),
+                  ),
+                ),
+                TextButton.icon(
+                  key: editKey,
+                  onPressed: _locked || _unknown
+                      ? null
+                      : () => _goToSignupStep(editStep),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    foregroundColor: scheme.primary,
+                  ),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text(AuthCopy.reviewEdit),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  color: scheme.outlineVariant.withValues(alpha: 0.7),
+                ),
+              _reviewRow(theme, rows[i]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _reviewRow(
+    ThemeData theme,
+    ({IconData icon, String label, String value, bool ltr}) row,
+  ) {
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(row.icon, size: 18, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  row.value,
+                  textDirection: row.ltr ? TextDirection.ltr : null,
+                  softWrap: true,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
         ],
-      ],
+      ),
     );
   }
 

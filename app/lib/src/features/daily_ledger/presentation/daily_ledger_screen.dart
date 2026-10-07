@@ -367,7 +367,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           setState(() {
             _financialPending = null;
             _financialError =
-                'رفض الخادم إعادة المحاولة: ${result.code}. حدّث الدفتر قبل طلب جديد.';
+                'تعذر حفظ العملية. حدّث الدفتر وراجع البيانات قبل المحاولة مجددًا.';
           });
         } else if (result is FinancialCountMismatch) {
           await _financialPendingStore.clear(
@@ -379,7 +379,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           setState(() {
             _financialPending = null;
             _financialError =
-                'تغير العد على الخادم. حدّث الدفتر وأعد المراجعة.';
+                'تغيّرت الأرصدة المسجلة. حدّث الدفتر وأعد المراجعة.';
           });
         } else {
           setState(() => _pendingStatusUnknown = true);
@@ -567,7 +567,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       builder: (context) => AlertDialog(
         title: const Text('فتح يوم عمل جديد'),
         content: const Text(
-          'ستبدأ العمليات التالية في يوم عمل جديد. يحدد الخادم تاريخ الفتح.',
+          'ستبدأ العمليات التالية في يوم عمل جديد. سيظهر تاريخه بعد تأكيد الفتح.',
         ),
         actions: [
           TextButton(
@@ -605,8 +605,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         await _financialPendingStore.clear(userId, widget.shop.id, key);
         if (!mounted) return;
         setState(
-          () => _financialError =
-              'رفض الخادم فتح اليوم. تحقق من حالة اليوم والاشتراك.',
+          () =>
+              _financialError = 'تعذر فتح اليوم. تحقق من حالة اليوم والاشتراك.',
         );
       } else {
         setState(() => _financialPending = pending);
@@ -760,11 +760,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text('عملية مالية بانتظار تأكيد الخادم'),
+                          const Text('عملية مالية بانتظار تأكيد الحفظ'),
                           Text(
                             _pendingStatusUnknown
                                 ? 'تعذر تحديد حالتها بعد. تحقق قبل تسجيل عملية أخرى.'
-                                : 'لم تظهر بعد على الخادم. أعد المحاولة بالمفتاح نفسه.',
+                                : 'لم نتأكد من حفظها بعد. أعد المحاولة دون تغيير البيانات.',
                           ),
                           Align(
                             alignment: AlignmentDirectional.centerStart,
@@ -787,6 +787,12 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                   expired: _expired,
                   day: _financialDay,
                   dayBusy: _dayCommandBusy,
+                  canReturn:
+                      _financialGateway is LinkedReturnGateway &&
+                      _financialDay?.isOpen == true &&
+                      !_expired &&
+                      !controller.readOnly &&
+                      _financialPending == null,
                   onSale:
                       _financialDay?.isOpen == true &&
                           !_expired &&
@@ -884,6 +890,7 @@ class _LedgerBody extends StatelessWidget {
     required this.expired,
     required this.day,
     required this.dayBusy,
+    this.canReturn = false,
     this.onSale,
     this.onPurchase,
     this.onExpense,
@@ -904,6 +911,7 @@ class _LedgerBody extends StatelessWidget {
   final bool expired;
   final FinancialDayState? day;
   final bool dayBusy;
+  final bool canReturn;
   final VoidCallback? onSale;
   final VoidCallback? onPurchase;
   final VoidCallback? onExpense;
@@ -961,6 +969,7 @@ class _LedgerBody extends StatelessWidget {
             ledger: controller.ledger,
             shopId: controller.shopId,
             dayClosed: day?.isClosed == true,
+            canReturn: canReturn,
             onSale: onSale,
             onPurchase: onPurchase,
             onExpense: onExpense,
@@ -1519,7 +1528,7 @@ class _PendingNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text('بانتظار تأكيد الخادم', key: Key('opening-pending'));
+    return const Text('بانتظار تأكيد الحفظ', key: Key('opening-pending'));
   }
 }
 

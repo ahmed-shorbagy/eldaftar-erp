@@ -223,10 +223,11 @@ void main() {
           find.byKey(const Key('signup-business-name')),
           'محل تجريبي',
         );
-        await reveal(tester, const Key('signup-governorate'));
-        await tester.tap(find.byKey(const Key('signup-governorate')));
-        await frames(tester);
-        await tester.tap(find.text('الجيزة').last);
+        await reveal(tester, const Key('signup-region'));
+        await tester.enterText(
+          find.byKey(const Key('signup-region')),
+          'الجيزة',
+        );
         await frames(tester);
         await reveal(tester, const Key('signup-submit'));
         await tester.tap(find.byKey(const Key('signup-submit')));

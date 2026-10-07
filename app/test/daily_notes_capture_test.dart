@@ -270,6 +270,10 @@ void main() {
           await capture(tester, 'ledger-notes-actions-$label.png');
           Navigator.of(tester.element(notes)).pop();
           await tester.pumpAndSettle();
+          await tester.ensureVisible(
+            find.byKey(const Key('ledger-other-movements')),
+          );
+          await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-other-movements')));
           await tester.pumpAndSettle();
           final older = find.byKey(const Key('ledger-load-older'));

@@ -1,0 +1,1341 @@
+{
+  "page": {
+    "items": [
+      {
+        "kind": "sale_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع بيع",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.651615+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم بطاقة",
+        "operation_id": "29b8f58f-651a-4155-a362-7b2ea85f37d1",
+        "total_pounds": "10.00",
+        "weight_grams": "0.500",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "12",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "بيع",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.643969+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم بطاقة",
+        "operation_id": "6d0eb0df-7d19-4759-8380-4c1139d23aca",
+        "total_pounds": "10.00",
+        "weight_grams": "0.500",
+        "is_daily_note": false,
+        "payment_label": "فيزا",
+        "shop_sequence": "11",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "بيع",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.618852+00:00",
+        "piece_count": "1",
+        "item_summary": "سوار",
+        "operation_id": "e0236e35-d44f-41a7-bb0a-a976237d4a6b",
+        "total_pounds": "10.00",
+        "weight_grams": "2.000",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "10",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "exchange",
+        "karat": null,
+        "has_note": true,
+        "label_ar": "استبدال",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.580889+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "8f74269d-c956-44e2-8111-9e7338b763ec",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "9",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "purchase",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "شراء",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.58947+00:00",
+        "piece_count": "1",
+        "item_summary": "بديل",
+        "operation_id": "85567eaa-9425-4877-8615-f413c7a18022",
+        "total_pounds": "30.00",
+        "weight_grams": "3.000",
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "8",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "purchase_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع شراء",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.580889+00:00",
+        "piece_count": "1",
+        "item_summary": "سوار",
+        "operation_id": "2d95832e-c498-4ed9-85f6-ab8c6c2da65e",
+        "total_pounds": "50.00",
+        "weight_grams": "2.000",
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "7",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "purchase",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "شراء",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.412682+00:00",
+        "piece_count": "2",
+        "item_summary": "سوار",
+        "operation_id": "b8708829-abed-40b8-ae32-626bbbdf7374",
+        "total_pounds": "100.00",
+        "weight_grams": "4.000",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "6",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع بيع",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.396844+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم",
+        "operation_id": "54f771fa-58bb-406b-9f88-b7d4ea3d0e1c",
+        "total_pounds": "0.00",
+        "weight_grams": "2.002",
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "5",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع بيع",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.371196+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم",
+        "operation_id": "41a8d815-8bda-4e23-a2bf-db593ef757f6",
+        "total_pounds": "30.00",
+        "weight_grams": "1.999",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "4",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "بيع",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.345075+00:00",
+        "piece_count": "2",
+        "item_summary": "خاتم",
+        "operation_id": "f197d70c-69c8-43ea-b039-d6057173b465",
+        "total_pounds": "30.00",
+        "weight_grams": "4.001",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "3",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "ledger_correction",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "تسوية فرق الجرد",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.310742+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "0f054f96-ab10-4de2-ae9f-a00ca1576b4c",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "2",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "opening_balances",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "رصيد افتتاحي",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.276615+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "9ba45461-f245-4f5a-b544-c6c9f803f975",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "1",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      }
+    ],
+    "limit": 100,
+    "day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+    "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+    "has_more": false,
+    "direction": "desc",
+    "server_sequence": "12",
+    "snapshot_sequence": "12",
+    "next_after_sequence": null,
+    "next_before_sequence": null
+  },
+  "ledger": {
+    "cash": [
+      {
+        "method": "cash",
+        "pounds": "4980.00",
+        "label_ar": "نقدي",
+        "piastres": "498000"
+      },
+      {
+        "method": "instant_transfer",
+        "pounds": "0.00",
+        "label_ar": "انستا",
+        "piastres": "0"
+      },
+      {
+        "method": "wallet",
+        "pounds": "0.00",
+        "label_ar": "محفظة",
+        "piastres": "0"
+      },
+      {
+        "method": "card",
+        "pounds": "20.00",
+        "label_ar": "فيزا",
+        "piastres": "2000"
+      }
+    ],
+    "feed": [
+      {
+        "kind": "sale_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع بيع",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.651615+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم بطاقة",
+        "operation_id": "29b8f58f-651a-4155-a362-7b2ea85f37d1",
+        "total_pounds": "10.00",
+        "weight_grams": "0.500",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "12",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "بيع",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.643969+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم بطاقة",
+        "operation_id": "6d0eb0df-7d19-4759-8380-4c1139d23aca",
+        "total_pounds": "10.00",
+        "weight_grams": "0.500",
+        "is_daily_note": false,
+        "payment_label": "فيزا",
+        "shop_sequence": "11",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "بيع",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.618852+00:00",
+        "piece_count": "1",
+        "item_summary": "سوار",
+        "operation_id": "e0236e35-d44f-41a7-bb0a-a976237d4a6b",
+        "total_pounds": "10.00",
+        "weight_grams": "2.000",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "10",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "exchange",
+        "karat": null,
+        "has_note": true,
+        "label_ar": "استبدال",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.580889+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "8f74269d-c956-44e2-8111-9e7338b763ec",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "9",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "purchase",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "شراء",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.58947+00:00",
+        "piece_count": "1",
+        "item_summary": "بديل",
+        "operation_id": "85567eaa-9425-4877-8615-f413c7a18022",
+        "total_pounds": "30.00",
+        "weight_grams": "3.000",
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "8",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "purchase_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع شراء",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.580889+00:00",
+        "piece_count": "1",
+        "item_summary": "سوار",
+        "operation_id": "2d95832e-c498-4ed9-85f6-ab8c6c2da65e",
+        "total_pounds": "50.00",
+        "weight_grams": "2.000",
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "7",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "purchase",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "شراء",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.412682+00:00",
+        "piece_count": "2",
+        "item_summary": "سوار",
+        "operation_id": "b8708829-abed-40b8-ae32-626bbbdf7374",
+        "total_pounds": "100.00",
+        "weight_grams": "4.000",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "6",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع بيع",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.396844+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم",
+        "operation_id": "54f771fa-58bb-406b-9f88-b7d4ea3d0e1c",
+        "total_pounds": "0.00",
+        "weight_grams": "2.002",
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "5",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale_return",
+        "karat": 18,
+        "has_note": true,
+        "label_ar": "مرتجع بيع",
+        "is_return": true,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.371196+00:00",
+        "piece_count": "1",
+        "item_summary": "خاتم",
+        "operation_id": "41a8d815-8bda-4e23-a2bf-db593ef757f6",
+        "total_pounds": "30.00",
+        "weight_grams": "1.999",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "4",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "sale",
+        "karat": 18,
+        "has_note": false,
+        "label_ar": "بيع",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.345075+00:00",
+        "piece_count": "2",
+        "item_summary": "خاتم",
+        "operation_id": "f197d70c-69c8-43ea-b039-d6057173b465",
+        "total_pounds": "30.00",
+        "weight_grams": "4.001",
+        "is_daily_note": false,
+        "payment_label": "كاش",
+        "shop_sequence": "3",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "ledger_correction",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "تسوية فرق الجرد",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.310742+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "0f054f96-ab10-4de2-ae9f-a00ca1576b4c",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "2",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      },
+      {
+        "kind": "opening_balances",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "رصيد افتتاحي",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-06T12:43:42.276615+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "9ba45461-f245-4f5a-b544-c6c9f803f975",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "1",
+        "occurred_at_shop": "2026-10-06T15:43:42",
+        "occurred_at_cairo": "2026-10-06T15:43:42",
+        "actor_display_name": "المالك أ"
+      }
+    ],
+    "scrap": [],
+    "state": "confirmed",
+    "stock": [
+      {
+        "count": "6",
+        "grams": "12.999",
+        "karat": 18,
+        "category": "worked_jewelry",
+        "label_ar": "مشغولات",
+        "milligrams": "12999"
+      }
+    ],
+    "feed_page": {
+      "limit": 100,
+      "has_more": false,
+      "direction": "desc",
+      "server_sequence": "12",
+      "snapshot_sequence": "12",
+      "next_before_sequence": null
+    },
+    "can_confirm": false,
+    "day_summary": {
+      "sale_count": 3,
+      "expense_count": 0,
+      "sale_piastres": "5000",
+      "gold_by_bucket": [
+        {
+          "kind": "purchase",
+          "count": "3",
+          "karat": 18,
+          "category": "worked_jewelry",
+          "milligrams": "7000"
+        },
+        {
+          "kind": "sale",
+          "count": "4",
+          "karat": 18,
+          "category": "worked_jewelry",
+          "milligrams": "6501"
+        }
+      ],
+      "purchase_count": 2,
+      "expense_piastres": "0",
+      "purchase_piastres": "13000"
+    },
+    "business_day": {
+      "id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "opened_at": "2026-10-06T12:43:42.276615+00:00",
+      "business_date": "2026-10-06"
+    },
+    "entitlement_status": "active",
+    "read_model_version": 2
+  },
+  "operations": [
+    {
+      "kind": "opening_balances",
+      "payload": {
+        "cash": {
+          "card": "1000",
+          "cash": "500000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "scrap": [],
+        "stock": [
+          {
+            "count": "4",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "milligrams": "10000"
+          }
+        ],
+        "version": 1
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.276615+00:00",
+      "operation_id": "9ba45461-f245-4f5a-b544-c6c9f803f975",
+      "shop_sequence": "1",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "ledger_correction",
+      "payload": {
+        "kind": "ledger_correction",
+        "reason": "فرق الوزن والعدد",
+        "counted": {
+          "cash": {
+            "card": "1000",
+            "cash": "500000",
+            "wallet": "0",
+            "instant_transfer": "0"
+          },
+          "scrap": [],
+          "stock": [
+            {
+              "count": "5",
+              "karat": 18,
+              "category": "worked_jewelry",
+              "milligrams": "9999"
+            }
+          ]
+        },
+        "version": 1,
+        "expected_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "expected_day_version": "1"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.310742+00:00",
+      "operation_id": "0f054f96-ab10-4de2-ae9f-a00ca1576b4c",
+      "shop_sequence": "2",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "correction_effects": {
+        "buckets": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "milligrams": "-1"
+          }
+        ],
+        "cash_piastres": "0"
+      },
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "sale",
+      "payload": {
+        "kind": "sale",
+        "note": "",
+        "items": [
+          {
+            "count": "2",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم",
+            "milligrams": "4001",
+            "line_price_piastres": null
+          }
+        ],
+        "tenders": [
+          {
+            "method": "cash",
+            "piastres": "3000"
+          }
+        ],
+        "version": 1,
+        "description": "",
+        "customer_name": "",
+        "customer_phone": "",
+        "total_piastres": "3000"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.345075+00:00",
+      "operation_id": "f197d70c-69c8-43ea-b039-d6057173b465",
+      "shop_sequence": "3",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "return_remainder": {
+        "kind": "sale",
+        "items": [
+          {
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم",
+            "item_index": "0",
+            "original_count": "2",
+            "returned_count": "2",
+            "remainder_count": "0",
+            "original_milligrams": "4001",
+            "returned_milligrams": "4001",
+            "remainder_milligrams": "0"
+          }
+        ],
+        "pricing": {},
+        "has_pricing": false,
+        "operation_id": "f197d70c-69c8-43ea-b039-d6057173b465",
+        "fully_returned": true,
+        "paid_by_method": {
+          "card": "0",
+          "cash": "3000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_immutable": true,
+        "refunded_by_method": {
+          "card": "0",
+          "cash": "3000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "refundable_by_method": {
+          "card": "0",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_total_piastres": "3000",
+        "payable_remaining_piastres": "0",
+        "returned_consideration_piastres": "3000",
+        "remainder_consideration_piastres": "0"
+      },
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": "41a8d815-8bda-4e23-a2bf-db593ef757f6",
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "sale_return",
+      "payload": {
+        "kind": "sale_return",
+        "note": "مرتجع مقاس",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم",
+            "item_index": "0",
+            "milligrams": "1999"
+          }
+        ],
+        "tenders": [
+          {
+            "method": "cash",
+            "piastres": "3000"
+          }
+        ],
+        "version": 1,
+        "customer_name": "",
+        "original_kind": "sale",
+        "total_piastres": "3000",
+        "expected_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "original_sequence": "3",
+        "expected_day_version": "3",
+        "original_operation_id": "f197d70c-69c8-43ea-b039-d6057173b465",
+        "cash_returned_piastres": "3000",
+        "consideration_piastres": "3000",
+        "cancelled_payable_piastres": "0"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.371196+00:00",
+      "operation_id": "41a8d815-8bda-4e23-a2bf-db593ef757f6",
+      "shop_sequence": "4",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "sale_return",
+      "payload": {
+        "kind": "sale_return",
+        "note": "مرتجع مقاس",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم",
+            "item_index": "0",
+            "milligrams": "2002"
+          }
+        ],
+        "tenders": [],
+        "version": 1,
+        "customer_name": "",
+        "original_kind": "sale",
+        "total_piastres": "0",
+        "expected_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "original_sequence": "3",
+        "expected_day_version": "4",
+        "original_operation_id": "f197d70c-69c8-43ea-b039-d6057173b465",
+        "cash_returned_piastres": "0",
+        "consideration_piastres": "0",
+        "cancelled_payable_piastres": "0"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.396844+00:00",
+      "operation_id": "54f771fa-58bb-406b-9f88-b7d4ea3d0e1c",
+      "shop_sequence": "5",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "purchase",
+      "payload": {
+        "kind": "purchase",
+        "note": "",
+        "items": [
+          {
+            "count": "2",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "سوار",
+            "milligrams": "4000",
+            "line_price_piastres": null
+          }
+        ],
+        "tenders": [
+          {
+            "method": "cash",
+            "piastres": "2000"
+          }
+        ],
+        "version": 1,
+        "description": "",
+        "customer_name": "",
+        "customer_phone": "",
+        "total_piastres": "10000",
+        "purchase_obligation_piastres": "8000"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.412682+00:00",
+      "operation_id": "b8708829-abed-40b8-ae32-626bbbdf7374",
+      "shop_sequence": "6",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "return_remainder": {
+        "kind": "purchase",
+        "items": [
+          {
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "سوار",
+            "item_index": "0",
+            "original_count": "2",
+            "returned_count": "1",
+            "remainder_count": "1",
+            "original_milligrams": "4000",
+            "returned_milligrams": "2000",
+            "remainder_milligrams": "2000"
+          }
+        ],
+        "pricing": {},
+        "has_pricing": false,
+        "operation_id": "b8708829-abed-40b8-ae32-626bbbdf7374",
+        "fully_returned": false,
+        "paid_by_method": {
+          "card": "0",
+          "cash": "2000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_immutable": true,
+        "refunded_by_method": {
+          "card": "0",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "refundable_by_method": {
+          "card": "0",
+          "cash": "2000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_total_piastres": "10000",
+        "payable_remaining_piastres": "3000",
+        "returned_consideration_piastres": "5000",
+        "remainder_consideration_piastres": "5000"
+      },
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": "8000",
+      "purchase_payable_remaining_piastres": "3000"
+    },
+    {
+      "kind": "purchase_return",
+      "payload": {
+        "kind": "purchase_return",
+        "note": "استبدال",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "سوار",
+            "item_index": "0",
+            "milligrams": "2000"
+          }
+        ],
+        "tenders": [],
+        "version": 1,
+        "customer_name": "",
+        "original_kind": "purchase",
+        "total_piastres": "5000",
+        "expected_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "original_sequence": "6",
+        "expected_day_version": "6",
+        "original_operation_id": "b8708829-abed-40b8-ae32-626bbbdf7374",
+        "cash_returned_piastres": "0",
+        "consideration_piastres": "5000",
+        "cancelled_payable_piastres": "5000"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.580889+00:00",
+      "operation_id": "2d95832e-c498-4ed9-85f6-ab8c6c2da65e",
+      "shop_sequence": "7",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "purchase",
+      "payload": {
+        "kind": "purchase",
+        "note": "",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "بديل",
+            "milligrams": "3000",
+            "line_price_piastres": null
+          }
+        ],
+        "tenders": [],
+        "version": 1,
+        "description": "",
+        "customer_name": "",
+        "customer_phone": "",
+        "total_piastres": "3000",
+        "purchase_obligation_piastres": "3000"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.58947+00:00",
+      "operation_id": "85567eaa-9425-4877-8615-f413c7a18022",
+      "shop_sequence": "8",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "return_remainder": {
+        "kind": "purchase",
+        "items": [
+          {
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "بديل",
+            "item_index": "0",
+            "original_count": "1",
+            "returned_count": "0",
+            "remainder_count": "1",
+            "original_milligrams": "3000",
+            "returned_milligrams": "0",
+            "remainder_milligrams": "3000"
+          }
+        ],
+        "pricing": {},
+        "has_pricing": false,
+        "operation_id": "85567eaa-9425-4877-8615-f413c7a18022",
+        "fully_returned": false,
+        "paid_by_method": {
+          "card": "0",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_immutable": true,
+        "refunded_by_method": {
+          "card": "0",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "refundable_by_method": {
+          "card": "0",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_total_piastres": "3000",
+        "payable_remaining_piastres": "3000",
+        "returned_consideration_piastres": "0",
+        "remainder_consideration_piastres": "3000"
+      },
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": "3000",
+      "purchase_payable_remaining_piastres": "3000"
+    },
+    {
+      "kind": "exchange",
+      "payload": {
+        "kind": "exchange",
+        "note": "استبدال",
+        "return": {
+          "kind": "purchase_return",
+          "note": "استبدال",
+          "items": [
+            {
+              "count": "1",
+              "item_index": "0",
+              "milligrams": "2000"
+            }
+          ],
+          "tenders": [],
+          "original_operation_id": "b8708829-abed-40b8-ae32-626bbbdf7374",
+          "consideration_piastres": "5000"
+        },
+        "version": 1,
+        "replacement": {
+          "kind": "purchase",
+          "note": "",
+          "items": [
+            {
+              "count": "1",
+              "karat": 18,
+              "category": "worked_jewelry",
+              "item_name": "بديل",
+              "milligrams": "3000",
+              "line_price_piastres": null
+            }
+          ],
+          "tenders": [],
+          "version": 1,
+          "description": "",
+          "customer_name": "",
+          "customer_phone": "",
+          "total_piastres": "3000",
+          "purchase_obligation_piastres": "3000"
+        },
+        "expected_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "expected_day_version": "6"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.580889+00:00",
+      "operation_id": "8f74269d-c956-44e2-8111-9e7338b763ec",
+      "shop_sequence": "9",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "exchange_effects": {
+        "ok": true,
+        "replayed": true,
+        "day_version": 10,
+        "net_effects": {
+          "buckets": [
+            {
+              "count": "0",
+              "karat": 18,
+              "category": "worked_jewelry",
+              "milligrams": "1000"
+            }
+          ],
+          "cash_piastres": "0"
+        },
+        "operation_id": "8f74269d-c956-44e2-8111-9e7338b763ec",
+        "return_effects": {
+          "buckets": [
+            {
+              "count": "-1",
+              "karat": 18,
+              "category": "worked_jewelry",
+              "milligrams": "-2000"
+            }
+          ],
+          "cash_piastres": "0"
+        },
+        "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "replacement_effects": {
+          "buckets": [
+            {
+              "count": "1",
+              "karat": 18,
+              "category": "worked_jewelry",
+              "milligrams": "3000"
+            }
+          ],
+          "cash_piastres": "0"
+        },
+        "return_operation_id": "2d95832e-c498-4ed9-85f6-ab8c6c2da65e",
+        "replacement_operation_id": "85567eaa-9425-4877-8615-f413c7a18022"
+      },
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "sale",
+      "payload": {
+        "kind": "sale",
+        "note": "",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "سوار",
+            "milligrams": "2000",
+            "line_price_piastres": null
+          }
+        ],
+        "tenders": [
+          {
+            "method": "cash",
+            "piastres": "1000"
+          }
+        ],
+        "version": 1,
+        "description": "",
+        "customer_name": "",
+        "customer_phone": "",
+        "total_piastres": "1000"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.618852+00:00",
+      "operation_id": "e0236e35-d44f-41a7-bb0a-a976237d4a6b",
+      "shop_sequence": "10",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "return_remainder": {
+        "kind": "sale",
+        "items": [
+          {
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "سوار",
+            "item_index": "0",
+            "original_count": "1",
+            "returned_count": "0",
+            "remainder_count": "1",
+            "original_milligrams": "2000",
+            "returned_milligrams": "0",
+            "remainder_milligrams": "2000"
+          }
+        ],
+        "pricing": {},
+        "has_pricing": false,
+        "operation_id": "e0236e35-d44f-41a7-bb0a-a976237d4a6b",
+        "fully_returned": false,
+        "paid_by_method": {
+          "card": "0",
+          "cash": "1000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_immutable": true,
+        "refunded_by_method": {
+          "card": "0",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "refundable_by_method": {
+          "card": "0",
+          "cash": "1000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_total_piastres": "1000",
+        "payable_remaining_piastres": "0",
+        "returned_consideration_piastres": "0",
+        "remainder_consideration_piastres": "1000"
+      },
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "sale",
+      "payload": {
+        "kind": "sale",
+        "note": "",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم بطاقة",
+            "milligrams": "500",
+            "line_price_piastres": null
+          }
+        ],
+        "tenders": [
+          {
+            "method": "card",
+            "piastres": "1000"
+          }
+        ],
+        "version": 1,
+        "description": "",
+        "customer_name": "",
+        "customer_phone": "",
+        "total_piastres": "1000"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.643969+00:00",
+      "operation_id": "6d0eb0df-7d19-4759-8380-4c1139d23aca",
+      "shop_sequence": "11",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "return_remainder": {
+        "kind": "sale",
+        "items": [
+          {
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم بطاقة",
+            "item_index": "0",
+            "original_count": "1",
+            "returned_count": "1",
+            "remainder_count": "0",
+            "original_milligrams": "500",
+            "returned_milligrams": "500",
+            "remainder_milligrams": "0"
+          }
+        ],
+        "pricing": {},
+        "has_pricing": false,
+        "operation_id": "6d0eb0df-7d19-4759-8380-4c1139d23aca",
+        "fully_returned": true,
+        "paid_by_method": {
+          "card": "1000",
+          "cash": "0",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_immutable": true,
+        "refunded_by_method": {
+          "card": "0",
+          "cash": "1000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "refundable_by_method": {
+          "card": "1000",
+          "cash": "-1000",
+          "wallet": "0",
+          "instant_transfer": "0"
+        },
+        "original_total_piastres": "1000",
+        "payable_remaining_piastres": "0",
+        "returned_consideration_piastres": "1000",
+        "remainder_consideration_piastres": "0"
+      },
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": "29b8f58f-651a-4155-a362-7b2ea85f37d1",
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    },
+    {
+      "kind": "sale_return",
+      "payload": {
+        "kind": "sale_return",
+        "note": "رد نقدي متفق عليه",
+        "items": [
+          {
+            "count": "1",
+            "karat": 18,
+            "category": "worked_jewelry",
+            "item_name": "خاتم بطاقة",
+            "item_index": "0",
+            "milligrams": "500"
+          }
+        ],
+        "tenders": [
+          {
+            "method": "cash",
+            "piastres": "1000"
+          }
+        ],
+        "version": 1,
+        "customer_name": "",
+        "original_kind": "sale",
+        "total_piastres": "1000",
+        "expected_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+        "original_sequence": "11",
+        "expected_day_version": "9",
+        "original_operation_id": "6d0eb0df-7d19-4759-8380-4c1139d23aca",
+        "cash_returned_piastres": "1000",
+        "consideration_piastres": "1000",
+        "cancelled_payable_piastres": "0"
+      },
+      "shop_id": "b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1",
+      "shop_name": "تعويض أ",
+      "occurred_at": "2026-10-06T12:43:42.651615+00:00",
+      "operation_id": "29b8f58f-651a-4155-a362-7b2ea85f37d1",
+      "shop_sequence": "12",
+      "business_day_id": "e31acba8-fa25-4511-a66a-264b40ea03ac",
+      "occurred_at_cairo": "2026-10-06T15:43:42",
+      "actor_display_name": "المالك أ",
+      "returned_by_operation_id": null,
+      "purchase_payable_initial_piastres": null,
+      "purchase_payable_remaining_piastres": null
+    }
+  ],
+  "_evidence_source": "Hosted xchapwvmvoefriqcxtvn synthetic rollback after 20261006124322, 2026-10-06"
+}

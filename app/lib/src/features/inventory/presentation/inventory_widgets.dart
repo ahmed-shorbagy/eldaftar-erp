@@ -89,7 +89,7 @@ class EffectList extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'أثر الأمر قبل التأكيد',
+              'مراجعة العملية',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: scheme.onPrimaryContainer,
               ),
@@ -108,7 +108,7 @@ class EffectList extends StatelessWidget {
               ),
             if (command.effects.isEmpty)
               Text(
-                'لا يغير هذا الأمر النقد أو الذهب.',
+                'لا تغيّر هذه العملية النقدية أو الذهب.',
                 style: TextStyle(color: scheme.onPrimaryContainer),
               ),
             for (final note in command.notes)
@@ -124,7 +124,7 @@ class EffectList extends StatelessWidget {
               ),
             const SizedBox(height: 8),
             Text(
-              'لن يُحتسب الأمر محفوظاً قبل رد الخادم.',
+              'ستُحدّث الأرصدة بعد تأكيد الحفظ.',
               style: TextStyle(color: scheme.onPrimaryContainer),
             ),
           ],
@@ -166,7 +166,7 @@ class CommandActions extends StatelessWidget {
           onPressed: busy || readOnly || unconfirmed || !canReview
               ? null
               : onReview,
-          child: const Text('مراجعة الأثر'),
+          child: const Text('مراجعة العملية'),
         ),
         const SizedBox(height: 8),
         FilledButton(
@@ -174,14 +174,14 @@ class CommandActions extends StatelessWidget {
           onPressed: busy || readOnly || unconfirmed || !canSubmit
               ? null
               : onSubmit,
-          child: Text(busy ? 'جارٍ الإرسال' : 'تأكيد الأمر'),
+          child: Text(busy ? 'جارٍ الإرسال' : 'تأكيد العملية'),
         ),
         if (unconfirmed) ...[
           const SizedBox(height: 8),
           OutlinedButton(
             key: const Key('command-retry'),
             onPressed: busy ? null : onRetry,
-            child: const Text('التحقق وإعادة المحاولة بالمفتاح نفسه'),
+            child: const Text('التحقق وإعادة المحاولة'),
           ),
         ],
       ],

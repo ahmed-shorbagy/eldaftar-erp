@@ -297,7 +297,7 @@ void expectReviewEnabled(WidgetTester tester) {
 
 void expectPendingDisabled(WidgetTester tester) {
   expect(find.byKey(const Key('opening-pending')), findsOneWidget);
-  expect(find.text('بانتظار تأكيد الخادم'), findsOneWidget);
+  expect(find.text('بانتظار تأكيد الحفظ'), findsOneWidget);
   expect(find.byKey(const Key('confirm-opening')), findsNothing);
   expect(find.byKey(const Key('back-to-edit')), findsNothing);
   expect(find.byKey(const Key('review-values')), findsNothing);

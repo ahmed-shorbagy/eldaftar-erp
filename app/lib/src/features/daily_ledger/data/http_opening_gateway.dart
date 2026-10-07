@@ -53,6 +53,9 @@ const _errorCodes = <String>{
   'already_allocated',
   'custody_requires_transfer',
   'insufficient_lot',
+  'return_exceeds_original',
+  'already_returned',
+  'explicit_refund_required',
 };
 
 class HttpOpeningGateway
@@ -64,6 +67,9 @@ class HttpOpeningGateway
         CashTransferGateway,
         ScrapToStockGateway,
         LinkedReturnGateway,
+        LedgerCorrectionGateway,
+        PartialReturnGateway,
+        ExchangeGateway,
         InventoryGateway,
         NotesGateway,
         LedgerFeedGateway {
@@ -225,6 +231,9 @@ class HttpOpeningGateway
       'cash_transfer' => 'post_daily_ledger_cash_transfer',
       'scrap_to_stock' => 'post_daily_ledger_scrap_to_stock',
       'sale_return' || 'purchase_return' => 'post_daily_ledger_return',
+      'linked_return' => 'post_linked_return_v1',
+      'ledger_correction' => 'post_ledger_correction_v1',
+      'exchange' => 'post_exchange_v1',
       _ => null,
     };
     if (rpc != null) return _financialCommand(callerUserId, rpc, command.body);
@@ -242,6 +251,49 @@ class HttpOpeningGateway
     'p_idempotency_key': idempotencyKey,
     'p_payload': draft.toJson(),
   });
+
+  @override
+  Future<FinancialCommandResult> postCorrection({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) => _financialCommand(callerUserId, 'post_ledger_correction_v1', {
+    'p_idempotency_key': idempotencyKey,
+    'p_payload': payload,
+  });
+  @override
+  Future<FinancialCommandResult> postPartialReturn({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) => _financialCommand(callerUserId, 'post_linked_return_v1', {
+    'p_idempotency_key': idempotencyKey,
+    'p_payload': payload,
+  });
+  @override
+  Future<FinancialCommandResult> postExchange({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) => _financialCommand(callerUserId, 'post_exchange_v1', {
+    'p_idempotency_key': idempotencyKey,
+    'p_payload': payload,
+  });
+  @override
+  Future<Map<String, Object?>> remainder({
+    required String callerUserId,
+    required String operationId,
+  }) async {
+    final response = await _post(callerUserId, 'get_return_remainder_v1', {
+      'p_operation_id': operationId,
+    });
+    if (response.statusCode >= 400) {
+      throw LedgerReadException(_errorCode(response.body));
+    }
+    final value = jsonDecode(response.body);
+    if (value is! Map) throw const FormatException('return_remainder');
+    return Map<String, Object?>.from(value);
+  }
 
   @override
   Future<FinancialDayState> dayState({required String callerUserId}) async {

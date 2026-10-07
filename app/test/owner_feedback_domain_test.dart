@@ -17,11 +17,36 @@ void main() {
       '+966501234567',
     );
     expect(RegistrationCountry.byCode('ZZ'), isNull);
-    expect(RegistrationCountry.validRegion('SA:'), isFalse);
+    expect(RegistrationCountry.validRegion('SA:'), isTrue);
     expect(RegistrationCountry.validRegion('ZZ:منطقة'), isFalse);
     expect(RegistrationCountry.validRegion('EG:الجيزة'), isTrue);
     expect(RegistrationCountry.validRegion('SA:الرياض'), isTrue);
   });
+  test(
+    'every supported country permits an omitted region and validates its phone',
+    () {
+      for (final country in RegistrationCountry.all) {
+        expect(country.regionCode('  '), '${country.code}:');
+        expect(RegistrationCountry.validRegion('${country.code}:'), isTrue);
+        expect(country.regionCode('أ' * 121), isNull);
+        expect(country.regionCode('مدينة\nأخرى'), isNull);
+        final profile = OwnerRegistration.tryCreate(
+          idempotencyKey: '11111111-1111-4111-8111-111111111111',
+          ownerName: 'مالك تجريبي',
+          businessName: 'محل تجريبي',
+          email: 'owner@example.test',
+          phone: country.code == 'EG'
+              ? '01012345678'
+              : '+${country.dialCode}501234567',
+          governorateCode: '${country.code}:',
+          password: 'example-password',
+        );
+        expect(profile, isNotNull, reason: country.code);
+      }
+      expect(RegistrationCountry.validRegion('ZZ:'), isFalse);
+      expect(RegistrationCountry.validRegion('SA: '), isFalse);
+    },
+  );
   test('international owner registration retains exact replay profile', () {
     final profile = OwnerRegistration.tryCreate(
       idempotencyKey: '11111111-1111-4111-8111-111111111111',

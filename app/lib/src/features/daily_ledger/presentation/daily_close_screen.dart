@@ -10,6 +10,7 @@ import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
+import 'ledger_correction_screen.dart';
 
 class DailyCloseScreen extends StatefulWidget {
   const DailyCloseScreen({
@@ -36,6 +37,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
   final _stock = <String, List<TextEditingController>>{};
   final _scrap = <int, TextEditingController>{};
   Map<String, Object?>? _review;
+  Map<String, Object?>? _discrepancy;
   String? _error;
   String? _key;
   bool _busy = false;
@@ -125,8 +127,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     if (!_sameCounts(counted, expected)) {
       setState(() {
         _review = null;
+        _discrepancy = counted;
         _error =
-            'يوجد فرق بين العد الفعلي ورصيد الخادم. صحح الفرق أو اطلب تسوية مدققة قبل التقفيل.';
+            'يوجد فرق بين العد الفعلي والأرصدة المسجلة. صحح الفرق أو اطلب تسوية مدققة قبل التقفيل.';
       });
       return;
     }
@@ -134,6 +137,32 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
       _review = counted;
       _error = null;
     });
+  }
+
+  Future<void> _correct() async {
+    if (_busy ||
+        _unknown ||
+        _key != null ||
+        _discrepancy == null ||
+        widget.gateway is! LedgerCorrectionGateway) {
+      return;
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LedgerCorrectionScreen(
+          gateway: widget.gateway as LedgerCorrectionGateway,
+          statusGateway: widget.statusGateway,
+          dayGateway: widget.gateway,
+          userId: widget.userId,
+          shopId: widget.shopId,
+          book: widget.day.counts!,
+          counted: _discrepancy!,
+        ),
+      ),
+    );
+    // Returning closes this stale count. Opening close-day again obtains a fresh
+    // version and blank physical-count fields; a correction never closes the day.
+    if (mounted && saved == true) Navigator.pop(context, true);
   }
 
   bool _sameCounts(
@@ -197,8 +226,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
         if (!mounted) return;
         setState(() {
           _review = null;
-          _error =
-              'تغير الرصيد على الخادم. حدّث الدفتر ثم أعد العد قبل التقفيل.';
+          _error = 'تغيّر الرصيد المسجل. حدّث الدفتر ثم أعد العد قبل التقفيل.';
           _key = null;
         });
       } else if (result is FinancialRejected) {
@@ -240,7 +268,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     } else if (status is StatusAbsent) {
       setState(() {
         _unknown = false;
-        _error = 'لم يؤكد الخادم التقفيل. يمكنك إعادة المحاولة بالمفتاح نفسه.';
+        _error = 'لم نتأكد من تقفيل اليومية. أعد المحاولة دون تغيير البيانات.';
       });
     } else {
       setState(() {
@@ -355,7 +383,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       child: const Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
-                          'تطابق العد الفعلي مع أرصدة الخادم. سيُغلق يوم العمل بعد تأكيد الخادم.',
+                          'العد الفعلي يطابق الأرصدة المسجلة. سيُغلق يوم العمل بعد تأكيد الحفظ.',
                         ),
                       ),
                     ),
@@ -366,6 +394,15 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       child: const Text('رجوع للتعديل'),
                     ),
                   ],
+                  if (_discrepancy != null &&
+                      widget.gateway is LedgerCorrectionGateway)
+                    OutlinedButton(
+                      key: const Key('close-correct'),
+                      onPressed: _busy || _unknown || _key != null
+                          ? null
+                          : _correct,
+                      child: const Text('مراجعة تسوية فرق الجرد'),
+                    ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -399,7 +436,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   : _submit,
               child: Text(
                 _busy
-                    ? 'بانتظار تأكيد الخادم'
+                    ? 'بانتظار تأكيد الحفظ'
                     : _unknown
                     ? 'التحقق من الحالة'
                     : _review == null

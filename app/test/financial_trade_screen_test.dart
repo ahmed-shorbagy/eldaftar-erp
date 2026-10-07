@@ -266,6 +266,11 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.textContaining('يبقى مستحقاً للعميل: 40,000'),
+      200,
+    );
+    await tester.pumpAndSettle();
     expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
     expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
@@ -330,7 +335,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('لم يؤكد الخادم العملية'), findsOneWidget);
+    expect(find.textContaining('لم نتأكد من حفظ العملية'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.keys, hasLength(2));

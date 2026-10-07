@@ -207,14 +207,10 @@ Future<void> fillSignup(WidgetTester tester, {String country = 'EG'}) async {
     find.byKey(const Key('signup-business-name')),
     'ذهب الجيزة',
   );
-  if (country == 'EG') {
-    await tester.tap(find.byKey(const Key('signup-governorate')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('الجيزة').last);
-    await tester.pumpAndSettle();
-  } else {
-    await tester.enterText(find.byKey(const Key('signup-region')), 'الرياض');
-  }
+  await tester.enterText(
+    find.byKey(const Key('signup-region')),
+    country == 'EG' ? 'الجيزة' : 'الرياض',
+  );
   await nextSignup(tester);
 }
 
@@ -313,18 +309,35 @@ void main() {
       await openSignup(tester);
       await fillSignup(tester);
       expect(auth.registrations, isEmpty);
+      expect(find.byKey(const Key('review-account')), findsOneWidget);
+      expect(find.byKey(const Key('review-shop')), findsOneWidget);
       expect(find.text('ذهب الجيزة'), findsOneWidget);
-      await tester.ensureVisible(find.byKey(const Key('signup-back')));
-      await tester.tap(find.byKey(const Key('signup-back')));
+      await tester.ensureVisible(find.byKey(const Key('review-edit-shop')));
+      await tester.tap(find.byKey(const Key('review-edit-shop')));
       await tester.pumpAndSettle();
-      final field = tester.widget<TextFormField>(
+      final shopField = tester.widget<TextFormField>(
         find.byKey(const Key('signup-business-name')),
       );
-      expect(field.controller!.text, 'ذهب الجيزة');
+      expect(shopField.controller!.text, 'ذهب الجيزة');
+      await nextSignup(tester);
+      expect(find.byKey(const Key('review-account')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('review-edit-account')));
+      await tester.tap(find.byKey(const Key('review-edit-account')));
+      await tester.pumpAndSettle();
+      final ownerField = tester.widget<TextFormField>(
+        find.byKey(const Key('signup-owner-name')),
+      );
+      expect(ownerField.controller!.text, 'منى حسن');
+      await nextSignup(tester);
+      await nextSignup(tester);
+      await tester.tap(find.byKey(const Key('signup-step-1')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('signup-business-name')), findsOneWidget);
       await nextSignup(tester);
       await nextSignup(tester);
       expect(auth.registrations, hasLength(1));
       expect(auth.registrations.single.phone, '+201012345678');
+      expect(auth.registrations.single.governorateCode, 'EG:الجيزة');
     },
   );
   testWidgets(
@@ -336,6 +349,30 @@ void main() {
       await nextSignup(tester);
       expect(auth.registrations.single.phone, '+966501234567');
       expect(auth.registrations.single.governorateCode, 'SA:الرياض');
+    },
+  );
+  testWidgets(
+    'manual region is optional for Egypt and international registration',
+    (tester) async {
+      for (final country in ['EG', 'SA']) {
+        final auth = await pumpAuth(tester);
+        await openSignup(tester);
+        await fillSignup(tester, country: country);
+        await tester.ensureVisible(find.byKey(const Key('review-edit-shop')));
+        await tester.tap(find.byKey(const Key('review-edit-shop')));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('signup-region')), '');
+        await nextSignup(tester);
+        expect(find.text('غير محددة'), findsOneWidget);
+        await nextSignup(tester);
+        expect(auth.registrations, hasLength(1));
+        expect(auth.registrations.single.governorateCode, '$country:');
+        expect(
+          auth.registrations.single.phone,
+          country == 'EG' ? '+201012345678' : '+966501234567',
+        );
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
     },
   );
   testWidgets('signup never unlocks shop access on an early auth event', (

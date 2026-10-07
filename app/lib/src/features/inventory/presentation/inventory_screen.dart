@@ -182,14 +182,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
         if (result is InventorySaved) {
           inventoryPending = false;
-          message = 'الخادم أكد أمراً كان معلقاً. حدّث القائمة لرؤية الأرصدة.';
+          message = 'تم حفظ العملية المعلّقة. حدّث القائمة لرؤية الأرصدة.';
         } else if (result is InventoryFailed) {
           inventoryPending = false;
           message = inventoryFailureCopy(result.code);
         } else if (result is InventoryUnconfirmed) {
           message = result.statusUnknown
               ? 'لم يتأكد الحفظ. الطلب محفوظ على الجهاز ولم يُحتسب في الأرصدة.'
-              : 'لم يظهر الطلب على الخادم. أعد المحاولة بالمفتاح نفسه دون إنشاء أمر جديد.';
+              : 'لم نتأكد من حفظ العملية. أعد المحاولة دون تغيير البيانات أو بدء عملية جديدة.';
         }
       } else if (pending != null) {
         otherPending = true;
@@ -390,8 +390,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       setState(() {
         _inventoryPending = false;
         _message = result.replayed
-            ? 'الخادم أعاد نتيجة الأمر المحفوظ نفسه. لم يُكرر الأثر.'
-            : 'حفظ الخادم الأمر. هذا التأكيد من رد الخادم.';
+            ? 'تم حفظ هذه العملية سابقًا، ولم تتكرر.'
+            : 'تم حفظ العملية بنجاح.';
         _messageError = false;
       });
       await _load();
@@ -402,7 +402,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _message = result is InventoryFailed
           ? inventoryFailureCopy(result.code)
           : result is InventoryUnconfirmed
-          ? 'لم يُحفظ بعد. الطلب معلّق حتى يؤكد الخادم.'
+          ? 'لم نتأكد من الحفظ بعد. العملية ما زالت معلّقة.'
           : inventoryFailureCopy('unavailable');
       _messageError = true;
     });
@@ -465,7 +465,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           OutlinedButton(
             key: const Key('inventory-retry'),
             onPressed: _retryPending,
-            child: const Text('التحقق من الأمر المعلق بالمفتاح نفسه'),
+            child: const Text('التحقق من العملية المعلّقة'),
           ),
         TextField(
           key: const Key('inventory-search'),

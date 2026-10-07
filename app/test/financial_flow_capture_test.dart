@@ -105,6 +105,10 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('trade-confirm')), findsOneWidget);
         await _save(tester, 'sale-review-$suffix');
+        await tester.ensureVisible(find.byKey(const Key('trade-confirm')));
+        await tester.drag(find.byType(ListView), const Offset(0, -350));
+        await tester.pumpAndSettle();
+        await _save(tester, 'sale-review-effects-$suffix');
         await tester.tap(find.byKey(const Key('trade-confirm')));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('trade-success')), findsOneWidget);

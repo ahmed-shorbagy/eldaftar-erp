@@ -105,7 +105,7 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
     setState(() {
       _busy = true;
       _key = key;
-      _message = 'جارٍ تأكيد التحويل على الخادم...';
+      _message = 'جارٍ حفظ التحويل…';
     });
     try {
       await _pending.save(
@@ -139,7 +139,7 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
           _key = null;
           _message = result.code == 'negative_owned_balance'
               ? 'تغير الرصيد المتاح. حدّث الدفتر وراجع التحويل.'
-              : 'رفض الخادم التحويل. راجع البيانات والرصيد.';
+              : 'تعذر حفظ التحويل. راجع البيانات والرصيد.';
         });
         return;
       }
@@ -175,7 +175,8 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
       } else if (status is StatusAbsent) {
         setState(() {
           _unknown = false;
-          _message = 'لم يؤكد الخادم التحويل. أعد المحاولة بالمفتاح نفسه.';
+          _message =
+              'لم نتأكد من حفظ التحويل. أعد المحاولة دون تغيير البيانات.';
         });
       } else {
         setState(() {

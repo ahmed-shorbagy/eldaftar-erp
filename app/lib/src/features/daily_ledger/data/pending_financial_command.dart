@@ -50,6 +50,9 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       'scrap_to_stock',
       'sale_return',
       'purchase_return',
+      'ledger_correction',
+      'linked_return',
+      'exchange',
       ...inventoryRpcs.keys,
     }.contains(kind)) {
       throw const FormatException('pending_financial');
@@ -110,6 +113,28 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
 
   bool _matchesEnvelope(String key, String kind, Map<String, Object?> body) {
     if (body['p_idempotency_key'] != key) return false;
+    if (const {
+      'ledger_correction',
+      'linked_return',
+      'exchange',
+    }.contains(kind)) {
+      final payload = body['p_payload'];
+      return body.length == 2 &&
+          payload is Map &&
+          payload['version'] == 1 &&
+          (kind == 'linked_return'
+              ? const {
+                  'sale_return',
+                  'purchase_return',
+                }.contains(payload['kind'])
+              : payload['kind'] == kind) &&
+          payload['expected_day_id'] is String &&
+          isUuid(payload['expected_day_id'] as String) &&
+          payload['expected_day_version'] is String &&
+          RegExp(
+            r'^[1-9][0-9]*$',
+          ).hasMatch(payload['expected_day_version'] as String);
+    }
     if (const {'sale', 'purchase', 'expense', 'scrap_sale'}.contains(kind)) {
       final payload = body['p_payload'];
       return payload is Map && payload['kind'] == kind;

@@ -131,8 +131,20 @@ void main() {
         busy = false;
       });
       await tester.pumpAndSettle();
-      expect(find.text('شراء · طرف تجريبي 5'), findsOneWidget);
-      expect(find.text('بيع · طرف تجريبي 4'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('ledger-history')),
+          matching: find.text('شراء · طرف تجريبي 5'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('ledger-history')),
+          matching: find.text('بيع · طرف تجريبي 4'),
+        ),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -156,7 +168,13 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('ledger-view-all')));
     await tester.tap(find.byKey(const Key('ledger-view-all')));
     await tester.pumpAndSettle();
-    expect(find.text('شراء · طرف تجريبي 3'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('ledger-history')),
+        matching: find.text('شراء · طرف تجريبي 3'),
+      ),
+      findsOneWidget,
+    );
     update(() => visible = false);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('detail-close')), findsNothing);

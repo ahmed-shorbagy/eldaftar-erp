@@ -13,6 +13,8 @@ import '../domain/invoice_pricing.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../../theme/amount_format.dart';
 import 'ledger_form_fields.dart';
+import '../domain/ledger_compensation.dart';
+import 'exchange_effect_review.dart';
 import 'opening_copy.dart';
 
 class FinancialTradeScreen extends StatefulWidget {
@@ -24,6 +26,8 @@ class FinancialTradeScreen extends StatefulWidget {
     required this.userId,
     required this.shopId,
     this.practice = false,
+    this.exchangeReturnPayload,
+    this.exchangeReturnReview,
     this.onboardingStore,
   });
 
@@ -33,6 +37,8 @@ class FinancialTradeScreen extends StatefulWidget {
   final String userId;
   final String shopId;
   final bool practice;
+  final Map<String, Object?>? exchangeReturnPayload;
+  final PartialReturnReview? exchangeReturnReview;
   final OnboardingStore? onboardingStore;
 
   @override
@@ -94,17 +100,20 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   bool _unknown = false;
   bool _committed = false;
   final _pending = const PendingFinancialCommands();
+  Map<String, Object?>? _frozenBody;
   final _guideScroll = ScrollController();
   final _gramsFocus = FocusNode();
   final _tenderFocus = FocusNode();
   int _step = 0;
 
-  String get _title => switch (widget.kind) {
-    FinancialKind.sale => 'إضافة بيع',
-    FinancialKind.purchase => 'إضافة شراء',
-    FinancialKind.expense => 'إضافة مصروف',
-    FinancialKind.scrapSale => 'بيع كسر وإضافة نقد',
-  };
+  String get _title => widget.exchangeReturnPayload != null
+      ? 'البديل في الاستبدال'
+      : switch (widget.kind) {
+          FinancialKind.sale => 'إضافة بيع',
+          FinancialKind.purchase => 'إضافة شراء',
+          FinancialKind.expense => 'إضافة مصروف',
+          FinancialKind.scrapSale => 'بيع كسر وإضافة نقد',
+        };
 
   @override
   void initState() {
@@ -280,23 +289,52 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       _key ??= newIdempotencyKey();
     });
     try {
+      final returnSide = widget.exchangeReturnPayload;
+      final exchange = returnSide == null
+          ? null
+          : <String, Object?>{
+              'version': 1,
+              'kind': 'exchange',
+              'expected_day_id': returnSide['expected_day_id'],
+              'expected_day_version': returnSide['expected_day_version'],
+              'note': returnSide['note'],
+              'return': Map<String, Object?>.from(returnSide)
+                ..remove('version')
+                ..remove('expected_day_id')
+                ..remove('expected_day_version'),
+              'replacement': draft.toJson(),
+            };
+      _frozenBody ??= {
+        'p_idempotency_key': _key!,
+        'p_payload': exchange ?? draft.toJson(),
+      };
       await _pending.save(
         widget.userId,
         widget.shopId,
         PendingFinancialCommand(
           key: _key!,
-          kind: widget.kind == FinancialKind.scrapSale
+          kind: exchange != null
+              ? 'exchange'
+              : widget.kind == FinancialKind.scrapSale
               ? 'scrap_sale'
               : widget.kind.name,
-          body: {'p_idempotency_key': _key!, 'p_payload': draft.toJson()},
+          body: _frozenBody!,
         ),
       );
       commandSaved = true;
-      final result = await widget.gateway.postTrade(
-        callerUserId: widget.userId,
-        idempotencyKey: _key!,
-        draft: draft,
-      );
+      final result = exchange != null
+          ? await (widget.gateway as ExchangeGateway).postExchange(
+              callerUserId: widget.userId,
+              idempotencyKey: _key!,
+              payload: Map<String, Object?>.from(
+                _frozenBody!['p_payload']! as Map,
+              ),
+            )
+          : await widget.gateway.postTrade(
+              callerUserId: widget.userId,
+              idempotencyKey: _key!,
+              draft: draft,
+            );
       if (!mounted) return;
       if (result is FinancialCommitted) {
         await _pending.clear(widget.userId, widget.shopId, _key!);
@@ -315,6 +353,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           _unknown = false;
           _error = _serverCopy(result.code);
           _key = null;
+          _frozenBody = null;
+          if (widget.exchangeReturnPayload != null) _review = null;
         });
         return;
       }
@@ -323,7 +363,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       if (mounted) {
         setState(() {
           _unknown = commandSaved;
-          if (!commandSaved) _key = null;
+          if (!commandSaved) {
+            _key = null;
+            _frozenBody = null;
+          }
           _error = commandSaved
               ? 'حالة العملية غير مؤكدة. تحقق من الحالة قبل المتابعة.'
               : 'تعذر حفظ طلب الانتظار. راجع أي عملية معلقة وحاول مجدداً.';
@@ -367,7 +410,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     } else if (status is StatusAbsent) {
       setState(() {
         _unknown = false;
-        _error = 'لم يؤكد الخادم العملية. يمكنك إعادة المحاولة بالمفتاح نفسه.';
+        _error = 'لم نتأكد من حفظ العملية. أعد المحاولة دون تغيير البيانات.';
       });
     } else {
       setState(() {
@@ -471,7 +514,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                               : _submit,
                           child: Text(
                             _busy
-                                ? 'بانتظار تأكيد الخادم'
+                                ? 'جارٍ حفظ العملية…'
                                 : _review == null
                                 ? (_step == 3 ||
                                           widget.kind == FinancialKind.expense
@@ -479,6 +522,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                                       : 'التالي')
                                 : widget.practice
                                 ? 'إنهاء التدريب دون حفظ'
+                                : widget.exchangeReturnPayload != null
+                                ? 'تأكيد الاستبدال'
                                 : 'تأكيد $_title',
                           ),
                         ),
@@ -1029,50 +1074,78 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     return [
       _progress(theme),
       Text('مراجعة العملية', style: theme.textTheme.headlineSmall),
-      const SizedBox(height: 8),
-      Text(
-        'الإجمالي: ${displayPounds(draft.total.poundsText)}',
-        style: theme.textTheme.headlineMedium,
-      ),
-      const SizedBox(height: 16),
-      if (draft.pricing case final pricing?) ...[
-        Text('السعر الأساسي: ${displayPounds(pricing.base.poundsText)}'),
-        Text('المصنعية: ${displayPounds(pricing.workmanship.poundsText)}'),
-        Text(
-          'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${displayPounds(pricing.otherCharges.poundsText)}',
-        ),
-        Text('الخصم: ${displayPounds(pricing.discount.poundsText)}'),
-        Text(
-          'الإجمالي المتفق عليه: ${displayPounds(pricing.total.poundsText)}',
-        ),
-        const SizedBox(height: 16),
-      ],
-      for (final item in draft.items)
-        ListTile(
-          title: Text('${item['item_name']} · عيار ${item['karat']}'),
-          subtitle: Text(
-            item['category'] == 'scrap'
-                ? 'كسر'
-                : '${stockCategoryLabel(StockCategory.byCode(item['category'] as String)!)} · ${item['count']} قطعة',
-          ),
-          trailing: Text('${_gramsText(item['milligrams'] as String)} جرام'),
-        ),
-      for (final tender in draft.tenders)
-        ListTile(
-          title: Text(
-            cashMethodLabel(
-              CashMethod.canonicalOrder.firstWhere(
-                (method) => method.code == tender['method'],
+      const SizedBox(height: 12),
+      Card(
+        key: const Key('trade-review-summary'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'الإجمالي: ${displayPounds(draft.total.poundsText)}',
+                style: theme.textTheme.headlineMedium,
               ),
-            ),
+              if (draft.items.isNotEmpty)
+                Text(
+                  'وزن الذهب: ${_reviewWeight()} جرام',
+                  key: const Key('trade-review-weight'),
+                  style: theme.textTheme.titleMedium,
+                ),
+              const Divider(height: 24),
+              if (draft.pricing case final pricing?) ...[
+                Text(
+                  'السعر الأساسي: ${displayPounds(pricing.base.poundsText)}',
+                ),
+                Text(
+                  'المصنعية: ${displayPounds(pricing.workmanship.poundsText)}',
+                ),
+                Text(
+                  'رسوم أخرى${pricing.otherChargesLabel.isEmpty ? '' : ' (${pricing.otherChargesLabel})'}: ${displayPounds(pricing.otherCharges.poundsText)}',
+                ),
+                Text('الخصم: ${displayPounds(pricing.discount.poundsText)}'),
+                Text(
+                  'الإجمالي المتفق عليه: ${displayPounds(pricing.total.poundsText)}',
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (draft.items.isNotEmpty)
+                Text('الأصناف', style: theme.textTheme.titleSmall),
+              for (final item in draft.items)
+                ListTile(
+                  title: Text('${item['item_name']} · عيار ${item['karat']}'),
+                  subtitle: Text(
+                    item['category'] == 'scrap'
+                        ? 'كسر'
+                        : '${stockCategoryLabel(StockCategory.byCode(item['category'] as String)!)} · ${item['count']} قطعة',
+                  ),
+                  trailing: Text(
+                    '${_gramsText(item['milligrams'] as String)} جرام',
+                  ),
+                ),
+              if (draft.tenders.isNotEmpty) ...[
+                const Divider(height: 24),
+                Text('طريقة الدفع', style: theme.textTheme.titleSmall),
+              ],
+              for (final tender in draft.tenders)
+                ListTile(
+                  title: Text(
+                    cashMethodLabel(
+                      CashMethod.canonicalOrder.firstWhere(
+                        (method) => method.code == tender['method'],
+                      ),
+                    ),
+                  ),
+                  trailing: Text(_poundsText(tender['piastres'] as String)),
+                ),
+              if (draft.customerName.isNotEmpty)
+                Text('العميل: ${draft.customerName}'),
+              if (draft.note.isNotEmpty) Text('ملاحظة: ${draft.note}'),
+            ],
           ),
-          trailing: Text(_poundsText(tender['piastres'] as String)),
         ),
-      if (draft.customerName.isNotEmpty)
-        Text(
-          '${widget.kind == FinancialKind.purchase ? 'العميل' : 'العميل'}: ${draft.customerName}',
-        ),
-      if (draft.note.isNotEmpty) Text('ملاحظة: ${draft.note}'),
+      ),
+      const SizedBox(height: 12),
       Card(
         color: theme.colorScheme.primaryContainer,
         child: Padding(
@@ -1100,7 +1173,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 Text(
                   'سعر الشراء الكلي: ${displayPounds(draft.total.poundsText)}',
                 ),
-                Text('العميل: ${draft.customerName}'),
+                if (draft.customerName.isNotEmpty)
+                  Text('العميل: ${draft.customerName}'),
                 const SizedBox(height: 8),
               ],
               Text(
@@ -1116,6 +1190,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           ),
         ),
       ),
+      if (widget.exchangeReturnReview != null)
+        ExchangeEffectReview(
+          returnSide: widget.exchangeReturnReview!,
+          replacement: draft,
+        ),
       const SizedBox(height: 16),
       const SizedBox(height: 8),
       TextButton.icon(

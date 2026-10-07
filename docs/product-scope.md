@@ -1,6 +1,10 @@
 # Product scope and acceptance map
 
-## Accepted Egypt registration policy — 2026-09-26
+## Current owner feedback — 2026-10-06
+
+[ADR 0010](adr/0010-owner-feedback-registration-and-ledger.md) expands registration to 22 supported Arab-region countries and makes the region optional manual text. Signup retains separate email and phone, automatic country dial codes, short name/shop labels and three registration steps. Login accepts either supported phone or email with password. One owner enters one shop directly when access is active. Tours, guide cards and practice entry points are removed. Dark is the fresh-install default; theme choice persists. The daily ledger shows customizable top figures and separate sales, purchases and optional returns books with floating quick actions. Customer names are optional in both sales and purchases. Currency suffixes are absent. [Current validation](reviews/owner-feedback-2026-10-06/validation.md) distinguishes local implementation from deployment.
+
+## Historical Egypt registration policy — 2026-09-26
 
 The product owner revised D25 in [ADR 0002](adr/0002-egypt-password-auth.md). The product is Egypt-only. Login accepts email and password or Egyptian phone and password on the same account, without email verification, OTP, or SMS confirmation. Owner signup requires owner name, business name, email, phone, Egyptian governorate, and password. The default shop time zone is `Africa/Cairo`.
 
@@ -27,7 +31,7 @@ Arabic copy and RTL layout apply to both clients. Light and dark themes are comp
 | Area | Required behavior | Minimum acceptance evidence | Source |
 | --- | --- | --- | --- |
 | Identity and shop setup | Auth, shop creation, one owner membership, shop profile, payment methods, time zone, theme preference, and owner-account suspension | Cross-shop access denied by RLS; a revoked owner cannot read or mutate; a second owner or a second shop for the same account is rejected; settings persist | PAGES, AGREEMENT; ADR 0003 |
-| Interactive onboarding and help | Guided interaction with actual controls, skip and resume; searchable FAQ and media; help managed from admin | User can finish or skip, resume from Help, and follow a real control without accidental financial submission | PAGES, AGREEMENT |
+| Interactive onboarding and help | Removed by the owner's October feedback; direct authentication and business controls | No tour, guide card or practice entry point appears | Owner feedback; ADR 0010 |
 | Daily ledger | Selected business day, configurable summary cards/order, sales/purchases, cash by method, grams by karat, actor/time/notes, quick actions, manual close | Owner totals reconcile with postings; the owner sees that shop's ledger; close after midnight works against shop business day | LEDGER, PAGES, AGREEMENT; ADR 0003 |
 | Sale | Multiple line items, category, quantity, weight to 0.001 g, applicable karat, per-line or invoice total, multiple tenders, optional customer and notes, confirmation of net effects | One server transaction creates document, postings, stock/cash effects, invoice state, audit event; retry returns same result | LEDGER, PAGES |
 | Purchase | Multiple lines and tender methods; bullion and coins with fixed karat rules; optional partial/no cash movement and partial/no scrap recognition; customer and notes | Unpaid or externally financed amount and unallocated gold are explicit balances/states; no silent missing cash or stock | LEDGER, PAGES |
