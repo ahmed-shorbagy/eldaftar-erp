@@ -9,7 +9,7 @@ This is the operator workflow for hashed shop activation codes. Writing this fil
 - Issuance is limited to a current platform-admin session (`public.is_platform_admin()` plus an accepted, non-anonymous, non-deleted Auth session) or a `service_role` operator session.
 - `issued_via` records `platform_admin` or `service_role`. Service-role rows keep `issued_by` null so the shop owner is not attributed as the issuer.
 
-## Issue a code (not deployed from this task)
+## Issue a code
 
 After the migration `20261011120249_required_location_subscription_sync.sql` is applied to a project by an authorized operator:
 
@@ -34,4 +34,4 @@ Pending owners may read `public.shop_sync_signals` revision rows only. They cann
 
 ## Rollout
 
-Local disposable PostgreSQL replay and RLS suites verify the contract. Hosted migration, Auth configuration, and production issuance are unauthorized until the owner explicitly asks.
+Local disposable PostgreSQL replay and RLS suites verify the contract. The owner subsequently authorized the migration and owner-register deployment to the existing development project; see the [deployment record](../reviews/owner-feedback-batch1-2026-10-11/deployment.md). Auth configuration changes and production issuance were not part of that run.

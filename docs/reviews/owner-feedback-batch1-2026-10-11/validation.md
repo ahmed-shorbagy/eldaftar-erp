@@ -39,3 +39,7 @@ Review repairs included persisted activation throttling, subscription-scoped cle
 - [Decision](../../adr/0011-required-location-subscription-sync.md)
 - [Subscription operator workflow](../../operations/subscription-codes.md)
 - [Shared design system](../../design-system.md)
+
+## Subsequent owner-authorized deployment
+
+The later [deployment record](deployment.md) confirms the migration and owner-register version 3 are live on the existing development project. The local-only statements above describe the earlier run and remain historical.

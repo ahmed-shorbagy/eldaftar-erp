@@ -1,6 +1,6 @@
 # Required location, subscription codes, and shop sync
 
-Status: accepted product direction; not deployed
+Status: accepted product direction; deployed to development after explicit owner authorization
 Date: 2026-10-11
 Supersedes: optional-region clauses in ADR 0010 for new registrations only
 
@@ -11,3 +11,5 @@ Subscription access uses hashed single-use codes issued by platform admin or ser
 Shop clients drop page-top reload controls and follow `shop_sync_signals` plus a modest poll. Open trader, invoice, and catalog routes listen to the same ticks so a pushed route does not go stale.
 
 No hosted migration or production issuance is authorized by this decision.
+
+The subsequent owner-authorized [development deployment](../reviews/owner-feedback-batch1-2026-10-11/deployment.md) applies this contract to xchapwvmvoefriqcxtvn. No application distribution or production code issuance occurred.
