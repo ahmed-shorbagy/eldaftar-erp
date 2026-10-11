@@ -10,10 +10,14 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async {
-    _requireSession();
+    final owner = _requireSession();
     try {
-      final response = await _client.rpc('list_my_shop_accounts');
-      _requireSession();
+      final response = await _client
+          .rpc('list_my_shop_accounts')
+          .timeout(const Duration(seconds: 15));
+      if (_requireSession() != owner) {
+        throw const ShopAccountException(ShopAccountFailure.unauthorized);
+      }
       if (response is! List) {
         throw const ShopAccountException(ShopAccountFailure.invalidResponse);
       }
@@ -27,12 +31,57 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
     }
   }
 
-  void _requireSession() {
-    final session = _client.auth.currentSession;
-    if (session == null || session.isExpired) {
-      throw const ShopAccountException(ShopAccountFailure.unauthorized);
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    final userId = _requireIdentity();
+    try {
+      final response = await _client
+          .rpc(
+            'redeem_subscription_code',
+            params: {'p_request_key': requestKey, 'p_code': code},
+          )
+          .timeout(const Duration(seconds: 15));
+      if (_client.auth.currentUser?.id != userId) {
+        throw const SubscriptionActivationException(
+          SubscriptionActivationFailure.unauthorized,
+        );
+      }
+      _requireIdentity();
+      return _parseActivation(response, expectedShopId: shopId);
+    } on SubscriptionActivationException {
+      rethrow;
+    } on ShopAccountException catch (error) {
+      throw SubscriptionActivationException(
+        error.failure == ShopAccountFailure.unauthorized
+            ? SubscriptionActivationFailure.unauthorized
+            : SubscriptionActivationFailure.unavailable,
+      );
+    } on PostgrestException catch (error) {
+      throw SubscriptionActivationException(_mapActivationError(error));
+    } catch (_) {
+      throw const SubscriptionActivationException(
+        SubscriptionActivationFailure.unknownOutcome,
+      );
     }
   }
+
+  String _requireIdentity() {
+    final session = _client.auth.currentSession;
+    final userId = _client.auth.currentUser?.id;
+    if (session == null ||
+        session.isExpired ||
+        userId == null ||
+        userId.isEmpty) {
+      throw const ShopAccountException(ShopAccountFailure.unauthorized);
+    }
+    return userId;
+  }
+
+  String _requireSession() => _requireIdentity();
 
   static final _uuid = RegExp(
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
@@ -79,5 +128,99 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
       return ShopAccountFailure.rejected;
     }
     return ShopAccountFailure.unavailable;
+  }
+
+  static SubscriptionActivationResult _parseActivation(
+    Object? value, {
+    required String expectedShopId,
+  }) {
+    Object? row = value;
+    if (row is List) {
+      if (row.length != 1) {
+        throw const SubscriptionActivationException(
+          SubscriptionActivationFailure.unknownOutcome,
+        );
+      }
+      row = row.first;
+    }
+    if (row is! Map) {
+      throw const SubscriptionActivationException(
+        SubscriptionActivationFailure.unknownOutcome,
+      );
+    }
+    final map = Map<String, dynamic>.from(row);
+    final status = map['status'];
+    if (status is String && status != 'activated' && status != 'replayed') {
+      throw SubscriptionActivationException(_statusFailure(status));
+    }
+    final shopId = map['shop_id'];
+    final starts = map['starts_at'];
+    final expires = map['expires_at'];
+    final startsAt = starts is String ? DateTime.tryParse(starts) : null;
+    final expiresAt = expires is String ? DateTime.tryParse(expires) : null;
+    if (shopId is! String ||
+        !_uuid.hasMatch(shopId) ||
+        shopId != expectedShopId ||
+        startsAt == null ||
+        expiresAt == null ||
+        status is! String ||
+        (status != 'activated' && status != 'replayed')) {
+      throw const SubscriptionActivationException(
+        SubscriptionActivationFailure.unknownOutcome,
+      );
+    }
+    return SubscriptionActivationResult(
+      shopId: shopId,
+      startsAt: startsAt.toUtc(),
+      expiresAt: expiresAt.toUtc(),
+      replayed: status == 'replayed',
+    );
+  }
+
+  static SubscriptionActivationFailure _statusFailure(String status) {
+    return switch (status) {
+      'invalid_code' => SubscriptionActivationFailure.invalidCode,
+      'invalid_input' => SubscriptionActivationFailure.invalidInput,
+      'expired_code' => SubscriptionActivationFailure.expiredCode,
+      'reused_code' => SubscriptionActivationFailure.reusedCode,
+      'foreign_owner' => SubscriptionActivationFailure.foreignOwner,
+      'rate_limited' => SubscriptionActivationFailure.rateLimited,
+      'request_key_reused' => SubscriptionActivationFailure.requestKeyReused,
+      'unauthorized' => SubscriptionActivationFailure.unauthorized,
+      _ => SubscriptionActivationFailure.unknownOutcome,
+    };
+  }
+
+  static SubscriptionActivationFailure _mapActivationError(
+    PostgrestException error,
+  ) {
+    final message = error.message.toLowerCase();
+    if (message.contains('rate_limited') || error.code == 'P0003') {
+      return SubscriptionActivationFailure.rateLimited;
+    }
+    if (message.contains('foreign_owner')) {
+      return SubscriptionActivationFailure.foreignOwner;
+    }
+    if (message.contains('request_key_reused')) {
+      return SubscriptionActivationFailure.requestKeyReused;
+    }
+    if (message.contains('reused_code')) {
+      return SubscriptionActivationFailure.reusedCode;
+    }
+    if (message.contains('expired_code')) {
+      return SubscriptionActivationFailure.expiredCode;
+    }
+    if (message.contains('invalid_code') || message.contains('invalid_input')) {
+      return message.contains('invalid_input')
+          ? SubscriptionActivationFailure.invalidInput
+          : SubscriptionActivationFailure.invalidCode;
+    }
+    if (error.code == '42501' || error.code == 'PGRST301') {
+      return SubscriptionActivationFailure.unauthorized;
+    }
+    if (error.code == '22023') {
+      return SubscriptionActivationFailure.invalidCode;
+    }
+    return SubscriptionActivationFailure.unavailable;
   }
 }

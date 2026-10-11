@@ -77,6 +77,11 @@ class _AuthScreenState extends State<AuthScreen> {
   int _signupStep = 0;
   RegistrationCountry _country = RegistrationCountry.all.first;
   final _region = TextEditingController();
+  String? _selectedGovernorate;
+  List<Governorate>? _governorates;
+  bool _governoratesLoading = false;
+  String? _governoratesError;
+  int _governorateLoad = 0;
   final _confirmPassword = TextEditingController();
   final _confirmFocus = FocusNode();
 
@@ -114,13 +119,112 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool get _signingUp => _mode == AuthFormMode.signUp;
 
+  bool get _compactLogin {
+    final media = MediaQuery.of(context);
+    return !_signingUp &&
+        (media.size.height - media.padding.vertical - media.viewInsets.bottom <
+                720 ||
+            media.textScaler.scale(1) >= 1.25);
+  }
+
   void _refreshPhone() {
     final country = RegistrationCountry.byCode(_phone.value.isoCode.name);
     if (country != null && country.code != _country.code) {
       _country = country;
       _region.clear();
+      _selectedGovernorate = null;
+      if (country.code == 'EG') {
+        _ensureGovernorates();
+      }
     }
     _refreshContacts();
+  }
+
+  Future<void> _ensureGovernorates({bool retry = false}) async {
+    if (_country.code != 'EG') return;
+    if (!retry && (_governoratesLoading || _governorates != null)) return;
+    final generation = ++_governorateLoad;
+    setState(() {
+      _governoratesLoading = true;
+      _governoratesError = null;
+      if (retry) _governorates = null;
+    });
+    try {
+      final loaded = await widget.gateway.loadGovernorates();
+      if (!mounted || generation != _governorateLoad) return;
+      final catalog = [
+        for (final item in loaded)
+          if (EgyptianGovernorates.isValid(item.code)) item,
+      ];
+      if (catalog.isEmpty) {
+        setState(() {
+          _governoratesLoading = false;
+          _governoratesError = AuthCopy.governorateLoadFailed;
+        });
+        return;
+      }
+      setState(() {
+        _governorates = catalog;
+        _governoratesLoading = false;
+        if (_selectedGovernorate != null &&
+            !catalog.any((item) => item.code == _selectedGovernorate)) {
+          _selectedGovernorate = null;
+        }
+      });
+    } catch (_) {
+      if (!mounted || generation != _governorateLoad) return;
+      setState(() {
+        _governoratesLoading = false;
+        _governoratesError = AuthCopy.governorateLoadFailed;
+      });
+    }
+  }
+
+  String? _locationCode() {
+    if (_country.code == 'EG') {
+      final selected = _selectedGovernorate;
+      if (selected == null) return null;
+      if (_governorates != null &&
+          !_governorates!.any((item) => item.code == selected)) {
+        return null;
+      }
+      return _country.regionCode(selected);
+    }
+    return _country.regionCode(_region.text);
+  }
+
+  String? _locationError() {
+    if (_country.code == 'EG') {
+      if (_governoratesLoading) return AuthCopy.governorateLoading;
+      if (_governoratesError != null) return _governoratesError;
+      return _locationCode() == null ? AuthCopy.governorateInvalid : null;
+    }
+    return _country.regionCode(_region.text) == null
+        ? AuthCopy.cityRegionInvalid
+        : null;
+  }
+
+  String _locationReviewValue() {
+    if (_country.code == 'EG') {
+      final selected = _selectedGovernorate;
+      if (selected == null) return '';
+      for (final item in _governorates ?? const <Governorate>[]) {
+        if (item.code == selected) return item.nameAr;
+      }
+      return selected;
+    }
+    return _region.text.trim();
+  }
+
+  double _authLead(BuildContext context) {
+    if (_signingUp) return AppTokens.spaceMd;
+    final media = MediaQuery.of(context);
+    if (media.viewInsets.bottom > 80) return AppTokens.spaceSm;
+    if (media.textScaler.scale(1) >= 1.25 || media.size.height < 720) {
+      return AppTokens.spaceSm;
+    }
+    if (media.size.height < 900) return AppTokens.spaceMd;
+    return AppTokens.spaceLg;
   }
 
   void _refreshContacts() {
@@ -144,6 +248,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _validated = false;
       _signupStep = 0;
     });
+    if (mode == AuthFormMode.signUp) _ensureGovernorates();
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
@@ -241,12 +346,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ? AuthCopy.businessInvalid
                 : null,
           ),
-          _FieldCheck(
-            _governorateFocus,
-            _country.regionCode(_region.text) == null
-                ? AuthCopy.governorateInvalid
-                : null,
-          ),
+          _FieldCheck(_governorateFocus, _locationError()),
         ]
       : [
           _FieldCheck(
@@ -345,7 +445,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final owner = AccountName.tryCanonical(_owner.text);
     final business = AccountName.tryCanonical(_business.text);
     final contacts = _resolvedContacts();
-    final governorate = _country.regionCode(_region.text);
+    final governorate = _locationCode();
     if (owner == null ||
         business == null ||
         contacts == null ||
@@ -429,7 +529,8 @@ class _AuthScreenState extends State<AuthScreen> {
               children: [
                 const _AuthAtmosphere(),
                 SafeArea(
-                  child: Center(
+                  child: Align(
+                    alignment: Alignment.topCenter,
                     child: ConstrainedBox(
                       key: const Key('auth-measure'),
                       constraints: const BoxConstraints(maxWidth: _measure),
@@ -446,17 +547,32 @@ class _AuthScreenState extends State<AuthScreen> {
                               controller: _scroll,
                               keyboardDismissBehavior:
                                   ScrollViewKeyboardDismissBehavior.onDrag,
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+                              padding: EdgeInsets.fromLTRB(
+                                _compactLogin ? 16 : 20,
+                                _compactLogin ? 0 : 4,
+                                _compactLogin ? 16 : 20,
+                                (_compactLogin ? 12 : 28) +
+                                    MediaQuery.viewInsetsOf(context).bottom,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   _header(theme),
-                                  const SizedBox(height: 8),
-                                  const BrandHero(markSize: 56),
-                                  SizedBox(height: _signingUp ? 28 : 120),
+                                  SizedBox(
+                                    height: _compactLogin
+                                        ? 0
+                                        : AppTokens.spaceSm,
+                                  ),
+                                  BrandHero(
+                                    markSize: _compactLogin
+                                        ? AppTokens.minControlSize
+                                        : 56,
+                                    compact: _compactLogin,
+                                  ),
+                                  SizedBox(height: _authLead(context)),
                                   _panel(theme, [
                                     _headline(theme),
-                                    const SizedBox(height: 20),
+                                    SizedBox(height: _compactLogin ? 8 : 20),
                                     if (widget.recoveryNotice != null) ...[
                                       _recoveryNotice(theme),
                                       const SizedBox(height: 12),
@@ -481,7 +597,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     const SizedBox(height: 8),
                                     _submit(),
                                     if (!_signingUp) ...[
-                                      const SizedBox(height: 16),
+                                      SizedBox(height: _compactLogin ? 8 : 16),
                                       Row(
                                         children: [
                                           const Expanded(child: Divider()),
@@ -497,7 +613,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                           const Expanded(child: Divider()),
                                         ],
                                       ),
-                                      const SizedBox(height: 16),
+                                      SizedBox(height: _compactLogin ? 8 : 16),
                                       OutlinedButton.icon(
                                         key: const Key('show-signup'),
                                         onPressed: _busy
@@ -547,6 +663,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _validated = false;
       _formKey = GlobalKey<FormState>();
     });
+    if (step == 1) _ensureGovernorates();
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
@@ -562,6 +679,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _validated = false;
       _formKey = GlobalKey<FormState>();
     });
+    if (_signupStep == 1) _ensureGovernorates();
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
@@ -670,7 +788,12 @@ class _AuthScreenState extends State<AuthScreen> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+        padding: EdgeInsets.fromLTRB(
+          18,
+          _compactLogin ? 12 : 20,
+          18,
+          _compactLogin ? 12 : 18,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: children,
@@ -691,20 +814,25 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Text(
             title,
             textAlign: TextAlign.start,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              height: 1.25,
-            ),
+            style:
+                (_compactLogin
+                        ? theme.textTheme.titleLarge
+                        : theme.textTheme.headlineSmall)
+                    ?.copyWith(fontWeight: FontWeight.w700, height: 1.25),
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: _compactLogin ? 2 : 6),
         Text(
           body,
           textAlign: TextAlign.start,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: scheme.onSurfaceVariant,
-            height: 1.5,
-          ),
+          style:
+              (_compactLogin
+                      ? theme.textTheme.bodyMedium
+                      : theme.textTheme.bodyLarge)
+                  ?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: _compactLogin ? 1.3 : 1.5,
+                  ),
         ),
       ],
     );
@@ -805,8 +933,10 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
             (
               icon: Icons.location_on_outlined,
-              label: AuthCopy.governorateLabel,
-              value: _region.text.trim().isEmpty ? 'غير محددة' : _region.text,
+              label: _country.code == 'EG'
+                  ? AuthCopy.egyptGovernorateLabel
+                  : AuthCopy.cityRegionLabel,
+              value: _locationReviewValue(),
               ltr: false,
             ),
           ],
@@ -827,25 +957,26 @@ class _AuthScreenState extends State<AuthScreen> {
           icon: Icons.storefront_outlined,
           autofillHints: const [AutofillHints.organizationName],
         ),
-        _labeled(
-          order: 2,
-          label: AuthCopy.governorateLabel,
-          theme: theme,
-          field: TextFormField(
-            key: const Key('signup-region'),
-            controller: _region,
-            focusNode: _governorateFocus,
-            enabled: !_locked,
-            textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              hintText: AuthCopy.governorateHint,
-              prefixIcon: Icon(Icons.location_on_outlined),
+        if (_country.code == 'EG')
+          _egyptGovernorateField(theme)
+        else
+          _labeled(
+            order: 2,
+            label: AuthCopy.cityRegionLabel,
+            theme: theme,
+            field: TextFormField(
+              key: const Key('signup-region'),
+              controller: _region,
+              focusNode: _governorateFocus,
+              enabled: !_locked,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                hintText: AuthCopy.cityRegionHint,
+                prefixIcon: Icon(Icons.location_on_outlined),
+              ),
+              validator: (_) => _locationError(),
             ),
-            validator: (value) => _country.regionCode(value ?? '') == null
-                ? AuthCopy.governorateInvalid
-                : null,
           ),
-        ),
       ];
     }
     return [
@@ -967,6 +1098,70 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
     ];
+  }
+
+  Widget _egyptGovernorateField(ThemeData theme) {
+    final items = _governorates;
+    return _labeled(
+      order: 2,
+      label: AuthCopy.egyptGovernorateLabel,
+      theme: theme,
+      field: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_governoratesLoading) ...[
+            const LinearProgressIndicator(minHeight: 4),
+            const SizedBox(height: AppTokens.spaceSm),
+            const Text(AuthCopy.governorateLoading),
+          ],
+          if (_governoratesError != null) ...[
+            Text(
+              _governoratesError!,
+              key: const Key('signup-governorate-error'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.error,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceSm),
+            OutlinedButton(
+              key: const Key('signup-governorate-retry'),
+              onPressed: _locked
+                  ? null
+                  : () => _ensureGovernorates(retry: true),
+              child: const Text(AuthCopy.governorateRetry),
+            ),
+          ],
+          if (items != null)
+            KeyedSubtree(
+              key: ValueKey(_selectedGovernorate),
+              child: DropdownButtonFormField<String>(
+                key: const Key('signup-region'),
+                focusNode: _governorateFocus,
+                initialValue: _selectedGovernorate,
+                isExpanded: true,
+                hint: const Text(AuthCopy.governorateHint),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                ),
+                items: [
+                  for (final item in items)
+                    DropdownMenuItem(
+                      value: item.code,
+                      child: Text(item.nameAr, maxLines: 2),
+                    ),
+                ],
+                onChanged: _locked
+                    ? null
+                    : (value) {
+                        setState(() => _selectedGovernorate = value);
+                      },
+                validator: (_) => _locationError(),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _reviewSection({
@@ -1426,7 +1621,7 @@ class _AuthScreenState extends State<AuthScreen> {
     return _order(
       order,
       Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: EdgeInsets.only(bottom: _compactLogin ? 8 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

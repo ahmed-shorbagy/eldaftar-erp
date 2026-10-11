@@ -184,6 +184,17 @@ class ListingShops implements ShopAccountGateway {
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async => accounts;
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 class SignedInAuth implements AuthGateway {
@@ -387,7 +398,7 @@ void main() {
     }
   }
   testWidgets(
-    'narrow ledger keeps refresh visible and groups account actions',
+    'narrow ledger hides page-top reload and groups account actions',
     (tester) async {
       tester.view.physicalSize = const Size(320, 640);
       tester.view.devicePixelRatio = 1;
@@ -400,7 +411,7 @@ void main() {
         store: MemoryStore(),
       );
       await tester.pumpAndSettle();
-      expect(find.byTooltip('تحديث الدفتر'), findsOneWidget);
+      expect(find.byTooltip('تحديث الدفتر'), findsNothing);
       expect(find.byTooltip('المزيد'), findsOneWidget);
       expect(find.byTooltip('تسجيل الخروج'), findsNothing);
       await tester.tap(find.byTooltip('المزيد'));
@@ -427,7 +438,14 @@ void main() {
     expect(find.byKey(const Key('onboarding-guide')), findsNothing);
     expect(find.byKey(const Key('ledger-help')), findsNothing);
     final reads = gateway.ledgerCalls;
-    await tester.tap(find.byTooltip('تحديث الدفتر'));
+    await pumpScreen(
+      tester,
+      account: shop(ShopEntitlement.active),
+      gateway: gateway,
+      store: MemoryStore(),
+      onboardingStore: guide,
+      generation: 1,
+    );
     await tester.pumpAndSettle();
     expect(gateway.ledgerCalls, greaterThan(reads));
     expect(guide.steps, isEmpty);
@@ -880,7 +898,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('10,000'), findsWidgets);
     gateShops.accounts = [];
-    await tester.tap(find.byTooltip('تحديث الدفتر'));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(find.text('10,000'), findsNothing);
     expect(find.textContaining('لم يعد لديك وصول'), findsOneWidget);

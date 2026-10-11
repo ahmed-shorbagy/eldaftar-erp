@@ -31,7 +31,9 @@ abstract final class AuthCopy {
   static const ownerLabel = 'الاسم';
   static const businessLabel = 'اسم المحل';
   static const countryLabel = 'الدولة';
-  static const governorateLabel = 'المحافظة / المنطقة (اختياري)';
+  static const governorateLabel = 'المحافظة / المنطقة';
+  static const egyptGovernorateLabel = 'المحافظة';
+  static const cityRegionLabel = 'المدينة / المنطقة';
   static const reviewHint =
       'راجع البيانات قبل إنشاء الحساب. يمكنك تعديل أي قسم.';
   static const reviewEdit = 'تعديل';
@@ -51,8 +53,15 @@ abstract final class AuthCopy {
   static const phoneInvalid = 'أدخل رقم هاتف صحيحًا للدولة المختارة';
   static const ownerInvalid = 'أدخل الاسم من ١ إلى ١٢٠ حرفًا';
   static const businessInvalid = 'أدخل اسم المحل من ١ إلى ١٢٠ حرفًا';
-  static const governorateInvalid = 'اكتب المنطقة بما لا يزيد عن ١٢٠ حرفًا';
-  static const governorateHint = 'اكتب المحافظة أو المنطقة';
+  static const governorateInvalid = 'اختر المحافظة من القائمة';
+  static const cityRegionInvalid =
+      'أدخل المدينة أو المنطقة بما لا يزيد عن ١٢٠ حرفًا';
+  static const governorateHint = 'اختر المحافظة';
+  static const cityRegionHint = 'أدخل المدينة أو المنطقة';
+  static const governorateLoading = 'جارٍ تحميل المحافظات…';
+  static const governorateLoadFailed =
+      'تعذر تحميل المحافظات. تحقق من الاتصال وحاول مجددًا.';
+  static const governorateRetry = 'إعادة المحاولة';
   static const passwordInvalid = 'أدخل كلمة مرور صالحة من ٨ إلى ٧٢ بايتًا';
   static const signInFailed =
       'تعذر تسجيل الدخول. تحقق من البريد أو الهاتف وكلمة المرور ثم حاول مجددًا.';

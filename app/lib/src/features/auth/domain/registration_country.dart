@@ -57,20 +57,34 @@ class RegistrationCountry {
     return result.length <= 16 ? result : null;
   }
 
-  /// Egypt may still accept legacy ISO region codes. Typed regions use a
-  /// namespaced `CC:label` value until a maintained region catalog is required.
+  /// Egypt requires a catalog ISO governorate code. Other supported countries
+  /// require a non-empty city/region label stored as `CC:label`.
   String? regionCode(String input) {
-    if (code == 'EG' && EgyptianGovernorates.isValid(input)) return input;
-    if (input.trim().isEmpty) return '$code:';
+    if (code == 'EG') {
+      final catalog = input.trim().toUpperCase();
+      return EgyptianGovernorates.isValid(catalog) ? catalog : null;
+    }
     final region = AccountName.tryCanonical(input);
     return region == null ? null : '$code:$region';
   }
 
   static bool validRegion(String value) {
     if (EgyptianGovernorates.isValid(value)) return true;
-    if (value.length < 3 || value[2] != ':') return false;
+    if (value.length < 4 || value[2] != ':') return false;
+    if (value.substring(0, 2) == 'EG') return false;
     final country = byCode(value.substring(0, 2));
     return country != null && country.regionCode(value.substring(3)) == value;
+  }
+
+  /// Catalog ISO codes accept harmless case and surrounding space. Stored
+  /// `CC:label` values stay exact so historical empty or malformed regions
+  /// cannot be introduced as new registrations.
+  static String? canonicalRegion(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+    final catalog = trimmed.toUpperCase();
+    if (EgyptianGovernorates.isValid(catalog)) return catalog;
+    return validRegion(trimmed) ? trimmed : null;
   }
 
   static String? internationalPhone(String input) {

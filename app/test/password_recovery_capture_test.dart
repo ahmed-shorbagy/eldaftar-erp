@@ -61,6 +61,17 @@ class _Auth implements AuthGateway {
 class _Shops implements ShopAccountGateway {
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async => const [];
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 class _Recovery implements PasswordRecoveryGateway {

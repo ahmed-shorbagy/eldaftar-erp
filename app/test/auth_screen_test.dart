@@ -115,6 +115,17 @@ class ScriptedShops implements ShopAccountGateway {
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async => accounts;
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 Future<ScriptedAuth> pumpAuth(
@@ -207,10 +218,15 @@ Future<void> fillSignup(WidgetTester tester, {String country = 'EG'}) async {
     find.byKey(const Key('signup-business-name')),
     'ذهب الجيزة',
   );
-  await tester.enterText(
-    find.byKey(const Key('signup-region')),
-    country == 'EG' ? 'الجيزة' : 'الرياض',
-  );
+  if (country == 'EG') {
+    await tester.ensureVisible(find.byKey(const Key('signup-region')));
+    await tester.tap(find.byKey(const Key('signup-region')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الجيزة').last);
+    await tester.pumpAndSettle();
+  } else {
+    await tester.enterText(find.byKey(const Key('signup-region')), 'الرياض');
+  }
   await nextSignup(tester);
 }
 
@@ -337,7 +353,7 @@ void main() {
       await nextSignup(tester);
       expect(auth.registrations, hasLength(1));
       expect(auth.registrations.single.phone, '+201012345678');
-      expect(auth.registrations.single.governorateCode, 'EG:الجيزة');
+      expect(auth.registrations.single.governorateCode, 'EG-GZ');
     },
   );
   testWidgets(
@@ -352,29 +368,80 @@ void main() {
     },
   );
   testWidgets(
-    'manual region is optional for Egypt and international registration',
+    'Egypt catalog and international city are required before review',
     (tester) async {
-      for (final country in ['EG', 'SA']) {
-        final auth = await pumpAuth(tester);
-        await openSignup(tester);
-        await fillSignup(tester, country: country);
-        await tester.ensureVisible(find.byKey(const Key('review-edit-shop')));
-        await tester.tap(find.byKey(const Key('review-edit-shop')));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byKey(const Key('signup-region')), '');
-        await nextSignup(tester);
-        expect(find.text('غير محددة'), findsOneWidget);
-        await nextSignup(tester);
-        expect(auth.registrations, hasLength(1));
-        expect(auth.registrations.single.governorateCode, '$country:');
-        expect(
-          auth.registrations.single.phone,
-          country == 'EG' ? '+201012345678' : '+966501234567',
-        );
-        await tester.pumpWidget(const SizedBox.shrink());
-      }
+      await pumpAuth(tester);
+      await openSignup(tester);
+      await fillSignup(tester);
+      await tester.ensureVisible(find.byKey(const Key('review-edit-shop')));
+      await tester.tap(find.byKey(const Key('review-edit-shop')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('signup-region')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('الجيزة').last);
+      await tester.pumpAndSettle();
+      await nextSignup(tester);
+      expect(find.text('الجيزة'), findsWidgets);
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      final saudi = await pumpAuth(tester);
+      await openSignup(tester);
+      await fillSignup(tester, country: 'SA');
+      await tester.ensureVisible(find.byKey(const Key('review-edit-shop')));
+      await tester.tap(find.byKey(const Key('review-edit-shop')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('signup-region')), '');
+      await nextSignup(tester);
+      expect(find.text(AuthCopy.cityRegionInvalid), findsOneWidget);
+      expect(saudi.registrations, isEmpty);
+      await tester.enterText(find.byKey(const Key('signup-region')), 'الرياض');
+      await nextSignup(tester);
+      expect(find.text('الرياض'), findsWidgets);
     },
   );
+  testWidgets('changing phone country clears a stale region selection', (
+    tester,
+  ) async {
+    await pumpAuth(tester);
+    await openSignup(tester);
+    await fillSignup(tester);
+    await tester.ensureVisible(find.byKey(const Key('review-edit-shop')));
+    await tester.tap(find.byKey(const Key('review-edit-shop')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('signup-back')));
+    await tester.tap(find.byKey(const Key('signup-back')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('signup-phone')));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('signup-phone')),
+        matching: find.byType(CountryButton),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('السعودية').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('signup-phone')), '0501234567');
+    await nextSignup(tester);
+    final region = tester.widget<TextFormField>(
+      find.byKey(const Key('signup-region')),
+    );
+    expect(region.controller!.text, isEmpty);
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+    await tester.enterText(find.byKey(const Key('signup-region')), 'الرياض');
+    await tester.ensureVisible(find.byKey(const Key('signup-back')));
+    await tester.tap(find.byKey(const Key('signup-back')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('signup-phone')),
+      '+201012345678',
+    );
+    await tester.pumpAndSettle();
+    await nextSignup(tester);
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    expect(find.text('الرياض'), findsNothing);
+  });
   testWidgets('signup never unlocks shop access on an early auth event', (
     tester,
   ) async {

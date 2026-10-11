@@ -90,6 +90,17 @@ class CaptureShops implements ShopAccountGateway {
           ),
         ]
       : const [];
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 class CaptureGuideStore implements OnboardingStore {
@@ -224,10 +235,9 @@ void main() {
           'محل تجريبي',
         );
         await reveal(tester, const Key('signup-region'));
-        await tester.enterText(
-          find.byKey(const Key('signup-region')),
-          'الجيزة',
-        );
+        await tester.tap(find.byKey(const Key('signup-region')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('الجيزة').last);
         await frames(tester);
         await reveal(tester, const Key('signup-submit'));
         await tester.tap(find.byKey(const Key('signup-submit')));

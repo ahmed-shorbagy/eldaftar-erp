@@ -48,8 +48,11 @@ class BrandHero extends StatelessWidget {
                 ),
                 Text(
                   ShellCopy.brandTagline,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
+                    height: 1.25,
                   ),
                 ),
               ],

@@ -244,6 +244,17 @@ class CaptureShops implements ShopAccountGateway {
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async => accounts;
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 ThemeData withTahoma(ThemeData theme) {

@@ -12,6 +12,8 @@ import 'package:eldafttar/src/features/inventory/presentation/inventory_forms.da
 import 'package:eldafttar/src/features/inventory/presentation/inventory_screen.dart';
 import 'package:eldafttar/src/features/inventory/presentation/trader_screen.dart';
 import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
+import 'package:eldafttar/src/features/shop_accounts/application/shop_sync_ticks.dart';
+import 'package:eldafttar/src/features/shop_accounts/domain/shop_sync.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -270,6 +272,43 @@ class _CashSettlement implements PurchaseSettlementGateway {
     required String purchaseOperationId,
     required List<Map<String, Object?>> tenders,
   }) async => const FinancialUnknown();
+}
+
+class CountingInventory extends QuietInventory {
+  CountingInventory() : super(null);
+  int loads = 0;
+
+  @override
+  Future<InventoryTotals> totals({
+    required String callerUserId,
+    String? category,
+    int? karat,
+  }) async {
+    loads++;
+    return super.totals(
+      callerUserId: callerUserId,
+      category: category,
+      karat: karat,
+    );
+  }
+}
+
+class CountingTraders extends _TraderInventory {
+  int loads = 0;
+
+  @override
+  Future<TraderPage> traders({
+    required String callerUserId,
+    String? query,
+    String? cursor,
+  }) async {
+    loads++;
+    return super.traders(
+      callerUserId: callerUserId,
+      query: query,
+      cursor: cursor,
+    );
+  }
 }
 
 /// The page [ListView] scrolls vertically and stays in semantics.
@@ -586,5 +625,62 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PurchaseCashSettlementScreen), findsOneWidget);
     expect(find.text('سداد مستحق شراء'), findsOneWidget);
+  });
+
+  testWidgets('inventory and open trader views refresh from shared ticks', (
+    tester,
+  ) async {
+    final inventory = CountingInventory();
+    final traders = CountingTraders();
+    final ticks = ShopSyncTicks();
+    await tester.pumpWidget(
+      _host(
+        InventoryScreen(
+          gateway: inventory,
+          statusGateway: QuietOpening(),
+          userId: userId,
+          shopId: shopId,
+          shopName: 'متجر',
+          readOnly: false,
+          store: MemoryLocker(),
+          syncTicks: ticks,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final inventoryLoads = inventory.loads;
+    expect(inventoryLoads, greaterThan(0));
+    ticks.apply({ShopSyncScope.inventory});
+    await tester.pumpAndSettle();
+    expect(inventory.loads, greaterThan(inventoryLoads));
+
+    await tester.pumpWidget(
+      _host(
+        TraderScreen(
+          gateway: traders,
+          statusGateway: QuietOpening(),
+          userId: userId,
+          shopId: shopId,
+          shopName: 'متجر',
+          readOnly: false,
+          store: MemoryLocker(),
+          sharePdf: (_) async {},
+          syncTicks: ticks,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final traderLoads = traders.loads;
+    expect(traderLoads, greaterThan(0));
+    ticks.apply({ShopSyncScope.trader});
+    await tester.pumpAndSettle();
+    expect(traders.loads, greaterThan(traderLoads));
+    await tester.tap(find.byKey(const Key('trader-row-$traderId')));
+    await tester.pumpAndSettle();
+    expect(find.text('تاجر الاختبار'), findsWidgets);
+    ticks.apply({ShopSyncScope.ledger});
+    await tester.pumpAndSettle();
+    expect(traders.loads, greaterThan(traderLoads + 1));
+    expect(find.text('تاجر الاختبار'), findsWidgets);
   });
 }

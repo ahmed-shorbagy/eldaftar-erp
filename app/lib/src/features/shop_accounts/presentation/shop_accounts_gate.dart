@@ -14,8 +14,12 @@ import '../../inventory/application/inventory_gateway.dart';
 import '../../inventory/presentation/inventory_screen.dart';
 import '../../inventory/presentation/trader_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
+import '../application/shop_sync_coordinator.dart';
+import '../application/shop_sync_ticks.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_account_gateway.dart';
+import '../domain/shop_sync.dart';
+import 'subscription_activation.dart';
 
 class ShopAccountsGate extends StatefulWidget {
   const ShopAccountsGate({
@@ -27,6 +31,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.pendingOpeningStore,
     this.currentUserId,
     this.onboardingStore,
+    this.syncGateway,
   });
 
   final ShopAccountGateway gateway;
@@ -36,6 +41,7 @@ class ShopAccountsGate extends StatefulWidget {
   final PendingOpeningStore? pendingOpeningStore;
   final String? Function()? currentUserId;
   final OnboardingStore? onboardingStore;
+  final ShopSyncGateway? syncGateway;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -49,9 +55,19 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   bool _accessLost = false;
   String? _error;
   Timer? _refreshTimer;
+  ShopSyncCoordinator? _sync;
+  final _ticks = ShopSyncTicks();
   int _ledgerGeneration = 0;
+  int _inventoryGeneration = 0;
+  int _traderGeneration = 0;
   int _requestGeneration = 0;
+  int _syncGeneration = 0;
   String? _userId;
+  String? _syncIdentity;
+  bool _activationDialogShown = false;
+  Route<void>? _activationRoute;
+  String? _activationShopId;
+  bool _refreshQueued = false;
 
   @override
   void initState() {
@@ -69,34 +85,54 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   void didUpdateWidget(covariant ShopAccountsGate oldWidget) {
     super.didUpdateWidget(oldWidget);
     final nextUser = widget.currentUserId?.call();
-    if (oldWidget.gateway != widget.gateway || nextUser != _userId) {
+    if (oldWidget.gateway != widget.gateway ||
+        oldWidget.syncGateway != widget.syncGateway ||
+        nextUser != _userId) {
+      _closeActivationDialog();
       _requestGeneration++;
+      _syncGeneration++;
       _userId = nextUser;
       _accounts = null;
       _selected = null;
       _accessLost = false;
       _loading = false;
       _error = null;
+      _activationDialogShown = false;
+      _activationShopId = null;
+      _syncIdentity = null;
       _ledgerGeneration++;
-      _refresh();
+      _inventoryGeneration++;
+      _traderGeneration++;
+      unawaited(_ensureSync());
+      unawaited(_refresh());
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refresh();
+    if (state == AppLifecycleState.resumed) {
+      _sync?.resume();
+      unawaited(_refresh());
+    }
   }
 
   @override
   void dispose() {
+    _closeActivationDialog();
     _requestGeneration++;
+    _syncGeneration++;
     _refreshTimer?.cancel();
+    unawaited(_tearDownSync());
+    _ticks.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   Future<void> _refresh() async {
-    if (_loading) return;
+    if (_loading) {
+      _refreshQueued = true;
+      return;
+    }
     final generation = ++_requestGeneration;
     final userId = widget.currentUserId?.call();
     final gateway = widget.gateway;
@@ -111,6 +147,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     try {
       final accounts = await gateway.listMyShopAccounts();
       if (!isCurrent()) return;
+      final previous = _selected;
       setState(() {
         if (_accounts != null && _accounts!.isNotEmpty && accounts.isEmpty) {
           _accessLost = true;
@@ -125,15 +162,26 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             _selected = matching.first;
           }
         }
-        // One owner owns one shop: enter the ledger without a selection step.
         if (_selected == null && accounts.isNotEmpty) {
           _selected = _preferredShop(accounts);
           _accessLost = false;
         } else if (accounts.isNotEmpty) {
           _accessLost = false;
         }
-        _ledgerGeneration++;
+        if (previous?.id != _selected?.id ||
+            previous?.entitlement != _selected?.entitlement) {
+          _ledgerGeneration++;
+          _inventoryGeneration++;
+          _traderGeneration++;
+          if (previous?.id != _selected?.id) {
+            _activationDialogShown = false;
+            _activationShopId = null;
+          }
+        }
       });
+      _dismissResolvedActivation();
+      unawaited(_ensureSync());
+      _maybePromptActivation();
     } on ShopAccountException catch (error) {
       if (!isCurrent()) return;
       setState(() {
@@ -142,6 +190,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _accessLost = error.failure == ShopAccountFailure.unauthorized;
         _error = _failureText(error.failure);
       });
+      unawaited(_ensureSync());
     } catch (_) {
       if (!isCurrent()) return;
       setState(() {
@@ -150,8 +199,151 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _error = 'تعذر تحميل المتاجر. تحقق من الاتصال وحاول مجددًا.';
       });
     } finally {
-      if (isCurrent()) setState(() => _loading = false);
+      if (isCurrent()) {
+        setState(() => _loading = false);
+        if (_refreshQueued) {
+          _refreshQueued = false;
+          unawaited(_refresh());
+        }
+      }
     }
+  }
+
+  Future<void> _tearDownSync() async {
+    final coordinator = _sync;
+    _sync = null;
+    _syncIdentity = null;
+    await coordinator?.dispose();
+  }
+
+  Future<void> _ensureSync() async {
+    final selected = _selected;
+    final userId = widget.currentUserId?.call();
+    final gateway = widget.syncGateway;
+    final identity = selected == null || userId == null || userId.isEmpty
+        ? null
+        : '$userId:${selected.id}';
+    if (identity != null &&
+        identity == _syncIdentity &&
+        _sync != null &&
+        identical(_sync!.gateway, gateway)) {
+      return;
+    }
+    final generation = ++_syncGeneration;
+    final previous = _sync;
+    _sync = null;
+    _syncIdentity = identity;
+    await previous?.dispose();
+    if (identity == null || gateway == null) {
+      return;
+    }
+    final coordinator = ShopSyncCoordinator(
+      gateway: gateway,
+      shopId: selected!.id,
+      userId: userId!,
+      onInvalidate: (scopes) async {
+        if (!mounted || generation != _syncGeneration) return;
+        if (scopes.contains(ShopSyncScope.subscription) ||
+            scopes.contains(ShopSyncScope.location)) {
+          await _refresh();
+        }
+        if (!mounted || generation != _syncGeneration) return;
+        _ticks.apply(scopes);
+        setState(() {
+          if (scopes.contains(ShopSyncScope.ledger) ||
+              scopes.contains(ShopSyncScope.day) ||
+              scopes.contains(ShopSyncScope.invoice)) {
+            _ledgerGeneration++;
+          }
+          if (scopes.contains(ShopSyncScope.inventory) ||
+              scopes.contains(ShopSyncScope.ledger)) {
+            _inventoryGeneration++;
+          }
+          if (scopes.contains(ShopSyncScope.trader) ||
+              scopes.contains(ShopSyncScope.ledger)) {
+            _traderGeneration++;
+          }
+        });
+      },
+    );
+    if (generation != _syncGeneration) {
+      await coordinator.dispose();
+      return;
+    }
+    _sync = coordinator;
+    await coordinator.start();
+    if (generation != _syncGeneration) {
+      await coordinator.dispose();
+      if (identical(_sync, coordinator)) _sync = null;
+    }
+  }
+
+  void _dismissResolvedActivation() {
+    if (mounted && !(_selected?.needsActivation ?? true)) {
+      _closeActivationDialog();
+    }
+  }
+
+  void _closeActivationDialog() {
+    final route = _activationRoute;
+    _activationRoute = null;
+    if (route == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = route.navigator;
+      if (navigator != null && route.isActive) navigator.removeRoute(route);
+    });
+  }
+
+  void _maybePromptActivation() {
+    final selected = _selected;
+    if (!mounted || selected == null || !selected.needsActivation) {
+      return;
+    }
+    if (_activationDialogShown && _activationShopId == selected.id) {
+      return;
+    }
+    _activationDialogShown = true;
+    _activationShopId = selected.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selected?.id != selected.id) return;
+      unawaited(
+        showSubscriptionActivationDialog(
+          context: context,
+          account: selected,
+          gateway: widget.gateway,
+          onActivated: _afterActivation,
+          onRouteCreated: (route) => _activationRoute = route,
+        ),
+      );
+    });
+  }
+
+  Future<void> _afterActivation() async {
+    _activationDialogShown = true;
+    _activationShopId = _selected?.id;
+    await _refresh();
+    if (!mounted) return;
+    if (_error != null) throw StateError('activation_refetch_failed');
+    if (_selected?.entitlement == ShopEntitlement.active) {
+      setState(() {
+        _ledgerGeneration++;
+        _inventoryGeneration++;
+        _traderGeneration++;
+      });
+      _ticks.apply(ShopSyncScope.values.toSet());
+    }
+  }
+
+  Future<void> _openActivation() async {
+    final selected = _selected;
+    if (selected == null || !selected.needsActivation) return;
+    await showSubscriptionActivationDialog(
+      context: context,
+      account: selected,
+      gateway: widget.gateway,
+      onActivated: _afterActivation,
+      onRouteCreated: (route) => _activationRoute = route,
+    );
   }
 
   @override
@@ -171,9 +363,12 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         store: widget.pendingOpeningStore,
         userId: userId,
         refreshGeneration: _ledgerGeneration,
+        syncTicks: _ticks,
         onSignOut: widget.onSignOut,
         onToggleTheme: widget.onToggleTheme,
-        onRefreshShops: _refresh,
+        onActivateSubscription: selected.needsActivation
+            ? _openActivation
+            : null,
         onboardingStore: widget.onboardingStore,
         inventoryBuilder: inventory == null || userId == null
             ? null
@@ -189,6 +384,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 readOnly: readOnly,
                 onboardingStore: widget.onboardingStore,
                 store: const PendingFinancialCommands(),
+                refreshGeneration: _inventoryGeneration,
+                syncTicks: _ticks,
               ),
         traderBuilder: inventory == null || userId == null
             ? null
@@ -207,6 +404,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 readOnly: readOnly,
                 onboardingStore: widget.onboardingStore,
                 store: const PendingFinancialCommands(),
+                refreshGeneration: _traderGeneration,
+                syncTicks: _ticks,
               ),
       );
     }
@@ -214,11 +413,6 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       appBar: AppBar(
         title: const BrandLockup(title: ShellCopy.appTitle),
         actions: [
-          IconButton(
-            tooltip: 'تحديث المتاجر',
-            onPressed: _loading ? null : _refresh,
-            icon: const Icon(Icons.refresh),
-          ),
           IconButton(
             key: const Key('shop-theme-toggle'),
             tooltip: Theme.of(context).brightness == Brightness.dark
@@ -278,7 +472,12 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 16),
-                  _EntitlementCard(account: selected),
+                  _EntitlementCard(
+                    account: selected,
+                    onActivate: selected.needsActivation
+                        ? _openActivation
+                        : null,
+                  ),
                 ] else if (_accounts != null && !_accessLost) ...[
                   const Text(
                     'لا توجد عضويات مرتبطة بهذا الحساب.',
@@ -303,8 +502,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
 }
 
 class _EntitlementCard extends StatelessWidget {
-  const _EntitlementCard({required this.account});
+  const _EntitlementCard({required this.account, this.onActivate});
   final ShopAccount account;
+  final VoidCallback? onActivate;
 
   @override
   Widget build(BuildContext context) {
@@ -325,6 +525,14 @@ class _EntitlementCard extends StatelessWidget {
                   ? 'لم يُفعّل اشتراك هذا المتجر بعد. ستتاح بيانات المتجر بعد التفعيل.'
                   : 'انتهى اشتراك هذا المتجر. الوصول الحالي للقراءة فقط، ولا يمكن إجراء تغييرات.',
             ),
+            if (onActivate != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                key: const Key('subscription-open'),
+                onPressed: onActivate,
+                child: const Text(SubscriptionCopy.openAction),
+              ),
+            ],
           ],
         ),
       ),

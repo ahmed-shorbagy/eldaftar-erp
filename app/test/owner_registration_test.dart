@@ -86,7 +86,11 @@ void main() {
     for (final code in EgyptianGovernorates.codes) {
       expect(registration(governorateCode: code), isNotNull, reason: code);
     }
-    for (final code in ['EG-HU', 'EG-XX', 'eg-gz', 'GZ', 'US-NY', 'EG-CAI']) {
+    expect(EgyptianGovernorates.isValid('eg-gz'), isFalse);
+    expect(EgyptianGovernorates.isValid(' EG-GZ '), isFalse);
+    expect(registration(governorateCode: 'eg-gz')?.governorateCode, 'EG-GZ');
+    expect(registration(governorateCode: ' EG-GZ ')?.governorateCode, 'EG-GZ');
+    for (final code in ['EG-HU', 'EG-XX', 'GZ', 'US-NY', 'EG-CAI']) {
       expect(EgyptianGovernorates.isValid(code), isFalse, reason: code);
       expect(registration(governorateCode: code), isNull, reason: code);
     }

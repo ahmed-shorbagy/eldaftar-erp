@@ -73,6 +73,17 @@ class _Shops implements ShopAccountGateway {
       entitlement: ShopEntitlement.pending,
     ),
   ];
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 class _Recovery implements PasswordRecoveryGateway {
@@ -205,6 +216,8 @@ void main() {
     expect(find.text('ذهب الجيزة السري'), findsOneWidget);
 
     await _pumpRecovery(tester, recovery: recovery);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('show-signup')));
     await tester.tap(find.byKey(const Key('show-signup')));
     await tester.pump();
     expect(find.byKey(const Key('forgot-password')), findsNothing);

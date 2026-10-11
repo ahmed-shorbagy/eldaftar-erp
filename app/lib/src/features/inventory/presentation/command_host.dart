@@ -71,6 +71,7 @@ class CommandHost extends StatefulWidget {
     this.canReview = true,
     this.embedded = false,
     this.onFinished,
+    this.onConfirmed,
   });
 
   final String title;
@@ -86,6 +87,7 @@ class CommandHost extends StatefulWidget {
   final bool canReview;
   final bool embedded;
   final VoidCallback? onFinished;
+  final VoidCallback? onConfirmed;
 
   @override
   State<CommandHost> createState() => _CommandHostState();
@@ -247,6 +249,7 @@ class _CommandHostState extends State<CommandHost> {
             ? 'تم حفظ هذه العملية سابقًا، ولم تتكرر.'
             : 'تم حفظ العملية بنجاح.';
       });
+      widget.onConfirmed?.call();
       return;
     }
     if (result is InventoryFailed) {

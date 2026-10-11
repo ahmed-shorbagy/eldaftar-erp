@@ -52,6 +52,17 @@ class FakeShopAccountGateway implements ShopAccountGateway {
       entitlement: ShopEntitlement.active,
     ),
   ];
+
+  @override
+  Future<SubscriptionActivationResult> activateSubscription({
+    required String requestKey,
+    required String code,
+    required String shopId,
+  }) async {
+    throw const SubscriptionActivationException(
+      SubscriptionActivationFailure.unavailable,
+    );
+  }
 }
 
 class MemoryThemePreferenceStore implements ThemePreferenceStore {

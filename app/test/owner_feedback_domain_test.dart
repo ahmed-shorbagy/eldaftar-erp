@@ -17,17 +17,22 @@ void main() {
       '+966501234567',
     );
     expect(RegistrationCountry.byCode('ZZ'), isNull);
-    expect(RegistrationCountry.validRegion('SA:'), isTrue);
+    expect(RegistrationCountry.validRegion('SA:'), isFalse);
     expect(RegistrationCountry.validRegion('ZZ:منطقة'), isFalse);
-    expect(RegistrationCountry.validRegion('EG:الجيزة'), isTrue);
+    expect(RegistrationCountry.validRegion('EG:الجيزة'), isFalse);
+    expect(RegistrationCountry.validRegion('EG-GZ'), isTrue);
     expect(RegistrationCountry.validRegion('SA:الرياض'), isTrue);
   });
   test(
-    'every supported country permits an omitted region and validates its phone',
+    'new registrations require a catalog Egyptian governorate or a city/region',
     () {
+      expect(RegistrationCountry.byCode('EG')!.regionCode('eg-gz'), 'EG-GZ');
+      expect(RegistrationCountry.canonicalRegion(' eg-gz '), 'EG-GZ');
+      expect(RegistrationCountry.canonicalRegion('EG:الجيزة'), isNull);
+      expect(RegistrationCountry.byCode('EG')!.regionCode('الجيزة'), isNull);
+      expect(RegistrationCountry.byCode('SA')!.regionCode('  '), isNull);
       for (final country in RegistrationCountry.all) {
-        expect(country.regionCode('  '), '${country.code}:');
-        expect(RegistrationCountry.validRegion('${country.code}:'), isTrue);
+        expect(RegistrationCountry.validRegion('${country.code}:'), isFalse);
         expect(country.regionCode('أ' * 121), isNull);
         expect(country.regionCode('مدينة\nأخرى'), isNull);
         final profile = OwnerRegistration.tryCreate(
@@ -41,8 +46,20 @@ void main() {
           governorateCode: '${country.code}:',
           password: 'example-password',
         );
-        expect(profile, isNotNull, reason: country.code);
+        expect(profile, isNull, reason: country.code);
       }
+      expect(
+        OwnerRegistration.tryCreate(
+          idempotencyKey: '11111111-1111-4111-8111-111111111111',
+          ownerName: 'مالك تجريبي',
+          businessName: 'محل تجريبي',
+          email: 'owner@example.test',
+          phone: '01012345678',
+          governorateCode: 'EG-GZ',
+          password: 'example-password',
+        ),
+        isNotNull,
+      );
       expect(RegistrationCountry.validRegion('ZZ:'), isFalse);
       expect(RegistrationCountry.validRegion('SA: '), isFalse);
     },

@@ -8,10 +8,8 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LedgerAppBar({
     super.key,
     required this.shopName,
-    required this.onRefresh,
     required this.onToggleTheme,
     required this.onSignOut,
-    required this.refreshFocus,
     required this.topInset,
     this.subtitle,
     this.onChangeShop,
@@ -20,11 +18,9 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String shopName;
   final String? subtitle;
-  final VoidCallback onRefresh;
   final Future<void> Function(Brightness) onToggleTheme;
   final Future<void> Function() onSignOut;
   final VoidCallback? onChangeShop;
-  final FocusNode refreshFocus;
   final double topInset;
   final bool compact;
 
@@ -144,12 +140,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              _PillIconButton(
-                tooltip: 'تحديث الدفتر',
-                focusNode: refreshFocus,
-                onPressed: onRefresh,
-                icon: Icons.refresh_rounded,
-              ),
               if (compact)
                 Padding(
                   padding: const EdgeInsetsDirectional.only(start: 6),
@@ -241,13 +231,11 @@ class _PillIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     required this.icon,
-    this.focusNode,
   });
 
   final String tooltip;
   final VoidCallback? onPressed;
   final IconData icon;
-  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +246,6 @@ class _PillIconButton extends StatelessWidget {
         decoration: _pillDecoration(scheme),
         child: IconButton(
           tooltip: tooltip,
-          focusNode: focusNode,
           onPressed: onPressed,
           visualDensity: VisualDensity.compact,
           style: IconButton.styleFrom(

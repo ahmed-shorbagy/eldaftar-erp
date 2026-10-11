@@ -81,19 +81,19 @@ class OwnerRegistration {
     final canonicalOwner = AccountName.tryCanonical(ownerName);
     final canonicalBusiness = AccountName.tryCanonical(businessName);
     final canonicalEmail = AccountEmail.tryCanonical(email);
-    final country = RegistrationCountry.byCode(
-      governorateCode.substring(
-        0,
-        governorateCode.length < 2 ? governorateCode.length : 2,
-      ),
+    final canonicalRegion = RegistrationCountry.canonicalRegion(
+      governorateCode,
     );
+    final country = canonicalRegion == null
+        ? null
+        : RegistrationCountry.byCode(canonicalRegion.substring(0, 2));
     final canonicalPhone = country?.canonicalPhone(phone);
     if (!IdempotencyKey.isV4(idempotencyKey) ||
         canonicalOwner == null ||
         canonicalBusiness == null ||
         canonicalEmail == null ||
         canonicalPhone == null ||
-        !RegistrationCountry.validRegion(governorateCode) ||
+        canonicalRegion == null ||
         !AccountPassword.isAcceptable(password)) {
       return null;
     }
@@ -103,7 +103,7 @@ class OwnerRegistration {
       businessName: canonicalBusiness,
       email: canonicalEmail,
       phone: canonicalPhone,
-      governorateCode: governorateCode,
+      governorateCode: canonicalRegion,
       password: password,
     );
   }

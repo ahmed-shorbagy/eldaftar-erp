@@ -44,11 +44,12 @@ class DailyLedgerScreen extends StatefulWidget {
     required this.onSignOut,
     required this.onToggleTheme,
     this.onChangeShop,
-    this.onRefreshShops,
+    this.onActivateSubscription,
     this.gateway,
     this.store,
     this.userId,
     this.refreshGeneration = 0,
+    this.syncTicks,
     this.newKey,
     this.onboardingStore,
     this.guideResumeGeneration = 0,
@@ -58,11 +59,12 @@ class DailyLedgerScreen extends StatefulWidget {
   final Future<void> Function() onSignOut;
   final Future<void> Function(Brightness) onToggleTheme;
   final VoidCallback? onChangeShop;
-  final Future<void> Function()? onRefreshShops;
+  final Future<void> Function()? onActivateSubscription;
   final OpeningGateway? gateway;
   final PendingOpeningStore? store;
   final String? userId;
   final int refreshGeneration;
+  final Listenable? syncTicks;
   final String Function()? newKey;
   final OnboardingStore? onboardingStore;
   final int guideResumeGeneration;
@@ -80,7 +82,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     with WidgetsBindingObserver {
   DailyLedgerController? _controller;
   final _scroll = ScrollController();
-  final _refreshFocus = FocusNode();
   FinancialDayState? _financialDay;
   String? _financialError;
   bool _financialLoading = false;
@@ -90,6 +91,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   bool _pendingStatusUnknown = false;
   Timer? _syncTimer;
   bool _syncing = false;
+  bool _syncQueued = false;
   bool _loadingOlder = false;
   bool _caughtUp = false;
   final _activity = LedgerActivityController();
@@ -111,6 +113,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.syncTicks?.addListener(_onSyncTicks);
     _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) => _sync());
     _attach();
   }
@@ -121,11 +124,17 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   }
 
   Future<void> _sync() async {
+    if (_syncing) {
+      _syncQueued = true;
+      return;
+    }
     if (!mounted ||
-        _syncing ||
         _dayCommandBusy ||
         ModalRoute.of(context)?.isCurrent != true ||
-        _controller?.phase != LedgerPhase.confirmed) {
+        !const {
+          LedgerPhase.confirmed,
+          LedgerPhase.refreshFailed,
+        }.contains(_controller?.phase)) {
       return;
     }
     _syncing = true;
@@ -139,18 +148,15 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       if (mounted) {
         setState(
           () => _financialError =
-              'تعذرت مزامنة الدفتر. استخدم زر التحديث للتحقق من الأرصدة.',
+              'تعذرت مزامنة الدفتر. ستُعاد المحاولة تلقائيًا.',
         );
       }
     } finally {
       _syncing = false;
+      final queued = _syncQueued;
+      _syncQueued = false;
+      if (queued && mounted) unawaited(_sync());
     }
-  }
-
-  void _refreshLedger() {
-    (widget.onRefreshShops ?? _controller?.refresh)?.call();
-    _maybeLoadFinancialDay(force: true);
-    _catchUpFeed();
   }
 
   void _attach() {
@@ -531,6 +537,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           gateway: gateway,
           userId: userId,
           line: line,
+          syncTicks: widget.syncTicks,
         ),
       ),
     );
@@ -548,6 +555,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         builder: (_) => PendingInvoiceSendsScreen(
           gateway: gateway as FinancialGateway,
           userId: userId,
+          syncTicks: widget.syncTicks,
         ),
       ),
     );
@@ -630,6 +638,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   @override
   void didUpdateWidget(covariant DailyLedgerScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.syncTicks != widget.syncTicks) {
+      oldWidget.syncTicks?.removeListener(_onSyncTicks);
+      widget.syncTicks?.addListener(_onSyncTicks);
+    }
     final identityChanged =
         oldWidget.userId != widget.userId ||
         oldWidget.shop.id != widget.shop.id ||
@@ -650,20 +662,25 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     _controller?.updateShopActive(
       widget.shop.entitlement == ShopEntitlement.active,
     );
-    if (oldWidget.refreshGeneration != widget.refreshGeneration) {
+    if (widget.syncTicks == null &&
+        oldWidget.refreshGeneration != widget.refreshGeneration) {
       _controller?.refresh();
       _maybeLoadFinancialDay(force: true);
     }
   }
 
+  void _onSyncTicks() {
+    if (mounted) unawaited(_sync());
+  }
+
   @override
   void dispose() {
+    widget.syncTicks?.removeListener(_onSyncTicks);
     _syncTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _controller?.removeListener(_onController);
     _controller?.dispose();
     _scroll.dispose();
-    _refreshFocus.dispose();
     super.dispose();
   }
 
@@ -682,8 +699,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         subtitle: daySubtitle,
         topInset: MediaQuery.paddingOf(context).top,
         compact: compact,
-        refreshFocus: _refreshFocus,
-        onRefresh: _refreshLedger,
         onToggleTheme: widget.onToggleTheme,
         onSignOut: widget.onSignOut,
         onChangeShop: widget.onChangeShop,
@@ -733,6 +748,14 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                         const Text(
                           'انتهى اشتراك هذا المتجر. الوصول الحالي للقراءة فقط، ولا يمكن إجراء تغييرات.',
                         ),
+                        if (widget.onActivateSubscription != null) ...[
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            key: const Key('subscription-open'),
+                            onPressed: widget.onActivateSubscription,
+                            child: const Text('تفعيل الاشتراك'),
+                          ),
+                        ],
                       ],
                     ),
                   ),

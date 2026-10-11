@@ -10,6 +10,7 @@ import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
+import '../../shop_accounts/domain/shop_sync.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
 import '../domain/auth_gateway.dart';
 import '../domain/password_recovery.dart';
@@ -30,6 +31,7 @@ class AuthGate extends StatefulWidget {
     this.onboardingStore,
     this.currentUserId,
     this.recoveryGateway,
+    this.syncGateway,
   });
 
   final SupabaseStartupStatus supabaseStatus;
@@ -41,6 +43,7 @@ class AuthGate extends StatefulWidget {
   final PendingOpeningStore? pendingOpeningStore;
   final OnboardingStore? onboardingStore;
   final String? Function()? currentUserId;
+  final ShopSyncGateway? syncGateway;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -178,6 +181,7 @@ class _AuthGateState extends State<AuthGate> {
         pendingOpeningStore: widget.pendingOpeningStore,
         onboardingStore: widget.onboardingStore,
         currentUserId: widget.currentUserId,
+        syncGateway: widget.syncGateway,
         onSignOut: () async {
           await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);

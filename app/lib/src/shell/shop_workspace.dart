@@ -19,10 +19,11 @@ class ShopWorkspace extends StatefulWidget {
     this.store,
     this.userId,
     this.refreshGeneration = 0,
-    this.onRefreshShops,
+    this.onActivateSubscription,
     this.onboardingStore,
     this.inventoryBuilder,
     this.traderBuilder,
+    this.syncTicks,
   });
 
   final ShopAccount shop;
@@ -33,10 +34,11 @@ class ShopWorkspace extends StatefulWidget {
   final PendingOpeningStore? store;
   final String? userId;
   final int refreshGeneration;
-  final Future<void> Function()? onRefreshShops;
+  final Future<void> Function()? onActivateSubscription;
   final OnboardingStore? onboardingStore;
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
+  final Listenable? syncTicks;
 
   @override
   State<ShopWorkspace> createState() => _ShopWorkspaceState();
@@ -120,10 +122,11 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       store: widget.store,
       userId: widget.userId,
       refreshGeneration: widget.refreshGeneration,
+      syncTicks: widget.syncTicks,
       onSignOut: widget.onSignOut,
       onToggleTheme: widget.onToggleTheme,
       onChangeShop: widget.onChangeShop,
-      onRefreshShops: widget.onRefreshShops,
+      onActivateSubscription: widget.onActivateSubscription,
       onboardingStore: widget.onboardingStore,
     ),
     2 =>

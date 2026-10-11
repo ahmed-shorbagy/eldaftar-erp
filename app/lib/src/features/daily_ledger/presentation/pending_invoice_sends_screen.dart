@@ -10,10 +10,12 @@ class PendingInvoiceSendsScreen extends StatefulWidget {
     super.key,
     required this.gateway,
     required this.userId,
+    this.syncTicks,
   });
 
   final FinancialGateway gateway;
   final String userId;
+  final Listenable? syncTicks;
 
   @override
   State<PendingInvoiceSendsScreen> createState() =>
@@ -26,11 +28,37 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
   bool _loading = false;
   bool _failed = false;
   bool _loaded = false;
+  bool _syncQueued = false;
 
   @override
   void initState() {
     super.initState();
+    widget.syncTicks?.addListener(_onSync);
     _load(reset: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant PendingInvoiceSendsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.syncTicks != widget.syncTicks) {
+      oldWidget.syncTicks?.removeListener(_onSync);
+      widget.syncTicks?.addListener(_onSync);
+    }
+  }
+
+  void _onSync() {
+    if (!mounted) return;
+    if (_loading) {
+      _syncQueued = true;
+      return;
+    }
+    _load(reset: true);
+  }
+
+  @override
+  void dispose() {
+    widget.syncTicks?.removeListener(_onSync);
+    super.dispose();
   }
 
   Future<void> _load({required bool reset}) async {
@@ -56,7 +84,13 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        if (_syncQueued) {
+          _syncQueued = false;
+          _load(reset: true);
+        }
+      }
     }
   }
 
@@ -66,6 +100,7 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
         builder: (_) => FinancialOperationScreen(
           gateway: widget.gateway,
           userId: widget.userId,
+          syncTicks: widget.syncTicks,
           line: LedgerFeedLine(
             kind: item.kind,
             labelAr: item.kind == 'sale' ? 'بيع' : 'شراء',
@@ -84,16 +119,7 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('فواتير تنتظر تأكيد الإرسال'),
-        actions: [
-          IconButton(
-            onPressed: _loading ? null : () => _load(reset: true),
-            tooltip: 'تحديث القائمة',
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('فواتير تنتظر تأكيد الإرسال')),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,

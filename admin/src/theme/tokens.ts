@@ -25,6 +25,10 @@ export const tokens = {
   figureSize: 24,
   contentMaxWidth: 720,
   minControlSize: 48,
+  spaceSm: 8,
+  spaceMd: 16,
+  spaceLg: 24,
+  spaceXl: 32,
   wideBreakpoint: 840,
   fontFamily:
     'Cairo, Tahoma, Arial, sans-serif',

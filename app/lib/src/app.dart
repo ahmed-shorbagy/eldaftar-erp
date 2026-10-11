@@ -10,6 +10,7 @@ import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
 import 'features/onboarding/application/onboarding_store.dart';
 import 'features/shop_accounts/domain/shop_account_gateway.dart';
+import 'features/shop_accounts/domain/shop_sync.dart';
 import 'shell/shell_copy.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
@@ -26,6 +27,7 @@ class ElDafttarApp extends StatelessWidget {
     this.onboardingStore,
     this.currentUserId,
     this.recoveryGateway,
+    this.syncGateway,
   });
 
   final SupabaseStartupStatus supabaseStatus;
@@ -37,6 +39,7 @@ class ElDafttarApp extends StatelessWidget {
   final OnboardingStore? onboardingStore;
   final String? Function()? currentUserId;
   final PasswordRecoveryGateway? recoveryGateway;
+  final ShopSyncGateway? syncGateway;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +70,7 @@ class ElDafttarApp extends StatelessWidget {
             onboardingStore: onboardingStore,
             currentUserId: currentUserId,
             recoveryGateway: recoveryGateway,
+            syncGateway: syncGateway,
             onToggleTheme: themeController.toggle,
           ),
         );

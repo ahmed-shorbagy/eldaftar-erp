@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
 import 'package:printing/printing.dart';
@@ -22,11 +24,13 @@ class FinancialOperationScreen extends StatefulWidget {
     required this.gateway,
     required this.userId,
     required this.line,
+    this.syncTicks,
   });
 
   final FinancialGateway gateway;
   final String userId;
   final LedgerFeedLine line;
+  final Listenable? syncTicks;
 
   @override
   State<FinancialOperationScreen> createState() =>
@@ -36,6 +40,7 @@ class FinancialOperationScreen extends StatefulWidget {
 class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   Map<String, Object?>? _operation;
   bool _loading = true;
+  bool _syncQueued = false;
   bool _failed = false;
   InvoiceDispatchState? _dispatch;
   bool _dispatchLoading = false;
@@ -47,7 +52,32 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   @override
   void initState() {
     super.initState();
+    widget.syncTicks?.addListener(_onSync);
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant FinancialOperationScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.syncTicks != widget.syncTicks) {
+      oldWidget.syncTicks?.removeListener(_onSync);
+      widget.syncTicks?.addListener(_onSync);
+    }
+  }
+
+  void _onSync() {
+    if (!mounted || _dispatchBusy) return;
+    if (_loading) {
+      _syncQueued = true;
+      return;
+    }
+    unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    widget.syncTicks?.removeListener(_onSync);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -67,9 +97,15 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         await _loadDispatch();
       }
     } catch (_) {
-      if (mounted) setState(() => _failed = true);
+      if (mounted && _operation == null) setState(() => _failed = true);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        if (_syncQueued) {
+          _syncQueued = false;
+          unawaited(_load());
+        }
+      }
     }
   }
 
@@ -324,7 +360,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
-            child: _loading
+            child: _loading && _operation == null
                 ? const Center(child: CircularProgressIndicator())
                 : _failed
                 ? Center(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -36,6 +38,8 @@ class TraderScreen extends StatefulWidget {
     this.onboardingStore,
     this.store = const PendingFinancialCommands(),
     this.sharePdf,
+    this.refreshGeneration = 0,
+    this.syncTicks,
   });
 
   final InventoryGateway gateway;
@@ -49,6 +53,8 @@ class TraderScreen extends StatefulWidget {
   final OnboardingStore? onboardingStore;
   final FinancialCommandLocker store;
   final TraderPdfShare? sharePdf;
+  final int refreshGeneration;
+  final Listenable? syncTicks;
 
   @override
   State<TraderScreen> createState() => _TraderScreenState();
@@ -66,6 +72,8 @@ class _TraderScreenState extends State<TraderScreen> {
     store: widget.store,
   );
   int _generation = 0;
+  bool _reloadInFlight = false;
+  bool _reloadPending = false;
   bool _loading = true;
   String? _message;
   bool _messageError = false;
@@ -83,20 +91,32 @@ class _TraderScreenState extends State<TraderScreen> {
   @override
   void initState() {
     super.initState();
+    widget.syncTicks?.addListener(_onSync);
     _load();
   }
 
   @override
   void didUpdateWidget(covariant TraderScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.syncTicks != widget.syncTicks) {
+      oldWidget.syncTicks?.removeListener(_onSync);
+      widget.syncTicks?.addListener(_onSync);
+    }
     if (oldWidget.userId != widget.userId ||
-        oldWidget.shopId != widget.shopId) {
+        oldWidget.shopId != widget.shopId ||
+        (widget.syncTicks == null &&
+            oldWidget.refreshGeneration != widget.refreshGeneration)) {
       _load();
     }
   }
 
+  void _onSync() {
+    if (mounted) _load();
+  }
+
   @override
   void dispose() {
+    widget.syncTicks?.removeListener(_onSync);
     _search.dispose();
     _searchFocus.dispose();
     _listFocus.dispose();
@@ -125,67 +145,80 @@ class _TraderScreenState extends State<TraderScreen> {
       widget.shopId == shopId;
 
   Future<void> _load() async {
-    final generation = ++_generation;
-    final userId = widget.userId;
-    final shopId = widget.shopId;
-    setState(() => _loading = true);
-    DayAnchor? day;
-    List<TraderSummary> traders = const [];
-    String? cursor;
-    String? message;
-    var error = false;
-    try {
-      day = await _readDay();
-    } catch (_) {
-      message = 'تعذر قراءة يوم العمل. لم يُرسل أمر.';
-      error = true;
+    if (_reloadInFlight) {
+      _reloadPending = true;
+      return;
     }
+    _reloadInFlight = true;
     try {
-      final query = _search.text.trim();
-      final page = await widget.gateway.traders(
-        callerUserId: userId,
-        query: query.isEmpty ? null : query,
-      );
-      if (!_same(generation, userId, shopId)) return;
-      traders = page.items;
-      cursor = page.nextCursor;
-    } on InventoryReadException catch (failure) {
-      if (!_same(generation, userId, shopId)) return;
-      if (failure.code == 'discarded') {
-        setState(() {
-          _loading = false;
-          _message = inventoryFailureCopy('discarded');
-          _messageError = true;
-        });
-        return;
+      final generation = ++_generation;
+      final userId = widget.userId;
+      final shopId = widget.shopId;
+      setState(() => _loading = true);
+      DayAnchor? day;
+      List<TraderSummary> traders = const [];
+      String? cursor;
+      String? message;
+      var error = false;
+      try {
+        day = await _readDay();
+      } catch (_) {
+        message = 'تعذر قراءة يوم العمل. لم يُرسل أمر.';
+        error = true;
       }
-      message = inventoryFailureCopy(failure.code ?? 'unavailable');
-      error = true;
-    } catch (_) {
+      try {
+        final query = _search.text.trim();
+        final page = await widget.gateway.traders(
+          callerUserId: userId,
+          query: query.isEmpty ? null : query,
+        );
+        if (!_same(generation, userId, shopId)) return;
+        traders = page.items;
+        cursor = page.nextCursor;
+      } on InventoryReadException catch (failure) {
+        if (!_same(generation, userId, shopId)) return;
+        if (failure.code == 'discarded') {
+          setState(() {
+            _loading = false;
+            _message = inventoryFailureCopy('discarded');
+            _messageError = true;
+          });
+          return;
+        }
+        message = inventoryFailureCopy(failure.code ?? 'unavailable');
+        error = true;
+      } catch (_) {
+        if (!_same(generation, userId, shopId)) return;
+        message = 'تعذر تحميل التجار.';
+        error = true;
+      }
       if (!_same(generation, userId, shopId)) return;
-      message = 'تعذر تحميل التجار.';
-      error = true;
+      setState(() {
+        _loading = false;
+        _day = day;
+        _traders = traders;
+        _nextCursor = cursor;
+        _message =
+            message ??
+            (widget.readOnly ? 'الاشتراك منتهٍ. بيانات التجار للقراءة.' : null);
+        _messageError = error || widget.readOnly;
+        if (_detail != null &&
+            traders.every((item) => item.id != _detail!.id)) {
+          _detail = null;
+          _activity = const [];
+          _activityCursor = null;
+          _obligations = const [];
+          _obligationCursor = null;
+        }
+      });
+      final selected = _detail?.id;
+      if (selected != null) await _openTrader(selected, quiet: true);
+    } finally {
+      _reloadInFlight = false;
+      final reload = _reloadPending;
+      _reloadPending = false;
+      if (reload && mounted) unawaited(_load());
     }
-    if (!_same(generation, userId, shopId)) return;
-    setState(() {
-      _loading = false;
-      _day = day;
-      _traders = traders;
-      _nextCursor = cursor;
-      _message =
-          message ??
-          (widget.readOnly ? 'الاشتراك منتهٍ. بيانات التجار للقراءة.' : null);
-      _messageError = error || widget.readOnly;
-      if (_detail != null && traders.every((item) => item.id != _detail!.id)) {
-        _detail = null;
-        _activity = const [];
-        _activityCursor = null;
-        _obligations = const [];
-        _obligationCursor = null;
-      }
-    });
-    final selected = _detail?.id;
-    if (selected != null) await _openTrader(selected, quiet: true);
   }
 
   Future<void> _openTrader(String id, {bool quiet = false}) async {
@@ -350,6 +383,7 @@ class _TraderScreenState extends State<TraderScreen> {
     readOnly: widget.readOnly,
     day: _day,
     reloadDay: _readDay,
+    onConfirmed: _load,
   );
 
   @override
@@ -357,13 +391,6 @@ class _TraderScreenState extends State<TraderScreen> {
     final detail = _detail;
     return InventoryPage(
       title: 'التجار والأمانات',
-      actions: [
-        IconButton(
-          tooltip: 'تحديث التجار',
-          onPressed: _loading ? null : _load,
-          icon: const Icon(Icons.refresh),
-        ),
-      ],
       children: [
         if (_loading) const LinearProgressIndicator(),
         if (_message != null) ...[

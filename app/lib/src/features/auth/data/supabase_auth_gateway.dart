@@ -175,9 +175,8 @@ class SupabaseAuthGateway implements AuthGateway, PasswordRecoveryGateway {
     try {
       response = await _client
           .from('egypt_governorates')
-          .select('code, name_ar')
-          .order('code', ascending: true)
-          .order('name_ar', ascending: true);
+          .select('code, name_ar, display_order')
+          .order('display_order', ascending: true);
     } on PostgrestException {
       throw const GovernorateLoadException(GovernorateLoadFailure.unavailable);
     } catch (_) {
@@ -204,11 +203,6 @@ class SupabaseAuthGateway implements AuthGateway, PasswordRecoveryGateway {
         GovernorateLoadFailure.invalidResponse,
       );
     }
-    options.sort((a, b) {
-      final byCode = a.code.compareTo(b.code);
-      if (byCode != 0) return byCode;
-      return a.nameAr.compareTo(b.nameAr);
-    });
     return List.unmodifiable(options);
   }
 

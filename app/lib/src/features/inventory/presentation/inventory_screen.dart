@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../daily_ledger/application/daily_ledger_view.dart';
@@ -30,6 +32,8 @@ class InventoryScreen extends StatefulWidget {
     this.dayGateway,
     this.onboardingStore,
     this.store = const PendingFinancialCommands(),
+    this.refreshGeneration = 0,
+    this.syncTicks,
   });
 
   final InventoryGateway gateway;
@@ -41,6 +45,8 @@ class InventoryScreen extends StatefulWidget {
   final bool readOnly;
   final OnboardingStore? onboardingStore;
   final FinancialCommandLocker store;
+  final int refreshGeneration;
+  final Listenable? syncTicks;
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -59,6 +65,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     store: widget.store,
   );
   int _generation = 0;
+  bool _reloadInFlight = false;
+  bool _reloadPending = false;
   bool _loading = true;
   bool _otherPending = false;
   bool _inventoryPending = false;
@@ -99,20 +107,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   void initState() {
     super.initState();
+    widget.syncTicks?.addListener(_onSync);
     _load();
   }
 
   @override
   void didUpdateWidget(covariant InventoryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.syncTicks != widget.syncTicks) {
+      oldWidget.syncTicks?.removeListener(_onSync);
+      widget.syncTicks?.addListener(_onSync);
+    }
     if (oldWidget.userId != widget.userId ||
-        oldWidget.shopId != widget.shopId) {
+        oldWidget.shopId != widget.shopId ||
+        (widget.syncTicks == null &&
+            oldWidget.refreshGeneration != widget.refreshGeneration)) {
       _load();
     }
   }
 
+  void _onSync() {
+    if (mounted) _load();
+  }
+
   @override
   void dispose() {
+    widget.syncTicks?.removeListener(_onSync);
     _search.dispose();
     _catalogQuery.dispose();
     _searchFocus.dispose();
@@ -142,188 +162,200 @@ class _InventoryScreenState extends State<InventoryScreen> {
       widget.shopId == shopId;
 
   Future<void> _load() async {
-    final generation = ++_generation;
-    final userId = widget.userId;
-    final shopId = widget.shopId;
-    setState(() {
-      _loading = true;
-      _message = null;
-    });
-    DayAnchor? day;
-    InventoryTotals? totals;
-    LotPage? lots;
-    ReceiptPage? deferred;
-    ReceiptPage? custody;
-    ReadPage<CatalogProduct>? products;
-    ReadPage<CatalogDenomination>? denoms;
-    ReadPage<CatalogCoin>? coins;
-    ReadPage<GoldObligationView>? gold;
-    TraderPage? traders;
-    var cash = <String, BigInt>{};
-    String? message;
-    var otherPending = false;
-    var inventoryPending = false;
-    try {
-      day = await _readDay();
-    } catch (_) {
-      message = 'تعذر قراءة يوم العمل. لم يُرسل أمر.';
+    if (_reloadInFlight) {
+      _reloadPending = true;
+      return;
     }
+    _reloadInFlight = true;
     try {
-      final pending = await widget.store.read(userId, shopId);
-      if (!_same(generation, userId, shopId)) return;
-      if (pending != null &&
-          ownsInventoryCommand(pending.key, pending.kind, pending.body)) {
-        inventoryPending = true;
-        final result = await _flow.reconcile(
-          userId: userId,
-          shopId: shopId,
-          command: pending,
-          retry: false,
-        );
-        if (result is InventorySaved) {
-          inventoryPending = false;
-          message = 'تم حفظ العملية المعلّقة. حدّث القائمة لرؤية الأرصدة.';
-        } else if (result is InventoryFailed) {
-          inventoryPending = false;
-          message = inventoryFailureCopy(result.code);
-        } else if (result is InventoryUnconfirmed) {
-          message = result.statusUnknown
-              ? 'لم يتأكد الحفظ. الطلب محفوظ على الجهاز ولم يُحتسب في الأرصدة.'
-              : 'لم نتأكد من حفظ العملية. أعد المحاولة دون تغيير البيانات أو بدء عملية جديدة.';
+      final generation = ++_generation;
+      final userId = widget.userId;
+      final shopId = widget.shopId;
+      setState(() {
+        _loading = true;
+        _message = null;
+      });
+      DayAnchor? day;
+      InventoryTotals? totals;
+      LotPage? lots;
+      ReceiptPage? deferred;
+      ReceiptPage? custody;
+      ReadPage<CatalogProduct>? products;
+      ReadPage<CatalogDenomination>? denoms;
+      ReadPage<CatalogCoin>? coins;
+      ReadPage<GoldObligationView>? gold;
+      TraderPage? traders;
+      var cash = <String, BigInt>{};
+      String? message;
+      var otherPending = false;
+      var inventoryPending = false;
+      try {
+        day = await _readDay();
+      } catch (_) {
+        message = 'تعذر قراءة يوم العمل. لم يُرسل أمر.';
+      }
+      try {
+        final pending = await widget.store.read(userId, shopId);
+        if (!_same(generation, userId, shopId)) return;
+        if (pending != null &&
+            ownsInventoryCommand(pending.key, pending.kind, pending.body)) {
+          inventoryPending = true;
+          final result = await _flow.reconcile(
+            userId: userId,
+            shopId: shopId,
+            command: pending,
+            retry: false,
+          );
+          if (result is InventorySaved) {
+            inventoryPending = false;
+            message = 'تم تأكيد العملية المعلّقة.';
+          } else if (result is InventoryFailed) {
+            inventoryPending = false;
+            message = inventoryFailureCopy(result.code);
+          } else if (result is InventoryUnconfirmed) {
+            message = result.statusUnknown
+                ? 'لم يتأكد الحفظ. الطلب محفوظ على الجهاز ولم يُحتسب في الأرصدة.'
+                : 'لم نتأكد من حفظ العملية. أعد المحاولة دون تغيير البيانات أو بدء عملية جديدة.';
+          }
+        } else if (pending != null) {
+          otherPending = true;
+          message =
+              'توجد عملية مالية معلّقة من الدفتر. أكملها من الدفتر قبل أي أمر مخزون.';
         }
-      } else if (pending != null) {
-        otherPending = true;
-        message =
-            'توجد عملية مالية معلّقة من الدفتر. أكملها من الدفتر قبل أي أمر مخزون.';
+      } catch (_) {
+        message ??= inventoryFailureCopy('storage');
       }
-    } catch (_) {
-      message ??= inventoryFailureCopy('storage');
+      try {
+        final query = _search.text.trim();
+        final catalog = _catalogQuery.text.trim();
+        totals = await widget.gateway.totals(
+          callerUserId: userId,
+          category: _category,
+          karat: _karat,
+        );
+        if (!_same(generation, userId, shopId)) return;
+        lots = await widget.gateway.lots(
+          callerUserId: userId,
+          category: _category,
+          karat: _karat,
+          stockClass: _stockClass,
+          query: query.isEmpty ? null : query,
+        );
+        if (!_same(generation, userId, shopId)) return;
+        deferred = await widget.gateway.receipts(
+          callerUserId: userId,
+          ownerKind: 'shop',
+          recognition: 'deferred',
+        );
+        if (!_same(generation, userId, shopId)) return;
+        custody = await widget.gateway.receipts(
+          callerUserId: userId,
+          ownerKind: 'trader',
+          recognition: 'custody',
+        );
+        if (!_same(generation, userId, shopId)) return;
+        products = await widget.gateway.products(
+          callerUserId: userId,
+          query: catalog.isEmpty ? null : catalog,
+        );
+        if (!_same(generation, userId, shopId)) return;
+        denoms = await widget.gateway.denominations(
+          callerUserId: userId,
+          query: catalog.isEmpty ? null : catalog,
+        );
+        if (!_same(generation, userId, shopId)) return;
+        coins = await widget.gateway.coins(
+          callerUserId: userId,
+          query: catalog.isEmpty ? null : catalog,
+        );
+        if (!_same(generation, userId, shopId)) return;
+        gold = await widget.gateway.goldObligations(callerUserId: userId);
+        if (!_same(generation, userId, shopId)) return;
+        traders = await widget.gateway.traders(callerUserId: userId);
+      } on InventoryReadException catch (error) {
+        if (!_same(generation, userId, shopId)) return;
+        if (error.code == 'discarded') {
+          setState(() {
+            _loading = false;
+            _message = inventoryFailureCopy('discarded');
+            _messageError = true;
+          });
+          return;
+        }
+        message ??= inventoryFailureCopy(error.code ?? 'unavailable');
+      } catch (_) {
+        if (!_same(generation, userId, shopId)) return;
+        message ??= 'تعذر تحميل المخزون. الأرصدة المعروضة لم تتأكد.';
+      }
+      try {
+        final view = await widget.statusGateway.ledger(callerUserId: userId);
+        if (_same(generation, userId, shopId)) cash = _cashMap(view);
+      } catch (_) {
+        if (!_same(generation, userId, shopId)) return;
+      }
+      if (!_same(generation, userId, shopId)) return;
+      setState(() {
+        _loading = false;
+        _day = day;
+        if (totals != null) _totals = totals;
+        if (lots != null) {
+          _lots
+            ..clear()
+            ..addAll(lots.items);
+          _nextCursor = lots.nextCursor;
+        }
+        if (deferred != null) {
+          _deferredMissing = !deferred.available;
+          _deferred = deferred.items ?? _deferred;
+          _deferredCursor = deferred.available
+              ? deferred.nextCursor
+              : _deferredCursor;
+        }
+        if (custody != null) {
+          _custodyMissing = !custody.available;
+          _custody = custody.items ?? _custody;
+          _custodyCursor = custody.available
+              ? custody.nextCursor
+              : _custodyCursor;
+        }
+        if (products != null) {
+          _productsMissing = !products.available;
+          _products = products.items ?? _products;
+          _productCursor = products.available
+              ? products.nextCursor
+              : _productCursor;
+        }
+        if (denoms != null) {
+          _denomsMissing = !denoms.available;
+          _denoms = denoms.items ?? _denoms;
+          _denomCursor = denoms.available ? denoms.nextCursor : _denomCursor;
+        }
+        if (coins != null) {
+          _coinsMissing = !coins.available;
+          _coins = coins.items ?? _coins;
+          _coinCursor = coins.available ? coins.nextCursor : _coinCursor;
+        }
+        if (gold != null) {
+          _goldMissing = !gold.available;
+          _gold = gold.items ?? _gold;
+          _goldCursor = gold.available ? gold.nextCursor : _goldCursor;
+        }
+        if (traders != null) {
+          _traders = traders.items;
+          _traderCursor = traders.nextCursor;
+        }
+        _cash = cash;
+        _otherPending = otherPending;
+        _inventoryPending = inventoryPending;
+        _message = message ?? _closedCopy(day);
+        _messageError = message != null || day == null;
+      });
+    } finally {
+      _reloadInFlight = false;
+      final reload = _reloadPending;
+      _reloadPending = false;
+      if (reload && mounted) unawaited(_load());
     }
-    try {
-      final query = _search.text.trim();
-      final catalog = _catalogQuery.text.trim();
-      totals = await widget.gateway.totals(
-        callerUserId: userId,
-        category: _category,
-        karat: _karat,
-      );
-      if (!_same(generation, userId, shopId)) return;
-      lots = await widget.gateway.lots(
-        callerUserId: userId,
-        category: _category,
-        karat: _karat,
-        stockClass: _stockClass,
-        query: query.isEmpty ? null : query,
-      );
-      if (!_same(generation, userId, shopId)) return;
-      deferred = await widget.gateway.receipts(
-        callerUserId: userId,
-        ownerKind: 'shop',
-        recognition: 'deferred',
-      );
-      if (!_same(generation, userId, shopId)) return;
-      custody = await widget.gateway.receipts(
-        callerUserId: userId,
-        ownerKind: 'trader',
-        recognition: 'custody',
-      );
-      if (!_same(generation, userId, shopId)) return;
-      products = await widget.gateway.products(
-        callerUserId: userId,
-        query: catalog.isEmpty ? null : catalog,
-      );
-      if (!_same(generation, userId, shopId)) return;
-      denoms = await widget.gateway.denominations(
-        callerUserId: userId,
-        query: catalog.isEmpty ? null : catalog,
-      );
-      if (!_same(generation, userId, shopId)) return;
-      coins = await widget.gateway.coins(
-        callerUserId: userId,
-        query: catalog.isEmpty ? null : catalog,
-      );
-      if (!_same(generation, userId, shopId)) return;
-      gold = await widget.gateway.goldObligations(callerUserId: userId);
-      if (!_same(generation, userId, shopId)) return;
-      traders = await widget.gateway.traders(callerUserId: userId);
-    } on InventoryReadException catch (error) {
-      if (!_same(generation, userId, shopId)) return;
-      if (error.code == 'discarded') {
-        setState(() {
-          _loading = false;
-          _message = inventoryFailureCopy('discarded');
-          _messageError = true;
-        });
-        return;
-      }
-      message ??= inventoryFailureCopy(error.code ?? 'unavailable');
-    } catch (_) {
-      if (!_same(generation, userId, shopId)) return;
-      message ??= 'تعذر تحميل المخزون. الأرصدة المعروضة لم تتأكد.';
-    }
-    try {
-      final view = await widget.statusGateway.ledger(callerUserId: userId);
-      if (_same(generation, userId, shopId)) cash = _cashMap(view);
-    } catch (_) {
-      if (!_same(generation, userId, shopId)) return;
-    }
-    if (!_same(generation, userId, shopId)) return;
-    setState(() {
-      _loading = false;
-      _day = day;
-      if (totals != null) _totals = totals;
-      if (lots != null) {
-        _lots
-          ..clear()
-          ..addAll(lots.items);
-        _nextCursor = lots.nextCursor;
-      }
-      if (deferred != null) {
-        _deferredMissing = !deferred.available;
-        _deferred = deferred.items ?? _deferred;
-        _deferredCursor = deferred.available
-            ? deferred.nextCursor
-            : _deferredCursor;
-      }
-      if (custody != null) {
-        _custodyMissing = !custody.available;
-        _custody = custody.items ?? _custody;
-        _custodyCursor = custody.available
-            ? custody.nextCursor
-            : _custodyCursor;
-      }
-      if (products != null) {
-        _productsMissing = !products.available;
-        _products = products.items ?? _products;
-        _productCursor = products.available
-            ? products.nextCursor
-            : _productCursor;
-      }
-      if (denoms != null) {
-        _denomsMissing = !denoms.available;
-        _denoms = denoms.items ?? _denoms;
-        _denomCursor = denoms.available ? denoms.nextCursor : _denomCursor;
-      }
-      if (coins != null) {
-        _coinsMissing = !coins.available;
-        _coins = coins.items ?? _coins;
-        _coinCursor = coins.available ? coins.nextCursor : _coinCursor;
-      }
-      if (gold != null) {
-        _goldMissing = !gold.available;
-        _gold = gold.items ?? _gold;
-        _goldCursor = gold.available ? gold.nextCursor : _goldCursor;
-      }
-      if (traders != null) {
-        _traders = traders.items;
-        _traderCursor = traders.nextCursor;
-      }
-      _cash = cash;
-      _otherPending = otherPending;
-      _inventoryPending = inventoryPending;
-      _message = message ?? _closedCopy(day);
-      _messageError = message != null || day == null;
-    });
   }
 
   String? _closedCopy(DayAnchor? day) {
@@ -364,6 +396,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     readOnly: widget.readOnly || _otherPending,
     day: _day,
     reloadDay: _reloadDay,
+    onConfirmed: _load,
   );
 
   Future<void> _open(Widget page) async {
@@ -442,13 +475,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final totals = _totals == null ? null : _sum(_totals);
     return InventoryPage(
       title: 'المخزون',
-      actions: [
-        IconButton(
-          tooltip: 'تحديث المخزون',
-          onPressed: _loading ? null : _load,
-          icon: const Icon(Icons.refresh),
-        ),
-      ],
       children: [
         if (_loading) const LinearProgressIndicator(),
         if (_productsMissing || _coinsMissing)

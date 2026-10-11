@@ -26,6 +26,7 @@ class InventoryFormScope {
     required this.day,
     required this.reloadDay,
     this.gateway,
+    this.onConfirmed,
   });
 
   final InventoryCommandFlow flow;
@@ -35,6 +36,7 @@ class InventoryFormScope {
   final bool readOnly;
   final DayAnchor? day;
   final Future<DayAnchor?> Function() reloadDay;
+  final VoidCallback? onConfirmed;
 }
 
 class InventoryAdditionForm extends StatefulWidget {
@@ -116,6 +118,7 @@ class _InventoryAdditionFormState extends State<InventoryAdditionForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         inventoryField(
@@ -434,6 +437,7 @@ class _InventoryRemovalFormState extends State<InventoryRemovalForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       canReview: lot != null,
       fields: [
@@ -558,6 +562,7 @@ class _InventoryCorrectionFormState extends State<InventoryCorrectionForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         DropdownButtonFormField<String>(
@@ -767,6 +772,7 @@ class _InventoryConversionFormState extends State<InventoryConversionForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         if (available.isEmpty)
@@ -932,6 +938,7 @@ class _InventoryReceiptFormState extends State<InventoryReceiptForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         DropdownButtonFormField<String>(
@@ -1173,6 +1180,7 @@ class _InventoryRecognitionFormState extends State<InventoryRecognitionForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         if (_pending.isEmpty)
@@ -1342,6 +1350,7 @@ class _InventoryManualLinkFormState extends State<InventoryManualLinkForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         if (receipts.isEmpty)
@@ -1498,6 +1507,7 @@ class _OwnershipTransferFormState extends State<OwnershipTransferForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         if (_custody.isEmpty)
@@ -1730,6 +1740,7 @@ class _GoldAcquisitionFormState extends State<GoldAcquisitionForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         inventoryField(
@@ -1942,6 +1953,7 @@ class _GoldSettlementFormState extends State<GoldSettlementForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         if (open.isEmpty)
@@ -2091,6 +2103,7 @@ class _CatalogProductFormState extends State<CatalogProductForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         inventoryField(
@@ -2168,6 +2181,7 @@ class _DenominationFormState extends State<DenominationForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       fields: [
         inventoryField(
@@ -2272,6 +2286,7 @@ class _TraderSaveFormState extends State<TraderSaveForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       embedded: widget.embedded,
       onFinished: widget.onFinished,
@@ -2577,6 +2592,7 @@ class _ExplicitLotSaleFormState extends State<ExplicitLotSaleForm>
       shopId: widget.scope.shopId,
       day: widget.scope.day,
       reloadDay: widget.scope.reloadDay,
+      onConfirmed: widget.scope.onConfirmed,
       watched: [revision],
       canReview: lot != null,
       fields: [

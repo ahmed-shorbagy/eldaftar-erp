@@ -75,8 +75,8 @@ class FakeSupabase {
   String tokenUserId = userId;
   int governorateStatus = 200;
   Object governorateBody = [
-    {'code': 'EG-GZ', 'name_ar': 'الجيزة'},
-    {'code': 'EG-C', 'name_ar': 'القاهرة'},
+    {'code': 'EG-C', 'name_ar': 'القاهرة', 'display_order': 1},
+    {'code': 'EG-GZ', 'name_ar': 'الجيزة', 'display_order': 2},
   ];
   Completer<void>? releaseToken;
 
@@ -385,8 +385,8 @@ void main() {
       expect(request.url.path, contains('/egypt_governorates'));
       expect(request.url.query, contains('select=code'));
       expect(request.url.query, contains('name_ar'));
-      expect(request.url.query, contains('code.asc'));
-      expect(request.url.query, contains('name_ar.asc'));
+      expect(request.url.query, contains('display_order'));
+      expect(request.url.query, contains('display_order.asc'));
 
       fake.httpClient.recorded.clear();
       fake.governorateStatus = 503;

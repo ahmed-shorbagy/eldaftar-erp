@@ -427,6 +427,13 @@ call pg_temp.expect_error(
   'invalid_governorate'
 );
 call pg_temp.expect_error(
+  $sql$select count(*) from public.begin_owner_registration(
+    'c0c0c0c0-0000-4000-8000-0000000000aa', 'مالك الاختبار', 'متجر الاختبار', 'owner@example.test', '01012345678', 'EG-XXX'
+  )$sql$,
+  '22023',
+  'invalid_governorate'
+);
+call pg_temp.expect_error(
   $sql$select public.complete_owner_registration('c0c0c0c0-0000-4000-8000-0000000000aa')$sql$,
   'P0002',
   'registration_not_found'
