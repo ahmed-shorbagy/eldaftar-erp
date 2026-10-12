@@ -1,6 +1,6 @@
 # Repair custody and fees
 
-Status: implemented local working rule for REP-01/02/03; independently validated. Not deployed. [Validation](../reviews/repairs-2026-10-12/validation.md).
+Status: implemented working rule for REP-01/02/03; independently validated and deployed to development. [Deployment](../reviews/repairs-2026-10-12/deployment.md). [Validation](../reviews/repairs-2026-10-12/validation.md).
 Date: 2026-10-12
 
 Customer gold received for repair is custody. It is not saleable stock, scrap, a catalog product, or a lot. Intake increases custody once and posts no cash. Delivery, cancellation, and archive never hard-delete the record.
@@ -27,4 +27,4 @@ Cancellation of an active repair asks the owner to confirm return to the custome
 
 No disposal, ownership transfer, repair loss, material consumption, tax, accrual, or later debt settlement. Repair images and a general customer file are outside this slice. A zero-fee return is the cancellation path, so custody is not left without a release. Duplicate handover with the same or a different key cannot release or post twice.
 
-The migration `20261012153000_repairs_custody_and_fees.sql` is local only. Applying it to the development project needs a later authorized deployment. The sync read remains compatible before deployment by selecting the protected revision row and treating an absent repair revision as zero. The repair RPCs themselves remain unavailable until migration deployment.
+The source migration `20261012153000_repairs_custody_and_fees.sql` is deployed to development as `20261012134320`; its covering-index follow-up is deployed as `20261012135737`. The sync read remains compatible before deployment by selecting the protected revision row and treating an absent repair revision as zero. The repair RPCs are now available in the development project.

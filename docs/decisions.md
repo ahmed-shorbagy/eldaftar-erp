@@ -4,7 +4,7 @@
 
 [ADR 0010](adr/0010-owner-feedback-registration-and-ledger.md) revises the Egypt-only location portion of D25, removes tours/guides/practice entry points and restores separate daily books with full metric customization. [ADR 0011](adr/0011-required-location-subscription-sync.md) then requires a location on **new** registrations (Egypt catalog or non-empty `CC:label`), hashed subscription codes, and RLS-safe shop sync; historical empty `CC:` / `EG:text` profiles remain replayable. Existing owner-only authorization and financial accounting decisions remain in force. The [current review](reviews/owner-feedback-batch1-2026-10-11/validation.md) records local checks and links the subsequent owner-authorized development deployment; older evidence remains historical.
 
-[ADR 0012](adr/0012-repair-custody-and-fees.md) records the local REP-01/02/03 working rule: repair gold is custody, a collected fee posts once, and outstanding stays on the repair. That ADR is not deployment or acceptance.
+[ADR 0012](adr/0012-repair-custody-and-fees.md) records the local REP-01/02/03 working rule: repair gold is custody, a collected fee posts once, and outstanding stays on the repair. [Hosted deployment and validation](reviews/repairs-2026-10-12/deployment.md) now supplement the ADR; native and owner acceptance remain open.
 
 ## How to use this register
 
