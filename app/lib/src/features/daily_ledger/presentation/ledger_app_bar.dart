@@ -9,7 +9,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.shopName,
     required this.onToggleTheme,
-    required this.onSignOut,
     required this.topInset,
     this.subtitle,
     this.onChangeShop,
@@ -19,7 +18,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String shopName;
   final String? subtitle;
   final Future<void> Function(Brightness) onToggleTheme;
-  final Future<void> Function() onSignOut;
   final VoidCallback? onChangeShop;
   final double topInset;
   final bool compact;
@@ -140,77 +138,22 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              if (compact)
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(start: 6),
-                  child: DecoratedBox(
-                    decoration: _pillDecoration(scheme),
-                    child: PopupMenuButton<String>(
-                      tooltip: 'المزيد',
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'shop':
-                            onChangeShop?.call();
-                          case 'theme':
-                            onToggleTheme(theme.brightness);
-                          case 'signout':
-                            onSignOut();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (onChangeShop != null)
-                          const PopupMenuItem(
-                            value: 'shop',
-                            child: Text('اختيار متجر آخر'),
-                          ),
-                        PopupMenuItem(
-                          value: 'theme',
-                          child: Text(
-                            theme.brightness == Brightness.dark
-                                ? ShellCopy.toggleToLight
-                                : ShellCopy.toggleToDark,
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'signout',
-                          child: Text('تسجيل الخروج'),
-                        ),
-                      ],
-                      child: const SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Icon(Icons.more_horiz_rounded, size: 20),
-                      ),
-                    ),
-                  ),
-                )
-              else ...[
-                if (onChangeShop != null)
-                  _PillIconButton(
-                    tooltip: 'اختيار متجر آخر',
-                    onPressed: onChangeShop,
-                    icon: Icons.storefront_outlined,
-                  ),
+              if (onChangeShop != null)
                 _PillIconButton(
-                  key: const Key('theme-toggle'),
-                  tooltip: theme.brightness == Brightness.dark
-                      ? ShellCopy.toggleToLight
-                      : ShellCopy.toggleToDark,
-                  onPressed: () => onToggleTheme(theme.brightness),
-                  icon: theme.brightness == Brightness.dark
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
+                  tooltip: 'اختيار متجر آخر',
+                  onPressed: onChangeShop,
+                  icon: Icons.storefront_outlined,
                 ),
-                _PillIconButton(
-                  tooltip: 'تسجيل الخروج',
-                  onPressed: onSignOut,
-                  icon: Icons.logout_rounded,
-                ),
-              ],
+              _PillIconButton(
+                key: const Key('theme-toggle'),
+                tooltip: theme.brightness == Brightness.dark
+                    ? ShellCopy.toggleToLight
+                    : ShellCopy.toggleToDark,
+                onPressed: () => onToggleTheme(theme.brightness),
+                icon: theme.brightness == Brightness.dark
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined,
+              ),
             ],
           ),
         ),
@@ -250,7 +193,7 @@ class _PillIconButton extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           style: IconButton.styleFrom(
             shape: const StadiumBorder(),
-            minimumSize: const Size(44, 44),
+            minimumSize: const Size(48, 48),
             tapTargetSize: MaterialTapTargetSize.padded,
           ),
           icon: Icon(icon, size: 20),

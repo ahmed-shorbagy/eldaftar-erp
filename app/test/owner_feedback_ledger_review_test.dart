@@ -122,7 +122,6 @@ void main() {
                 gateway: gateway,
                 store: MemoryStore(),
                 userId: 'owner-1',
-                onSignOut: () async {},
                 onToggleTheme: (_) async {},
                 onChangeShop: () {},
               ),
@@ -173,6 +172,8 @@ void main() {
           await tester.pumpAndSettle();
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-filter-sale')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const Key('ledger-history-details')));
           await tester.pumpAndSettle();
           await tester.pumpAndSettle();
           expect(

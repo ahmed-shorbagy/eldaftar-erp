@@ -19,6 +19,7 @@ Future<void> host(
   String shop = 'feedback-shop',
   DailyLedgerView? view,
   VoidCallback? onSale,
+  VoidCallback? onExpense,
   bool canReturn = false,
   ValueChanged<LedgerFeedLine>? onOperation,
 }) async {
@@ -34,6 +35,7 @@ Future<void> host(
             shopId: shop,
             ledger: view ?? confirmedLedger(),
             onSale: onSale ?? () {},
+            onExpense: onExpense ?? () {},
             canReturn: canReturn,
             onOperation: onOperation,
           ),
@@ -67,7 +69,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetViewPadding);
       var sales = 0;
-      await host(tester, onSale: () => sales++);
+      await host(tester, onExpense: () => sales++);
       final bubble = find.byKey(const Key('ledger-quick-actions'));
       final original = tester.getCenter(bubble);
       expect(
@@ -87,7 +89,7 @@ void main() {
         ['1.0', '0.0'],
       );
       await tester.pumpWidget(const SizedBox.shrink());
-      await host(tester, onSale: () => sales++);
+      await host(tester, onExpense: () => sales++);
       expect(tester.getCenter(bubble), moved);
       await tester.tap(bubble);
       await tester.pumpAndSettle();
@@ -96,9 +98,9 @@ void main() {
       expect(tester.getCenter(bubble), original);
       await tester.tap(bubble);
       await tester.pumpAndSettle();
-      await tapVisible(tester, find.byKey(const Key('ledger-new-sale')));
+      await tapVisible(tester, find.byKey(const Key('ledger-new-expense')));
       expect(sales, 1);
-      expect(find.byKey(const Key('ledger-new-sale')), findsNothing);
+      expect(find.byKey(const Key('ledger-new-expense')), findsNothing);
       await host(tester, shop: 'another-shop');
       expect(tester.getCenter(bubble), original);
       expect(tester.takeException(), isNull);
@@ -209,6 +211,14 @@ void main() {
       final sales = find.byKey(const Key('ledger-journal-sale'));
       expect(
         find.descendant(of: sales, matching: find.text('بيع · عميل تجريبي')),
+        findsNothing,
+      );
+      await tapVisible(
+        tester,
+        find.byKey(const Key('ledger-journal-details-sale')),
+      );
+      expect(
+        find.descendant(of: sales, matching: find.text('بيع · عميل تجريبي')),
         findsOneWidget,
       );
       expect(
@@ -231,6 +241,7 @@ void main() {
         tester,
         find.byKey(const Key('ledger-journal-all-purchase')),
       );
+      await tapVisible(tester, find.byKey(const Key('ledger-history-details')));
       final history = find.byKey(const Key('ledger-history'));
       expect(
         find.descendant(of: history, matching: find.text('شراء · تاجر تجريبي')),
@@ -264,6 +275,7 @@ void main() {
       await tapVisible(tester, find.byKey(const Key('ledger-quick-actions')));
       await tapVisible(tester, find.byKey(const Key('ledger-more-actions')));
       await tapVisible(tester, find.byKey(const Key('ledger-new-return')));
+      await tapVisible(tester, find.byKey(const Key('ledger-history-details')));
       final history = find.byKey(const Key('ledger-history'));
       expect(find.text('اختر العملية الأصلية للمرتجع'), findsOneWidget);
       expect(
@@ -296,14 +308,20 @@ void main() {
     (tester) async {
       final gateway = FakeFinancialGateway();
       await pumpTrade(tester, gateway, FinancialKind.purchase);
+      await tapVisible(tester, find.byKey(const Key('trade-extra-categories')));
       expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
       expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
       expect(find.byKey(const Key('trade-select-name')), findsNothing);
+      await tapVisible(tester, find.byKey(const Key('trade-extra-categories')));
       await beginTrade(tester);
       expect(find.byKey(const Key('trade-name-0')), findsNothing);
       await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
       await nextTrade(tester);
-      await tester.ensureVisible(find.byKey(const Key('trade-purchase-price')));
+      await tester.dragUntilVisible(
+        find.byKey(const Key('trade-purchase-price')),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
       await tester.enterText(
         find.byKey(const Key('trade-purchase-price')),
         '60000.25',

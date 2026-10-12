@@ -45,9 +45,8 @@ class ShopWorkspace extends StatefulWidget {
 }
 
 class _ShopWorkspaceState extends State<ShopWorkspace> {
-  int _destination = 1;
+  int _destination = 0;
   static const _labels = [
-    'الرئيسية',
     'الدفتر اليومي',
     'المخزون',
     'العملاء',
@@ -55,7 +54,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     'المزيد',
   ];
   static const _icons = [
-    Icons.home_outlined,
     Icons.menu_book_outlined,
     Icons.inventory_2_outlined,
     Icons.people_outline,
@@ -103,33 +101,20 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   }
 
   Widget _body() => switch (_destination) {
-    0 => _page('الرئيسية', [
-      Text(widget.shop.name, style: Theme.of(context).textTheme.headlineSmall),
-      const SizedBox(height: 8),
-      const Text(
-        'ابدأ يومك من الدفتر وتابع الأرصدة المؤكدة قبل تسجيل حركة جديدة.',
-      ),
-      const SizedBox(height: 16),
-      _link('فتح الدفتر اليومي', Icons.menu_book_outlined, () => _select(1)),
-      if (widget.inventoryBuilder != null)
-        _link('عرض المخزون', Icons.inventory_2_outlined, () => _select(2)),
-      if (widget.traderBuilder != null)
-        _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
-    ]),
-    1 => DailyLedgerScreen(
+    0 => DailyLedgerScreen(
       shop: widget.shop,
       gateway: widget.gateway,
       store: widget.store,
       userId: widget.userId,
       refreshGeneration: widget.refreshGeneration,
       syncTicks: widget.syncTicks,
-      onSignOut: widget.onSignOut,
       onToggleTheme: widget.onToggleTheme,
       onChangeShop: widget.onChangeShop,
       onActivateSubscription: widget.onActivateSubscription,
       onboardingStore: widget.onboardingStore,
+      inventoryPage: widget.inventoryBuilder,
     ),
-    2 =>
+    1 =>
       widget.inventoryBuilder?.call(context) ??
           _page('المخزون', [
             const Text(
@@ -138,25 +123,25 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
             _link(
               'فتح الدفتر اليومي',
               Icons.menu_book_outlined,
-              () => _select(1),
+              () => _select(0),
             ),
           ]),
-    3 => _page('العملاء', [
+    2 => _page('العملاء', [
       const Text(
         'إدارة ملفات العملاء ضمن المرحلة الرابعة. بيانات طرف العملية متاحة في تفاصيل العملية المؤكدة داخل الدفتر.',
       ),
-      _link('فتح العمليات المؤكدة', Icons.menu_book_outlined, () => _select(1)),
+      _link('فتح العمليات المؤكدة', Icons.menu_book_outlined, () => _select(0)),
     ]),
-    4 => _page('التقارير', [
+    3 => _page('التقارير', [
       const Text(
         'التقارير الدورية ضمن المرحلة الخامسة. يمكنك الآن قراءة الدفتر وتصدير نسخة عربية من العملية المؤكدة.',
       ),
-      _link('فتح الدفتر اليومي', Icons.menu_book_outlined, () => _select(1)),
+      _link('فتح الدفتر اليومي', Icons.menu_book_outlined, () => _select(0)),
     ]),
     _ => _page('المزيد', [
       if (widget.traderBuilder != null)
         _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
-      _link('التقارير', Icons.assessment_outlined, () => _select(4)),
+      _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(
         Theme.of(context).brightness == Brightness.dark
             ? 'المظهر الفاتح'
@@ -202,18 +187,18 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           ),
         );
       }
-      const indices = [0, 1, 2, 3, 5];
+      const indices = [0, 1, 2, 4];
       return Scaffold(
         body: _body(),
         bottomNavigationBar: NavigationBar(
-          selectedIndex: _destination == 4 ? 4 : indices.indexOf(_destination),
+          selectedIndex: _destination == 3 ? 3 : indices.indexOf(_destination),
           onDestinationSelected: (index) => _select(indices[index]),
           destinations: [
             for (final index in indices)
               NavigationDestination(
                 key: Key('workspace-nav-$index'),
                 icon: Icon(_icons[index]),
-                label: index == 1 ? 'الدفتر' : _labels[index],
+                label: index == 0 ? 'الدفتر' : _labels[index],
                 tooltip: 'فتح ${_labels[index]}',
               ),
           ],

@@ -863,7 +863,6 @@ void main() {
         gateway: ledger,
         store: MemoryOpening(),
         userId: userId,
-        onSignOut: () async {},
         onToggleTheme: (_) async {},
         onChangeShop: () {},
       ),
@@ -926,7 +925,7 @@ Future<void> revealInLedger(WidgetTester tester, Finder target) async {
     of: find.byKey(const Key('ledger-scroll')),
     matching: find.byType(Scrollable),
   );
-  final position = tester.state<ScrollableState>(scrollable).position;
+  final position = tester.state<ScrollableState>(scrollable.first).position;
   final height = tester.view.physicalSize.height / tester.view.devicePixelRatio;
   for (var attempt = 0; attempt < 20; attempt++) {
     final box = tester.renderObject<RenderBox>(target);

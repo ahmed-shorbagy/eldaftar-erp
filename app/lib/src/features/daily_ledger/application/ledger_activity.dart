@@ -195,6 +195,37 @@ BigInt? _minSequence(Iterable<LedgerFeedLine> lines) {
   return min;
 }
 
+/// Server sequences order current records. For a history containing legacy
+/// records without sequences, persisted UTC instants provide one consistent
+/// order for the entire list; device dates and formatted shop dates never do.
+List<LedgerFeedLine> sortLedgerHistory(
+  Iterable<LedgerFeedLine> lines, {
+  required bool newestFirst,
+}) {
+  final copy = [...lines];
+  final sequences = <String, BigInt>{
+    for (final line in copy)
+      if (line.shopSequence != null)
+        line.operationId: PostgresInteger.parseCanonical(line.shopSequence!)!,
+  };
+  final useSequences = copy.every(
+    (line) => sequences.containsKey(line.operationId),
+  );
+  copy.sort((left, right) {
+    var order = useSequences
+        ? sequences[left.operationId]!.compareTo(sequences[right.operationId]!)
+        : 0;
+    if (order == 0) {
+      order = DateTime.parse(
+        left.occurredAt,
+      ).compareTo(DateTime.parse(right.occurredAt));
+    }
+    if (order == 0) order = left.operationId.compareTo(right.operationId);
+    return newestFirst ? -order : order;
+  });
+  return copy;
+}
+
 List<LedgerFeedLine> _sorted(Iterable<LedgerFeedLine> lines) {
   final copy = [...lines];
   copy.sort((left, right) {

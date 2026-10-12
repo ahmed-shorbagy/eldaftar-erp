@@ -58,3 +58,19 @@ test('gold actions and financial statuses have readable contrast in both themes'
   expect(contrast(tokens.lightSuccess, tokens.lightSurface)).toBeGreaterThanOrEqual(4.5)
   expect(contrast(tokens.darkSuccess, tokens.darkCard)).toBeGreaterThanOrEqual(4.5)
 })
+
+test('table borders stay in the brown-gold palette and remain visible', () => {
+  const light = createAppTheme('light')
+  const dark = createAppTheme('dark')
+  const lightCell = light.components?.MuiTableCell?.styleOverrides?.root as {
+    borderColor?: string
+  }
+  const darkCell = dark.components?.MuiTableCell?.styleOverrides?.root as {
+    borderColor?: string
+  }
+  expect(lightCell.borderColor).toBe(tokens.lightTableBorder)
+  expect(darkCell.borderColor).toBe(tokens.darkTableBorder)
+  expect(contrast(tokens.lightTableBorder, tokens.lightSurface)).toBeGreaterThanOrEqual(3)
+  expect(contrast(tokens.darkTableBorder, tokens.darkCard)).toBeGreaterThanOrEqual(3)
+  expect(contrast(tokens.darkTableBorder, tokens.darkSurface)).toBeGreaterThanOrEqual(3)
+})

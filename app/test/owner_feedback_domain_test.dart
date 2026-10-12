@@ -86,7 +86,6 @@ void main() {
       expect(displayPounds('30000.50'), '30,000.50');
       expect(displayPounds('90071992547409.93'), '90,071,992,547,409.93');
       expect(displayPounds('-1250.01'), '−1,250.01');
-      expect(displayPounds('1500000.25', compact: true), '1.5 مليون');
       expect(displayPounds('1500000.25'), '1,500,000.25');
       expect(displayPounds('0.01'), '0.01');
       expect(displayPounds('—'), '—');

@@ -246,7 +246,6 @@ void main() {
                   gateway: CaptureNotes(),
                   store: CaptureStore(),
                   userId: 'user-1',
-                  onSignOut: () async {},
                   onToggleTheme: (_) async {},
                   onChangeShop: () {},
                 ),

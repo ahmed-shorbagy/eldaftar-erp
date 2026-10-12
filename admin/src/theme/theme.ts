@@ -6,6 +6,7 @@ export function createAppTheme(mode: ResolvedTheme) {
   const isLight = mode === 'light'
   const surface = isLight ? tokens.lightSurface : tokens.darkSurface
   const onSurface = isLight ? tokens.lightOnSurface : tokens.darkOnSurface
+  const tableBorder = isLight ? tokens.lightTableBorder : tokens.darkTableBorder
 
   return createTheme({
     direction: 'rtl',
@@ -75,6 +76,23 @@ export function createAppTheme(mode: ResolvedTheme) {
           root: {
             backgroundImage: 'none',
             boxShadow: 'none',
+          },
+        },
+      },
+      MuiTable: {
+        styleOverrides: {
+          root: {
+            borderCollapse: 'separate',
+            borderSpacing: 0,
+            border: `1px solid ${tableBorder}`,
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            borderColor: tableBorder,
+            padding: '10px 12px',
           },
         },
       },

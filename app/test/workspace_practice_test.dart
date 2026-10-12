@@ -164,15 +164,10 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await tester.tap(find.text('الرئيسية').last);
-          await tester.pumpAndSettle();
+          expect(find.text('الرئيسية'), findsNothing);
           expect(
             Directionality.of(
-              tester.element(
-                find.text(
-                  'ابدأ يومك من الدفتر وتابع الأرصدة المؤكدة قبل تسجيل حركة جديدة.',
-                ),
-              ),
+              tester.element(find.byKey(const Key('ledger-title'))),
             ),
             TextDirection.rtl,
           );

@@ -119,17 +119,34 @@ Future<void> pumpTrade(
 }
 
 Future<void> nextTrade(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('trade-next')));
+  final next = find.byKey(const Key('trade-next'));
+  if (next.evaluate().isNotEmpty) {
+    await tester.ensureVisible(next);
+    await tester.tap(next);
+  } else {
+    expect(find.byKey(const Key('trade-review')), findsOneWidget);
+  }
   await tester.pumpAndSettle();
 }
 
 Future<void> beginTrade(WidgetTester tester) async {
-  final ring = find.byKey(const Key('trade-select-خاتم'));
-  await tester.tap(
-    ring.evaluate().isNotEmpty
-        ? ring
-        : find.byKey(const Key('trade-select-كسر')),
+  final screen = tester.widget<FinancialTradeScreen>(
+    find.byType(FinancialTradeScreen),
   );
+  final item = find.byKey(
+    Key(
+      screen.kind == FinancialKind.scrapSale
+          ? 'trade-select-كسر'
+          : 'trade-select-خاتم',
+    ),
+  );
+  await tester.dragUntilVisible(
+    item,
+    find.byType(ListView),
+    const Offset(0, 250),
+  );
+  await tester.ensureVisible(item);
+  await tester.tap(item);
   await nextTrade(tester);
 }
 
@@ -218,7 +235,7 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.text('4,200.25'), findsWidgets);
-    expect(find.text('1.830 جرام'), findsOneWidget);
+    expect(find.text('1.83 جرام'), findsOneWidget);
     expect(gateway.keys, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
@@ -247,8 +264,13 @@ void main() {
       find.byKey(const Key('trade-purchase-price')),
       '60000',
     );
+    await tester.ensureVisible(
+      find.byKey(const Key('trade-customer-disclosure')),
+    );
+    await tester.tap(find.byKey(const Key('trade-customer-disclosure')));
+    await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const Key('trade-seller-name')),
+      find.byKey(const Key('trade-customer-name')),
       'تاجر تجريبي',
     );
     await tester.dragUntilVisible(
@@ -312,7 +334,7 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.textContaining('ينقص الكسر'), findsOneWidget);
-    expect(find.text('0.375 جرام'), findsOneWidget);
+    expect(find.text('0.38 جرام'), findsOneWidget);
     expect(gateway.payloads, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
@@ -352,16 +374,22 @@ void main() {
       await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
       await nextTrade(tester);
       await tester.dragUntilVisible(
-        find.byKey(const Key('trade-price-details')),
+        find.byKey(const Key('trade-tender-amount-0')),
         find.byType(ListView),
         const Offset(0, -250),
       );
-      await tester.tap(find.byKey(const Key('trade-price-details')));
-      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('trade-tender-amount-0')),
         '1040.02',
       );
+      await tester.dragUntilVisible(
+        find.byKey(const Key('trade-price-disclosure')),
+        find.byType(ListView),
+        const Offset(0, -250),
+      );
+      await tester.tap(find.byKey(const Key('trade-price-disclosure')));
+      await tester.pumpAndSettle();
+
       for (final entry in {
         'trade-base-price': '1000.01',
         'trade-workmanship': '50.02',

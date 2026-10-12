@@ -292,6 +292,9 @@ Future<void> expectConfirmedFeed(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('ledger-other-movements')));
   await tester.pumpAndSettle();
   expect(find.text('رصيد افتتاحي'), findsWidgets);
+  expect(find.text(cairoStamp), findsNothing);
+  await tester.tap(find.byKey(const Key('ledger-history-details')));
+  await tester.pumpAndSettle();
   expect(find.text(cairoStamp), findsOneWidget);
   expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
@@ -496,7 +499,7 @@ Future<void> fillFullExample(WidgetTester tester) async {
   expect(find.text('مشغولات عيار 14'), findsOneWidget);
   expect(find.text('مشغولات عيار 22'), findsOneWidget);
   expect(find.text('سبائك عيار 24'), findsOneWidget);
-  expect(find.text('5.000 جرام'), findsWidgets);
+  expect(find.text('5.00 جرام'), findsWidgets);
   expect(find.text('كسر عيار 18'), findsOneWidget);
   expect(find.text('كسر عيار 24'), findsOneWidget);
   expect(find.text('العدد'), findsNWidgets(5));
@@ -564,7 +567,6 @@ Future<void> pumpLedger(
           store: CaptureStore(),
           userId: 'user-1',
           onboardingStore: onboardingStore,
-          onSignOut: () async {},
           onToggleTheme: (_) async {},
           onChangeShop: () {},
         ),

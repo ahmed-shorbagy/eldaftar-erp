@@ -15,8 +15,18 @@ abstract final class AppTokens {
   static const Color darkAccent = Color(0xFFD4AF37);
   static const Color darkCard = Color(0xFF161616);
   static const Color darkOutline = Color(0xFF343434);
+
+  /// Warm gold-brown rule on cream. Visible against the page without a new hue.
+  static const Color lightTableBorder = Color(0xFF8F6B2E);
+
+  /// Muted gold rule on charcoal. Dark outlines stay neutral; tables use this.
+  static const Color darkTableBorder = Color(0xFF9A7B45);
+
   static const Color lightSuccess = Color(0xFF206638);
   static const Color darkSuccess = Color(0xFF86D99F);
+
+  static Color tableBorderFor(Brightness brightness) =>
+      brightness == Brightness.dark ? darkTableBorder : lightTableBorder;
 
   static const double fieldRadius = 14;
   static const double cardRadius = 22;

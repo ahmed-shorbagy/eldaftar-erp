@@ -98,7 +98,7 @@ void main() {
   ) async {
     await pumpDashboard(tester);
     expect(find.text('124'), findsOneWidget);
-    expect(find.text('1.750'), findsOneWidget);
+    expect(find.text('1.75'), findsOneWidget);
     expect(find.textContaining('عيار 18'), findsNothing);
     expect(find.textContaining('123.45'), findsNothing);
     await tester.tap(find.byKey(const Key('ledger-view-cash')));
@@ -157,7 +157,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('مشغولات'), findsOneWidget);
     expect(find.textContaining('عيار 18'), findsWidgets);
-    expect(find.textContaining('1.250 جرام'), findsWidgets);
+    expect(find.textContaining('1.25 جرام'), findsWidgets);
   });
 
   testWidgets('full karat and payment cards fit phone and desktop', (

@@ -10,6 +10,8 @@ export const tokens = {
   darkOnPrimaryContainer: '#F6F1E8',
   lightOutline: '#D9CBB8',
   darkOutline: '#343434',
+  lightTableBorder: '#8F6B2E',
+  darkTableBorder: '#9A7B45',
   brandGold: '#E6C36A',
   lightAccent: '#94681F',
   darkAccent: '#D4AF37',

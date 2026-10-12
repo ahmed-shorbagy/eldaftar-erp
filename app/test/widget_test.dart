@@ -188,7 +188,7 @@ void main() {
     expect(find.text('اختر المتجر'), findsNothing);
     expect(find.text('الدفتر اليومي'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
-    await tester.tap(find.byTooltip('المزيد'));
+    await tester.tap(find.text('المزيد').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('تسجيل الخروج'));
     await tester.pumpAndSettle();

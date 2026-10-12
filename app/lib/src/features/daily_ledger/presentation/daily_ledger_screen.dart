@@ -14,7 +14,9 @@ import '../../daily_notes/presentation/daily_notes_screen.dart';
 import '../application/opening_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
+import '../../inventory/application/inventory_gateway.dart';
 import '../application/ledger_activity.dart';
+import '../application/ledger_line_items.dart';
 import '../application/idempotency_key.dart';
 import '../application/pending_opening_store.dart';
 import '../application/pending_financial_command.dart';
@@ -41,7 +43,6 @@ class DailyLedgerScreen extends StatefulWidget {
   const DailyLedgerScreen({
     super.key,
     required this.shop,
-    required this.onSignOut,
     required this.onToggleTheme,
     this.onChangeShop,
     this.onActivateSubscription,
@@ -53,10 +54,10 @@ class DailyLedgerScreen extends StatefulWidget {
     this.newKey,
     this.onboardingStore,
     this.guideResumeGeneration = 0,
+    this.inventoryPage,
   });
 
   final ShopAccount shop;
-  final Future<void> Function() onSignOut;
   final Future<void> Function(Brightness) onToggleTheme;
   final VoidCallback? onChangeShop;
   final Future<void> Function()? onActivateSubscription;
@@ -68,6 +69,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final String Function()? newKey;
   final OnboardingStore? onboardingStore;
   final int guideResumeGeneration;
+  final WidgetBuilder? inventoryPage;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -409,17 +411,34 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         _financialPending != null) {
       return;
     }
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => FinancialTradeScreen(
-          kind: kind,
-          gateway: gateway,
-          statusGateway: widget.gateway!,
-          userId: userId,
-          shopId: widget.shop.id,
+    final catalog = gateway is InventoryGateway
+        ? gateway as InventoryGateway
+        : null;
+    final bool? saved;
+    if (kind == FinancialKind.sale || kind == FinancialKind.purchase) {
+      saved = await showFinancialTradeSheet(
+        context: context,
+        kind: kind,
+        gateway: gateway,
+        statusGateway: widget.gateway!,
+        userId: userId,
+        shopId: widget.shop.id,
+        catalog: catalog,
+        inventoryPage: widget.inventoryPage,
+      );
+    } else {
+      saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => FinancialTradeScreen(
+            kind: kind,
+            gateway: gateway,
+            statusGateway: widget.gateway!,
+            userId: userId,
+            shopId: widget.shop.id,
+          ),
         ),
-      ),
-    );
+      );
+    }
     if (!mounted) return;
     if (saved == true) {
       ScaffoldMessenger.of(
@@ -525,6 +544,18 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
+  }
+
+  Future<List<LedgerLineItem>?> _loadOperationItems(String operationId) async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    if (gateway == null || userId == null) return null;
+    final operation = await gateway.operation(
+      callerUserId: userId,
+      operationId: operationId,
+    );
+    final payload = operation['payload'];
+    return ledgerLineItemsFromPayload(payload);
   }
 
   Future<void> _openOperation(LedgerFeedLine line) async {
@@ -700,7 +731,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         topInset: MediaQuery.paddingOf(context).top,
         compact: compact,
         onToggleTheme: widget.onToggleTheme,
-        onSignOut: widget.onSignOut,
         onChangeShop: widget.onChangeShop,
       ),
       body: Align(
@@ -897,6 +927,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       _feedGateway == null || _activity.state.userId.isEmpty
                       ? null
                       : _activity.state.lines,
+                  loadItems: _loadOperationItems,
                 ),
               ],
             ],
@@ -928,6 +959,7 @@ class _LedgerBody extends StatelessWidget {
     this.onLoadOlder,
     this.loadingOlder = false,
     this.activityLines,
+    this.loadItems,
   });
 
   final DailyLedgerController controller;
@@ -949,6 +981,7 @@ class _LedgerBody extends StatelessWidget {
   final VoidCallback? onLoadOlder;
   final bool loadingOlder;
   final List<LedgerFeedLine>? activityLines;
+  final Future<List<LedgerLineItem>?> Function(String operationId)? loadItems;
 
   @override
   Widget build(BuildContext context) {
@@ -1007,6 +1040,7 @@ class _LedgerBody extends StatelessWidget {
             onLoadOlder: onLoadOlder,
             loadingOlder: loadingOlder,
             activityLines: activityLines,
+            loadItems: loadItems,
           ),
           LedgerPhase.refreshFailed => const _RefreshFailedNotice(),
           LedgerPhase.accessDenied => const SizedBox.shrink(),
@@ -1422,7 +1456,7 @@ class _Review extends StatelessWidget {
         for (final row in draft.stock) ...[
           _ReviewLine(
             label: '${stockCategoryLabel(row.category)} عيار ${row.karat}',
-            amount: '${row.milligrams.gramsText} جرام',
+            amount: displayGoldEffect(row.milligrams.value),
           ),
           _ReviewLine(label: 'العدد', amount: row.count.wire),
         ],
@@ -1431,7 +1465,7 @@ class _Review extends StatelessWidget {
         for (final row in draft.scrap)
           _ReviewLine(
             label: 'كسر عيار ${row.karat}',
-            amount: '${row.milligrams.gramsText} جرام',
+            amount: displayGoldEffect(row.milligrams.value),
           ),
         if (showActions) ...[
           const SizedBox(height: 16),
@@ -1587,7 +1621,5 @@ String _totalGold(OpeningDraft draft) {
     ...draft.stock.map((row) => row.milligrams.value),
     ...draft.scrap.map((row) => row.milligrams.value),
   ].fold(BigInt.zero, (sum, value) => sum + value);
-  final whole = total ~/ BigInt.from(1000);
-  final fraction = (total % BigInt.from(1000)).toString().padLeft(3, '0');
-  return '$whole.$fraction';
+  return displayGrams(total.toString());
 }

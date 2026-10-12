@@ -52,7 +52,9 @@ abstract final class AppTheme {
       borderRadius: BorderRadius.circular(AppTokens.fieldRadius),
       borderSide: BorderSide(color: scheme.outlineVariant),
     );
+    final tableBorder = AppTokens.tableBorderFor(brightness);
     return base.copyWith(
+      extensions: [AppSemanticColors(tableBorder: tableBorder)],
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: scheme.surface,
       appBarTheme: AppBarTheme(
@@ -188,6 +190,44 @@ abstract final class AppTheme {
           ),
         ),
       ),
+      dataTableTheme: DataTableThemeData(
+        dividerThickness: 1,
+        headingRowHeight: AppTokens.minControlSize,
+        dataRowMinHeight: AppTokens.minControlSize,
+        dataRowMaxHeight: 72,
+        decoration: BoxDecoration(
+          border: Border.all(color: tableBorder),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+}
+
+/// Semantic colors that Material's scheme does not name.
+@immutable
+class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
+  const AppSemanticColors({required this.tableBorder});
+
+  final Color tableBorder;
+
+  static AppSemanticColors of(BuildContext context) {
+    final colors = Theme.of(context).extension<AppSemanticColors>();
+    return colors ??
+        AppSemanticColors(
+          tableBorder: AppTokens.tableBorderFor(Theme.of(context).brightness),
+        );
+  }
+
+  @override
+  AppSemanticColors copyWith({Color? tableBorder}) =>
+      AppSemanticColors(tableBorder: tableBorder ?? this.tableBorder);
+
+  @override
+  AppSemanticColors lerp(ThemeExtension<AppSemanticColors>? other, double t) {
+    if (other is! AppSemanticColors) return this;
+    return AppSemanticColors(
+      tableBorder: Color.lerp(tableBorder, other.tableBorder, t) ?? tableBorder,
     );
   }
 }

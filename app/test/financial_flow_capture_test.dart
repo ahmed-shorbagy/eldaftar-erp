@@ -197,8 +197,13 @@ void main() {
           find.byKey(const Key('trade-purchase-price')),
           '60000',
         );
+        await tester.ensureVisible(
+          find.byKey(const Key('trade-customer-disclosure')),
+        );
+        await tester.tap(find.byKey(const Key('trade-customer-disclosure')));
+        await tester.pumpAndSettle();
         await tester.enterText(
-          find.byKey(const Key('trade-seller-name')),
+          find.byKey(const Key('trade-customer-name')),
           'تاجر تجريبي',
         );
         await tester.dragUntilVisible(

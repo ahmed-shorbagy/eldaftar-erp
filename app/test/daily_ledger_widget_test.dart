@@ -250,7 +250,6 @@ Future<void> pumpScreen(
         userId: user,
         refreshGeneration: generation,
         onboardingStore: onboardingStore,
-        onSignOut: () async {},
         onToggleTheme: (_) async {},
         newKey: () => '99999999-9999-4999-8999-999999999999',
       ),
@@ -355,8 +354,8 @@ void main() {
         await tester.ensureVisible(find.text('حركة الذهب'));
         await tester.tap(find.text('حركة الذهب'));
         await tester.pumpAndSettle();
-        expect(find.text('2.000 جرام'), findsOneWidget);
-        expect(find.text('بيع: 2.000 جرام'), findsOneWidget);
+        expect(find.text('2.00 جرام'), findsOneWidget);
+        expect(find.text('بيع: 2.00 جرام'), findsOneWidget);
         expect(
           find.byKey(const Key('ledger-gold-sale-worked_jewelry-18')),
           findsOneWidget,
@@ -364,7 +363,7 @@ void main() {
         await tester.ensureVisible(find.byKey(const Key('ledger-karat-21')));
         await tester.tap(find.byKey(const Key('ledger-karat-21')));
         await tester.pump();
-        expect(find.text('شراء: 1.250 جرام'), findsOneWidget);
+        expect(find.text('شراء: 1.25 جرام'), findsOneWidget);
         expect(
           find.byKey(const Key('ledger-gold-sale-worked_jewelry-18')),
           findsNothing,
@@ -412,12 +411,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byTooltip('تحديث الدفتر'), findsNothing);
-      expect(find.byTooltip('المزيد'), findsOneWidget);
+      expect(find.byKey(const Key('theme-toggle')), findsOneWidget);
+      expect(find.byTooltip('المزيد'), findsNothing);
       expect(find.byTooltip('تسجيل الخروج'), findsNothing);
-      await tester.tap(find.byTooltip('المزيد'));
-      await tester.pumpAndSettle();
-      expect(find.text('اختيار متجر آخر'), findsNothing);
-      expect(find.text('تسجيل الخروج'), findsOneWidget);
+      expect(find.text('تسجيل الخروج'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -505,7 +502,7 @@ void main() {
     expect(find.text('إجمالي النقد'), findsOneWidget);
     expect(find.text('صافي النقد'), findsNothing);
     expect(find.text('10,000'), findsWidgets);
-    expect(find.text('5.000 جرام'), findsWidgets);
+    expect(find.text('5.00 جرام'), findsWidgets);
     expect(find.text('10,000'), findsWidgets);
     await tester.tap(find.byKey(const Key('confirm-opening')));
     await tester.pump();
@@ -524,6 +521,9 @@ void main() {
     await tester.tap(find.byKey(const Key('ledger-other-movements')));
     await tester.pumpAndSettle();
     expect(find.text('رصيد افتتاحي'), findsWidgets);
+    expect(find.text('26 سبتمبر 2026، 03:30:00'), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-history-details')));
+    await tester.pumpAndSettle();
     expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);
     expect(find.textContaining('T'), findsNothing);
     expect(gateway.confirmCalls, 1);
@@ -1133,7 +1133,12 @@ void main() {
     await show(tester, const Key('review-values'));
     await tester.tap(find.byKey(const Key('review-values')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('9223372036854775.807'), findsWidgets);
+    expect(
+      find.textContaining(
+        '9,223,372,036,854,775.81 جرام (9,223,372,036,854,775,807 ملليجرام)',
+      ),
+      findsWidgets,
+    );
     expect(find.text('9223372036854775807'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

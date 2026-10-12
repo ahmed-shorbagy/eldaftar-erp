@@ -693,7 +693,9 @@ bool _hasPositivePiastres(Object? value) {
 String _grams(Object? value) {
   if (value is! String) return '—';
   final result = Milligrams.parseWire(value);
-  return result is Accepted<Milligrams> ? result.value.gramsText : '—';
+  return result is Accepted<Milligrams>
+      ? displayGrams(result.value.gramsText)
+      : '—';
 }
 
 String _method(Object? value) => switch (value) {
