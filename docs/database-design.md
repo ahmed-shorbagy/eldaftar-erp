@@ -54,7 +54,7 @@ Names are illustrative; migrations should choose stable naming once contracts ar
 | Trading | sale_details, purchase_details, tender_lines, return_details | one-to-one typed detail to operation; line item references lot/product; tender lines point to payment method account |
 | Inventory | inventory_receipts, recognition_allocations, stock_counts, stock_adjustments | receipt can be held unrecognized, then linked once to stock/scrap/custody allocation; manual stock entry must link to receipt |
 | Accounts | traders, trader_transactions, obligations, obligation_settlements, financing_sources | obligations carry direction, commodity/currency, counterparty, due state; settlements post through journal |
-| Repairs | repairs, repair_events, repair_media | repair state and custody movement linked to customer and operation; delivery requires authorized transition |
+| Repairs | repairs, repair_events, repair_custody_events, repair_command_requests | Local migration `20261012153000`: customer text lives on the repair; custody is not a lot; a collected fee links one `repair_fee` operation. Repair media is not in this slice. Not deployed. [ADR 0012](adr/0012-repair-custody-and-fees.md) |
 | CRM | customers, customer_phones, customer_notes, customer_requests, contact_consents | unique normalized phone per shop only if approved; notes and contact data scoped to the owning shop |
 | Documents | invoice_snapshots, invoice_render_jobs, invoice_dispatches, dispatch_attempts, attachments | invoice snapshot freezes confirmed transaction details; dispatch and media are separate state machines |
 | Reports and messages | report_jobs, notification_jobs, delivery_attempts, projection_cursors | generated outputs reference the owning shop; retries have stable keys |

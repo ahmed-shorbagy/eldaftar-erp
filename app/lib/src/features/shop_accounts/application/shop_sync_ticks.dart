@@ -9,6 +9,7 @@ class ShopSyncTicks extends ChangeNotifier {
   int inventory = 0;
   int trader = 0;
   int invoice = 0;
+  int repair = 0;
 
   void apply(Set<ShopSyncScope> scopes) {
     var changed = false;
@@ -31,6 +32,14 @@ class ShopSyncTicks extends ChangeNotifier {
         scopes.contains(ShopSyncScope.ledger) ||
         scopes.contains(ShopSyncScope.day)) {
       invoice++;
+      changed = true;
+    }
+    if (scopes.contains(ShopSyncScope.repair) ||
+        scopes.contains(ShopSyncScope.ledger) ||
+        scopes.contains(ShopSyncScope.day) ||
+        scopes.contains(ShopSyncScope.subscription) ||
+        scopes.contains(ShopSyncScope.location)) {
+      repair++;
       changed = true;
     }
     if (changed) notifyListeners();

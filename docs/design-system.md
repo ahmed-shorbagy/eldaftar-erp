@@ -64,6 +64,12 @@ Correction entry stays inside a physical-count mismatch and shows the required A
 
 Exchange replacement uses the accepted category → items → payment → optional details → review form. Its final review appends the linked return, replacement and exact net cash by method and category/karat gold/count effects. Unknown requests remain frozen for reconciliation. Both forms retain the 720-pixel content measure, semantic theme roles, Cairo, RTL, currency-free money and three-decimal grams; signed values use LTR isolation in Arabic effect labels. [Widget/native synthetic review and limits](reviews/ledger-compensation-2026-10-06/validation.md).
 
+## Repair custody layout
+
+No repair reference mockup exists. The repairs workspace uses the same 720-pixel measure, 48-pixel controls, Cairo, RTL, and semantic theme roles as the ledger. It opens from More as الصيانة. Below 480 pixels of available form width, payment method and amount stack vertically so the complete method balance remains readable. Search keeps a short persistent label with the searchable fields in helper text. Money remains currency-free with LTR isolation; dates and audit actions are displayed in Arabic.
+
+The list is a search field, wrapping status filters (المفتوحة، تم التسليم، الملغاة، المؤرشفة، المتبقي), and tappable cards. Ordinary weight is two decimals. Detail keeps the original three-decimal weight, formatted shop-local server time and Arabic owner audit lines. Intake, handover, cancel, and archive each show an effect review before confirmation: custody, stock zero, and exact cash. Confirmation shows exact milligrams when two-decimal rounding would hide them. A sync tick during review disables confirm until reload. Pending and unknown commands stay on one banner with the original retry. Expired entitlement shows a read-only banner and hides write actions. Success uses the tertiary role and returns to the list only after the owner asks.
+
 ## Verification rules
 
 1. Read this guide and both token files before changing UI. Use semantic theme roles for text, surfaces, controls, borders, errors, pending and success.
@@ -77,3 +83,5 @@ The [compact ledger review](reviews/compact-ledger-2026-10-05/validation.md) rec
 The [Batch 1 review](reviews/owner-feedback-batch1-2026-10-11/validation.md) records required location, compact sign-in, subscription activation and automatic synchronization checks.
 
 The [Batch 2 review](reviews/owner-feedback-batch2-2026-10-12/validation.md) records compact metrics, horizontal journals, constrained buy/sell entry, navigation cleanup and verification limits.
+
+The [repairs review](reviews/repairs-2026-10-12/validation.md) records custody/fee behavior, phone/desktop theme captures and independent validation limits.

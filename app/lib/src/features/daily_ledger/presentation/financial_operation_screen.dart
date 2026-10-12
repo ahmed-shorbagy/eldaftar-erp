@@ -394,7 +394,9 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(switch (widget.line.kind) {
-                                  'sale' || 'scrap_sale' => 'النقد المحصّل',
+                                  'sale' ||
+                                  'scrap_sale' ||
+                                  'repair_fee' => 'النقد المحصّل',
                                   'purchase' => 'سعر الشراء الكلي',
                                   'sale_return' || 'purchase_return' =>
                                     details['consideration_piastres'] is String
@@ -410,6 +412,15 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               ],
                             ),
                           ),
+                        ),
+                      ],
+                      if (widget.line.kind == 'repair_fee') ...[
+                        Text('القطعة: ${details['description'] ?? ''}'),
+                        Text(
+                          'الأجرة النهائية: ${_pounds(details['final_fee_piastres'])}',
+                        ),
+                        Text(
+                          'المتبقي: ${_pounds(details['outstanding_piastres'])}',
                         ),
                       ],
                       if (operation?['exchange_effects'] is Map)

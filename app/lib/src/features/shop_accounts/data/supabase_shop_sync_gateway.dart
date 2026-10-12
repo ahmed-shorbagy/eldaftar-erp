@@ -95,11 +95,7 @@ class SupabaseShopSyncGateway implements ShopSyncGateway {
     try {
       final response = await _client
           .from('shop_sync_signals')
-          .select(
-            'shop_id, revision, ledger_revision, inventory_revision, '
-            'trader_revision, invoice_revision, day_revision, '
-            'location_revision, subscription_revision',
-          )
+          .select()
           .eq('shop_id', shopId)
           .maybeSingle()
           .timeout(const Duration(seconds: 15));
@@ -148,6 +144,7 @@ class SupabaseShopSyncGateway implements ShopSyncGateway {
       dayRevision: _int(row['day_revision']) ?? 0,
       locationRevision: _int(row['location_revision']) ?? 0,
       subscriptionRevision: _int(row['subscription_revision']) ?? 0,
+      repairRevision: _int(row['repair_revision']) ?? 0,
     );
   }
 

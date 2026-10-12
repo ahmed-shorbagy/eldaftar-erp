@@ -35,6 +35,7 @@ for (const name of [
   'milestone_3_inventory_rls.sql',
   'ledger_compensation.sql',
   'ledger_compensation_edges.sql',
+  'repairs_custody.sql',
 ]) {
   const file = fileURLToPath(new URL(`./tests/${name}`, import.meta.url))
   console.log(`Running ${name}`)

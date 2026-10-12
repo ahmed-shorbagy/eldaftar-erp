@@ -486,6 +486,7 @@ LedgerFeedLine _feedLine(Object? row) {
     'close_day': 'تقفيل اليومية',
     'open_day': 'فتح اليومية',
     'daily_note': 'ملاحظة يومية',
+    'repair_fee': 'أجرة إصلاح',
   };
   final shopSequence = row['shop_sequence'];
   final shopTime = row['occurred_at_shop'];

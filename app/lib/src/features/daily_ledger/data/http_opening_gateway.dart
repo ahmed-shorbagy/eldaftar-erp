@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import '../../inventory/application/inventory_contract.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../inventory/data/inventory_codec.dart';
+import '../../repairs/application/repair_contract.dart';
+import '../../repairs/application/repair_gateway.dart';
+import '../../repairs/data/repair_codec.dart';
 import '../../daily_notes/application/notes_gateway.dart';
 import '../../daily_notes/data/note_codec.dart';
 import '../../daily_notes/domain/daily_note_draft.dart';
@@ -56,6 +59,13 @@ const _errorCodes = <String>{
   'return_exceeds_original',
   'already_returned',
   'explicit_refund_required',
+  'stale_repair',
+  'repair_not_ready',
+  'repair_not_active',
+  'repair_not_terminal',
+  'repair_test_failure',
+  'custody_already_released',
+  'audit_append_only',
 };
 
 class HttpOpeningGateway
@@ -72,7 +82,8 @@ class HttpOpeningGateway
         ExchangeGateway,
         InventoryGateway,
         NotesGateway,
-        LedgerFeedGateway {
+        LedgerFeedGateway,
+        RepairGateway {
   HttpOpeningGateway({
     required http.Client client,
     required String supabaseUrl,
@@ -1421,6 +1432,124 @@ class HttpOpeningGateway
         .send(request)
         .then(http.Response.fromStream)
         .timeout(timeout);
+  }
+
+  @override
+  Future<RepairRpcResult> post({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) async {
+    final rpc = repairRpcs[command.kind];
+    if (rpc == null ||
+        !ownsRepairCommand(command.key, command.kind, command.body)) {
+      return const RepairRpcRejected('invalid_input');
+    }
+    try {
+      final response = await _post(callerUserId, rpc, command.body);
+      if (!_callerStill(callerUserId)) return const RepairRpcUnknown();
+      if (response.statusCode >= 500) return const RepairRpcUnknown();
+      if (response.statusCode >= 400) {
+        final code = _errorCode(response.body);
+        if (code == null) return const RepairRpcUnknown();
+        return RepairRpcRejected(code);
+      }
+      return parseRepairCommand(jsonDecode(response.body));
+    } on _OwnerChanged {
+      return const RepairRpcUnknown();
+    } on _CallerRejected catch (error) {
+      return RepairRpcRejected(error.code);
+    } on FormatException {
+      return const RepairRpcUnknown();
+    } catch (_) {
+      return const RepairRpcUnknown();
+    }
+  }
+
+  @override
+  Future<RepairRemoteStatus> commandStatus({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _post(callerUserId, 'get_repair_command_status', {
+        'p_idempotency_key': idempotencyKey,
+      });
+      if (!_callerStill(callerUserId) || response.statusCode >= 500) {
+        return const RepairRemoteUnknown();
+      }
+      if (response.statusCode >= 400) {
+        final code = _errorCode(response.body);
+        if (code == null) return const RepairRemoteUnknown();
+        return RepairRemoteRejected(code);
+      }
+      return parseRepairCommandStatus(jsonDecode(response.body));
+    } on _OwnerChanged {
+      return const RepairRemoteUnknown();
+    } on _CallerRejected catch (error) {
+      return RepairRemoteRejected(error.code);
+    } on FormatException {
+      return const RepairRemoteUnknown();
+    } catch (_) {
+      return const RepairRemoteUnknown();
+    }
+  }
+
+  @override
+  Future<RepairContext> context({required String callerUserId}) => _repairRead(
+    callerUserId,
+    'get_repair_context_v1',
+    const {},
+    parseRepairContext,
+  );
+
+  @override
+  Future<RepairPage> list({
+    required String callerUserId,
+    required String query,
+    required String filter,
+    required int limit,
+    required String? cursor,
+  }) => _repairRead(callerUserId, 'list_repairs_v1', {
+    'p_query': query,
+    'p_filter': filter,
+    'p_limit': limit,
+    'p_cursor': cursor,
+  }, parseRepairPage);
+
+  @override
+  Future<RepairDetail> detail({
+    required String callerUserId,
+    required String repairId,
+  }) => _repairRead(callerUserId, 'get_repair_v1', {
+    'p_repair_id': repairId,
+  }, parseRepairDetail);
+
+  Future<T> _repairRead<T>(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+    T Function(Object? raw) parse,
+  ) async {
+    try {
+      final response = await _post(callerUserId, rpc, body);
+      if (!_callerStill(callerUserId)) {
+        throw const RepairReadException('discarded');
+      }
+      if (response.statusCode >= 400) {
+        throw RepairReadException(_errorCode(response.body));
+      }
+      return parse(jsonDecode(response.body));
+    } on RepairReadException {
+      rethrow;
+    } on _OwnerChanged {
+      throw const RepairReadException('discarded');
+    } on _CallerRejected catch (error) {
+      throw RepairReadException(error.code);
+    } on FormatException {
+      throw const RepairReadException();
+    } catch (_) {
+      throw const RepairReadException();
+    }
   }
 }
 

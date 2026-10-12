@@ -4,7 +4,7 @@
 
 ElDafttar ERP is a greenfield, multi-tenant subscription service for many independent gold shops. Each shop is operated by exactly one owner account, and that account belongs to exactly one shop ([ADR 0003](adr/0003-owner-only-shop-access.md)). One subscription entitlement covers that shop and its owner under the revised D28. There is no staff invitation, partner, employee, or per-user permission grant. Flutter serves Android, iOS, and Windows. React serves platform administration. Supabase provides identity, PostgreSQL, row-level security (RLS), database transactions and server functions. The current daily-note requirement uses private Supabase Storage. Cloudflare R2 remains an earlier proposal for later attachment workflows, not an implemented dependency. The architecture favors correctness of cash and grams over apparent speed.
 
-The repository now implements owner authentication/registration, exact opening and daily-ledger commands, immutable operation copies and Arabic PDFs, protected pending retries, and a shared Arabic workspace. The inventory/custody/one-unit obligation backend is applied to development. Its Flutter client, private notes, bounded activity catch-up, compensation and payment-method configuration are under integration. [Current evidence](operations/milestones-0-3-progress-2026-10-04.md) distinguishes applied contracts from reviewed clients and external acceptance. The layout below remains architectural guidance; a listed later feature is not evidence that it exists.
+The repository now implements owner authentication/registration, exact opening and daily-ledger commands, immutable operation copies and Arabic PDFs, protected pending retries, and a shared Arabic workspace. Repair custody and fee commands exist as a local migration and Flutter client and are not deployed. The inventory/custody/one-unit obligation backend is applied to development. Its Flutter client, private notes, bounded activity catch-up, compensation and payment-method configuration are under integration. [Current evidence](operations/milestones-0-3-progress-2026-10-04.md) distinguishes applied contracts from reviewed clients and external acceptance. The layout below remains architectural guidance; a listed later feature is not evidence that it exists.
 
 ## Runtime boundaries
 
@@ -35,7 +35,7 @@ Admin is a separate trust domain. A platform administrator may manage subscripti
 | Catalog and inventory | Categories, products, lots, saleable stock, scrap, counts | Identity, ledger posting contract |
 | Trading and daily ledger | Sales, purchases, tenders, business day, quick actions, returns | Catalog, customers, posting engine |
 | Accounts | Trader obligations, customer debt, external financing, settlements | Trading, posting engine |
-| Repairs | Intake, custody, completion, handover, fees | Customers, catalog, posting engine |
+| Repairs | Intake text, custody, status, handover, collected fees | Posting engine for collected fees only. No customer or catalog tables |
 | CRM and communication | Customers, contact methods, notes, requests, invoices, dispatch queue | Trading, owner access, R2 |
 | Reports and analytics | Reconciled read models and exports | Confirmed operations/postings |
 | Subscriptions and platform admin | Entitlements, codes, retention, notices, help content | Identity, scheduled jobs |

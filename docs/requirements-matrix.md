@@ -44,9 +44,9 @@ This matrix is the long-lived work register derived from the local source docume
 | TRD-02 | Trader goods can be added to stock now or later; show pending count | PAGES | 3 | Planned, D06 |
 | TRD-03 | Manual stock addition can be linked without a duplicate movement | PAGES | 3 | Planned, D06 |
 | TRD-04 | Trader settlement can deduct scrap, cash and authorized inventory as selected | PAGES | 3 | Planned, D07 |
-| REP-01 | Repair intake, status, delivery and confirmation prompts | PAGES | 4 | Planned |
-| REP-02 | Optional fee collection and cash effect at delivery | PAGES | 4 | Planned |
-| REP-03 | Intake/delete confirmation and editable fee at delivery with audit | PAGES | 4 | Planned |
+| REP-01 | Repair intake, status, delivery and confirmation prompts | PAGES | 4 | Implemented locally: Arabic searchable intake/list/detail, immutable customer custody, four operational statuses and confirmed handover. Independent local gates passed; hosted/native/owner acceptance pending. [Validation](reviews/repairs-2026-10-12/validation.md), [ADR 0012](adr/0012-repair-custody-and-fees.md) |
+| REP-02 | Optional fee collection and cash effect at delivery | PAGES | 4 | Implemented locally: editable final fee, full/partial/unpaid handover, atomic once-only cash posting and visible repair-local outstanding. No broader debt module. Independent local gates passed; migration and hosted/native acceptance pending. [Validation](reviews/repairs-2026-10-12/validation.md), [contract](operations/repairs-contract.md) |
+| REP-03 | Intake/delete confirmation and editable fee at delivery with audit | PAGES | 4 | Implemented locally: explicit intake/cancel/archive/handover confirmation, audited zero-fee custody return and archive instead of deletion, immutable original/audit history. Independent local gates passed; hosted/native/owner acceptance pending. [Validation](reviews/repairs-2026-10-12/validation.md) |
 | DEBT-01 | Amount/weight owed to or by shop and partial settlement | PAGES | 4 | Planned, D07 |
 | DEBT-02 | Due reminders and debt PDF | PAGES | 4 | Planned, D19 |
 | CRM-01 | Customer name, multiple phones, search, sorting and deletion policy | PAGES | 4 | Planned |

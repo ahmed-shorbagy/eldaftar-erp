@@ -15,6 +15,7 @@ import '../application/opening_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
 import '../../inventory/application/inventory_gateway.dart';
+import '../../repairs/application/repair_contract.dart';
 import '../application/ledger_activity.dart';
 import '../application/ledger_line_items.dart';
 import '../application/idempotency_key.dart';
@@ -55,6 +56,7 @@ class DailyLedgerScreen extends StatefulWidget {
     this.onboardingStore,
     this.guideResumeGeneration = 0,
     this.inventoryPage,
+    this.onOpenRepairs,
   });
 
   final ShopAccount shop;
@@ -70,6 +72,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final OnboardingStore? onboardingStore;
   final int guideResumeGeneration;
   final WidgetBuilder? inventoryPage;
+  final Future<void> Function()? onOpenRepairs;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -274,7 +277,14 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     _financialLoading = true;
     try {
       final pending = await _financialPendingStore.read(userId, widget.shop.id);
-      if (pending != null) {
+      if (pending != null && repairRpcs.containsKey(pending.kind)) {
+        if (mounted && userId == widget.userId) {
+          setState(() {
+            _financialPending = pending;
+            _pendingStatusUnknown = true;
+          });
+        }
+      } else if (pending != null) {
         final status = await widget.gateway!.status(
           callerUserId: userId,
           idempotencyKey: pending.key,
@@ -334,6 +344,21 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         userId == null ||
         gateway == null ||
         _dayCommandBusy) {
+      return;
+    }
+    if (repairRpcs.containsKey(pending.kind)) {
+      final open = widget.onOpenRepairs;
+      if (open == null) {
+        setState(
+          () => _financialError =
+              'يوجد طلب صيانة محفوظ. افتح الصيانة من المزيد للتحقق منه.',
+        );
+        return;
+      }
+      await open();
+      if (!mounted) return;
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
       return;
     }
     setState(() => _dayCommandBusy = true);
@@ -813,7 +838,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text('عملية مالية بانتظار تأكيد الحفظ'),
+                          Text(
+                            repairRpcs.containsKey(_financialPending!.kind)
+                                ? 'طلب صيانة بانتظار تأكيد الحفظ'
+                                : 'عملية مالية بانتظار تأكيد الحفظ',
+                          ),
                           Text(
                             _pendingStatusUnknown
                                 ? 'تعذر تحديد حالتها بعد. تحقق قبل تسجيل عملية أخرى.'
@@ -827,7 +856,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                                   ? null
                                   : () => _resolveFinancialPending(retry: true),
                               icon: const Icon(Icons.sync),
-                              label: const Text('التحقق وإعادة المحاولة'),
+                              label: Text(
+                                repairRpcs.containsKey(_financialPending!.kind)
+                                    ? 'متابعة طلب الصيانة'
+                                    : 'التحقق وإعادة المحاولة',
+                              ),
                             ),
                           ),
                         ],

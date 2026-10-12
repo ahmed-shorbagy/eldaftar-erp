@@ -94,6 +94,8 @@ Acceptance: stock and scrap reconcile to confirmed movements; the combined Miles
 
 Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, an owner-scoped pending-send queue, and WhatsApp dispatch evidence. Add daily notes and private media through R2 presigned access. Expand interactive onboarding through these real controls and build searchable Help.
 
+The first repair slice, REP-01/02/03, is implemented locally under [ADR 0012](adr/0012-repair-custody-and-fees.md). Debts, reminders, CRM, reports, and invoice customization remain planned. The repair migration is not deployed. [Independent local validation and acceptance limits](reviews/repairs-2026-10-12/validation.md).
+
 Acceptance: repair goods never appear as saleable stock until an explicit authorized transition; partial debt settlements reconcile; customer summaries derive from confirmed movements; invoice dispatch stays inside the owning shop and is unavailable to every other account. A failed upload or PDF render remains visible and retryable without replaying the financial transaction.
 
 ## Milestone 5 — administration, subscriptions and reporting

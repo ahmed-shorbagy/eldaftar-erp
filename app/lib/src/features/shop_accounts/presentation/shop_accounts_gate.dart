@@ -13,6 +13,8 @@ import '../../../shell/shop_workspace.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../inventory/presentation/inventory_screen.dart';
 import '../../inventory/presentation/trader_screen.dart';
+import '../../repairs/application/repair_gateway.dart';
+import '../../repairs/presentation/repair_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../application/shop_sync_coordinator.dart';
 import '../application/shop_sync_ticks.dart';
@@ -60,6 +62,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   int _ledgerGeneration = 0;
   int _inventoryGeneration = 0;
   int _traderGeneration = 0;
+  int _repairGeneration = 0;
   int _requestGeneration = 0;
   int _syncGeneration = 0;
   String? _userId;
@@ -103,6 +106,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       _ledgerGeneration++;
       _inventoryGeneration++;
       _traderGeneration++;
+      _repairGeneration++;
       unawaited(_ensureSync());
       unawaited(_refresh());
     }
@@ -173,6 +177,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           _ledgerGeneration++;
           _inventoryGeneration++;
           _traderGeneration++;
+          _repairGeneration++;
           if (previous?.id != _selected?.id) {
             _activationDialogShown = false;
             _activationShopId = null;
@@ -263,6 +268,11 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
               scopes.contains(ShopSyncScope.ledger)) {
             _traderGeneration++;
           }
+          if (scopes.contains(ShopSyncScope.repair) ||
+              scopes.contains(ShopSyncScope.ledger) ||
+              scopes.contains(ShopSyncScope.day)) {
+            _repairGeneration++;
+          }
         });
       },
     );
@@ -329,6 +339,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _ledgerGeneration++;
         _inventoryGeneration++;
         _traderGeneration++;
+        _repairGeneration++;
       });
       _ticks.apply(ShopSyncScope.values.toSet());
     }
@@ -406,6 +417,26 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 store: const PendingFinancialCommands(),
                 refreshGeneration: _traderGeneration,
                 syncTicks: _ticks,
+              ),
+        repairBuilder: opening is! RepairGateway || userId == null
+            ? null
+            : (context) => RepairScreen(
+                gateway: opening as RepairGateway,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+                store: const PendingFinancialCommands(),
+                userId: userId,
+                shopId: selected.id,
+                readOnly: readOnly,
+                refreshGeneration: _repairGeneration,
+                syncTicks: _ticks,
+                onCollected: () {
+                  if (!mounted) return;
+                  setState(() => _ledgerGeneration++);
+                },
               ),
       );
     }

@@ -1,0 +1,385 @@
+{
+  "detail": {
+    "issue": "مفصص",
+    "karat": 21,
+    "events": [
+      {
+        "id": "abd862c4-4ee2-4499-a02f-eb291a3fe2b4",
+        "payload": {
+          "karat": 21,
+          "cash_piastres": "0",
+          "stock_milligrams": "0",
+          "measured_milligrams": "1255",
+          "estimated_fee_piastres": "15000"
+        },
+        "created_at": "2026-10-12T12:48:29.097884Z",
+        "event_type": "repair_intake",
+        "actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+        "created_at_shop": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "id": "f7d09305-67df-487d-b7fc-368c1302e421",
+        "payload": {
+          "status": "in_progress",
+          "from_status": "received",
+          "record_version": "2"
+        },
+        "created_at": "2026-10-12T12:48:29.193677Z",
+        "event_type": "repair_status",
+        "actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+        "created_at_shop": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "id": "722dcbc6-2bea-41d5-830d-75d546ba5e11",
+        "payload": {
+          "status": "ready",
+          "from_status": "in_progress",
+          "record_version": "3"
+        },
+        "created_at": "2026-10-12T12:48:29.374643Z",
+        "event_type": "repair_status",
+        "actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+        "created_at_shop": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "id": "07fae0ce-ebdf-47fa-8fee-53054dce9451",
+        "payload": {
+          "operation_id": "1c0c8476-d1ec-4359-8469-6e8b61debd26",
+          "stock_milligrams": "0",
+          "collected_piastres": "20000",
+          "final_fee_piastres": "20000",
+          "outstanding_piastres": "0",
+          "custody_released_milligrams": "1255"
+        },
+        "created_at": "2026-10-12T12:48:29.526138Z",
+        "event_type": "repair_handover",
+        "actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+        "created_at_shop": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      }
+    ],
+    "status": "delivered",
+    "intake_at": "2026-10-12T12:48:29.097884Z",
+    "repair_id": "1e410587-3a98-480c-b486-8aeceb3fbc3e",
+    "time_zone": "Africa/Cairo",
+    "custody_held": false,
+    "intake_notes": "",
+    "customer_name": "سباق",
+    "custody_events": [
+      {
+        "id": "9761993c-18e0-4e22-84bc-e26a094d425c",
+        "karat": 21,
+        "direction": "intake",
+        "created_at": "2026-10-12T12:48:29.097884Z",
+        "actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+        "created_at_shop": "2026-10-12T15:48:29",
+        "measured_milligrams": "1255"
+      },
+      {
+        "id": "9b49f98a-0458-42e4-9894-2d95284e3e78",
+        "karat": 21,
+        "direction": "release",
+        "created_at": "2026-10-12T12:48:29.526138Z",
+        "actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+        "created_at_shop": "2026-10-12T15:48:29",
+        "measured_milligrams": "1255"
+      }
+    ],
+    "customer_phone": "",
+    "intake_at_shop": "2026-10-12T15:48:29",
+    "record_version": "4",
+    "original_intake": {
+      "kind": "repair_intake",
+      "issue": "مفصص",
+      "karat": 21,
+      "version": 1,
+      "intake_notes": "",
+      "customer_name": "سباق",
+      "customer_phone": "",
+      "item_description": "خاتم",
+      "measured_milligrams": "1255",
+      "estimated_fee_piastres": "15000"
+    },
+    "item_description": "خاتم",
+    "collected_piastres": "20000",
+    "final_fee_piastres": "20000",
+    "cancellation_reason": null,
+    "measured_milligrams": "1255",
+    "archived_from_status": null,
+    "intake_actor_user_id": "d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1",
+    "outstanding_piastres": "0",
+    "estimated_fee_piastres": "15000",
+    "financial_operation_id": "1c0c8476-d1ec-4359-8469-6e8b61debd26"
+  },
+  "ledger": {
+    "cash": [
+      {
+        "method": "cash",
+        "pounds": "5240.00",
+        "label_ar": "نقدي",
+        "piastres": "524000"
+      },
+      {
+        "method": "instant_transfer",
+        "pounds": "0.00",
+        "label_ar": "انستا",
+        "piastres": "0"
+      },
+      {
+        "method": "wallet",
+        "pounds": "1160.00",
+        "label_ar": "محفظة",
+        "piastres": "116000"
+      },
+      {
+        "method": "card",
+        "pounds": "0.00",
+        "label_ar": "فيزا",
+        "piastres": "0"
+      }
+    ],
+    "feed": [
+      {
+        "kind": "repair_fee",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "أجرة إصلاح",
+        "is_return": false,
+        "party_name": "سباق ثان",
+        "occurred_at": "2026-10-12T12:48:30.114689+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "204dd973-f17d-4d44-9a72-c4b5c7ae338d",
+        "total_pounds": "200.00",
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": "كاش + محفظة",
+        "shop_sequence": "3",
+        "occurred_at_shop": "2026-10-12T15:48:30",
+        "occurred_at_cairo": "2026-10-12T15:48:30",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "kind": "repair_fee",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "أجرة إصلاح",
+        "is_return": false,
+        "party_name": "سباق",
+        "occurred_at": "2026-10-12T12:48:29.526138+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "1c0c8476-d1ec-4359-8469-6e8b61debd26",
+        "total_pounds": "200.00",
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": "كاش + محفظة",
+        "shop_sequence": "2",
+        "occurred_at_shop": "2026-10-12T15:48:29",
+        "occurred_at_cairo": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "kind": "opening_balances",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "رصيد افتتاحي",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-12T12:48:29.013845+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "d99101d1-7127-44e1-b993-dcdd89bb8e01",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "1",
+        "occurred_at_shop": "2026-10-12T15:48:29",
+        "occurred_at_cairo": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      }
+    ],
+    "scrap": [],
+    "state": "confirmed",
+    "stock": [
+      {
+        "count": "1",
+        "grams": "5.000",
+        "karat": 21,
+        "category": "worked_jewelry",
+        "label_ar": "مشغولات",
+        "milligrams": "5000"
+      }
+    ],
+    "feed_page": {
+      "limit": 100,
+      "has_more": false,
+      "direction": "desc",
+      "server_sequence": "3",
+      "snapshot_sequence": "3",
+      "next_before_sequence": null
+    },
+    "can_confirm": false,
+    "day_summary": {
+      "sale_count": 0,
+      "expense_count": 0,
+      "sale_piastres": "0",
+      "gold_by_bucket": [],
+      "purchase_count": 0,
+      "expense_piastres": "0",
+      "purchase_piastres": "0"
+    },
+    "business_day": {
+      "id": "fb45438d-c636-4a36-8b41-950d4577f704",
+      "opened_at": "2026-10-12T12:48:29.013845+00:00",
+      "business_date": "2026-10-12"
+    },
+    "entitlement_status": "active",
+    "read_model_version": 2
+  },
+  "context": {
+    "day": {
+      "state": "open",
+      "day_version": "3",
+      "business_date": "2026-10-12",
+      "business_day_id": "fb45438d-c636-4a36-8b41-950d4577f704"
+    },
+    "time_zone": "Africa/Cairo",
+    "cash_methods": [
+      {
+        "method": "card",
+        "balance_piastres": "0"
+      },
+      {
+        "method": "cash",
+        "balance_piastres": "524000"
+      },
+      {
+        "method": "instant_transfer",
+        "balance_piastres": "0"
+      },
+      {
+        "method": "wallet",
+        "balance_piastres": "116000"
+      }
+    ]
+  },
+  "repairs": {
+    "items": [
+      {
+        "issue": "قص",
+        "karat": 18,
+        "status": "delivered",
+        "intake_at": "2026-10-12T12:48:29.745073Z",
+        "repair_id": "f97a7f56-62b4-4062-bffb-0d5411816ee5",
+        "custody_held": false,
+        "customer_name": "سباق ثان",
+        "customer_phone": "",
+        "intake_at_shop": "2026-10-12T15:48:29",
+        "record_version": "4",
+        "item_description": "سلسلة",
+        "collected_piastres": "20000",
+        "final_fee_piastres": "20000",
+        "measured_milligrams": "2000",
+        "outstanding_piastres": "0",
+        "estimated_fee_piastres": null
+      },
+      {
+        "issue": "مفصص",
+        "karat": 21,
+        "status": "delivered",
+        "intake_at": "2026-10-12T12:48:29.097884Z",
+        "repair_id": "1e410587-3a98-480c-b486-8aeceb3fbc3e",
+        "custody_held": false,
+        "customer_name": "سباق",
+        "customer_phone": "",
+        "intake_at_shop": "2026-10-12T15:48:29",
+        "record_version": "4",
+        "item_description": "خاتم",
+        "collected_piastres": "20000",
+        "final_fee_piastres": "20000",
+        "measured_milligrams": "1255",
+        "outstanding_piastres": "0",
+        "estimated_fee_piastres": "15000"
+      }
+    ],
+    "next_cursor": null
+  },
+  "ledger_page": {
+    "items": [
+      {
+        "kind": "repair_fee",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "أجرة إصلاح",
+        "is_return": false,
+        "party_name": "سباق ثان",
+        "occurred_at": "2026-10-12T12:48:30.114689+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "204dd973-f17d-4d44-9a72-c4b5c7ae338d",
+        "total_pounds": "200.00",
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": "كاش + محفظة",
+        "shop_sequence": "3",
+        "occurred_at_shop": "2026-10-12T15:48:30",
+        "occurred_at_cairo": "2026-10-12T15:48:30",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "kind": "repair_fee",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "أجرة إصلاح",
+        "is_return": false,
+        "party_name": "سباق",
+        "occurred_at": "2026-10-12T12:48:29.526138+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "1c0c8476-d1ec-4359-8469-6e8b61debd26",
+        "total_pounds": "200.00",
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": "كاش + محفظة",
+        "shop_sequence": "2",
+        "occurred_at_shop": "2026-10-12T15:48:29",
+        "occurred_at_cairo": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      },
+      {
+        "kind": "opening_balances",
+        "karat": null,
+        "has_note": false,
+        "label_ar": "رصيد افتتاحي",
+        "is_return": false,
+        "party_name": null,
+        "occurred_at": "2026-10-12T12:48:29.013845+00:00",
+        "piece_count": null,
+        "item_summary": null,
+        "operation_id": "d99101d1-7127-44e1-b993-dcdd89bb8e01",
+        "total_pounds": null,
+        "weight_grams": null,
+        "is_daily_note": false,
+        "payment_label": null,
+        "shop_sequence": "1",
+        "occurred_at_shop": "2026-10-12T15:48:29",
+        "occurred_at_cairo": "2026-10-12T15:48:29",
+        "actor_display_name": "مالك السباق"
+      }
+    ],
+    "limit": 20,
+    "day_id": "fb45438d-c636-4a36-8b41-950d4577f704",
+    "shop_id": "d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2",
+    "has_more": false,
+    "direction": "desc",
+    "server_sequence": "3",
+    "snapshot_sequence": "3",
+    "next_after_sequence": null,
+    "next_before_sequence": null
+  }
+}

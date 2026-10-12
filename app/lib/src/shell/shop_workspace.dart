@@ -23,6 +23,7 @@ class ShopWorkspace extends StatefulWidget {
     this.onboardingStore,
     this.inventoryBuilder,
     this.traderBuilder,
+    this.repairBuilder,
     this.syncTicks,
   });
 
@@ -38,6 +39,7 @@ class ShopWorkspace extends StatefulWidget {
   final OnboardingStore? onboardingStore;
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
+  final WidgetBuilder? repairBuilder;
   final Listenable? syncTicks;
 
   @override
@@ -46,6 +48,20 @@ class ShopWorkspace extends StatefulWidget {
 
 class _ShopWorkspaceState extends State<ShopWorkspace> {
   int _destination = 0;
+  Route<void>? _repairRoute;
+
+  @override
+  void dispose() {
+    final route = _repairRoute;
+    final navigator = route?.navigator;
+    if (route != null && navigator != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (navigator.mounted && route.isActive) navigator.removeRoute(route);
+      });
+    }
+    super.dispose();
+  }
+
   static const _labels = [
     'الدفتر اليومي',
     'المخزون',
@@ -100,6 +116,19 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     }
   }
 
+  Future<void> _openRepairs() async {
+    final builder = widget.repairBuilder;
+    if (builder != null && _repairRoute == null) {
+      final route = MaterialPageRoute<void>(builder: builder);
+      _repairRoute = route;
+      try {
+        await Navigator.of(context).push<void>(route);
+      } finally {
+        if (identical(_repairRoute, route)) _repairRoute = null;
+      }
+    }
+  }
+
   Widget _body() => switch (_destination) {
     0 => DailyLedgerScreen(
       shop: widget.shop,
@@ -113,6 +142,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       onActivateSubscription: widget.onActivateSubscription,
       onboardingStore: widget.onboardingStore,
       inventoryPage: widget.inventoryBuilder,
+      onOpenRepairs: _openRepairs,
     ),
     1 =>
       widget.inventoryBuilder?.call(context) ??
@@ -141,6 +171,21 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     _ => _page('المزيد', [
       if (widget.traderBuilder != null)
         _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
+      if (widget.repairBuilder != null)
+        _link(
+          'الصيانة',
+          Icons.handyman_outlined,
+          _openRepairs,
+          key: const Key('workspace-repairs'),
+        )
+      else
+        const ListTile(
+          key: Key('workspace-repairs-unavailable'),
+          enabled: false,
+          title: Text('الصيانة'),
+          subtitle: Text('الصيانة غير متاحة في هذا الاتصال.'),
+          leading: ExcludeSemantics(child: Icon(Icons.handyman_outlined)),
+        ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(
         Theme.of(context).brightness == Brightness.dark

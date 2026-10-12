@@ -7,6 +7,7 @@ enum ShopSyncScope {
   day,
   location,
   subscription,
+  repair,
 }
 
 class ShopSyncSnapshot {
@@ -20,6 +21,7 @@ class ShopSyncSnapshot {
     this.dayRevision = 0,
     this.locationRevision = 0,
     this.subscriptionRevision = 0,
+    this.repairRevision = 0,
     this.forceRefresh = false,
   });
 
@@ -32,6 +34,7 @@ class ShopSyncSnapshot {
   final int dayRevision;
   final int locationRevision;
   final int subscriptionRevision;
+  final int repairRevision;
 
   /// Connection recovery requests an authoritative read even at the same revision.
   final bool forceRefresh;
@@ -46,6 +49,7 @@ class ShopSyncSnapshot {
     dayRevision: dayRevision,
     locationRevision: locationRevision,
     subscriptionRevision: subscriptionRevision,
+    repairRevision: repairRevision,
     forceRefresh: true,
   );
 
@@ -74,6 +78,9 @@ class ShopSyncSnapshot {
     }
     if (subscriptionRevision != previous.subscriptionRevision) {
       scopes.add(ShopSyncScope.subscription);
+    }
+    if (repairRevision != previous.repairRevision) {
+      scopes.add(ShopSyncScope.repair);
     }
     if (scopes.isEmpty && revision != previous.revision) {
       return ShopSyncScope.values.toSet();

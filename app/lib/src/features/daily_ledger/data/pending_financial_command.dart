@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../inventory/application/inventory_contract.dart';
+import '../../repairs/application/repair_contract.dart';
 import '../application/idempotency_key.dart';
 import '../application/pending_financial_command.dart';
 
@@ -12,12 +13,34 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
   const PendingFinancialCommands({this.storage = const FlutterSecureStorage()});
 
   final FlutterSecureStorage storage;
+  static final _tails = <String, Future<void>>{};
+
+  Future<T> _serial<T>(
+    String userId,
+    String shopId,
+    Future<T> Function() work,
+  ) {
+    final key = _storageKey(userId, shopId);
+    final next = (_tails[key] ?? Future<void>.value()).then((_) => work());
+    final tail = next.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace stack) {},
+    );
+    _tails[key] = tail;
+    tail.then((_) {
+      if (identical(_tails[key], tail)) _tails.remove(key);
+    });
+    return next;
+  }
 
   String _storageKey(String userId, String shopId) =>
       'pending_financial_${userId}_$shopId';
 
   @override
-  Future<PendingFinancialCommand?> read(String userId, String shopId) async {
+  Future<PendingFinancialCommand?> read(String userId, String shopId) =>
+      _serial(userId, shopId, () => _read(userId, shopId));
+
+  Future<PendingFinancialCommand?> _read(String userId, String shopId) async {
     final key = _storageKey(userId, shopId);
     var raw = await storage.read(key: key);
     final preferences = await SharedPreferences.getInstance();
@@ -54,6 +77,7 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       'linked_return',
       'exchange',
       ...inventoryRpcs.keys,
+      ...repairRpcs.keys,
     }.contains(kind)) {
       throw const FormatException('pending_financial');
     }
@@ -80,12 +104,12 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
     String userId,
     String shopId,
     PendingFinancialCommand command,
-  ) async {
+  ) => _serial(userId, shopId, () async {
     if (!isUuid(command.key) ||
         !_matchesEnvelope(command.key, command.kind, command.body)) {
       throw const FormatException('pending_financial');
     }
-    final existing = await read(userId, shopId);
+    final existing = await _read(userId, shopId);
     if (existing != null && existing.key != command.key) {
       throw StateError('pending_financial_exists');
     }
@@ -102,14 +126,15 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
         'body': command.body,
       }),
     );
-  }
+  });
 
   @override
-  Future<void> clear(String userId, String shopId, String key) async {
-    final existing = await read(userId, shopId);
-    if (existing == null || existing.key != key) return;
-    await storage.delete(key: _storageKey(userId, shopId));
-  }
+  Future<void> clear(String userId, String shopId, String key) =>
+      _serial(userId, shopId, () async {
+        final existing = await _read(userId, shopId);
+        if (existing == null || existing.key != key) return;
+        await storage.delete(key: _storageKey(userId, shopId));
+      });
 
   bool _matchesEnvelope(String key, String kind, Map<String, Object?> body) {
     if (body['p_idempotency_key'] != key) return false;
@@ -175,6 +200,9 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
     }
     if (inventoryRpcs.containsKey(kind)) {
       return matchesInventoryEnvelope(key, kind, body);
+    }
+    if (repairRpcs.containsKey(kind)) {
+      return matchesRepairEnvelope(key, kind, body);
     }
     return kind == 'open_day' && body.length == 1;
   }

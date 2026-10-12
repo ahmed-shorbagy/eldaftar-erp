@@ -12,6 +12,63 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
+  PendingFinancialCommand command(String key) => PendingFinancialCommand(
+    key: key,
+    kind: 'repair_intake',
+    body: {
+      'p_idempotency_key': key,
+      'p_payload': {
+        'version': 1,
+        'kind': 'repair_intake',
+        'customer_name': 'عميل',
+        'customer_phone': '',
+        'item_description': 'خاتم',
+        'measured_milligrams': '1255',
+        'karat': 21,
+        'issue': 'لحام',
+        'intake_notes': '',
+        'estimated_fee_piastres': null,
+      },
+    },
+  );
+
+  test(
+    'overlapping saves from separate store instances preserve one original repair',
+    () async {
+      final first = command('55555555-5555-4555-8555-555555555555');
+      final second = command('66666666-6666-4666-8666-666666666666');
+      Future<bool> save(PendingFinancialCommand value) =>
+          const PendingFinancialCommands()
+              .save('owner', 'shop', value)
+              .then(
+                (_) => true,
+                onError: (Object error) {
+                  expect(error, isA<StateError>());
+                  return false;
+                },
+              );
+      final outcomes = await Future.wait([save(first), save(second)]);
+      expect(outcomes, [true, false]);
+      expect(
+        (await const PendingFinancialCommands().read('owner', 'shop'))!.body,
+        first.body,
+      );
+    },
+  );
+
+  test('overlapping old cleanup cannot delete a new repair envelope', () async {
+    const store = PendingFinancialCommands();
+    final first = command('55555555-5555-4555-8555-555555555555');
+    final second = command('66666666-6666-4666-8666-666666666666');
+    await store.save('owner', 'shop', first);
+    await Future.wait([
+      store.clear('owner', 'shop', first.key),
+      const PendingFinancialCommands().save('owner', 'shop', second),
+      const PendingFinancialCommands().clear('owner', 'shop', first.key),
+    ]);
+    expect((await store.read('owner', 'shop'))!.body, second.body);
+  });
+
   test(
     'retains one exact retry body per owner and shop across store instances',
     () async {
@@ -97,6 +154,47 @@ void main() {
     const store = PendingFinancialCommands();
     await store.save('owner-a', 'shop-a', command);
     expect((await store.read('owner-a', 'shop-a'))?.body, command.body);
+  });
+
+  test('repair intake retry keeps the custody envelope', () async {
+    const key = '55555555-5555-4555-8555-555555555555';
+    const command = PendingFinancialCommand(
+      key: key,
+      kind: 'repair_intake',
+      body: {
+        'p_idempotency_key': key,
+        'p_payload': {
+          'version': 1,
+          'kind': 'repair_intake',
+          'customer_name': 'عميل',
+          'customer_phone': '',
+          'item_description': 'خاتم',
+          'measured_milligrams': '1255',
+          'karat': 21,
+          'issue': 'مفصص',
+          'intake_notes': '',
+          'estimated_fee_piastres': '15000',
+        },
+      },
+    );
+    const store = PendingFinancialCommands();
+    await store.save('owner-a', 'shop-a', command);
+    expect((await store.read('owner-a', 'shop-a'))?.body, command.body);
+    await expectLater(
+      store.save(
+        'owner-a',
+        'shop-a',
+        const PendingFinancialCommand(
+          key: key,
+          kind: 'repair_intake',
+          body: {
+            'p_idempotency_key': key,
+            'p_payload': {'version': 1, 'kind': 'sale'},
+          },
+        ),
+      ),
+      throwsFormatException,
+    );
   });
 
   test('moves a valid legacy retry into protected storage once', () async {
