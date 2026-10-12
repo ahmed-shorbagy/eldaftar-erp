@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
 import 'dart:async';
 
@@ -1276,6 +1277,7 @@ class _AmountField extends StatelessWidget {
     return TextField(
       key: fieldKey,
       controller: controller,
+      inputFormatters: const [CashInputFormatter()],
       readOnly: locked,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textDirection: TextDirection.ltr,

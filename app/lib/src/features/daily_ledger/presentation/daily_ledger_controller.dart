@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'package:flutter/widgets.dart';
 
 import '../application/daily_ledger_view.dart';
@@ -260,7 +261,7 @@ class DailyLedgerController extends ChangeNotifier {
     for (final method in CashMethod.canonicalOrder) {
       final text = cash[method]!.text.trim();
       if (text.isEmpty) continue;
-      final parsed = Piastres.parsePounds(text);
+      final parsed = Piastres.parsePounds(cashInputValue(text));
       if (parsed is Rejected<Piastres>) {
         message = openingFailureCopy(parsed.code.wire);
         return null;

@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
@@ -198,6 +199,7 @@ Widget inventoryField({
   TextInputType keyboard = TextInputType.text,
   TextInputAction action = TextInputAction.next,
   bool enabled = true,
+  bool cashAmount = false,
   int maxLength = 200,
 }) {
   return TextField(
@@ -207,6 +209,10 @@ Widget inventoryField({
     enabled: enabled,
     maxLength: maxLength,
     keyboardType: keyboard,
+    textDirection: cashAmount ? TextDirection.ltr : null,
+    inputFormatters: cashAmount
+        ? [CashInputFormatter(signed: keyboard.signed == true)]
+        : null,
     textInputAction: action,
     decoration: ledgerFieldDecoration(context, label: label),
   );

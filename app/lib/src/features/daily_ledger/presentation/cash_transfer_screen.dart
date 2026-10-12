@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
 import 'package:flutter/material.dart';
 
@@ -64,7 +65,7 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
   }
 
   void _startReview() {
-    final amount = Piastres.parsePounds(_amount.text.trim());
+    final amount = Piastres.parsePounds(cashInputValue(_amount.text));
     final available = _balance(_from);
     final destination = _balance(_to);
     if (_from == _to ||
@@ -266,6 +267,7 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                     TextField(
                       key: const Key('transfer-amount'),
                       controller: _amount,
+                      inputFormatters: const [CashInputFormatter()],
                       textDirection: TextDirection.ltr,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,

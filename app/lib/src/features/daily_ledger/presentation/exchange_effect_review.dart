@@ -55,7 +55,7 @@ class ExchangeEffectReview extends StatelessWidget {
     String money(BigInt value) =>
         '\u2066${displayPounds(signedPoundsText(value))}\u2069';
     String metal(MetalEffect row) =>
-        '${_category(row.category)} · عيار ${row.karat}: ${_weightLabel(row.milligrams)} جرام${row.count == null ? '' : ' · ${_pieceLabel(row.count!)} قطعة'}';
+        '${_category(row.category)} · عيار ${row.karat}: ${_weightLabel(row.milligrams)}${row.count == null ? '' : ' · ${_pieceLabel(row.count!)} قطعة'}';
     return Card(
       key: const Key('exchange-effects'),
       child: Padding(
@@ -160,7 +160,7 @@ class ConfirmedCompensationEffects extends StatelessWidget {
                 for (final line in raw['buckets'] as List)
                   if (line is Map)
                     Text(
-                      '${_category(line['category'] as String)} عيار ${line['karat']}: ${_weightLabel(BigInt.parse(line['milligrams'] as String))} جرام${line['count'] == null ? '' : ' · ${_pieceLabel(BigInt.parse(line['count'] as String))} قطعة'}',
+                      '${_category(line['category'] as String)} عيار ${line['karat']}: ${_weightLabel(BigInt.parse(line['milligrams'] as String))}${line['count'] == null ? '' : ' · ${_pieceLabel(BigInt.parse(line['count'] as String))} قطعة'}',
                     ),
               ],
           ],
@@ -170,7 +170,7 @@ class ConfirmedCompensationEffects extends StatelessWidget {
   }
 }
 
-String _weightLabel(BigInt value) => '\u2066${signedGramsText(value)}\u2069';
+String _weightLabel(BigInt value) => '\u2066${displayGoldEffect(value)}\u2069';
 String _pieceLabel(BigInt value) => '\u2066$value\u2069';
 String _cashLabel(BigInt value) =>
     '\u2066${displayPounds(signedPoundsText(value))}\u2069';

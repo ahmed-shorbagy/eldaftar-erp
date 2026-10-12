@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
 import 'package:flutter/material.dart';
 
@@ -52,7 +53,7 @@ class _PurchaseCashSettlementScreenState
   }
 
   void _startReview() {
-    final parsed = Piastres.parsePounds(_amount.text.trim());
+    final parsed = Piastres.parsePounds(cashInputValue(_amount.text));
     if (parsed is! Accepted<Piastres> ||
         parsed.value.value == BigInt.zero ||
         parsed.value.value > widget.remaining.value) {
@@ -212,6 +213,7 @@ class _PurchaseCashSettlementScreenState
                     TextField(
                       key: const Key('settlement-amount'),
                       controller: _amount,
+                      inputFormatters: const [CashInputFormatter()],
                       textDirection: TextDirection.ltr,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,

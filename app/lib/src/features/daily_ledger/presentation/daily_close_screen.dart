@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
 import '../application/financial_gateway.dart';
@@ -85,7 +86,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     final expectedCash = expected['cash'] as Map;
     final cash = <String, String>{};
     for (final entry in expectedCash.entries) {
-      final parsed = Piastres.parsePounds(_cash[entry.key]!.text.trim());
+      final parsed = Piastres.parsePounds(cashInputValue(_cash[entry.key]!.text));
       if (parsed is! Accepted<Piastres>) {
         setState(() => _error = 'أدخل النقد الفعلي لكل وسيلة .');
         return;
@@ -306,6 +307,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                     TextField(
                       key: Key('close-cash-${method.code}'),
                       controller: _cash[method.code],
+                      inputFormatters: const [CashInputFormatter()],
                       readOnly: _review != null,
                       textDirection: TextDirection.ltr,
                       keyboardType: const TextInputType.numberWithOptions(

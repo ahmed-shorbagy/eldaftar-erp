@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -192,7 +193,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           tender.amount.text.trim().isEmpty) {
         continue;
       }
-      final parsed = Piastres.parsePounds(tender.amount.text.trim());
+      final parsed = Piastres.parsePounds(cashInputValue(tender.amount.text));
       if (parsed is! Accepted<Piastres>) return null;
       sum += parsed.value.value;
     }
@@ -220,7 +221,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       totalPounds:
           pricing?.total.poundsText ??
           (widget.kind == FinancialKind.purchase
-              ? _purchaseTotal.text
+              ? cashInputValue(_purchaseTotal.text)
               : _totalPounds() ?? ''),
       items: [
         for (final item in _items)
@@ -230,7 +231,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             grams: item.grams.text,
             count: item.count.text,
             name: item.name.text,
-            linePricePounds: item.price.text,
+            linePricePounds: cashInputValue(item.price.text),
           ),
       ],
       tenders: [
@@ -239,7 +240,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               tender.amount.text.trim().isNotEmpty)
             FinancialTenderInput(
               method: tender.method,
-              pounds: tender.amount.text,
+              pounds: cashInputValue(tender.amount.text),
             ),
       ],
       description: _description.text,
@@ -254,11 +255,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   DomainResult<InvoicePricing> _composePricing() => InvoicePricing.compose(
-    basePounds: _basePrice.text,
-    workmanshipPounds: _workmanship.text,
-    otherChargesPounds: _otherCharges.text,
+    basePounds: cashInputValue(_basePrice.text),
+    workmanshipPounds: cashInputValue(_workmanship.text),
+    otherChargesPounds: cashInputValue(_otherCharges.text),
     otherChargesLabel: _otherChargesLabel.text,
-    discountPounds: _discount.text,
+    discountPounds: cashInputValue(_discount.text),
   );
 
   Widget _priceField(
@@ -268,6 +269,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   ) => TextField(
     key: Key(key),
     controller: controller,
+    inputFormatters: const [CashInputFormatter()],
     textDirection: TextDirection.ltr,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
     textInputAction: TextInputAction.next,
@@ -754,6 +756,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           TextField(
             key: const Key('trade-purchase-price'),
             controller: _purchaseTotal,
+            inputFormatters: const [CashInputFormatter()],
             textDirection: TextDirection.ltr,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: ledgerFieldDecoration(
@@ -1222,6 +1225,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       TextField(
         key: const Key('trade-purchase-price'),
         controller: _purchaseTotal,
+        inputFormatters: const [CashInputFormatter()],
         textDirection: TextDirection.ltr,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         onChanged: (_) => setState(() {}),
@@ -1645,6 +1649,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 second: TextField(
                   key: Key('trade-line-price-$index'),
                   controller: row.price,
+                  inputFormatters: const [CashInputFormatter()],
                   focusNode: row.priceFocus,
                   textDirection: TextDirection.ltr,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -1700,6 +1705,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 second: TextField(
                   key: Key('trade-tender-amount-$index'),
                   controller: row.amount,
+                  inputFormatters: const [CashInputFormatter()],
                   focusNode: index == 0 ? _tenderFocus : null,
                   onChanged: (_) => setState(() {}),
                   textDirection: TextDirection.ltr,

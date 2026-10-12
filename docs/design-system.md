@@ -62,7 +62,7 @@ The workspace opens at the ledger without a Home/Start destination. Light/dark t
 
 Correction entry stays inside a physical-count mismatch and shows the required Arabic reason, counted values and exact signed cash/gold/piece differences before confirmation. Confirmed correction discards that count route; the next close requires a fresh server snapshot and new physical count. The original confirmed operation opens partial/full remaining return review with selectable item rows, measured grams/counts, explicit consideration and split refund-method fields. A remaining-full action fills quantities and price components only; the owner still enters refund allocation.
 
-Exchange replacement uses the accepted category → items → payment → optional details → review form. Its final review appends the linked return, replacement and exact net cash by method and category/karat gold/count effects. Unknown requests remain frozen for reconciliation. Both forms retain the 720-pixel content measure, semantic theme roles, Cairo, RTL, currency-free money and three-decimal grams; signed values use LTR isolation in Arabic effect labels. [Widget/native synthetic review and limits](reviews/ledger-compensation-2026-10-06/validation.md).
+Exchange replacement uses the accepted category → items → payment → optional details → review form. Its final review appends the linked return, replacement and exact net cash by method and category/karat gold/count effects. Unknown requests remain frozen for reconciliation. Both forms retain the 720-pixel content measure, semantic theme roles, Cairo, RTL and currency-free money. Ordinary gold labels show two decimals; measured input remains exact to three decimals, and confirmation adds exact milligrams when rounding hides a difference; signed values use LTR isolation in Arabic effect labels. [Widget/native synthetic review and limits](reviews/ledger-compensation-2026-10-06/validation.md).
 
 ## Repair custody layout
 
@@ -85,3 +85,5 @@ The [Batch 1 review](reviews/owner-feedback-batch1-2026-10-11/validation.md) rec
 The [Batch 2 review](reviews/owner-feedback-batch2-2026-10-12/validation.md) records compact metrics, horizontal journals, constrained buy/sell entry, navigation cleanup and verification limits.
 
 The [repairs review](reviews/repairs-2026-10-12/validation.md) records custody/fee behavior, phone/desktop theme captures and independent validation limits.
+
+Cash input fields group whole thousands while typing and preserve entered cents and cursor position. Presentation removes only valid grouping before passing exact decimal strings to domain calculations; stored money is unchanged. Return, correction, exchange and scrap-conversion displays use two-decimal grams with exact milligrams at financial-effect confirmation. The owner requested direct implementation without tests or verification for this formatting follow-up on 2026-10-12; it remains unverified.

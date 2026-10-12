@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'dart:convert';
 import '../../../theme/amount_format.dart';
 
@@ -67,7 +68,7 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
     final countedCash = _map(widget.counted['cash']);
     for (final method in CashMethod.canonicalOrder) {
       _cash[method.code] = TextEditingController(
-        text: _pounds(countedCash[method.code]),
+        text: editableCashText(_pounds(countedCash[method.code])),
       );
     }
     final countedStock = _rows(widget.counted['stock']);
@@ -150,7 +151,7 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
     try {
       final countedCash = <String, BigInt>{};
       for (final method in CashMethod.canonicalOrder) {
-        final parsed = Piastres.parsePounds(_cash[method.code]!.text.trim());
+        final parsed = Piastres.parsePounds(cashInputValue(_cash[method.code]!.text));
         if (parsed is! Accepted<Piastres>) {
           setState(() => _message = 'أدخل النقد المعدود لكل وسيلة .');
           return;
@@ -464,6 +465,7 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                     TextField(
                       key: Key('correction-cash-${method.code}'),
                       controller: _cash[method.code],
+                      inputFormatters: const [CashInputFormatter()],
                       readOnly: locked || !widget.writesEnabled,
                       textDirection: TextDirection.ltr,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -478,7 +480,7 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                   for (var index = 0; index < _bookStock.length; index++) ...[
                     const SizedBox(height: 12),
                     Text(
-                      'عيار ${_bookStock[index]['karat']} · الدفتر ${_grams(_bookStock[index]['milligrams'])} جرام · ${_bookStock[index]['count']} قطعة',
+                      'عيار ${_bookStock[index]['karat']} · الدفتر ${displayGrams(_wire(_bookStock[index]['milligrams']).toString())} جرام · ${_bookStock[index]['count']} قطعة',
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -520,11 +522,11 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                                 ),
                             for (final line in review.stockDeltas)
                               Text(
-                                'عيار ${line.karat}: ${_gramLabel(line.milligrams)} جرام · ${_countLabel(line.count!)} قطعة',
+                                'عيار ${line.karat}: ${_gramLabel(line.milligrams)} · ${_countLabel(line.count!)} قطعة',
                               ),
                             for (final line in review.scrapDeltas)
                               Text(
-                                'الكسر عيار ${line.karat}: ${_gramLabel(line.milligrams)} جرام',
+                                'الكسر عيار ${line.karat}: ${_gramLabel(line.milligrams)}',
                               ),
                             const Text(
                               'يلزم عدّ فعلي جديد مطابق بعد التسوية قبل التقفيل.',
@@ -634,5 +636,5 @@ Object? _canonicalCounts(Object? value) {
 
 String _moneyLabel(BigInt value) =>
     '\u2066${displayPounds(signedPoundsText(value))}\u2069';
-String _gramLabel(BigInt value) => '\u2066${signedGramsText(value)}\u2069';
+String _gramLabel(BigInt value) => '\u2066${displayGoldEffect(value)}\u2069';
 String _countLabel(BigInt value) => '\u2066$value\u2069';

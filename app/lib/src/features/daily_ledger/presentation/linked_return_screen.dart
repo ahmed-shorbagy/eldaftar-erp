@@ -239,7 +239,7 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                             '${raw['item_name']} · عيار ${raw['karat']}',
                           ),
                           subtitle: Text(
-                            '${_grams(raw['milligrams'])} جرام${raw['count'] == null ? '' : ' · ${raw['count']} قطعة'}',
+                            '${_grams(raw['milligrams'])}${raw['count'] == null ? '' : ' · ${raw['count']} قطعة'}',
                           ),
                         ),
                   if (!_reviewing) ...[
@@ -327,5 +327,5 @@ String _pounds(BigInt value) => displayPounds(
 String _grams(Object? value) {
   if (value is! String) return '—';
   final parsed = Milligrams.parseWire(value);
-  return parsed is Accepted<Milligrams> ? parsed.value.gramsText : '—';
+  return parsed is Accepted<Milligrams> ? displayGoldEffect(parsed.value.value) : '—';
 }

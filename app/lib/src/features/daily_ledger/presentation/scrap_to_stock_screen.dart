@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import 'package:flutter/material.dart';
 
 import '../application/daily_ledger_view.dart';
@@ -345,10 +346,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'ينقص الكسر: ${_reviewWeight!.gramsText} جرام · عيار $_karat',
+                              'ينقص الكسر: ${displayGoldEffect(_reviewWeight!.value)} · عيار $_karat',
                             ),
                             Text(
-                              'يزيد المخزون: ${_reviewWeight!.gramsText} جرام · '
+                              'يزيد المخزون: ${displayGoldEffect(_reviewWeight!.value)} · '
                               '${_reviewCount!.wire} قطعة · ${stockCategoryLabel(_category)}',
                             ),
                             Text('الصنف: ${_name.text.trim()}'),
@@ -424,5 +425,5 @@ BigInt _wireWeight(LedgerScrapLine line) =>
 
 String _gramsText(String value) {
   final parsed = Milligrams.parseWire(value);
-  return parsed is Accepted<Milligrams> ? parsed.value.gramsText : '—';
+  return parsed is Accepted<Milligrams> ? displayGrams(parsed.value.wire) : '—';
 }

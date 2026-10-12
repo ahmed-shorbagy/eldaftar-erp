@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
 import '../application/financial_gateway.dart';
@@ -169,8 +170,8 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
     }
     setState(() => _busy = true);
     try {
-      final consideration = Piastres.parsePounds(_consideration.text.trim());
-      final tender = Piastres.parsePounds(_tender.text.trim());
+      final consideration = Piastres.parsePounds(cashInputValue(_consideration.text));
+      final tender = Piastres.parsePounds(cashInputValue(_tender.text));
       if (consideration is! Accepted<Piastres> ||
           tender is! Accepted<Piastres>) {
         setState(() => _message = 'أدخل المقابل والنقد المتفق عليهما .');
@@ -181,7 +182,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
         tenders['cash'] = tender.value.value;
       }
       for (final entry in _extraTenders.entries) {
-        final parsed = Piastres.parsePounds(entry.value.text.trim());
+        final parsed = Piastres.parsePounds(cashInputValue(entry.value.text));
         if (parsed is! Accepted<Piastres>) {
           setState(() => _message = 'راجع توزيع النقد المرتجع.');
           return;
@@ -223,10 +224,10 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
       PriceComponents? pricing;
       if (bounds.hasPricing) {
         final parts = [
-          Piastres.parsePounds(_base.text.trim()),
-          Piastres.parsePounds(_work.text.trim()),
-          Piastres.parsePounds(_other.text.trim()),
-          Piastres.parsePounds(_discount.text.trim()),
+          Piastres.parsePounds(cashInputValue(_base.text)),
+          Piastres.parsePounds(cashInputValue(_work.text)),
+          Piastres.parsePounds(cashInputValue(_other.text)),
+          Piastres.parsePounds(cashInputValue(_discount.text)),
         ];
         if (parts.any((part) => part is! Accepted<Piastres>)) {
           setState(() => _message = 'أدخل مكوّنات السعر المتفق عليها.');
@@ -356,7 +357,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
   void _fillRemaining() {
     final bounds = _bounds!;
     setState(() {
-      _consideration.text = signedPoundsText(bounds.remainderConsideration);
+      _consideration.text = editableCashText(signedPoundsText(bounds.remainderConsideration));
       for (final field in _lines) {
         field.include = true;
         field.grams.text = signedGramsText(field.item.remainderMilligrams);
@@ -365,18 +366,18 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
         }
       }
       if (bounds.hasPricing) {
-        _base.text = signedPoundsText(
+        _base.text = editableCashText(signedPoundsText(
           bounds.pricingRemainder!['base_piastres']!,
-        );
-        _work.text = signedPoundsText(
+        ));
+        _work.text = editableCashText(signedPoundsText(
           bounds.pricingRemainder!['workmanship_piastres']!,
-        );
-        _other.text = signedPoundsText(
+        ));
+        _other.text = editableCashText(signedPoundsText(
           bounds.pricingRemainder!['other_charges_piastres']!,
-        );
-        _discount.text = signedPoundsText(
+        ));
+        _discount.text = editableCashText(signedPoundsText(
           bounds.pricingRemainder!['discount_piastres']!,
-        );
+        ));
       }
       _message = 'أدخل توزيع النقد المرتجع ثم راجع كامل المتبقي.';
     });
@@ -586,7 +587,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         contentPadding: EdgeInsets.zero,
                       ),
                       Text(
-                        '${_lines[index].item.itemName} · عيار ${_lines[index].item.karat} · المتبقي ${_gramsText(_lines[index].item.remainderMilligrams)} جرام',
+                        '${_lines[index].item.itemName} · عيار ${_lines[index].item.karat} · المتبقي ${displayGrams(_lines[index].item.remainderMilligrams.toString())} جرام',
                       ),
                       const SizedBox(height: 8),
                       TextField(
@@ -617,6 +618,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                     TextField(
                       key: const Key('partial-consideration'),
                       controller: _consideration,
+                      inputFormatters: const [CashInputFormatter()],
                       readOnly: locked,
                       textDirection: TextDirection.ltr,
                       decoration: ledgerFieldDecoration(
@@ -639,6 +641,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         controller: method == CashMethod.cash
                             ? _tender
                             : _extraTenders[method.code],
+                        inputFormatters: const [CashInputFormatter()],
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -652,6 +655,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       TextField(
                         key: const Key('partial-base'),
                         controller: _base,
+                        inputFormatters: const [CashInputFormatter()],
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -662,6 +666,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       TextField(
                         key: const Key('partial-work'),
                         controller: _work,
+                        inputFormatters: const [CashInputFormatter()],
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -672,6 +677,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       TextField(
                         key: const Key('partial-other'),
                         controller: _other,
+                        inputFormatters: const [CashInputFormatter()],
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -682,6 +688,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       TextField(
                         key: const Key('partial-discount'),
                         controller: _discount,
+                        inputFormatters: const [CashInputFormatter()],
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -726,7 +733,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                               ),
                             for (final line in review.lines)
                               Text(
-                                '${line.category == 'scrap' ? 'الكسر' : 'المخزون'} عيار ${line.karat}: ${signedGramsText(review.kind == 'sale_return' ? line.milligrams : -line.milligrams)} جرام${line.scrap ? '' : ' · ${review.kind == 'sale_return' ? line.count : -line.count} قطعة'}',
+                                '${line.category == 'scrap' ? 'الكسر' : 'المخزون'} عيار ${line.karat}: ${displayGoldEffect(review.kind == 'sale_return' ? line.milligrams : -line.milligrams)}${line.scrap ? '' : ' · ${review.kind == 'sale_return' ? line.count : -line.count} قطعة'}',
                               ),
                             for (final entry in review.tenders.entries)
                               Text(

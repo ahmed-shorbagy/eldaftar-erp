@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
 
@@ -18,7 +19,7 @@ BigInt? readCount(String text) {
 }
 
 BigInt? readPounds(String text) {
-  final parsed = Piastres.parsePounds(text.trim());
+  final parsed = Piastres.parsePounds(cashInputValue(text));
   if (parsed is! Accepted<Piastres> || parsed.value.value == BigInt.zero) {
     return null;
   }
@@ -39,7 +40,7 @@ BigInt? readSignedPounds(String text) {
   final trimmed = text.trim();
   final negative = trimmed.startsWith('-');
   final body = negative ? trimmed.substring(1) : trimmed;
-  final parsed = Piastres.parsePounds(body);
+  final parsed = Piastres.parsePounds(cashInputValue(body));
   if (parsed is! Accepted<Piastres>) return null;
   final magnitude = parsed.value.value;
   if (magnitude == BigInt.zero) return BigInt.zero;

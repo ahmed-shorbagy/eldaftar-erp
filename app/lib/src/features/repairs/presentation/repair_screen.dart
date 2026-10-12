@@ -1,3 +1,4 @@
+import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
@@ -523,7 +524,7 @@ class _RepairScreenState extends State<RepairScreen> {
       karat: _karat,
       issue: _issue.text,
       intakeNotes: _notes.text,
-      estimatedPounds: _estimate.text,
+      estimatedPounds: cashInputValue(_estimate.text),
     );
     if (!fieldsValid || reviewed is RepairRejected<RepairIntakeCommand>) {
       setState(() {
@@ -558,7 +559,7 @@ class _RepairScreenState extends State<RepairScreen> {
           : text;
       final parsed = amountText.isEmpty
           ? null
-          : Piastres.parsePounds(amountText);
+          : Piastres.parsePounds(cashInputValue(amountText));
       if (row.method == null || parsed is! Accepted<Piastres>) {
         setState(() {
           _showErrors = true;
@@ -574,13 +575,13 @@ class _RepairScreenState extends State<RepairScreen> {
       repairId: detail.summary.id,
       expectedVersion: detail.summary.recordVersion,
       custodyMilligrams: detail.summary.measuredMilligrams,
-      finalPounds: _finalFee.text,
+      finalPounds: cashInputValue(_finalFee.text),
       mode: _mode,
       collectedPounds: _mode == RepairCollectionMode.all
-          ? _finalFee.text
+          ? cashInputValue(_finalFee.text)
           : _mode == RepairCollectionMode.none
           ? ''
-          : _collected.text,
+          : cashInputValue(_collected.text),
       tenders: _mode == RepairCollectionMode.none ? const [] : tenders,
       expectedDayId: _mode == RepairCollectionMode.none || day?.isOpen != true
           ? null
@@ -1029,7 +1030,7 @@ class _RepairScreenState extends State<RepairScreen> {
                         item.estimatedFeePiastres.toString(),
                       );
                       if (parsed is Accepted<Piastres>) {
-                        _finalFee.text = parsed.value.poundsText;
+                        _finalFee.text = editableCashText(parsed.value.poundsText);
                       }
                     }
                     _go(_Stage.handover);
@@ -1086,6 +1087,7 @@ class _RepairScreenState extends State<RepairScreen> {
           TextField(
             key: const Key('repair-handover-final'),
             controller: _finalFee,
+            inputFormatters: const [CashInputFormatter()],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'الأجرة النهائية'),
           ),
@@ -1106,6 +1108,7 @@ class _RepairScreenState extends State<RepairScreen> {
             TextField(
               key: const Key('repair-collected'),
               controller: _collected,
+              inputFormatters: const [CashInputFormatter()],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -1157,6 +1160,7 @@ class _RepairScreenState extends State<RepairScreen> {
     final amountField = TextField(
       key: Key('repair-tender-amount-$index'),
       controller: row.amount,
+      inputFormatters: const [CashInputFormatter()],
       textDirection: TextDirection.ltr,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: const InputDecoration(labelText: 'المبلغ'),
@@ -1349,6 +1353,10 @@ class _RepairScreenState extends State<RepairScreen> {
       key: key,
       controller: controller,
       keyboardType: keyboard,
+      inputFormatters: identical(controller, _estimate)
+          ? const [CashInputFormatter()]
+          : null,
+      textDirection: identical(controller, _estimate) ? TextDirection.ltr : null,
       maxLines: maxLines,
       decoration: InputDecoration(labelText: label, hintText: hint),
       validator: (value) {
