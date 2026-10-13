@@ -152,7 +152,7 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const Key('ledger-quick-actions')));
           await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-more-actions')));
+          expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
           await tester.pumpAndSettle();
           await tester.ensureVisible(
             find.byKey(const Key('ledger-new-return')),

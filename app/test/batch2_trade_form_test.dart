@@ -65,46 +65,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('optional price components stay in the disclosure', (
-    tester,
-  ) async {
-    final gateway = Batch2TradeGateway();
-    await pumpTradeScreen(
+  for (final kind in [FinancialKind.sale, FinancialKind.purchase]) {
+    testWidgets('simple ${kind.name} omits removed pricing fields', (
       tester,
-      gateway: gateway,
-      statusGateway: gateway,
-      kind: FinancialKind.sale,
-    );
-    await chooseTradeItem(tester, 'خاتم');
-    await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
-    await revealTrade(tester, find.byKey(const Key('trade-price-disclosure')));
-    await tester.tap(find.byKey(const Key('trade-price-disclosure')));
-    await tester.pumpAndSettle();
-    for (final entry in {
-      'trade-base-price': '1000.01',
-      'trade-workmanship': '50.02',
-      'trade-discount': '20.04',
-      'trade-other-charges': '10.03',
-      'trade-other-label': 'تغليف',
-      'trade-tender-amount-0': '1040.02',
-    }.entries) {
-      await enterTradeField(tester, Key(entry.key), entry.value);
-    }
-    await revealTrade(tester, find.byKey(const Key('trade-price-disclosure')));
-    await tester.tap(find.byKey(const Key('trade-price-disclosure')));
-    await tester.pumpAndSettle();
-    await reviewTrade(tester);
-    expect(find.text('المصنعية: 50.02'), findsOneWidget);
-    expect(find.textContaining('الخصم: 20.04'), findsOneWidget);
-    expect(gateway.payloads, isEmpty);
-    await tester.tap(find.byKey(const Key('trade-confirm')));
-    await tester.pumpAndSettle();
-    expect(gateway.payloads.single['total_piastres'], '104002');
-    expect(
-      (gateway.payloads.single['pricing'] as Map)['discount_piastres'],
-      '2004',
-    );
-  });
+    ) async {
+      final gateway = Batch2TradeGateway();
+      await pumpTradeScreen(
+        tester,
+        gateway: gateway,
+        statusGateway: gateway,
+        kind: kind,
+      );
+      await chooseTradeItem(tester, 'خاتم');
+      await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
+      if (kind == FinancialKind.purchase) {
+        await enterTradeField(
+          tester,
+          const Key('trade-purchase-price'),
+          '1040.02',
+        );
+      }
+      await enterTradeField(
+        tester,
+        const Key('trade-tender-amount-0'),
+        '1040.02',
+      );
+      expect(find.byKey(const Key('trade-price-disclosure')), findsNothing);
+      expect(find.byKey(const Key('trade-base-price')), findsNothing);
+      expect(find.byKey(const Key('trade-workmanship')), findsNothing);
+      await reviewTrade(tester);
+      expect(gateway.payloads, isEmpty);
+      await tester.tap(find.byKey(const Key('trade-confirm')));
+      await tester.pumpAndSettle();
+      expect(gateway.payloads.single['total_piastres'], '104002');
+      expect(gateway.payloads.single['pricing'], isNull);
+      expect(gateway.pendingExistedAtPost, isTrue);
+    });
+  }
 
   testWidgets('purchase customer stays optional for partial and zero payment', (
     tester,

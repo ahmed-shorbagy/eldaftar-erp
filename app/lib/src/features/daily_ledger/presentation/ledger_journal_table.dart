@@ -93,6 +93,7 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final line = widget.line;
     final border = AppSemanticColors.of(context).tableBorder;
     final items = _items;
@@ -102,55 +103,63 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
         ? items
         : items.take(2).toList();
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 12, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
             onTap: widget.onOpen,
             borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Row(
                 children: [
-                  Text(
-                    widget.showDetails &&
-                            line.partyName != null &&
-                            line.partyName!.isNotEmpty
-                        ? '${line.labelAr} · ${line.partyName}'
-                        : line.labelAr,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  if (line.totalPounds != null)
-                    Text(
-                      displayPounds(line.totalPounds!),
-                      textDirection: TextDirection.ltr,
-                      style: theme.textTheme.titleMedium,
+                  Expanded(
+                    child: Text(
+                      widget.showDetails &&
+                              line.partyName != null &&
+                              line.partyName!.isNotEmpty
+                          ? '${line.labelAr} · ${line.partyName}'
+                          : line.labelAr,
+                      style: theme.textTheme.titleSmall,
                     ),
-                  if (widget.onOpen != null)
+                  ),
+                  if (line.totalPounds != null) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        displayPounds(line.totalPounds!),
+                        textDirection: TextDirection.ltr,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                  ],
+                  if (widget.onOpen != null) ...[
+                    const SizedBox(width: 4),
                     const Icon(Icons.chevron_left, size: 20),
+                  ],
                 ],
               ),
             ),
           ),
-          if (line.weightGrams != null)
-            Text(
-              '${displayGrams(line.weightGrams!)} جرام${line.karat == null ? '' : ' · عيار ${line.karat}'}',
-              style: theme.textTheme.bodyMedium,
-            ),
-          if (widget.showDetails)
-            Text(
-              formatServerCairoTimestamp(line.displayTime),
-              style: theme.textTheme.bodySmall,
-            ),
-          if (line.paymentLabel != null)
-            Text(line.paymentLabel!, style: theme.textTheme.bodySmall),
-          Text(
-            'المسجل: ${line.actorDisplayName}',
-            style: theme.textTheme.labelSmall,
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (line.weightGrams != null)
+                Text(
+                  '${displayGrams(line.weightGrams!)} جرام${line.karat == null ? '' : ' · عيار ${line.karat}'}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              if (line.paymentLabel != null)
+                Text(
+                  line.paymentLabel!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
           ),
           if (_loading)
             const Padding(
@@ -166,7 +175,7 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
           if (items != null && items.isEmpty)
             const Text('لا تحتوي العملية على أصناف مفصلة.'),
           if (visible.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, bounds) {
                 final scale = MediaQuery.textScalerOf(context).scale(1);
@@ -174,51 +183,76 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
                 final width = minimum > bounds.maxWidth
                     ? minimum
                     : bounds.maxWidth;
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: width,
-                    child: Table(
-                      border: TableBorder.all(color: border, width: 1),
-                      columnWidths: const {
-                        0: FlexColumnWidth(3),
-                        1: FlexColumnWidth(1.6),
-                        2: FlexColumnWidth(2.6),
-                        3: FlexColumnWidth(1.7),
-                      },
-                      defaultVerticalAlignment:
-                          TableCellVerticalAlignment.middle,
-                      children: [
-                        TableRow(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: width,
+                      child: Table(
+                        border: TableBorder(
+                          horizontalInside: BorderSide(
+                            color: border.withValues(alpha: 0.45),
                           ),
-                          children: [
-                            for (final label in const [
-                              'الصنف',
-                              'العيار',
-                              'الوزن',
-                              'العدد',
-                            ])
-                              _cell(context, label, heading: true),
-                          ],
                         ),
-                        for (final item in visible)
+                        columnWidths: {
+                          0: const FlexColumnWidth(),
+                          1: FixedColumnWidth(52 * scale),
+                          2: FixedColumnWidth(72 * scale),
+                          3: FixedColumnWidth(44 * scale),
+                        },
+                        defaultVerticalAlignment:
+                            TableCellVerticalAlignment.middle,
+                        children: [
                           TableRow(
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withValues(alpha: 0.09),
+                            ),
                             children: [
-                              _cell(context, item.name),
+                              _cell(context, 'الصنف', heading: true),
                               _cell(
                                 context,
-                                item.karat == null ? '—' : '${item.karat}',
+                                'العيار',
+                                heading: true,
+                                numeric: true,
                               ),
                               _cell(
                                 context,
-                                '${displayGrams(item.grams)} جرام',
+                                'الوزن\n(جرام)',
+                                heading: true,
+                                numeric: true,
                               ),
-                              _cell(context, item.count ?? '—'),
+                              _cell(
+                                context,
+                                'العدد',
+                                heading: true,
+                                numeric: true,
+                              ),
                             ],
                           ),
-                      ],
+                          for (final item in visible)
+                            TableRow(
+                              children: [
+                                _cell(context, item.name),
+                                _cell(
+                                  context,
+                                  item.karat == null ? '—' : '${item.karat}',
+                                  numeric: true,
+                                ),
+                                _cell(
+                                  context,
+                                  displayGrams(item.grams),
+                                  numeric: true,
+                                ),
+                                _cell(
+                                  context,
+                                  item.count ?? '—',
+                                  numeric: true,
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -228,10 +262,13 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
           if (items != null && items.length > 2)
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: TextButton(
+              child: TextButton.icon(
                 key: Key('ledger-items-more-${line.kind}-${line.operationId}'),
                 onPressed: () => setState(() => _showAllItems = !_showAllItems),
-                child: Text(_showAllItems ? 'عرض أقل' : 'عرض المزيد'),
+                icon: Icon(
+                  _showAllItems ? Icons.expand_less : Icons.expand_more,
+                ),
+                label: Text(_showAllItems ? 'عرض أقل' : 'عرض المزيد'),
               ),
             ),
           if (items == null && !_loading && line.itemSummary != null)
@@ -247,18 +284,47 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
               'عدد القطع: ${line.pieceCount}',
               style: theme.textTheme.bodySmall,
             ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              Text(
+                'المسجل: ${line.actorDisplayName}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              if (widget.showDetails)
+                Text(
+                  formatServerCairoTimestamp(line.displayTime),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: scheme.outlineVariant),
         ],
       ),
     );
   }
 }
 
-Widget _cell(BuildContext context, String text, {bool heading = false}) {
+Widget _cell(
+  BuildContext context,
+  String text, {
+  bool heading = false,
+  bool numeric = false,
+}) {
   final theme = Theme.of(context);
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+    padding: EdgeInsets.symmetric(horizontal: numeric ? 4 : 8, vertical: 12),
     child: Text(
       text,
+      textAlign: numeric ? TextAlign.center : TextAlign.start,
+      textDirection: numeric && !heading ? TextDirection.ltr : null,
       style: heading ? theme.textTheme.labelLarge : theme.textTheme.bodyMedium,
     ),
   );

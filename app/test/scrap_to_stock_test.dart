@@ -171,8 +171,14 @@ void main() {
         .widget<FilledButton>(find.byKey(const Key('scrap-stock-review')))
         .onPressed!();
     await tester.pumpAndSettle();
-    expect(find.textContaining('ينقص الكسر: 0.375 جرام'), findsOneWidget);
-    expect(find.textContaining('يزيد المخزون: 0.375 جرام'), findsOneWidget);
+    expect(
+      find.textContaining('ينقص الكسر: 0.38 جرام (375 ملليجرام)'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('يزيد المخزون: 0.38 جرام (375 ملليجرام)'),
+      findsOneWidget,
+    );
     expect(find.text('النقدية لا تتغير.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('scrap-stock-confirm')));
     await tester.pumpAndSettle();

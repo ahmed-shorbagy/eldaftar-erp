@@ -1268,11 +1268,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       key: const Key('trade-paid-total'),
       style: theme.textTheme.titleLarge,
     ),
-    ExpansionTile(
-      key: const Key('trade-price-disclosure'),
-      title: const Text('تفصيل السعر والمصنعية (اختياري)'),
-      children: _pricingFields(theme),
-    ),
   ];
 
   Widget _catalogSection(ThemeData theme) {

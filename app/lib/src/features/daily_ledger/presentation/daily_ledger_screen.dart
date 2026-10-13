@@ -752,6 +752,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         : 'يوم العمل ${formatServerDate(businessDay)}';
     return Scaffold(
       appBar: LedgerAppBar(
+        textScaler: MediaQuery.textScalerOf(context),
         shopName: widget.shop.name,
         subtitle: daySubtitle,
         topInset: MediaQuery.paddingOf(context).top,
@@ -769,9 +770,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
             key: const Key('ledger-scroll'),
             controller: _scroll,
             padding: EdgeInsetsDirectional.fromSTEB(
-              compact ? 16 : 24,
+              MediaQuery.sizeOf(context).width < AppTokens.wideBreakpoint
+                  ? AppTokens.ledgerPhoneGutter
+                  : AppTokens.spaceLg,
               compact ? 16 : 20,
-              compact ? 16 : 24,
+              MediaQuery.sizeOf(context).width < AppTokens.wideBreakpoint
+                  ? AppTokens.ledgerPhoneGutter
+                  : AppTokens.spaceLg,
               compact ? 28 : 36,
             ),
             children: [

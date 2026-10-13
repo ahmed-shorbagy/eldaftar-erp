@@ -873,8 +873,6 @@ void main() {
     expect(find.byKey(const Key('ledger-new-sale')), findsNothing);
     await tester.tap(find.byKey(const Key('ledger-quick-actions')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('المزيد من الإجراءات'));
-    await tester.tap(find.text('المزيد من الإجراءات'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ledger-daily-notes')), findsOneWidget);
     expect(find.byKey(const Key('ledger-load-older')), findsNothing);

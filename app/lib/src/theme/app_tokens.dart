@@ -22,11 +22,18 @@ abstract final class AppTokens {
   /// Muted gold rule on charcoal. Dark outlines stay neutral; tables use this.
   static const Color darkTableBorder = Color(0xFF9A7B45);
 
+  /// Restrained frames for financial summary cards, sharing the table gold.
+  static const Color lightGoldFrame = lightTableBorder;
+  static const Color darkGoldFrame = darkTableBorder;
+
   static const Color lightSuccess = Color(0xFF206638);
   static const Color darkSuccess = Color(0xFF86D99F);
 
   static Color tableBorderFor(Brightness brightness) =>
       brightness == Brightness.dark ? darkTableBorder : lightTableBorder;
+
+  static Color goldFrameFor(Brightness brightness) =>
+      brightness == Brightness.dark ? darkGoldFrame : lightGoldFrame;
 
   static const double fieldRadius = 14;
   static const double cardRadius = 22;
@@ -38,6 +45,7 @@ abstract final class AppTokens {
 
   static const double wideBreakpoint = 840;
   static const double contentMaxWidth = 720;
+  static const double ledgerPhoneGutter = 12;
   static const double minControlSize = 48;
   static const double spaceSm = 8;
   static const double spaceMd = 16;

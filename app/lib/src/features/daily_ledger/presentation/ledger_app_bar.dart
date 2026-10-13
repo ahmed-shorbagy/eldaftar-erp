@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
+import '../../../theme/app_tokens.dart';
 
 /// Soft, jewelry-ledger header used above the daily workspace.
 class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -13,6 +14,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.subtitle,
     this.onChangeShop,
     this.compact = false,
+    this.textScaler = TextScaler.noScaling,
   });
 
   final String shopName;
@@ -21,11 +23,24 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onChangeShop;
   final double topInset;
   final bool compact;
+  final TextScaler textScaler;
 
   static const double bodyHeight = 108;
 
   @override
-  Size get preferredSize => Size.fromHeight(topInset + bodyHeight);
+  Size get preferredSize {
+    final textHeight =
+        textScaler.scale(compact ? AppTokens.bodySize : AppTokens.titleSize) *
+            1.15 +
+        2 +
+        textScaler.scale(AppTokens.detailSize) * 1.5 +
+        (subtitle == null || subtitle!.isEmpty
+            ? 0
+            : 2 + textScaler.scale(AppTokens.labelSize) * 1.2);
+    return Size.fromHeight(
+      topInset + (textHeight + 24).clamp(bodyHeight, double.infinity),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -54,7 +54,12 @@ abstract final class AppTheme {
     );
     final tableBorder = AppTokens.tableBorderFor(brightness);
     return base.copyWith(
-      extensions: [AppSemanticColors(tableBorder: tableBorder)],
+      extensions: [
+        AppSemanticColors(
+          tableBorder: tableBorder,
+          goldFrame: AppTokens.goldFrameFor(brightness),
+        ),
+      ],
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: scheme.surface,
       appBarTheme: AppBarTheme(
@@ -207,27 +212,33 @@ abstract final class AppTheme {
 /// Semantic colors that Material's scheme does not name.
 @immutable
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
-  const AppSemanticColors({required this.tableBorder});
+  const AppSemanticColors({required this.tableBorder, required this.goldFrame});
 
   final Color tableBorder;
+  final Color goldFrame;
 
   static AppSemanticColors of(BuildContext context) {
     final colors = Theme.of(context).extension<AppSemanticColors>();
     return colors ??
         AppSemanticColors(
           tableBorder: AppTokens.tableBorderFor(Theme.of(context).brightness),
+          goldFrame: AppTokens.goldFrameFor(Theme.of(context).brightness),
         );
   }
 
   @override
-  AppSemanticColors copyWith({Color? tableBorder}) =>
-      AppSemanticColors(tableBorder: tableBorder ?? this.tableBorder);
+  AppSemanticColors copyWith({Color? tableBorder, Color? goldFrame}) =>
+      AppSemanticColors(
+        tableBorder: tableBorder ?? this.tableBorder,
+        goldFrame: goldFrame ?? this.goldFrame,
+      );
 
   @override
   AppSemanticColors lerp(ThemeExtension<AppSemanticColors>? other, double t) {
     if (other is! AppSemanticColors) return this;
     return AppSemanticColors(
       tableBorder: Color.lerp(tableBorder, other.tableBorder, t) ?? tableBorder,
+      goldFrame: Color.lerp(goldFrame, other.goldFrame, t) ?? goldFrame,
     );
   }
 }

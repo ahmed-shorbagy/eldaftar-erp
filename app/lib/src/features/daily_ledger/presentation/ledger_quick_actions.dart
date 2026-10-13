@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../theme/app_tokens.dart';
+
 /// Keeps the owner's action button reachable while the ledger scrolls.
 class LedgerQuickActions extends StatefulWidget {
   const LedgerQuickActions({
@@ -85,37 +87,69 @@ class _LedgerQuickActionsState extends State<LedgerQuickActions> {
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (sheet) => SingleChildScrollView(
+    constraints: BoxConstraints(
+      maxWidth: AppTokens.contentMaxWidth,
+      maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+    ),
+    builder: (sheet) => SafeArea(
+      top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            widget.panelBuilder(sheet),
-            const SizedBox(height: 12),
-            ExpansionTile(
-              title: const Text('موضع زر الإجراءات'),
+            Row(
               children: [
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final corner in const [
-                      ('أعلى اليمين', Offset(1, 0)),
-                      ('أعلى اليسار', Offset(0, 0)),
-                      ('أسفل اليمين', Offset(1, 1)),
-                      ('أسفل اليسار', Offset(0, 1)),
-                    ])
-                      TextButton(
-                        onPressed: () {
-                          setState(() => _position = corner.$2);
-                          _save();
-                          Navigator.of(sheet).pop();
-                        },
-                        child: Text(corner.$1),
-                      ),
-                  ],
+                Expanded(
+                  child: Text(
+                    'إجراءات سريعة',
+                    style: Theme.of(sheet).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  key: const Key('ledger-close-quick-actions'),
+                  tooltip: 'إغلاق',
+                  onPressed: () => Navigator.of(sheet).pop(),
+                  icon: const Icon(Icons.close),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    widget.panelBuilder(sheet),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    ExpansionTile(
+                      title: const Text('موضع زر الإجراءات'),
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            for (final corner in const [
+                              ('أعلى اليمين', Offset(1, 0)),
+                              ('أعلى اليسار', Offset(0, 0)),
+                              ('أسفل اليمين', Offset(1, 1)),
+                              ('أسفل اليسار', Offset(0, 1)),
+                            ])
+                              TextButton(
+                                onPressed: () {
+                                  setState(() => _position = corner.$2);
+                                  _save();
+                                  Navigator.of(sheet).pop();
+                                },
+                                child: Text(corner.$1),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -137,7 +171,12 @@ class _LedgerQuickActionsState extends State<LedgerQuickActions> {
             view.devicePixelRatio,
           );
           final top = padding.top + kToolbarHeight + 8;
-          final bottom = padding.bottom + 88; // Clear the workspace navigation.
+          final bottom =
+              padding.bottom +
+              88 +
+              (MediaQuery.textScalerOf(context).scale(AppTokens.detailSize) -
+                      AppTokens.detailSize)
+                  .clamp(0, 80); // Clear the workspace navigation.
           final width = (bounds.maxWidth - 80).clamp(1.0, double.infinity);
           final height = (bounds.maxHeight - top - bottom - 56).clamp(
             1.0,

@@ -35,5 +35,18 @@ if ($devices.Count -eq 0) {
 }
 
 $ready = $devices[0]
+
+# Wait for emulator to fully stabilize before reporting ready
+$stabilizeDeadline = (Get-Date).AddSeconds(30)
+do {
+    Start-Sleep -Seconds 1
+    $devices = Get-AndroidEmulators
+} while ($devices.Count -eq 0 -and (Get-Date) -lt $stabilizeDeadline)
+
+if ($devices.Count -eq 0) {
+    Write-Error "The Android emulator did not stabilize within 30 seconds."
+    exit 1
+}
+
 Write-Host "Android emulator ready: $($ready.name) ($($ready.id))"
 exit 0

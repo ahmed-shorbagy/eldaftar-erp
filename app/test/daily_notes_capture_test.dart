@@ -259,8 +259,6 @@ void main() {
           await capture(tester, 'ledger-notes-top-$label.png');
           await tester.tap(find.byKey(const Key('ledger-quick-actions')));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text('المزيد من الإجراءات'));
-          await tester.tap(find.text('المزيد من الإجراءات'));
           await tester.pumpAndSettle();
           final notes = find.byKey(const Key('ledger-daily-notes'));
           expect(notes, findsOneWidget);

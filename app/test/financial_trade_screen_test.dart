@@ -366,7 +366,7 @@ void main() {
   });
 
   testWidgets(
-    'explicit pricing is reviewed before the exact adjusted amount posts',
+    'simple sale reviews exact payment without price or workmanship controls',
     (tester) async {
       final gateway = FakeFinancialGateway();
       await pumpTrade(tester, gateway, FinancialKind.sale);
@@ -382,45 +382,15 @@ void main() {
         find.byKey(const Key('trade-tender-amount-0')),
         '1040.02',
       );
-      await tester.dragUntilVisible(
-        find.byKey(const Key('trade-price-disclosure')),
-        find.byType(ListView),
-        const Offset(0, -250),
-      );
-      await tester.tap(find.byKey(const Key('trade-price-disclosure')));
-      await tester.pumpAndSettle();
-
-      for (final entry in {
-        'trade-base-price': '1000.01',
-        'trade-workmanship': '50.02',
-        'trade-discount': '20.04',
-        'trade-other-charges': '10.03',
-        'trade-other-label': 'تغليف',
-      }.entries) {
-        await tester.dragUntilVisible(
-          find.byKey(Key(entry.key)),
-          find.byType(ListView),
-          const Offset(0, -180),
-        );
-        await tester.enterText(find.byKey(Key(entry.key)), entry.value);
-      }
-      await nextTrade(tester);
+      expect(find.byKey(const Key('trade-price-disclosure')), findsNothing);
+      expect(find.byKey(const Key('trade-workmanship')), findsNothing);
       await tester.tap(find.byKey(const Key('trade-review')));
       await tester.pumpAndSettle();
-      await tester.dragUntilVisible(
-        find.text('الخصم: 20.04'),
-        find.byType(ListView),
-        const Offset(0, -180),
-      );
-      expect(find.text('المصنعية: 50.02'), findsOneWidget);
       expect(gateway.payloads, isEmpty);
       await tester.tap(find.byKey(const Key('trade-confirm')));
       await tester.pumpAndSettle();
       expect(gateway.payloads.single['total_piastres'], '104002');
-      expect(
-        (gateway.payloads.single['pricing'] as Map)['discount_piastres'],
-        '2004',
-      );
+      expect(gateway.payloads.single['pricing'], isNull);
       expect(gateway.pendingExistedAtPost, isTrue);
     },
   );

@@ -8,6 +8,7 @@ import '../application/ledger_line_items.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import '../../../theme/amount_format.dart';
+import '../../../theme/app_theme.dart';
 import '../../../theme/detail_surface.dart';
 import 'ledger_journal_table.dart';
 import 'ledger_quick_actions.dart';
@@ -808,76 +809,76 @@ class _JournalPreviewState extends State<_JournalPreview> {
         for (final journal in journals)
           Padding(
             padding: const EdgeInsets.only(bottom: 24),
-            child: Card(
+            child: Column(
               key: Key('ledger-journal-${journal.$1}'),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    if (journal.$4 != null)
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: FilledButton.icon(
-                          key: Key(
-                            journal.$1 == 'sale'
-                                ? 'ledger-new-sale'
-                                : 'ledger-new-purchase',
-                          ),
-                          onPressed: journal.$4,
-                          icon: const Icon(Icons.add),
-                          label: Text(
-                            journal.$1 == 'sale' ? 'إضافة بيع' : 'إضافة شراء',
-                          ),
-                        ),
+                    Expanded(
+                      child: Text(
+                        journal.$2,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    Wrap(
-                      spacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          journal.$2,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        TextButton(
-                          key: Key('ledger-journal-details-${journal.$1}'),
-                          onPressed: () => setState(
-                            () => _details[journal.$1] =
-                                !(_details[journal.$1] ?? false),
-                          ),
-                          child: Text(
-                            (_details[journal.$1] ?? false)
-                                ? 'إخفاء التفاصيل'
-                                : 'عرض التفاصيل',
-                          ),
-                        ),
-                        TextButton(
-                          key: Key('ledger-journal-all-${journal.$1}'),
-                          onPressed: () => widget.onViewAll(journal.$1),
-                          child: const Text('عرض الكل'),
-                        ),
-                      ],
                     ),
-                    if (journal.$3.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text('لا توجد عمليات حتى الآن.'),
-                      ),
-                    for (final line in journal.$3.take(
-                      journal.$1 == 'return' ? 1 : 3,
-                    ))
-                      LedgerOperationTable(
-                        key: ValueKey('${line.kind}-${line.operationId}'),
-                        line: line,
-                        showDetails: _details[journal.$1] ?? false,
-                        loadItems: widget.loadItems,
-                        onOpen: widget.onOperation == null
-                            ? null
-                            : () => widget.onOperation!(line),
-                      ),
+                    TextButton(
+                      key: Key('ledger-journal-all-${journal.$1}'),
+                      onPressed: () => widget.onViewAll(journal.$1),
+                      child: const Text('عرض الكل'),
+                    ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (journal.$4 != null)
+                      FilledButton.icon(
+                        key: Key(
+                          journal.$1 == 'sale'
+                              ? 'ledger-new-sale'
+                              : 'ledger-new-purchase',
+                        ),
+                        onPressed: journal.$4,
+                        icon: const Icon(Icons.add),
+                        label: Text(
+                          journal.$1 == 'sale' ? 'إضافة بيع' : 'إضافة شراء',
+                        ),
+                      ),
+                    TextButton(
+                      key: Key('ledger-journal-details-${journal.$1}'),
+                      onPressed: () => setState(
+                        () => _details[journal.$1] =
+                            !(_details[journal.$1] ?? false),
+                      ),
+                      child: Text(
+                        (_details[journal.$1] ?? false)
+                            ? 'إخفاء التفاصيل'
+                            : 'عرض التفاصيل',
+                      ),
+                    ),
+                  ],
+                ),
+                if (journal.$3.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text('لا توجد عمليات حتى الآن.'),
+                  ),
+                for (final line in journal.$3.take(
+                  journal.$1 == 'return' ? 1 : 3,
+                ))
+                  LedgerOperationTable(
+                    key: ValueKey('${line.kind}-${line.operationId}'),
+                    line: line,
+                    showDetails: _details[journal.$1] ?? false,
+                    loadItems: widget.loadItems,
+                    onOpen: widget.onOperation == null
+                        ? null
+                        : () => widget.onOperation!(line),
+                  ),
+              ],
             ),
           ),
         Align(
@@ -920,20 +921,10 @@ class _OperationsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final actions = <(String, IconData, VoidCallback?, String)>[
-      if (!dayClosed)
-        ('مصروف', Icons.receipt_long_outlined, onExpense, 'ledger-new-expense')
-      else
-        (
-          'فتح يوم جديد',
-          Icons.lock_open_outlined,
-          onOpenDay,
-          'ledger-open-day',
-        ),
-    ].where((a) => a.$3 != null).toList();
-    final more = <(String, IconData, VoidCallback?, String)>[
       if (!dayClosed) ...[
-        ('إضافة مرتجع', Icons.undo_outlined, onReturn, 'ledger-new-return'),
+        ('مصروف', Icons.receipt_long_outlined, onExpense, 'ledger-new-expense'),
         (
           'بيع كسر',
           Icons.content_cut_outlined,
@@ -952,12 +943,27 @@ class _OperationsPanel extends StatelessWidget {
           onScrapToStock,
           'ledger-new-scrap-to-stock',
         ),
-      ],
+        ('إضافة مرتجع', Icons.undo_outlined, onReturn, 'ledger-new-return'),
+      ] else
+        (
+          'فتح يوم جديد',
+          Icons.lock_open_outlined,
+          onOpenDay,
+          'ledger-open-day',
+        ),
       (
         'ملاحظات اليوم',
         Icons.sticky_note_2_outlined,
         onDailyNotes,
         'ledger-daily-notes',
+      ),
+    ].where((a) => a.$3 != null).toList();
+    final dayActions = <(String, IconData, VoidCallback?, String)>[
+      (
+        'الفواتير المعلقة',
+        Icons.mark_email_unread_outlined,
+        onPendingInvoices,
+        'ledger-pending-invoices',
       ),
       (
         'تقفيل اليومية',
@@ -965,81 +971,73 @@ class _OperationsPanel extends StatelessWidget {
         onCloseDay,
         'ledger-close-day',
       ),
-      (
-        'الفواتير المعلقة',
-        Icons.mark_email_unread_outlined,
-        onPendingInvoices,
-        'ledger-pending-invoices',
-      ),
     ].where((a) => a.$3 != null).toList();
-    if (actions.isEmpty && more.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                dayClosed ? 'اليوم مغلق' : 'إجراءات سريعة',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 12),
-              LayoutBuilder(
-                builder: (context, size) => Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final action in actions)
-                      SizedBox(
-                        width: size.maxWidth >= 300
-                            ? (size.maxWidth - 16) / 3
-                            : (size.maxWidth - 8) / 2,
-                        child: OutlinedButton(
-                          key: Key(action.$4),
-                          onPressed: action.$3,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(action.$2, size: 22),
-                              const SizedBox(height: 6),
-                              Text(action.$1),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (more.isNotEmpty)
-                ExpansionTile(
-                  key: const Key('ledger-more-actions'),
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('المزيد من الإجراءات'),
-                  children: [
-                    for (final action in more)
-                      ListTile(
-                        key: Key(action.$4),
-                        leading: Icon(action.$2),
-                        title: Text(action.$1),
-                        trailing: const Icon(Icons.chevron_left),
-                        onTap: action.$3,
-                      ),
-                  ],
-                ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (dayClosed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text('اليوم مغلق', style: theme.textTheme.titleSmall),
           ),
+        LayoutBuilder(
+          builder: (context, bounds) {
+            final scale = MediaQuery.textScalerOf(context).scale(1);
+            final columns = scale > 1.5 || bounds.maxWidth < 260
+                ? 1
+                : bounds.maxWidth >= 600
+                ? 3
+                : 2;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final action in actions)
+                  SizedBox(
+                    width: (bounds.maxWidth - 12 * (columns - 1)) / columns,
+                    child: OutlinedButton(
+                      key: Key(action.$4),
+                      onPressed: action.$3,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary.withValues(
+                          alpha: 0.06,
+                        ),
+                        side: BorderSide(
+                          color: AppSemanticColors.of(context).goldFrame,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 16,
+                        ),
+                        minimumSize: const Size(48, 88),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(action.$2, size: 24),
+                          const SizedBox(height: 8),
+                          Text(action.$1, textAlign: TextAlign.center),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
-      ),
+        if (dayActions.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Divider(),
+          for (final action in dayActions)
+            ListTile(
+              key: Key(action.$4),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+              leading: Icon(action.$2, color: theme.colorScheme.primary),
+              title: Text(action.$1),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: action.$3,
+            ),
+        ],
+      ],
     );
   }
 }
@@ -1970,9 +1968,7 @@ class _MetricTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.55),
-          ),
+          border: Border.all(color: AppSemanticColors.of(context).goldFrame),
           boxShadow: [
             BoxShadow(
               color: scheme.shadow.withValues(alpha: 0.06),

@@ -236,6 +236,11 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       return Scaffold(
         body: _body(),
         bottomNavigationBar: NavigationBar(
+          height:
+              80 +
+              (MediaQuery.textScalerOf(context).scale(AppTokens.detailSize) -
+                      AppTokens.detailSize)
+                  .clamp(0, 80),
           selectedIndex: _destination == 3 ? 3 : indices.indexOf(_destination),
           onDestinationSelected: (index) => _select(indices[index]),
           destinations: [

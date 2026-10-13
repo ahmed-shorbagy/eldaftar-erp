@@ -273,7 +273,8 @@ void main() {
         onOperation: selected.add,
       );
       await tapVisible(tester, find.byKey(const Key('ledger-quick-actions')));
-      await tapVisible(tester, find.byKey(const Key('ledger-more-actions')));
+      expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
+      expect(find.text('المزيد من الإجراءات'), findsNothing);
       await tapVisible(tester, find.byKey(const Key('ledger-new-return')));
       await tapVisible(tester, find.byKey(const Key('ledger-history-details')));
       final history = find.byKey(const Key('ledger-history'));

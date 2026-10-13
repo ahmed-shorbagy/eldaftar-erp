@@ -176,7 +176,7 @@ void main() {
     final gateway = await pumpReturn(tester, width: 320, dark: true);
     expect(find.text('النقد المرتجع: 3,000'), findsOneWidget);
     expect(find.text('يلغى المستحق المتبقي: 2,000'), findsOneWidget);
-    expect(find.textContaining('2.500 جرام'), findsOneWidget);
+    expect(find.textContaining('2.50 جرام'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('return-note')), 'إلغاء متفق');
     tester
         .widget<FilledButton>(find.byKey(const Key('return-review')))
