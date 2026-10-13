@@ -13,6 +13,10 @@ import '../../../shell/shop_workspace.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../inventory/presentation/inventory_screen.dart';
 import '../../inventory/presentation/trader_screen.dart';
+import '../../debts/application/debt_gateway.dart';
+import '../../customers/application/customer_gateway.dart';
+import '../../customers/presentation/customer_screen.dart';
+import '../../debts/presentation/debt_screen.dart';
 import '../../repairs/application/repair_gateway.dart';
 import '../../repairs/presentation/repair_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
@@ -63,6 +67,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   int _inventoryGeneration = 0;
   int _traderGeneration = 0;
   int _repairGeneration = 0;
+  int _debtGeneration = 0;
+  int _customerGeneration = 0;
   int _requestGeneration = 0;
   int _syncGeneration = 0;
   String? _userId;
@@ -107,6 +113,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       _inventoryGeneration++;
       _traderGeneration++;
       _repairGeneration++;
+      _debtGeneration++;
+      _customerGeneration++;
       unawaited(_ensureSync());
       unawaited(_refresh());
     }
@@ -178,6 +186,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           _inventoryGeneration++;
           _traderGeneration++;
           _repairGeneration++;
+          _debtGeneration++;
+          _customerGeneration++;
           if (previous?.id != _selected?.id) {
             _activationDialogShown = false;
             _activationShopId = null;
@@ -268,10 +278,18 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
               scopes.contains(ShopSyncScope.ledger)) {
             _traderGeneration++;
           }
+          if (scopes.contains(ShopSyncScope.customer)) _customerGeneration++;
           if (scopes.contains(ShopSyncScope.repair) ||
               scopes.contains(ShopSyncScope.ledger) ||
               scopes.contains(ShopSyncScope.day)) {
             _repairGeneration++;
+          }
+          if (scopes.contains(ShopSyncScope.debt) ||
+              scopes.contains(ShopSyncScope.ledger) ||
+              scopes.contains(ShopSyncScope.inventory) ||
+              scopes.contains(ShopSyncScope.trader)) {
+            _debtGeneration++;
+            _customerGeneration++;
           }
         });
       },
@@ -340,6 +358,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _inventoryGeneration++;
         _traderGeneration++;
         _repairGeneration++;
+        _debtGeneration++;
+        _customerGeneration++;
       });
       _ticks.apply(ShopSyncScope.values.toSet());
     }
@@ -436,6 +456,46 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 onCollected: () {
                   if (!mounted) return;
                   setState(() => _ledgerGeneration++);
+                },
+              ),
+        customerBuilder: opening is! CustomerGateway || userId == null
+            ? null
+            : (context) => CustomerScreen(
+                gateway: opening as CustomerGateway,
+                store: const PendingFinancialCommands(),
+                userId: userId,
+                shopId: selected.id,
+                readOnly: readOnly,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+                refreshGeneration: _customerGeneration,
+                syncTicks: _ticks,
+              ),
+        debtBuilder: opening is! DebtGateway || userId == null
+            ? null
+            : (context) => DebtScreen(
+                gateway: opening as DebtGateway,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+                store: const PendingFinancialCommands(),
+                userId: userId,
+                shopId: selected.id,
+                readOnly: readOnly,
+                refreshGeneration: _debtGeneration,
+                syncTicks: _ticks,
+                onMutated: () {
+                  if (!mounted) return;
+                  setState(() {
+                    _ledgerGeneration++;
+                    _inventoryGeneration++;
+                    _traderGeneration++;
+                  });
                 },
               ),
       );

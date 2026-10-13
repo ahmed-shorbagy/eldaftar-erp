@@ -24,6 +24,8 @@ class ShopWorkspace extends StatefulWidget {
     this.inventoryBuilder,
     this.traderBuilder,
     this.repairBuilder,
+    this.debtBuilder,
+    this.customerBuilder,
     this.syncTicks,
   });
 
@@ -40,6 +42,8 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
   final WidgetBuilder? repairBuilder;
+  final WidgetBuilder? debtBuilder;
+  final WidgetBuilder? customerBuilder;
   final Listenable? syncTicks;
 
   @override
@@ -49,17 +53,21 @@ class ShopWorkspace extends StatefulWidget {
 class _ShopWorkspaceState extends State<ShopWorkspace> {
   int _destination = 0;
   Route<void>? _repairRoute;
+  Route<void>? _debtRoute;
 
   @override
   void dispose() {
-    final route = _repairRoute;
-    final navigator = route?.navigator;
-    if (route != null && navigator != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (navigator.mounted && route.isActive) navigator.removeRoute(route);
-      });
-    }
+    _detach(_repairRoute);
+    _detach(_debtRoute);
     super.dispose();
+  }
+
+  void _detach(Route<void>? route) {
+    final navigator = route?.navigator;
+    if (route == null || navigator == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.mounted && route.isActive) navigator.removeRoute(route);
+    });
   }
 
   static const _labels = [
@@ -116,16 +124,30 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     }
   }
 
-  Future<void> _openRepairs() async {
-    final builder = widget.repairBuilder;
-    if (builder != null && _repairRoute == null) {
-      final route = MaterialPageRoute<void>(builder: builder);
-      _repairRoute = route;
-      try {
-        await Navigator.of(context).push<void>(route);
-      } finally {
-        if (identical(_repairRoute, route)) _repairRoute = null;
-      }
+  Future<void> _openRepairs() => _pushSingleton(
+    widget.repairBuilder,
+    () => _repairRoute,
+    (route) => _repairRoute = route,
+  );
+
+  Future<void> _openDebts() => _pushSingleton(
+    widget.debtBuilder,
+    () => _debtRoute,
+    (route) => _debtRoute = route,
+  );
+
+  Future<void> _pushSingleton(
+    WidgetBuilder? builder,
+    Route<void>? Function() current,
+    void Function(Route<void>?) assign,
+  ) async {
+    if (builder == null || current() != null) return;
+    final route = MaterialPageRoute<void>(builder: builder);
+    assign(route);
+    try {
+      await Navigator.of(context).push<void>(route);
+    } finally {
+      if (identical(current(), route)) assign(null);
     }
   }
 
@@ -143,6 +165,10 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       onboardingStore: widget.onboardingStore,
       inventoryPage: widget.inventoryBuilder,
       onOpenRepairs: _openRepairs,
+      onOpenDebts: _openDebts,
+      onOpenCustomers: () async {
+        _select(2);
+      },
     ),
     1 =>
       widget.inventoryBuilder?.call(context) ??
@@ -156,12 +182,18 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
               () => _select(0),
             ),
           ]),
-    2 => _page('العملاء', [
-      const Text(
-        'إدارة ملفات العملاء ضمن المرحلة الرابعة. بيانات طرف العملية متاحة في تفاصيل العملية المؤكدة داخل الدفتر.',
-      ),
-      _link('فتح العمليات المؤكدة', Icons.menu_book_outlined, () => _select(0)),
-    ]),
+    2 =>
+      widget.customerBuilder?.call(context) ??
+          _page('العملاء', [
+            const Text(
+              'ملفات العملاء غير متاحة في هذا الاتصال. بيانات طرف العملية متاحة في تفاصيل العملية المؤكدة داخل الدفتر.',
+            ),
+            _link(
+              'فتح العمليات المؤكدة',
+              Icons.menu_book_outlined,
+              () => _select(0),
+            ),
+          ]),
     3 => _page('التقارير', [
       const Text(
         'التقارير الدورية ضمن المرحلة الخامسة. يمكنك الآن قراءة الدفتر وتصدير نسخة عربية من العملية المؤكدة.',
@@ -185,6 +217,23 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           title: Text('الصيانة'),
           subtitle: Text('الصيانة غير متاحة في هذا الاتصال.'),
           leading: ExcludeSemantics(child: Icon(Icons.handyman_outlined)),
+        ),
+      if (widget.debtBuilder != null)
+        _link(
+          'الديون',
+          Icons.account_balance_wallet_outlined,
+          _openDebts,
+          key: const Key('workspace-debts'),
+        )
+      else
+        const ListTile(
+          key: Key('workspace-debts-unavailable'),
+          enabled: false,
+          title: Text('الديون'),
+          subtitle: Text('الديون غير متاحة في هذا الاتصال.'),
+          leading: ExcludeSemantics(
+            child: Icon(Icons.account_balance_wallet_outlined),
+          ),
         ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(

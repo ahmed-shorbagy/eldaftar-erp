@@ -16,6 +16,8 @@ import '../application/opening_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
 import '../../inventory/application/inventory_gateway.dart';
+import '../../debts/application/debt_contract.dart';
+import '../../customers/application/customer_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/ledger_activity.dart';
 import '../application/ledger_line_items.dart';
@@ -58,6 +60,8 @@ class DailyLedgerScreen extends StatefulWidget {
     this.guideResumeGeneration = 0,
     this.inventoryPage,
     this.onOpenRepairs,
+    this.onOpenDebts,
+    this.onOpenCustomers,
   });
 
   final ShopAccount shop;
@@ -74,6 +78,8 @@ class DailyLedgerScreen extends StatefulWidget {
   final int guideResumeGeneration;
   final WidgetBuilder? inventoryPage;
   final Future<void> Function()? onOpenRepairs;
+  final Future<void> Function()? onOpenDebts;
+  final Future<void> Function()? onOpenCustomers;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -278,7 +284,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     _financialLoading = true;
     try {
       final pending = await _financialPendingStore.read(userId, widget.shop.id);
-      if (pending != null && repairRpcs.containsKey(pending.kind)) {
+      if (pending != null &&
+          (repairRpcs.containsKey(pending.kind) ||
+              debtRpcs.containsKey(pending.kind) ||
+              customerRpcs.containsKey(pending.kind))) {
         if (mounted && userId == widget.userId) {
           setState(() {
             _financialPending = pending;
@@ -347,12 +356,23 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         _dayCommandBusy) {
       return;
     }
-    if (repairRpcs.containsKey(pending.kind)) {
-      final open = widget.onOpenRepairs;
+    if (repairRpcs.containsKey(pending.kind) ||
+        debtRpcs.containsKey(pending.kind) ||
+        customerRpcs.containsKey(pending.kind)) {
+      final debt = debtRpcs.containsKey(pending.kind);
+      final customer = customerRpcs.containsKey(pending.kind);
+      final open = customer
+          ? widget.onOpenCustomers
+          : debt
+          ? widget.onOpenDebts
+          : widget.onOpenRepairs;
       if (open == null) {
         setState(
-          () => _financialError =
-              'يوجد طلب صيانة محفوظ. افتح الصيانة من المزيد للتحقق منه.',
+          () => _financialError = customer
+              ? 'يوجد طلب عميل محفوظ. افتح العملاء للتحقق منه.'
+              : debt
+              ? 'يوجد طلب ديون محفوظ. افتح الديون من المزيد للتحقق منه.'
+              : 'يوجد طلب صيانة محفوظ. افتح الصيانة من المزيد للتحقق منه.',
         );
         return;
       }
@@ -847,6 +867,12 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                           Text(
                             repairRpcs.containsKey(_financialPending!.kind)
                                 ? 'طلب صيانة بانتظار تأكيد الحفظ'
+                                : debtRpcs.containsKey(_financialPending!.kind)
+                                ? 'طلب ديون بانتظار تأكيد الحفظ'
+                                : customerRpcs.containsKey(
+                                    _financialPending!.kind,
+                                  )
+                                ? 'طلب عميل بانتظار تأكيد الحفظ'
                                 : 'عملية مالية بانتظار تأكيد الحفظ',
                           ),
                           Text(
@@ -865,6 +891,14 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                               label: Text(
                                 repairRpcs.containsKey(_financialPending!.kind)
                                     ? 'متابعة طلب الصيانة'
+                                    : debtRpcs.containsKey(
+                                        _financialPending!.kind,
+                                      )
+                                    ? 'متابعة طلب الديون'
+                                    : customerRpcs.containsKey(
+                                        _financialPending!.kind,
+                                      )
+                                    ? 'متابعة طلب العميل'
                                     : 'التحقق وإعادة المحاولة',
                               ),
                             ),

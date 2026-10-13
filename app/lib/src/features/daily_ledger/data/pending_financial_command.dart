@@ -1,8 +1,10 @@
 import 'dart:convert';
+import '../../customers/application/customer_contract.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../debts/application/debt_contract.dart';
 import '../../inventory/application/inventory_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/idempotency_key.dart';
@@ -78,6 +80,8 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       'exchange',
       ...inventoryRpcs.keys,
       ...repairRpcs.keys,
+      ...debtRpcs.keys,
+      ...customerRpcs.keys,
     }.contains(kind)) {
       throw const FormatException('pending_financial');
     }
@@ -203,6 +207,12 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
     }
     if (repairRpcs.containsKey(kind)) {
       return matchesRepairEnvelope(key, kind, body);
+    }
+    if (customerRpcs.containsKey(kind)) {
+      return matchesCustomerEnvelope(key, kind, body);
+    }
+    if (debtRpcs.containsKey(kind)) {
+      return matchesDebtEnvelope(key, kind, body);
     }
     return kind == 'open_day' && body.length == 1;
   }

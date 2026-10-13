@@ -81,6 +81,20 @@ No repair reference mockup exists. The repairs workspace uses the same 720-pixel
 
 The list is a search field, wrapping status filters (المفتوحة، تم التسليم، الملغاة، المؤرشفة، المتبقي), and tappable cards. Ordinary weight is two decimals. Detail keeps the original three-decimal weight, formatted shop-local server time and Arabic owner audit lines. Intake, handover, cancel, and archive each show an effect review before confirmation: custody, stock zero, and exact cash. Confirmation shows exact milligrams when two-decimal rounding would hide them. A sync tick during review disables confirm until reload. Pending and unknown commands stay on one banner with the original retry. Expired entitlement shows a read-only banner and hides write actions. Success uses the tertiary role and returns to the list only after the owner asks.
 
+## Debt layout
+
+No debt reference mockup exists. The debts workspace uses the same 720-pixel measure, 48-pixel controls, Cairo, RTL, and semantic theme roles as the ledger. It opens from More as الديون. Search keeps the label بحث, with helper text الاسم أو الهاتف أو السبب أو المرجع. Money stays currency-free with LTR isolation. Ordinary gold weights show two decimals; money uses the shared money formatter. Measured gold input keeps three decimals, and confirmation shows exact milligrams.
+
+The list is a search field, wrapping filters (المفتوحة، المسددة، المتبقية، الملغاة، المؤرشفة، الكل), and tappable cards for original, settled, and remaining. Detail shows the same figures, shop-local server time, and immutable Arabic history. Declaration, settlement, cancel, and archive each review exact cash, gold, custody, saleable stock, and counts before confirm. A no-ledger review states that those quantities do not move and that the choice and reason are recorded. Source balances do not offer that choice. A sync tick during review disables confirm until the owner reopens the review. Pending and unknown commands stay on one banner with the original retry. Expired entitlement shows a read-only banner and hides write actions. Success uses the tertiary role and returns to the list only after the owner asks. Direction labels are على المحل and للمحل. Unit labels are نقد and ذهب.
+
+## Customers layout
+
+Customers opens from the existing workspace destination with a labelled name/phone search, compact sort field, wrapping active/archive/VIP/open-request filters and one primary Add Customer button. Cards follow the PAGES customer reference: initial avatar aligned with the Arabic name, primary LTR phone, actual linked transaction time or an honest empty label, latest-note preview and semantic VIP/open-request badges. Reference aggregate weight/count tiles and call/WhatsApp/contact-saved/sharing controls are omitted for this slice.
+
+Details show all numbers, updated-file time distinct from transaction time, immutable dated notes, linked operation/correction history and owner audit. Create/edit has repeatable validated phone fields with an explicit primary choice; zero phones is allowed. Notes support multiline text. Link/unlink and archive/restore show the selected customer/operation and zero cash/gold/stock/debt effect before confirmation. Server-local dates and phone strings use LTR isolation. Shared Cairo, brown/cream/charcoal roles, 48-pixel targets and 720-pixel measure are unchanged; no new component colors. Enlarged text and keyboard states wrap and scroll.
+
+Pending requests keep the original retry banner and freeze writes; confirmed success uses the tertiary role. Expired access is read-only; revoked/session-lost reads clear displayed data. Sync refreshes list/detail and marks open edits/reviews stale without overwriting drafts. [64 synthetic captures and visual review](reviews/customers-2026-10-13/independent-validation.md); native owner/device acceptance remains open.
+
 ## Verification rules
 
 1. Read this guide and both token files before changing UI. Use semantic theme roles for text, surfaces, controls, borders, errors, pending and success.
@@ -96,5 +110,7 @@ The [Batch 1 review](reviews/owner-feedback-batch1-2026-10-11/validation.md) rec
 The [Batch 2 review](reviews/owner-feedback-batch2-2026-10-12/validation.md) records compact metrics, horizontal journals, constrained buy/sell entry, navigation cleanup and verification limits.
 
 The [repairs review](reviews/repairs-2026-10-12/validation.md) records custody/fee behavior, phone/desktop theme captures and independent validation limits.
+
+The [debts review](reviews/debts-2026-10-13/validation.md) records the local DEBT-01 layout and its validation limits. [Development deployment](reviews/debts-2026-10-13/deployment.md) and independent validation recorded; native owner acceptance remains open.
 
 Cash input fields group whole thousands while typing and preserve entered cents and cursor position. Presentation removes only valid grouping before passing exact decimal strings to domain calculations; stored money is unchanged. Return, correction, exchange and scrap-conversion displays use two-decimal grams with exact milligrams at financial-effect confirmation. The owner requested direct implementation without tests or verification for this formatting follow-up on 2026-10-12; it remains unverified.

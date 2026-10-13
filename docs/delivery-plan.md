@@ -1,5 +1,11 @@
 # Long-term delivery plan
 
+## Current queue — 2026-10-13
+
+Milestone 4 repairs (slice 1), DEBT-01 (slice 2), and Customers CRM-01/CRM-03 (slice 3) are implemented and deployed to development; native owner acceptance remains open. [Repairs evidence](reviews/repairs-2026-10-12/deployment.md), [debt evidence](reviews/debts-2026-10-13/deployment.md), [customers validation](reviews/customers-2026-10-13/independent-validation.md), [customers deployment/retirement](reviews/customers-2026-10-13/deployment.md). The customer slice preserves finance and explicit party snapshots, with notes/status, reviewed links and archive/restore. The SDK analysis launcher is repaired and the debt HTTP ledger regression passed without new finance. No next slice is selected here. CRM-02 statistics, contact actions, debt PDFs, reminders, reports and invoice customization remain separate. [Current status and preserved prompt](operations/next-slice-prompt.md).
+
+The dated execution notes below are historical snapshots; they do not restore removed onboarding or override the current queue.
+
 ## Bounded compensation completion — 2026-10-06
 
 The owner accepted the preceding app and authorized preserving it while completing discrepancy correction, partial/full remaining return and atomic exchange workflows through Milestone 3. Those controls/contracts are now implemented and deployed to development only, with the exact verification and remaining acceptance gaps in [the compensation record](reviews/ledger-compensation-2026-10-06/validation.md). The current entry/ledger direction is [ADR 0010](adr/0010-owner-feedback-registration-and-ledger.md); older onboarding/guide text below is historical and does not authorize reintroducing it. No release, distribution, commit, push, reset or payment-method-setting integration is included.
@@ -31,7 +37,7 @@ The historical G0 signatures are absent; do not claim they were supplied. The us
 
 ## Next bounded slice
 
-The next implementation slice is the Milestone 2 financial foundation: an owner-confirmed opening balance and the live daily-ledger balances that follow from that confirmation. The ready-to-paste prompt is [next-slice-prompt.md](operations/next-slice-prompt.md). Preparing that prompt does not start the slice and does not make any financial action operational. Sale, purchase, expense, quick transfer, and manual close remain later Milestone 2 work. The slice after the opening foundation is the first atomic sale with multiple lines and mixed tenders.
+Milestone 4 slice 3 Customers is implemented and verified in development. [Current status](operations/next-slice-prompt.md) links the preserved original prompt and exact validation/deployment evidence. No next task is selected by this completion. The [opening-balance prompt](operations/opening-balances-slice-prompt-2026-09-26.md) is preserved as historical evidence for the already-delivered financial foundation.
 
 ## Planning rule
 
@@ -78,7 +84,7 @@ Acceptance: anonymous, cross-shop, and revoked-owner access fails at the databas
 
 ## Milestone 2 — transaction kernel and daily ledger
 
-The first bounded slice is [the opening-balance prompt](operations/next-slice-prompt.md): exact units, the minimum shop-owned catalog and scrap buckets, one atomic opening command, the initial Cairo business day, and the confirmed ledger summary and feed. The remainder of this milestone stays in later slices.
+The first bounded slice was [the historical opening-balance prompt](operations/opening-balances-slice-prompt-2026-09-26.md): exact units, the minimum shop-owned catalog and scrap buckets, one atomic opening command, the initial Cairo business day, and the confirmed ledger summary and feed. The remainder of this milestone stays in later slices.
 
 Implement integer money/gram/count value objects, a minimum catalog with category-karat rules, stock lots/counts, scrap buckets, stock constraints and opening balances, then business-day identity, account/posting model, command envelope, idempotency registry, audit/outbox and synchronous open-day balance cards. Deliver sale and purchase commands with multiple lines and tenders, customer/notes, review of effects, and reconciliation after timeout. Implement daily ledger feed, configurable summary visibility/order, actor/time display, quick cash transfer, expense and manual close after the product rules are approved.
 
@@ -92,9 +98,13 @@ Acceptance: stock and scrap reconcile to confirmed movements; the combined Miles
 
 ## Milestone 4 — connected shop workflows
 
-Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, an owner-scoped pending-send queue, and WhatsApp dispatch evidence. Add daily notes and private media through R2 presigned access. Expand interactive onboarding through these real controls and build searchable Help.
+Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, an owner-scoped pending-send queue, and WhatsApp dispatch evidence. Daily notes/private media follow the current private Supabase Storage contract. Tours, guides and practice entry points remain removed under ADR 0010. Searchable Help remains separately planned.
 
-The first repair slice, REP-01/02/03, is implemented locally under [ADR 0012](adr/0012-repair-custody-and-fees.md). Debts, reminders, CRM, reports, and invoice customization remain planned. The owner subsequently authorized Supabase deployment; repair commands and indexes are deployed and hosted SQL/API/Realtime checks passed. [Deployment and remaining native/owner acceptance](reviews/repairs-2026-10-12/deployment.md); [historical independent local validation](reviews/repairs-2026-10-12/validation.md).
+The first repair slice, REP-01/02/03, is implemented under [ADR 0012](adr/0012-repair-custody-and-fees.md). The owner subsequently authorized Supabase deployment; repair commands and indexes are deployed and hosted SQL/API/Realtime checks passed. [Deployment and remaining native/owner acceptance](reviews/repairs-2026-10-12/deployment.md); [historical independent local validation](reviews/repairs-2026-10-12/validation.md).
+
+Milestone 4 slice 2, DEBT-01, is implemented and deployed to development under [ADR 0013](adr/0013-debt-balances-and-settlement.md). Partial settlements reconcile against the authoritative remaining balance. Reminders, debt PDFs, reports, and invoice customization remain planned; CRM-01/03 is implemented separately below. Independent validation and synthetic hosted checks recorded; native owner acceptance remains open. [Validation](reviews/debts-2026-10-13/independent-validation.md), [development deployment](reviews/debts-2026-10-13/deployment.md).
+
+Milestone 4 slice 3, CRM-01/CRM-03, is implemented under [ADR 0014](adr/0014-customer-directory-notes-and-links.md). The owner directory, multiple phones, notes/latest preview, VIP/open-request status, explicit immutable-operation links and archive/restore are independently verified and deployed only to development. [Validation](reviews/customers-2026-10-13/independent-validation.md), [deployment and retirement](reviews/customers-2026-10-13/deployment.md). Customer statistics and contact actions remain deferred.
 
 Acceptance: repair goods never appear as saleable stock until an explicit authorized transition; partial debt settlements reconcile; customer summaries derive from confirmed movements; invoice dispatch stays inside the owning shop and is unavailable to every other account. A failed upload or PDF render remains visible and retryable without replaying the financial transaction.
 

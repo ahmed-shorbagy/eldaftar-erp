@@ -1,10 +1,16 @@
 import 'dart:convert';
+import '../../customers/application/customer_contract.dart';
+import '../../customers/application/customer_gateway.dart';
+import '../../customers/data/customer_codec.dart';
 
 import 'package:http/http.dart' as http;
 
 import '../../inventory/application/inventory_contract.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../inventory/data/inventory_codec.dart';
+import '../../debts/application/debt_contract.dart';
+import '../../debts/application/debt_gateway.dart';
+import '../../debts/data/debt_codec.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../../repairs/application/repair_gateway.dart';
 import '../../repairs/data/repair_codec.dart';
@@ -66,6 +72,31 @@ const _errorCodes = <String>{
   'repair_test_failure',
   'custody_already_released',
   'audit_append_only',
+  'stale_debt',
+  'ledger_effect_required',
+  'duplicate_reference',
+  'duplicate_debt',
+  'duplicate_archive',
+  'partly_settled',
+  'source_cancel_forbidden',
+  'invalid_name',
+  'invalid_phone',
+  'duplicate_phone',
+  'primary_required',
+  'duplicate_primary',
+  'phone_conflict',
+  'stale_customer',
+  'customer_archived',
+  'duplicate_link',
+  'not_linked',
+  'cross_shop',
+  'wrong_operation_kind',
+  'operation_not_confirmed',
+  'invalid_state',
+  'invalid_cursor',
+  'cancel_not_allowed',
+  'archive_not_allowed',
+  'settlement_not_allowed',
 };
 
 class HttpOpeningGateway
@@ -83,7 +114,9 @@ class HttpOpeningGateway
         InventoryGateway,
         NotesGateway,
         LedgerFeedGateway,
-        RepairGateway {
+        RepairGateway,
+        DebtGateway,
+        CustomerGateway {
   HttpOpeningGateway({
     required http.Client client,
     required String supabaseUrl,
@@ -1551,6 +1584,262 @@ class HttpOpeningGateway
       throw const RepairReadException();
     }
   }
+
+  @override
+  Future<DebtRpcResult> submitCommand({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) async {
+    final rpc = debtRpcs[command.kind];
+    if (rpc == null ||
+        !ownsDebtCommand(command.key, command.kind, command.body)) {
+      return const DebtRpcRejected('invalid_input');
+    }
+    try {
+      final response = await _post(callerUserId, rpc, command.body);
+      if (!_callerStill(callerUserId)) return const DebtRpcUnknown();
+      if (response.statusCode >= 500) return const DebtRpcUnknown();
+      if (response.statusCode >= 400) {
+        final code = _errorCode(response.body);
+        if (code == null) return const DebtRpcUnknown();
+        return DebtRpcRejected(code);
+      }
+      return parseDebtCommand(jsonDecode(response.body));
+    } on _OwnerChanged {
+      return const DebtRpcUnknown();
+    } on _CallerRejected catch (error) {
+      return DebtRpcRejected(error.code);
+    } on FormatException {
+      return const DebtRpcUnknown();
+    } catch (_) {
+      return const DebtRpcUnknown();
+    }
+  }
+
+  @override
+  Future<DebtRemoteStatus> readCommandStatus({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final response = await _post(callerUserId, 'get_debt_command_status_v1', {
+        'p_idempotency_key': idempotencyKey,
+      });
+      if (!_callerStill(callerUserId) || response.statusCode >= 500) {
+        return const DebtRemoteUnknown();
+      }
+      if (response.statusCode >= 400) {
+        final code = _errorCode(response.body);
+        if (code == null) return const DebtRemoteUnknown();
+        return DebtRemoteRejected(code);
+      }
+      return parseDebtCommandStatus(jsonDecode(response.body));
+    } on _OwnerChanged {
+      return const DebtRemoteUnknown();
+    } on _CallerRejected catch (error) {
+      return DebtRemoteRejected(error.code);
+    } on FormatException {
+      return const DebtRemoteUnknown();
+    } catch (_) {
+      return const DebtRemoteUnknown();
+    }
+  }
+
+  @override
+  Future<DebtContext> readContext({required String callerUserId}) => _debtRead(
+    callerUserId,
+    'get_debt_context_v1',
+    const {},
+    parseDebtContext,
+  );
+
+  @override
+  Future<DebtPage> readList({
+    required String callerUserId,
+    required String query,
+    required String filter,
+    required int limit,
+    required String? cursor,
+  }) => _debtRead(callerUserId, 'get_debt_list_v1', {
+    'p_query': query,
+    'p_filter': filter,
+    'p_limit': limit,
+    'p_cursor': cursor,
+  }, parseDebtPage);
+
+  @override
+  Future<DebtDetail> readDetail({
+    required String callerUserId,
+    required String sourceKind,
+    required String sourceId,
+  }) => _debtRead(callerUserId, 'get_debt_v1', {
+    'p_source_kind': sourceKind,
+    'p_source_id': sourceId,
+  }, parseDebtDetail);
+
+  Future<T> _debtRead<T>(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+    T Function(Object? raw) parse,
+  ) async {
+    try {
+      final response = await _post(callerUserId, rpc, body);
+      if (!_callerStill(callerUserId)) {
+        throw const DebtReadException('discarded');
+      }
+      if (response.statusCode >= 400) {
+        throw DebtReadException(_errorCode(response.body));
+      }
+      return parse(jsonDecode(response.body));
+    } on DebtReadException {
+      rethrow;
+    } on _OwnerChanged {
+      throw const DebtReadException('discarded');
+    } on _CallerRejected catch (error) {
+      throw DebtReadException(error.code);
+    } on FormatException {
+      throw const DebtReadException();
+    } catch (_) {
+      throw const DebtReadException();
+    }
+  }
+
+  @override
+  Future<CustomerTransport> sendCustomer({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) async {
+    if (!matchesCustomerEnvelope(command.key, command.kind, command.body)) {
+      return const CustomerTransport(error: 'invalid_input');
+    }
+    try {
+      final r = await _post(
+        callerUserId,
+        customerRpcs[command.kind]!,
+        command.body,
+      );
+      if (!_callerStill(callerUserId) || r.statusCode >= 500) {
+        return const CustomerTransport();
+      }
+      if (r.statusCode >= 400) {
+        return CustomerTransport(error: _errorCode(r.body));
+      }
+      return CustomerTransport(
+        receipt: parseCustomerReceipt(jsonDecode(r.body), command),
+      );
+    } on _CallerRejected catch (e) {
+      return CustomerTransport(error: e.code);
+    } catch (_) {
+      return const CustomerTransport();
+    }
+  }
+
+  @override
+  Future<CustomerTransport> customerStatus({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) async {
+    try {
+      final p = customerMap(command.body['p_payload']);
+      final r = await _post(callerUserId, 'get_customer_command_status_v1', {
+        'p_idempotency_key': command.key,
+        'p_command_kind': command.kind,
+        'p_customer_id': p['customer_id'],
+        'p_payload': p,
+      });
+      if (!_callerStill(callerUserId) || r.statusCode >= 400) {
+        return const CustomerTransport();
+      }
+      final m = customerMap(jsonDecode(r.body));
+      if (m['status'] == 'absent') return const CustomerTransport(absent: true);
+      if (m['status'] != 'completed' || m['command_kind'] != command.kind) {
+        return const CustomerTransport();
+      }
+      final receipt = parseCustomerReceipt(m['result'], command);
+      if (receipt.customer.id != m['customer_id']) {
+        return const CustomerTransport();
+      }
+      return CustomerTransport(receipt: receipt);
+    } catch (_) {
+      return const CustomerTransport();
+    }
+  }
+
+  Future<T> _customerRead<T>(
+    String caller,
+    String rpc,
+    Map<String, Object?> body,
+    T Function(Object?) parse,
+  ) async {
+    try {
+      final r = await _post(caller, rpc, body);
+      if (!_callerStill(caller)) {
+        throw const CustomerReadException('session_expired');
+      }
+      if (r.statusCode >= 400) throw CustomerReadException(_errorCode(r.body));
+      return parse(jsonDecode(r.body));
+    } on CustomerReadException {
+      rethrow;
+    } on _CallerRejected catch (e) {
+      throw CustomerReadException(e.code);
+    } on _OwnerChanged {
+      throw const CustomerReadException('session_expired');
+    } catch (_) {
+      throw const CustomerReadException();
+    }
+  }
+
+  @override
+  Future<CustomerPage> customers({
+    required String callerUserId,
+    required String query,
+    required String sort,
+    required String filter,
+    required String? cursor,
+  }) => _customerRead(callerUserId, 'get_customer_list_v1', {
+    'p_query': query,
+    'p_sort': sort,
+    'p_filter': filter,
+    'p_limit': 20,
+    'p_cursor': cursor,
+  }, parseCustomerPage);
+  @override
+  Future<CustomerDetail> customer({
+    required String callerUserId,
+    required String id,
+    String? notesCursor,
+    String? historyCursor,
+    String? linksCursor,
+  }) => _customerRead(
+    callerUserId,
+    'get_customer_v1',
+    {
+      'p_customer_id': id,
+      'p_notes_limit': 20,
+      'p_notes_cursor': notesCursor,
+      'p_history_limit': 20,
+      'p_history_cursor': historyCursor,
+      'p_links_limit': 20,
+      'p_links_cursor': linksCursor,
+    },
+    (raw) {
+      final d = parseCustomerDetail(raw);
+      if (d.customer.id != id) throw const FormatException('customer');
+      return d;
+    },
+  );
+  @override
+  Future<CustomerSection> customerCandidates({
+    required String callerUserId,
+    required String query,
+    required String? cursor,
+  }) => _customerRead(
+    callerUserId,
+    'get_customer_link_candidates_v1',
+    {'p_query': query, 'p_limit': 20, 'p_cursor': cursor},
+    (raw) => parseCustomerSection(raw, type: 'candidates'),
+  );
 }
 
 bool _noteObjectName(String name) {
