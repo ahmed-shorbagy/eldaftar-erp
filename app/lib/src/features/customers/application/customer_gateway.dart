@@ -1,4 +1,5 @@
 import '../../daily_ledger/application/pending_financial_command.dart';
+import '../domain/customer_statistics.dart';
 
 class CustomerReadException implements Exception {
   const CustomerReadException([this.code]);
@@ -20,12 +21,14 @@ class CustomerRecord {
     required this.lastAtShop,
     required this.latestNote,
     required this.timeZone,
+    this.statistics,
   });
   final String id, name, status, updatedAt, updatedAtShop, timeZone;
   final BigInt version;
   final bool vip, openRequest;
   final List<CustomerContact> phones;
   final String? lastAt, lastAtShop, latestNote;
+  final CustomerStatistics? statistics;
   bool get archived => status == 'archived';
 }
 

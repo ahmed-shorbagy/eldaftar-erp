@@ -2,7 +2,7 @@
 
 ## Current queue — 2026-10-13
 
-Milestone 4 repairs (slice 1), DEBT-01 (slice 2), and Customers CRM-01/CRM-03 (slice 3) are implemented and deployed to development; native owner acceptance remains open. [Repairs evidence](reviews/repairs-2026-10-12/deployment.md), [debt evidence](reviews/debts-2026-10-13/deployment.md), [customers validation](reviews/customers-2026-10-13/independent-validation.md), [customers deployment/retirement](reviews/customers-2026-10-13/deployment.md). The customer slice preserves finance and explicit party snapshots, with notes/status, reviewed links and archive/restore. The SDK analysis launcher is repaired and the debt HTTP ledger regression passed without new finance. No next slice is selected here. CRM-02 statistics, contact actions, debt PDFs, reminders, reports and invoice customization remain separate. [Current status and preserved prompt](operations/next-slice-prompt.md).
+Milestone 4 repairs (slice 1), DEBT-01 (slice 2), Customers CRM-01/CRM-03 (slice 3), and CRM-02 customer statistics (slice 4) are implemented and deployed to development; native owner acceptance remains open. [Repairs evidence](reviews/repairs-2026-10-12/deployment.md), [debt evidence](reviews/debts-2026-10-13/deployment.md), [CRM-01/03 evidence](reviews/customers-2026-10-13/deployment.md), [CRM-02 validation](reviews/customer-statistics-2026-10-13/independent-validation.md), [CRM-02 deployment/retirement](reviews/customer-statistics-2026-10-13/deployment.md). CRM-02 uses exact per-karat net weights from current explicit confirmed-operation links; separately linked exchange replacements, retained transaction counts and confirmed-return last activity follow the owner's answers in [ADR 0015](adr/0015-customer-statistics.md). No financial history was changed. The SDK launcher and focused debt ledger regression remain resolved. Contact actions, debt PDFs, reminders, reports and invoice customization remain separate; no further slice is selected by this task. [Current completion status](operations/next-slice-prompt.md).
 
 The dated execution notes below are historical snapshots; they do not restore removed onboarding or override the current queue.
 
@@ -37,7 +37,7 @@ The historical G0 signatures are absent; do not claim they were supplied. The us
 
 ## Next bounded slice
 
-Milestone 4 slice 3 Customers is implemented and verified in development. [Current status](operations/next-slice-prompt.md) links the preserved original prompt and exact validation/deployment evidence. No next task is selected by this completion. The [opening-balance prompt](operations/opening-balances-slice-prompt-2026-09-26.md) is preserved as historical evidence for the already-delivered financial foundation.
+Milestone 4 slice 3 Customers is implemented and verified in development. Its [completion status](operations/customers-completion-status-2026-10-13.md) and original prompt remain preserved. The [next prompt](operations/next-slice-prompt.md) prepares Milestone 4 slice 4, CRM-02: customer bought/sold grams by karat, operation counts and last activity. This is planned scope; gross/net return and exchange/count semantics require clarification if existing decisions do not settle them. No implementation or deployment is performed by this planning update. The [opening-balance prompt](operations/opening-balances-slice-prompt-2026-09-26.md) is preserved as historical evidence for the already-delivered financial foundation.
 
 ## Planning rule
 

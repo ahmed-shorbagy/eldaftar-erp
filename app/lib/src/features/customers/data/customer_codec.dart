@@ -3,6 +3,7 @@ import '../../daily_ledger/application/pending_financial_command.dart';
 import '../application/customer_contract.dart';
 import '../application/customer_gateway.dart';
 import '../domain/customer_rules.dart';
+import '../domain/customer_statistics.dart';
 
 Map<String, Object?> customerMap(Object? raw) {
   if (raw is! Map) throw const FormatException('customer');
@@ -40,7 +41,80 @@ bool _bool(Object? v) {
   return v;
 }
 
-CustomerRecord parseCustomer(Object? raw) {
+BigInt _statisticsInteger(Object? value) {
+  final s = _str(value);
+  if (!RegExp(r'^(0|[1-9][0-9]{0,39})$').hasMatch(s)) {
+    throw const FormatException('customer_statistics');
+  }
+  return BigInt.parse(s);
+}
+
+CustomerStatistics parseCustomerStatistics(Object? raw) {
+  final m = customerMap(raw);
+  if (m['version'] is! int ||
+      m['version'] != 1 ||
+      m['policy'] != 'net_explicit_links_v1' ||
+      m['weights'] is! List ||
+      (m['weights'] as List).length != 5) {
+    throw const FormatException('customer_statistics');
+  }
+  final weights = <CustomerKaratWeight>[];
+  for (final raw in m['weights'] as List) {
+    final w = customerMap(raw);
+    if (w['karat'] is! int || w['karat'] != customerKarats[weights.length]) {
+      throw const FormatException('customer_statistics');
+    }
+    weights.add(
+      CustomerKaratWeight(
+        w['karat'] as int,
+        _statisticsInteger(w['bought_milligrams']),
+        _statisticsInteger(w['sold_milligrams']),
+      ),
+    );
+  }
+  final bought = _statisticsInteger(m['bought_count']);
+  final sold = _statisticsInteger(m['sold_count']);
+  CustomerLastOperation? last;
+  if (m['last_operation'] != null) {
+    final op = customerMap(m['last_operation']);
+    final kind = _str(op['operation_kind']);
+    if (!{
+      'sale',
+      'purchase',
+      'sale_return',
+      'purchase_return',
+    }.contains(kind)) {
+      throw const FormatException('customer_statistics');
+    }
+    final local = _str(op['operation_created_at_shop']);
+    final sequence = _statisticsInteger(op['shop_sequence']);
+    if (DateTime.tryParse(local) == null || sequence == BigInt.zero) {
+      throw const FormatException('customer_statistics');
+    }
+    last = CustomerLastOperation(
+      id: _uuid(op['operation_id']),
+      kind: kind,
+      sequence: sequence,
+      createdAt: _utc(op['operation_created_at']),
+      createdAtShop: local,
+    );
+  }
+  if (((bought + sold == BigInt.zero) != (last == null)) ||
+      (bought == BigInt.zero &&
+          weights.any((w) => w.boughtMilligrams > BigInt.zero)) ||
+      (sold == BigInt.zero &&
+          weights.any((w) => w.soldMilligrams > BigInt.zero))) {
+    throw const FormatException('customer_statistics');
+  }
+  return CustomerStatistics(
+    weights: weights,
+    boughtCount: bought,
+    soldCount: sold,
+    lastOperation: last,
+  );
+}
+
+CustomerRecord parseCustomer(Object? raw, {bool requireStatistics = false}) {
   final m = customerMap(raw);
   final v = _str(m['record_version']);
   if (!RegExp(r'^[1-9][0-9]{0,18}$').hasMatch(v) ||
@@ -85,6 +159,15 @@ CustomerRecord parseCustomer(Object? raw) {
       (local != null && DateTime.tryParse(local) == null)) {
     throw const FormatException('customer');
   }
+  final statistics = m['statistics'] == null
+      ? null
+      : parseCustomerStatistics(m['statistics']);
+  if (requireStatistics && statistics == null ||
+      statistics != null &&
+          (statistics.lastOperation?.createdAt != last ||
+              statistics.lastOperation?.createdAtShop != local)) {
+    throw const FormatException('customer_statistics');
+  }
   return CustomerRecord(
     id: _uuid(m['customer_id']),
     name: name,
@@ -99,14 +182,17 @@ CustomerRecord parseCustomer(Object? raw) {
     lastAtShop: local,
     latestNote: _optional(m['latest_note_preview']),
     timeZone: _str(m['time_zone']),
+    statistics: statistics,
   );
 }
 
-CustomerPage parseCustomerPage(Object? raw) {
+CustomerPage parseCustomerPage(Object? raw, {bool requireStatistics = false}) {
   final m = customerMap(raw);
   if (m['items'] is! List) throw const FormatException('customer');
   return CustomerPage(
-    (m['items'] as List).map(parseCustomer).toList(),
+    (m['items'] as List)
+        .map((r) => parseCustomer(r, requireStatistics: requireStatistics))
+        .toList(),
     _optional(m['next_cursor']),
   );
 }
@@ -161,10 +247,13 @@ CustomerSection parseCustomerSection(Object? raw, {String? type}) {
   return CustomerSection(rows, _optional(m['next_cursor']));
 }
 
-CustomerDetail parseCustomerDetail(Object? raw) {
+CustomerDetail parseCustomerDetail(
+  Object? raw, {
+  bool requireStatistics = false,
+}) {
   final m = customerMap(raw);
   return CustomerDetail(
-    parseCustomer(m),
+    parseCustomer(m, requireStatistics: requireStatistics),
     parseCustomerSection(m['notes'], type: 'notes'),
     parseCustomerSection(m['history'], type: 'history'),
     parseCustomerSection(m['links'], type: 'links'),

@@ -8,6 +8,7 @@ import 'package:eldafttar/src/features/customers/application/customer_gateway.da
 import 'package:eldafttar/src/features/customers/data/customer_codec.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'customer_fixtures.dart';
+import 'customer_statistics_fixtures.dart';
 import 'repair_command_flow_test.dart' show MemoryLocker;
 
 http.Response response(Object? body, int code) => http.Response(
@@ -141,7 +142,15 @@ void main() {
         expect(p['p_sort'], 'last_operation');
         expect(p['p_cursor'], 'next');
         return response({
-          'items': [customerJson(last: '2026-10-13T00:30:00')],
+          'items': [
+            {
+              ...customerJson(last: '2026-10-13T00:30:00'),
+              'statistics': statisticsJson(
+                utc: '2026-10-12T21:30:00.000000Z',
+                local: '2026-10-13T00:30:00',
+              ),
+            },
+          ],
           'next_cursor': null,
         }, 200);
       }),

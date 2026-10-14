@@ -7,6 +7,7 @@ import '../application/customer_contract.dart';
 import '../application/customer_gateway.dart';
 import '../application/customer_command_flow.dart';
 import '../domain/customer_rules.dart';
+import '../domain/customer_statistics.dart';
 
 String customerError(String? code) => switch (code) {
   'invalid_name' => 'أدخل اسم العميل بالعربية.',
@@ -28,6 +29,8 @@ String customerError(String? code) => switch (code) {
   'unauthenticated' => 'انتهى الوصول. سجّل الدخول مرة أخرى.',
   'invalid_cursor' => 'تغيّرت صفحة النتائج. افتح القائمة من البداية.',
   'not_found' => 'هذا الملف غير متاح.',
+  'read_failed' =>
+    'تعذر تحديث ملف العميل وإحصائياته. البيانات المعروضة قد تكون قديمة؛ أعد المحاولة.',
   _ => 'تعذر إتمام الطلب. تحقق من الاتصال وأعد المحاولة.',
 };
 String customerDate(String value) =>
@@ -94,7 +97,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _open = false,
       _syncQueued = false,
       _accessLost = false;
-  String? _error, _cursor, _candidateCursor, _editId;
+  String? _error, _cursor, _candidateCursor, _editId, _selectedId;
   BigInt? _editVersion;
   List<CustomerRecord> _items = [];
   List<Map<String, Object?>> _candidates = [];
@@ -138,6 +141,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _request++;
       _items = [];
       _detail = null;
+      _selectedId = null;
       _pending = null;
       _foreign = false;
       _review = null;
@@ -187,7 +191,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
   }
 
   void _failure(Object e) {
-    _error = e is CustomerReadException ? e.code : null;
+    _error = e is CustomerReadException
+        ? e.code ?? 'read_failed'
+        : 'read_failed';
     if ({'session_expired', 'forbidden', 'unauthenticated'}.contains(_error)) {
       _accessLost = true;
       _items = [];
@@ -212,7 +218,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
           ? pending
           : null;
       _foreign = pending != null && _pending == null;
-      if (_stage == 'list' || _detail == null) {
+      final detailId = _detail?.customer.id ?? _selectedId;
+      if (_stage == 'list' || detailId == null) {
         final page = await widget.gateway.customers(
           callerUserId: widget.userId,
           query: _search.text.trim(),
@@ -232,7 +239,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       } else {
         final d = await widget.gateway.customer(
           callerUserId: widget.userId,
-          id: _detail!.customer.id,
+          id: detailId,
         );
         if (!_current(epoch, request)) return;
         _detail = d;
@@ -254,6 +261,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
     if (_busy) return;
     setState(() {
       _detail = null;
+      _selectedId = c.id;
       _stage = 'detail';
       _loading = true;
       _error = null;
@@ -514,6 +522,11 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ? 'لا توجد عمليات مرتبطة'
                 : 'آخر عملية: ${customerDate(c.lastAtShop!)}',
           ),
+          if (clickable && c.statistics != null) ...[
+            const Text('اشترى العميل من المحل (جرام)'),
+            _weightTiles(c.statistics!, compact: true),
+            const Text('صافي العمليات المؤكدة المرتبطة فقط'),
+          ],
           if (c.latestNote != null)
             Text(c.latestNote!, maxLines: 3, overflow: TextOverflow.ellipsis),
           Wrap(
@@ -532,6 +545,78 @@ class _CustomerScreenState extends State<CustomerScreen> {
       ),
     ),
   );
+  Widget _weightTiles(CustomerStatistics statistics, {bool compact = false}) =>
+      Wrap(
+        spacing: AppTokens.spaceMd,
+        runSpacing: AppTokens.spaceSm,
+        children: [
+          for (final karat in compact ? [18, 21, 24] : customerKarats)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'عيار $karat',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: compact
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  if (!compact) const Text('اشترى العميل'),
+                  Text(
+                    customerGrams(statistics.at(karat).boughtMilligrams),
+                    textDirection: TextDirection.ltr,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (!compact) ...[
+                    const Text('باع العميل للمحل'),
+                    Text(
+                      customerGrams(statistics.at(karat).soldMilligrams),
+                      textDirection: TextDirection.ltr,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      );
+
+  List<Widget> _statisticsWidgets(CustomerRecord customer) {
+    final s = customer.statistics;
+    final op = s?.lastOperation;
+    const kinds = {
+      'sale': 'شراء العميل من المحل',
+      'purchase': 'بيع العميل للمحل',
+      'sale_return': 'مرتجع شراء العميل',
+      'purchase_return': 'مرتجع بيع العميل للمحل',
+    };
+    return [
+      _heading('إحصائيات العملاء'),
+      if (s == null)
+        const Text('الإحصائيات غير متاحة؛ افتح الملف مجددًا لتحديثه.')
+      else ...[
+        const Text(
+          'الأوزان الصافية بالجرام بعد المرتجعات المؤكدة. تشمل العمليات المرتبطة صراحة بهذا الملف فقط، وليست كامل تاريخ العميل.',
+        ),
+        if (!s.hasActivity)
+          const Text('لا توجد عمليات مؤكدة مرتبطة؛ جميع الأوزان والأعداد صفر.'),
+        _weightTiles(s),
+        Text('عدد عمليات شراء العميل من المحل: \u2066${s.boughtCount}\u2069'),
+        Text('عدد عمليات بيع العميل للمحل: \u2066${s.soldCount}\u2069'),
+        const Text('يبقى عدد العمليات بعد المرتجع الجزئي أو الكامل.'),
+        if (op != null)
+          Text(
+            'آخر عملية مؤكدة: ${kinds[op.kind]} · رقم \u2066${op.sequence}\u2069 · ${customerDate(op.createdAtShop)}',
+          )
+        else
+          const Text('لا توجد عملية مؤكدة مرتبطة لعرض تاريخها.'),
+      ],
+    ];
+  }
+
   List<Widget> _list() => [
     TextField(
       key: const Key('customer-search'),
@@ -722,6 +807,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final c = d.customer;
     return [
       _card(c, clickable: false),
+      ..._statisticsWidgets(c),
       _heading('بيانات العميل'),
       for (final p in c.phones)
         Padding(
@@ -1096,7 +1182,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                       ),
                     ),
                   ),
-                if (_error != null && _stage == 'list')
+                if (_error != null && {'list', 'detail'}.contains(_stage))
                   _action('إعادة المحاولة', _loading ? null : () => _reload()),
                 if (_loading || _busy) const LinearProgressIndicator(),
                 ..._content(),

@@ -1797,13 +1797,18 @@ class HttpOpeningGateway
     required String sort,
     required String filter,
     required String? cursor,
-  }) => _customerRead(callerUserId, 'get_customer_list_v1', {
-    'p_query': query,
-    'p_sort': sort,
-    'p_filter': filter,
-    'p_limit': 20,
-    'p_cursor': cursor,
-  }, parseCustomerPage);
+  }) => _customerRead(
+    callerUserId,
+    'get_customer_list_v2',
+    {
+      'p_query': query,
+      'p_sort': sort,
+      'p_filter': filter,
+      'p_limit': 20,
+      'p_cursor': cursor,
+    },
+    (raw) => parseCustomerPage(raw, requireStatistics: true),
+  );
   @override
   Future<CustomerDetail> customer({
     required String callerUserId,
@@ -1813,7 +1818,7 @@ class HttpOpeningGateway
     String? linksCursor,
   }) => _customerRead(
     callerUserId,
-    'get_customer_v1',
+    'get_customer_v2',
     {
       'p_customer_id': id,
       'p_notes_limit': 20,
@@ -1824,7 +1829,7 @@ class HttpOpeningGateway
       'p_links_cursor': linksCursor,
     },
     (raw) {
-      final d = parseCustomerDetail(raw);
+      final d = parseCustomerDetail(raw, requireStatistics: true);
       if (d.customer.id != id) throw const FormatException('customer');
       return d;
     },

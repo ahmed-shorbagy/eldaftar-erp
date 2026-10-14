@@ -89,11 +89,17 @@ The list is a search field, wrapping filters (المفتوحة، المسددة�
 
 ## Customers layout
 
-Customers opens from the existing workspace destination with a labelled name/phone search, compact sort field, wrapping active/archive/VIP/open-request filters and one primary Add Customer button. Cards follow the PAGES customer reference: initial avatar aligned with the Arabic name, primary LTR phone, actual linked transaction time or an honest empty label, latest-note preview and semantic VIP/open-request badges. Reference aggregate weight/count tiles and call/WhatsApp/contact-saved/sharing controls are omitted for this slice.
+Customers opens from the existing workspace destination with a labelled name/phone search, compact sort field, wrapping active/archive/VIP/open-request filters and one primary Add Customer button. Cards follow the PAGES customer reference: initial avatar aligned with the Arabic name, primary LTR phone, actual linked transaction time or an honest empty label, latest-note preview and semantic VIP/open-request badges. CRM-02 adds compact bought-weight summaries for 18/21/24 to these cards. Contact and sharing controls remain outside the customer slice.
 
 Details show all numbers, updated-file time distinct from transaction time, immutable dated notes, linked operation/correction history and owner audit. Create/edit has repeatable validated phone fields with an explicit primary choice; zero phones is allowed. Notes support multiline text. Link/unlink and archive/restore show the selected customer/operation and zero cash/gold/stock/debt effect before confirmation. Server-local dates and phone strings use LTR isolation. Shared Cairo, brown/cream/charcoal roles, 48-pixel targets and 720-pixel measure are unchanged; no new component colors. Enlarged text and keyboard states wrap and scroll.
 
 Pending requests keep the original retry banner and freeze writes; confirmed success uses the tertiary role. Expired access is read-only; revoked/session-lost reads clear displayed data. Sync refreshes list/detail and marks open edits/reviews stale without overwriting drafts. [64 synthetic captures and visual review](reviews/customers-2026-10-13/independent-validation.md); native owner/device acceptance remains open.
+
+## Customer statistics layout
+
+CRM-02 preserves the customer directory layout and shared palette. List cards show “اشترى العميل من المحل (جرام)” with compact 18/21/24 values, semantic text roles for card karat labels and primary roles on the page and the explicit linked-confirmed net scope. Detail shows all five karats, separate “اشترى العميل” and “باع العميل للمحل” quantities, two clearly named counts and the last relevant confirmed operation/sequence/shop-local timestamp. Values retain exactly three decimal gram places, unlike ordinary two-decimal ledger previews; all arithmetic stays in integer milligrams. Numeric text is LTR within Arabic RTL, while dates/counts use direction isolation.
+
+The weights wrap at phone widths and enlarged text, then align across the 720-pixel desktop measure. Counts remain after partial/full returns; zero weights with retained counts are valid. No linked activity has explicit zero/no-operation text. File update time remains under customer metadata, separate from actual activity. Failed refreshes show an Arabic stale-data warning and retry, including detail retry recovery. No new guide cards, prices, cash, profit, contact actions or component colors are introduced. [Confirmed contract](adr/0015-customer-statistics.md), [visual and behavior evidence](reviews/customer-statistics-2026-10-13/independent-validation.md).
 
 ## Verification rules
 
