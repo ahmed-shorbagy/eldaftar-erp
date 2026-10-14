@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../../customers/application/customer_contract.dart';
 import '../../customers/application/customer_gateway.dart';
+import '../../customers/domain/customer_contact.dart';
 import '../../customers/data/customer_codec.dart';
 
 import 'package:http/http.dart' as http;
@@ -86,6 +87,7 @@ const _errorCodes = <String>{
   'duplicate_primary',
   'phone_conflict',
   'stale_customer',
+  'stale_number',
   'customer_archived',
   'duplicate_link',
   'not_linked',
@@ -116,7 +118,17 @@ class HttpOpeningGateway
         LedgerFeedGateway,
         RepairGateway,
         DebtGateway,
-        CustomerGateway {
+        CustomerGateway,
+        CustomerContactSession {
+  @override
+  Object? contactSession(String callerUserId) {
+    try {
+      return _callerToken(callerUserId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   HttpOpeningGateway({
     required http.Client client,
     required String supabaseUrl,
@@ -1742,12 +1754,18 @@ class HttpOpeningGateway
   }) async {
     try {
       final p = customerMap(command.body['p_payload']);
-      final r = await _post(callerUserId, 'get_customer_command_status_v1', {
-        'p_idempotency_key': command.key,
-        'p_command_kind': command.kind,
-        'p_customer_id': p['customer_id'],
-        'p_payload': p,
-      });
+      final r = await _post(
+        callerUserId,
+        command.kind == 'customer_saved_number'
+            ? 'get_customer_command_status_v2'
+            : 'get_customer_command_status_v1',
+        {
+          'p_idempotency_key': command.key,
+          'p_command_kind': command.kind,
+          'p_customer_id': p['customer_id'],
+          'p_payload': p,
+        },
+      );
       if (!_callerStill(callerUserId) || r.statusCode >= 400) {
         return const CustomerTransport();
       }
@@ -1799,7 +1817,7 @@ class HttpOpeningGateway
     required String? cursor,
   }) => _customerRead(
     callerUserId,
-    'get_customer_list_v2',
+    'get_customer_list_v3',
     {
       'p_query': query,
       'p_sort': sort,
@@ -1807,7 +1825,11 @@ class HttpOpeningGateway
       'p_limit': 20,
       'p_cursor': cursor,
     },
-    (raw) => parseCustomerPage(raw, requireStatistics: true),
+    (raw) => parseCustomerPage(
+      raw,
+      requireStatistics: true,
+      requireSavedNumbers: true,
+    ),
   );
   @override
   Future<CustomerDetail> customer({
@@ -1818,7 +1840,7 @@ class HttpOpeningGateway
     String? linksCursor,
   }) => _customerRead(
     callerUserId,
-    'get_customer_v2',
+    'get_customer_v3',
     {
       'p_customer_id': id,
       'p_notes_limit': 20,
@@ -1829,7 +1851,11 @@ class HttpOpeningGateway
       'p_links_cursor': linksCursor,
     },
     (raw) {
-      final d = parseCustomerDetail(raw, requireStatistics: true);
+      final d = parseCustomerDetail(
+        raw,
+        requireStatistics: true,
+        requireSavedNumbers: true,
+      );
       if (d.customer.id != id) throw const FormatException('customer');
       return d;
     },

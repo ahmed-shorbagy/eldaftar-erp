@@ -97,7 +97,7 @@ void main() {
       final g = gateway(
         MockClient((request) async {
           calls++;
-          expect(request.url.path.endsWith('get_customer_list_v2'), true);
+          expect(request.url.path.endsWith('get_customer_list_v3'), true);
           final body = jsonDecode(request.body) as Map;
           expect(body['p_limit'], 20);
           expect(body['p_sort'], 'last_operation');
@@ -127,7 +127,7 @@ void main() {
     };
     final g = gateway(
       MockClient((request) async {
-        expect(request.url.path.endsWith('get_customer_v2'), true);
+        expect(request.url.path.endsWith('get_customer_v3'), true);
         return response(json, 200);
       }),
     );

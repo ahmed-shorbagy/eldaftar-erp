@@ -1,5 +1,6 @@
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../domain/customer_rules.dart';
+import '../domain/customer_saved_number.dart';
 
 const customerRpcs = <String, String>{
   'customer_create': 'post_customer_create_v1',
@@ -10,6 +11,7 @@ const customerRpcs = <String, String>{
   'customer_restore': 'post_customer_restore_v1',
   'customer_link': 'post_customer_link_v1',
   'customer_unlink': 'post_customer_unlink_v1',
+  'customer_saved_number': 'post_customer_saved_number_v1',
 };
 bool matchesCustomerEnvelope(
   String key,
@@ -68,6 +70,17 @@ bool matchesCustomerEnvelope(
   if (kind == 'customer_note') {
     keys.add('body');
     if (p['body'] is! String || !validCustomerNote(p['body'] as String)) {
+      return false;
+    }
+  }
+  if (kind == 'customer_saved_number') {
+    keys.addAll(['number_id', 'normalized_number', 'state']);
+    if (p['number_id'] is! String ||
+        !isUuid(p['number_id'] as String) ||
+        p['normalized_number'] is! String ||
+        normalizeCustomerPhone(p['normalized_number'] as String) !=
+            p['normalized_number'] ||
+        !savedNumberStates.contains(p['state'])) {
       return false;
     }
   }

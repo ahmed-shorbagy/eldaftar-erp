@@ -39,6 +39,7 @@ Map<String, Object?> statisticsJson({
 
 Map<String, Object?> statisticsCustomerJson({bool empty = false}) => {
   ...customerJson(),
+  'saved_number_policy': 'owner_number_v1',
   'statistics': statisticsJson(empty: empty),
   'last_operation_at': empty ? null : '2026-10-13T21:30:00.000000Z',
   'last_operation_at_shop': empty ? null : '2026-10-14T00:30:00',

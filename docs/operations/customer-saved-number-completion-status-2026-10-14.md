@@ -1,0 +1,13 @@
+# Milestone 4 slice 6 — CRM-05 completion status
+
+Date: 2026-10-14. Implemented, separately reviewed, independently validated and deployed to development xchapwvmvoefriqcxtvn. Native/device/owner acceptance remains open.
+
+Owner-confirmed [D30 / ADR 0017](../adr/0017-customer-saved-number-declarations.md) defines manual declarations per normalized number, primary-number directory status, unknown/saved/not-saved and clear, preservation through unchanged normalized edits, retired audit on removal and new unknown identity on re-addition. Arabic owner workflow uses atomic version-checked/idempotent metadata commands and exact durable recovery. Existing directory/statistics/contact, archive, note/flag, association and financial workflows remain. Contact handoffs never change declarations or invoice dispatch.
+
+[Exact independent validation](../reviews/customer-saved-number-2026-10-14/independent-validation.md): 865 Flutter tests, clean analysis/scoped format, React lint/38 tests/TypeScript, 11 independent probes, 144 RTL light/dark captures, local SQL/RLS/round-trip/concurrency and hosted rollback SQL. [Deployment hashes/counts/digests/retirement](../reviews/customer-saved-number-2026-10-14/deployment.md) record the one additive migration and all 22 unchanged protected relations.
+
+Submitted [next-slice prompt](next-slice-prompt.md), [dated CRM-05 planning copy](customer-saved-number-slice-prompt-2026-10-14.md), completed contact/statistics prompts/completion records and all historical validation preserved. Current matrix/plan/design guide/decisions point to this delivery. Submitted prompt stays execution evidence instead of being replaced with an unselected next scope.
+
+Final local links/privacy/consistency, saved baseline hashes and git diff --check reviewed at completion; ignored tmp/customer-saved-number/completion-review.json. No private source document, customer data or credential added to evidence. No commit, push, publishing, release/production build, Auth policy change, calls/messages, reset or history deletion.
+
+Completion review: all 1,387 baseline files compared; no missing files and only 16 necessary baseline files changed, with 11 new implementation/test/documentation artifacts. Nine current/new documentation files reviewed, all 241 local links resolve, zero credential-shaped or trailing-whitespace findings, JavaScript runner syntax and git diff --check passed. Submitted prompts, historical evidence, existing migrations, theme tokens and unrelated work remain byte-identical. Separate final documentation review independently matched all 22 published preservation counts/digests to the before/after manifests.

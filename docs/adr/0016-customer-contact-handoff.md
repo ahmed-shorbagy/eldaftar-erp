@@ -1,0 +1,15 @@
+# Customer call and WhatsApp handoffs
+
+Status: owner-confirmed policy; implemented and independently validated locally. Native owner/device acceptance remains open. Date: 2026-10-14. Scope: CRM-04/CRM-06; CRM-05 excluded.
+
+The owner confirmed all three choices in the implementation conversation: open the system dialer with the selected number and let the owner place the call; allow contact handoffs for expired owners while authorized read access remains; allow them from archived files. Revoked/lost sessions, another shop and platform administrators remain denied by the existing customer reader contract.
+
+Read the current customer before number selection and again before launch. Show the selected normalized number and primary marker in Arabic RTL with LTR digits. Changes require a fresh selection. A session, shop or sync change invalidates outstanding handoffs. External destinations are restricted to validated `tel:`, `whatsapp://send?phone=` and explicit `https://wa.me/` links without message content. An unavailable WhatsApp app offers an owner-chosen external link, which may open a browser. No ERP data is written, no invoice is confirmed and no saved/registered/sent/delivered status is inferred.
+
+Android/iOS dialer handoff needs no call/contact runtime permission. Scheme visibility declarations support handler checks only. Windows calling is unavailable because generic registered `tel:` handlers do not guarantee a dialer-only experience; WhatsApp app/link handoff remains available when a handler exists. No direct-call, device-contact or blanket permission is added. False launcher results are unavailable; exceptions are failures; only an explicit in-app dismissal is cancellation. Returning from an external destination proves no outcome. Successful returns mean only handoff opened.
+
+No schema change or contact-attempt persistence is expected. Existing v1/v2 customer reads, commands, financial history and [invoice dispatch](0006-owner-confirmed-whatsapp-dispatch.md) remain compatible. Native Android/iOS/Windows and owner acceptance must be recorded separately from injected tests and synthetic captures.
+
+[Submitted slice](../operations/customer-contact-slice-prompt-2026-10-14.md), [directory](0014-customer-directory-notes-and-links.md), [statistics](0015-customer-statistics.md), [owner boundary](0003-owner-only-shop-access.md).
+
+Implementation: [independent validation](../reviews/customer-contact-2026-10-14/independent-validation.md), [no deployment/preservation](../reviews/customer-contact-2026-10-14/no-deployment.md). Platform reference checks on 2026-10-14: [Android dial intents](https://developer.android.com/guide/components/intents-common#Phone), [Apple phone links](https://developer.apple.com/library/archive/featuredarticles/iPhoneURLScheme_Reference/PhoneLinks/PhoneLinks.html), [url_launcher configuration](https://pub.dev/packages/url_launcher/versions/6.3.2). Android uses a narrow ACTION_DIAL method channel; iOS opens its system phone confirmation and reports only interface handoff. Windows dialer-only behavior cannot be guaranteed, so calling is unavailable there.

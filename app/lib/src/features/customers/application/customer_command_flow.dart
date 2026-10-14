@@ -84,8 +84,21 @@ class CustomerCommandFlow {
     if (transport.receipt != null || sent && transport.error != null) {
       final receipt = transport.receipt;
       final p = command.body['p_payload'] as Map;
+      final matching = receipt?.customer.phones.where(
+        (n) =>
+            n.normalized == p['normalized_number'] &&
+            n.saved?.id == p['number_id'],
+      );
       if (receipt != null &&
           (receipt.kind != command.kind ||
+              command.kind == 'customer_saved_number' &&
+                  (receipt.declarationEventId == null ||
+                      matching?.length != 1 ||
+                      matching!.single.saved!.state != p['state'] ||
+                      matching.single.saved!.actorId != user ||
+                      matching.single.saved!.actorName == null ||
+                      matching.single.saved!.declaredAt !=
+                          receipt.customer.updatedAt) ||
               p['expected_version'] != null &&
                   receipt.customer.version !=
                       BigInt.parse(p['expected_version'] as String) +

@@ -4,6 +4,7 @@ import '../application/customer_contract.dart';
 import '../application/customer_gateway.dart';
 import '../domain/customer_rules.dart';
 import '../domain/customer_statistics.dart';
+import '../domain/customer_saved_number.dart';
 
 Map<String, Object?> customerMap(Object? raw) {
   if (raw is! Map) throw const FormatException('customer');
@@ -114,7 +115,38 @@ CustomerStatistics parseCustomerStatistics(Object? raw) {
   );
 }
 
-CustomerRecord parseCustomer(Object? raw, {bool requireStatistics = false}) {
+CustomerSavedNumber parseSavedNumber(Object? raw) {
+  final m = customerMap(raw);
+  final state = _str(m['state']);
+  if (!savedNumberStates.contains(state)) {
+    throw const FormatException('customer_saved_number');
+  }
+  final actor = m['actor_user_id'] == null ? null : _uuid(m['actor_user_id']);
+  final name = _optional(m['actor_display_name']);
+  final at = m['declared_at'] == null ? null : _utc(m['declared_at']);
+  final local = _optional(m['declared_at_shop']);
+  if ((actor == null) != (name == null) ||
+      (actor == null) != (at == null) ||
+      (actor == null) != (local == null) ||
+      local != null && DateTime.tryParse(local) == null ||
+      actor == null && state != 'unknown') {
+    throw const FormatException('customer_saved_number');
+  }
+  return CustomerSavedNumber(
+    id: _uuid(m['number_id']),
+    state: state,
+    actorId: actor,
+    actorName: name,
+    declaredAt: at,
+    declaredAtShop: local,
+  );
+}
+
+CustomerRecord parseCustomer(
+  Object? raw, {
+  bool requireStatistics = false,
+  bool requireSavedNumbers = false,
+}) {
   final m = customerMap(raw);
   final v = _str(m['record_version']);
   if (!RegExp(r'^[1-9][0-9]{0,18}$').hasMatch(v) ||
@@ -137,8 +169,27 @@ CustomerRecord parseCustomer(Object? raw, {bool requireStatistics = false}) {
     if (normalizeCustomerPhone(raw) != norm) {
       throw const FormatException('customer');
     }
-    return CustomerContact(raw, norm, _bool(p['is_primary']));
+    if (requireSavedNumbers && p['saved_number'] == null) {
+      throw const FormatException('customer_saved_number');
+    }
+    return CustomerContact(
+      raw,
+      norm,
+      _bool(p['is_primary']),
+      saved: p['saved_number'] == null
+          ? null
+          : parseSavedNumber(p['saved_number']),
+    );
   }).toList();
+  if (requireSavedNumbers && m['saved_number_policy'] != 'owner_number_v1' ||
+      phones
+              .where((p) => p.saved != null)
+              .map((p) => p.saved!.id)
+              .toSet()
+              .length !=
+          phones.where((p) => p.saved != null).length) {
+    throw const FormatException('customer_saved_number');
+  }
   if (customerPhoneIssue(
         phones
             .map((p) => CustomerPhone(number: p.raw, primary: p.primary))
@@ -186,12 +237,22 @@ CustomerRecord parseCustomer(Object? raw, {bool requireStatistics = false}) {
   );
 }
 
-CustomerPage parseCustomerPage(Object? raw, {bool requireStatistics = false}) {
+CustomerPage parseCustomerPage(
+  Object? raw, {
+  bool requireStatistics = false,
+  bool requireSavedNumbers = false,
+}) {
   final m = customerMap(raw);
   if (m['items'] is! List) throw const FormatException('customer');
   return CustomerPage(
     (m['items'] as List)
-        .map((r) => parseCustomer(r, requireStatistics: requireStatistics))
+        .map(
+          (r) => parseCustomer(
+            r,
+            requireStatistics: requireStatistics,
+            requireSavedNumbers: requireSavedNumbers,
+          ),
+        )
         .toList(),
     _optional(m['next_cursor']),
   );
@@ -221,13 +282,27 @@ CustomerSection parseCustomerSection(Object? raw, {String? type}) {
         'restored',
         'linked',
         'unlinked',
+        'saved_number_changed',
       }.contains(row['event_type'])) {
         throw const FormatException('customer');
       }
       _utc(row['created_at']);
       _str(row['created_at_shop']);
       _str(row['actor_display_name']);
-      customerMap(row['payload']);
+      final payload = customerMap(row['payload']);
+      if (row['event_type'] == 'saved_number_changed') {
+        _uuid(payload['number_id']);
+        final normalized = _str(payload['normalized_number']);
+        final version = _str(payload['record_version']);
+        if (normalizeCustomerPhone(normalized) != normalized ||
+            !savedNumberStates.contains(payload['state']) ||
+            !savedNumberStates.contains(payload['before']) ||
+            !RegExp(r'^[1-9][0-9]{0,18}$').hasMatch(version) ||
+            BigInt.parse(version) > BigInt.parse('9223372036854775807')) {
+          throw const FormatException('customer_saved_number');
+        }
+        _uuid(row['actor_user_id']);
+      }
     }
     if (type == 'links' || type == 'candidates') {
       _uuid(row['operation_id']);
@@ -250,10 +325,15 @@ CustomerSection parseCustomerSection(Object? raw, {String? type}) {
 CustomerDetail parseCustomerDetail(
   Object? raw, {
   bool requireStatistics = false,
+  bool requireSavedNumbers = false,
 }) {
   final m = customerMap(raw);
   return CustomerDetail(
-    parseCustomer(m, requireStatistics: requireStatistics),
+    parseCustomer(
+      m,
+      requireStatistics: requireStatistics,
+      requireSavedNumbers: requireSavedNumbers,
+    ),
     parseCustomerSection(m['notes'], type: 'notes'),
     parseCustomerSection(m['history'], type: 'history'),
     parseCustomerSection(m['links'], type: 'links'),
@@ -271,7 +351,10 @@ CustomerReceipt parseCustomerReceipt(
       !matchesCustomerEnvelope(command.key, command.kind, command.body)) {
     throw const FormatException('customer');
   }
-  final c = parseCustomer(m);
+  final c = parseCustomer(
+    m,
+    requireSavedNumbers: command.kind == 'customer_saved_number',
+  );
   if (command.kind == 'customer_create' && c.version != BigInt.one) {
     throw const FormatException('customer');
   }
@@ -320,11 +403,27 @@ CustomerReceipt parseCustomerReceipt(
   if (p['operation_id'] != null && link == null) {
     throw const FormatException('customer');
   }
+  String? declarationEvent;
+  if (command.kind == 'customer_saved_number') {
+    declarationEvent = _uuid(m['declaration_event_id']);
+    final matching = c.phones.where(
+      (n) =>
+          n.normalized == p['normalized_number'] &&
+          n.saved?.id == p['number_id'],
+    );
+    if (matching.length != 1 ||
+        matching.single.saved!.state != p['state'] ||
+        matching.single.saved!.actorId == null ||
+        matching.single.saved!.declaredAt != c.updatedAt) {
+      throw const FormatException('customer_saved_number');
+    }
+  }
   return CustomerReceipt(
     command.kind,
     c,
     operationId: op,
     noteId: note,
     linkId: link,
+    declarationEventId: declarationEvent,
   );
 }

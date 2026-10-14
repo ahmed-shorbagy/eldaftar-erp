@@ -466,6 +466,11 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 userId: userId,
                 shopId: selected.id,
                 readOnly: readOnly,
+                canRead: () =>
+                    mounted &&
+                    !_accessLost &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
                 canWrite: () =>
                     mounted &&
                     widget.currentUserId?.call() == userId &&

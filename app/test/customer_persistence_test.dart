@@ -5,12 +5,41 @@ import 'package:eldafttar/src/features/daily_ledger/data/pending_financial_comma
 import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_sync.dart';
 import 'customer_fixtures.dart';
+import 'customer_saved_number_test.dart' show savedCommand, savedPayload;
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
   });
+  test(
+    'saved-number secure envelope survives restart and cannot overwrite financial or CRM requests',
+    () async {
+      const locker = PendingFinancialCommands();
+      await locker.save('owner', 'shop', savedCommand());
+      final restored = await const PendingFinancialCommands().read(
+        'owner',
+        'shop',
+      );
+      expect(restored!.body, savedCommand().body);
+      final changed = savedPayload('not_saved');
+      expect(
+        () => locker.save(
+          'owner',
+          'shop',
+          PendingFinancialCommand(
+            key: commandKey,
+            kind: 'customer_saved_number',
+            body: {'p_idempotency_key': commandKey, 'p_payload': changed},
+          ),
+        ),
+        throwsStateError,
+      );
+      await locker.clear('owner', 'shop', 'foreign-key');
+      expect((await locker.read('owner', 'shop'))!.body, restored.body);
+      expect(await locker.read('other', 'shop'), isNull);
+    },
+  );
   test(
     'secure customer envelope survives restart and another payload cannot overwrite it',
     () async {

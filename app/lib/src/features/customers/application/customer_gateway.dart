@@ -1,5 +1,6 @@
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../domain/customer_statistics.dart';
+import '../domain/customer_saved_number.dart';
 
 class CustomerReadException implements Exception {
   const CustomerReadException([this.code]);
@@ -33,9 +34,10 @@ class CustomerRecord {
 }
 
 class CustomerContact {
-  const CustomerContact(this.raw, this.normalized, this.primary);
+  const CustomerContact(this.raw, this.normalized, this.primary, {this.saved});
   final String raw, normalized;
   final bool primary;
+  final CustomerSavedNumber? saved;
 }
 
 class CustomerPage {
@@ -63,10 +65,12 @@ class CustomerReceipt {
     this.operationId,
     this.noteId,
     this.linkId,
+    this.declarationEventId,
   });
   final String kind;
   final CustomerRecord customer;
   final String? operationId, noteId, linkId;
+  final String? declarationEventId;
 }
 
 class CustomerTransport {

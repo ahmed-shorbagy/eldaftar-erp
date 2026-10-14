@@ -22,6 +22,7 @@ Map<String, Object?> customerJson({
   'is_vip': vip,
   'has_open_request': open,
   'phones': phones,
+  'saved_number_policy': 'owner_number_v1',
   'latest_note_preview': note,
   'created_at': '2026-10-13T08:00:00.000000Z',
   'created_at_shop': '2026-10-13T11:00:00',

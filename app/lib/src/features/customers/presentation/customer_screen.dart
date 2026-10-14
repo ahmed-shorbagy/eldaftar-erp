@@ -8,6 +8,11 @@ import '../application/customer_gateway.dart';
 import '../application/customer_command_flow.dart';
 import '../domain/customer_rules.dart';
 import '../domain/customer_statistics.dart';
+import '../domain/customer_saved_number.dart';
+import '../domain/customer_contact.dart';
+import '../application/customer_contact_flow.dart';
+import '../data/url_customer_contact_launcher.dart';
+import 'customer_whatsapp_icon.dart';
 
 String customerError(String? code) => switch (code) {
   'invalid_name' => 'أدخل اسم العميل بالعربية.',
@@ -18,6 +23,7 @@ String customerError(String? code) => switch (code) {
   'duplicate_primary' => 'اختر رقمًا أساسيًا واحدًا.',
   'phone_conflict' => 'هذا الرقم مسجل لعميل آخر في المحل.',
   'stale_customer' => 'تغيّر ملف العميل. ارجع إلى التفاصيل وأعد المراجعة.',
+  'stale_number' => 'تغيّر رقم الهاتف. افتح الملف وأعد اختيار الرقم.',
   'duplicate_link' => 'العملية مرتبطة بعميل بالفعل.',
   'customer_archived' => 'استعد الملف قبل ربط عملية جديدة.',
   'other_pending' => 'يوجد طلب آخر بانتظار التأكيد.',
@@ -44,6 +50,7 @@ const _events = {
   'restored': 'استعادة الملف',
   'linked': 'ربط عملية مؤكدة',
   'unlinked': 'تصحيح ارتباط العملية',
+  'saved_number_changed': 'تغيير إقرار حفظ الرقم لواتساب',
 };
 
 class CustomerScreen extends StatefulWidget {
@@ -58,6 +65,8 @@ class CustomerScreen extends StatefulWidget {
     this.refreshGeneration = 0,
     this.syncTicks,
     this.newKey,
+    this.contactLauncher = const UrlCustomerContactLauncher(),
+    this.canRead,
   });
   final CustomerGateway gateway;
   final FinancialCommandLocker store;
@@ -67,6 +76,8 @@ class CustomerScreen extends StatefulWidget {
   final int refreshGeneration;
   final Listenable? syncTicks;
   final String Function()? newKey;
+  final CustomerContactLauncher contactLauncher;
+  final bool Function()? canRead;
   @override
   State<CustomerScreen> createState() => _CustomerScreenState();
 }
@@ -105,6 +116,24 @@ class _CustomerScreenState extends State<CustomerScreen> {
   PendingFinancialCommand? _pending;
   Map<String, Object?>? _review;
   Map<String, Object?>? _operation;
+  CustomerRecord? _contactRecord;
+  CustomerContact? _savedPhone;
+  String _savedState = 'unknown';
+  CustomerContactAction _contactAction = CustomerContactAction.dialer;
+  String _contactReturnStage = 'list';
+  String? _contactNumber, _contactMessage;
+  Object? _contactStamp;
+  int _contactRevision = 0, _contactRequest = 0;
+  bool _contactBusy = false, _contactQueued = false, _contactFallback = false;
+  bool _contactReady = false;
+  bool get _canContact => !_accessLost && (widget.canRead?.call() ?? true);
+  Object? _sessionStamp() {
+    final gateway = widget.gateway;
+    return gateway is CustomerContactSession
+        ? (gateway as CustomerContactSession).contactSession(widget.userId)
+        : '${widget.userId}:${widget.shopId}';
+  }
+
   bool get _readOnly =>
       _accessLost ||
       widget.readOnly ||
@@ -138,9 +167,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
         old.gateway != widget.gateway ||
         old.store != widget.store) {
       _epoch++;
+      _contactRevision++;
+      _contactRequest++;
+      _contactRecord = null;
+      _contactBusy = false;
+      _contactMessage = null;
+      _contactReady = false;
       _request++;
       _items = [];
       _detail = null;
+      _contactStamp = null;
       _selectedId = null;
       _pending = null;
       _foreign = false;
@@ -179,11 +215,28 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
   void _sync() {
     if (!mounted) return;
+    _contactRevision++;
+    if (_stage == 'contact') {
+      if (_contactBusy) {
+        _contactQueued = true;
+      } else if (_contactRecord != null) {
+        _prepareContact(_contactRecord!, _contactAction, refresh: true);
+      }
+      return;
+    }
     if (_busy) {
       _syncQueued = true;
       return;
     }
-    if ({'edit', 'note', 'status', 'review', 'candidates'}.contains(_stage)) {
+    if ({
+      'edit',
+      'note',
+      'status',
+      'saved',
+      'saved_preparing',
+      'review',
+      'candidates',
+    }.contains(_stage)) {
       setState(() => _stale = true);
       return;
     }
@@ -196,6 +249,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
         : 'read_failed';
     if ({'session_expired', 'forbidden', 'unauthenticated'}.contains(_error)) {
       _accessLost = true;
+      _contactRecord = null;
+      _contactStamp = null;
+      _contactReady = false;
       _items = [];
       _detail = null;
       _review = null;
@@ -283,6 +339,19 @@ class _CustomerScreenState extends State<CustomerScreen> {
 
   void _back() {
     if (_busy) return;
+    if (_stage == 'contact') {
+      _contactRevision++;
+      _contactRequest++;
+      setState(() {
+        _stage = _contactReturnStage;
+        _contactBusy = false;
+        _contactMessage = null;
+        _contactQueued = false;
+        _contactReady = false;
+      });
+      _reload();
+      return;
+    }
     setState(() {
       _error = null;
       _stale = false;
@@ -322,6 +391,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
   Future<void> _send(Map<String, Object?> payload) async {
     if (_blocked || _stale) return;
     final e = _epoch;
+    final stamp = _sessionStamp();
     setState(() {
       _busy = true;
       _error = null;
@@ -333,6 +403,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
       payload,
     );
     if (!mounted || e != _epoch) return;
+    if (stamp == null || stamp != _sessionStamp() || !_canContact) {
+      setState(() {
+        _busy = false;
+        _failure(const CustomerReadException('session_expired'));
+      });
+      return;
+    }
     _apply(result);
     setState(() => _busy = false);
     if (_syncQueued) {
@@ -344,6 +421,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
   void _apply(CustomerOutcome result) {
     _pending = result.pending;
     _error = result.error;
+    if ({
+      'session_expired',
+      'forbidden',
+      'unauthenticated',
+    }.contains(result.error)) {
+      _failure(CustomerReadException(result.error));
+      return;
+    }
     if (result.receipt != null) {
       _detail = CustomerDetail(
         result.receipt!.customer,
@@ -354,7 +439,8 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _stage = 'success';
       _review = null;
       _stale = false;
-    } else if (result.error == 'stale_customer') {
+    } else if (result.error == 'stale_customer' ||
+        result.error == 'stale_number') {
       _stale = true;
     }
   }
@@ -363,6 +449,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final pending = _pending;
     if (pending == null || _busy) return;
     final e = _epoch;
+    final stamp = _sessionStamp();
     setState(() => _busy = true);
     final result = await _flow.reconcile(
       widget.userId,
@@ -371,6 +458,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
       retry: !_readOnly,
     );
     if (!mounted || e != _epoch) return;
+    if (stamp == null || stamp != _sessionStamp() || !_canContact) {
+      setState(() {
+        _busy = false;
+        _failure(const CustomerReadException('session_expired'));
+      });
+      return;
+    }
     setState(() {
       _apply(result);
       _busy = false;
@@ -498,51 +592,480 @@ class _CustomerScreenState extends State<CustomerScreen> {
   );
   Widget _contact(String value) =>
       Text(value, textDirection: TextDirection.ltr);
-  Widget _card(CustomerRecord c, {bool clickable = true}) => Card(
-    child: ListTile(
-      key: Key('customer-${c.id}'),
-      onTap: clickable ? () => _openCustomer(c) : null,
-      leading: CircleAvatar(child: Text(c.name.characters.first)),
-      titleAlignment: ListTileTitleAlignment.top,
-      title: Text(
-        c.name,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+  Future<void> _prepareSaved(CustomerContact phone) async {
+    if (_blocked || phone.saved == null || _detail == null) return;
+    final customer = _detail!.customer;
+    final epoch = _epoch, request = ++_request, stamp = _sessionStamp();
+    setState(() {
+      _stage = 'saved_preparing';
+      _loading = true;
+      _stale = false;
+      _error = null;
+    });
+    try {
+      final fresh = await widget.gateway.customer(
+        callerUserId: widget.userId,
+        id: customer.id,
+      );
+      if (!_current(epoch, request) || _stage != 'saved_preparing') return;
+      if (stamp == null || stamp != _sessionStamp() || !_canContact) {
+        throw const CustomerReadException('session_expired');
+      }
+      final numbers = fresh.customer.phones.where(
+        (n) =>
+            n.normalized == phone.normalized && n.saved?.id == phone.saved!.id,
+      );
+      if (_stale ||
+          fresh.customer.id != customer.id ||
+          fresh.customer.version != customer.version ||
+          numbers.length != 1) {
+        _detail = fresh;
+        _stage = 'detail';
+        _error = 'stale_number';
+      } else {
+        _detail = fresh;
+        _savedPhone = numbers.single;
+        _savedState = numbers.single.saved!.state;
+        _stage = 'saved';
+      }
+    } catch (e) {
+      if (_current(epoch, request)) {
+        _stage = 'detail';
+        _failure(e);
+      }
+    } finally {
+      if (_current(epoch, request)) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _prepareContact(
+    CustomerRecord record,
+    CustomerContactAction action, {
+    bool refresh = false,
+  }) async {
+    if (_contactBusy || !_canContact || _busy) return;
+    final epoch = _epoch, revision = ++_contactRevision;
+    final request = ++_contactRequest;
+    final stamp = _sessionStamp();
+    if (stamp == null) {
+      setState(() => _failure(const CustomerReadException('session_expired')));
+      return;
+    }
+    if (!refresh) _contactReturnStage = _stage;
+    setState(() {
+      _stage = 'contact';
+      _contactRecord = record;
+      _contactNumber = null;
+      _contactAction = action;
+      _contactBusy = true;
+      _contactFallback = false;
+      _contactReady = false;
+      _contactMessage = 'جارٍ تجهيز أرقام العميل الحالية…';
+    });
+    bool current() =>
+        mounted &&
+        epoch == _epoch &&
+        request == _contactRequest &&
+        _stage == 'contact';
+    try {
+      final d = await widget.gateway.customer(
+        callerUserId: widget.userId,
+        id: record.id,
+      );
+      if (!current() ||
+          revision != _contactRevision ||
+          stamp != _sessionStamp() ||
+          !_canContact) {
+        return;
+      }
+      if (d.customer.id != record.id ||
+          !mayContactCustomer(
+            authorizedReader: _canContact,
+            status: d.customer.status,
+          )) {
+        throw const CustomerReadException('forbidden');
+      }
+      setState(() {
+        _contactRecord = d.customer;
+        _contactStamp = stamp;
+        _contactReady = true;
+        final valid = d.customer.phones
+            .where((p) => customerContactUri(action, p.normalized) != null)
+            .toList();
+        _contactNumber = valid.isEmpty
+            ? null
+            : (valid.where((p) => p.primary).firstOrNull ?? valid.first)
+                  .normalized;
+        _contactMessage = refresh
+            ? 'تم تحديث الأرقام. راجع اختيارك قبل الفتح.'
+            : null;
+      });
+    } catch (e) {
+      if (!current() ||
+          revision != _contactRevision ||
+          stamp != _sessionStamp()) {
+        return;
+      }
+      setState(() {
+        _contactNumber = null;
+        _contactMessage = customerError(
+          e is CustomerReadException ? e.code : 'read_failed',
+        );
+        if (e is CustomerReadException &&
+            {
+              'forbidden',
+              'session_expired',
+              'unauthenticated',
+            }.contains(e.code)) {
+          _failure(e);
+        }
+      });
+    } finally {
+      if (mounted && epoch == _epoch && request == _contactRequest) {
+        setState(() => _contactBusy = false);
+        if (!_canContact || _sessionStamp() == null) {
+          setState(
+            () => _failure(const CustomerReadException('session_expired')),
+          );
+        }
+      }
+      if (current()) {
+        if (_contactQueued) {
+          _contactQueued = false;
+          _prepareContact(record, action, refresh: true);
+        } else if (revision != _contactRevision || stamp != _sessionStamp()) {
+          setState(() {
+            _contactNumber = null;
+            _contactReady = false;
+            _contactMessage =
+                'تغيّر الوصول أو الملف؛ أعد تجهيز الأرقام قبل الفتح.';
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _launchContact(CustomerContactAction action) async {
+    final record = _contactRecord, number = _contactNumber;
+    if (_contactBusy ||
+        !_contactReady ||
+        record == null ||
+        number == null ||
+        !_canContact) {
+      return;
+    }
+    if (_contactStamp == null || _contactStamp != _sessionStamp()) {
+      await _prepareContact(record, _contactAction, refresh: true);
+      return;
+    }
+    final epoch = _epoch, revision = _contactRevision, stamp = _contactStamp;
+    final request = ++_contactRequest;
+    bool current() =>
+        mounted &&
+        epoch == _epoch &&
+        revision == _contactRevision &&
+        request == _contactRequest &&
+        _stage == 'contact' &&
+        _canContact &&
+        stamp == _sessionStamp();
+    setState(() {
+      _contactBusy = true;
+      _contactMessage = 'جارٍ التحقق وفتح جهة الاتصال…';
+      _contactFallback = false;
+    });
+    try {
+      final result =
+          await CustomerContactFlow(
+            widget.gateway,
+            widget.contactLauncher,
+          ).launch(
+            userId: widget.userId,
+            reviewed: record,
+            number: number,
+            action: action,
+            stillAuthorized: current,
+          );
+      if (!current()) return;
+      setState(() {
+        _contactFallback =
+            action == CustomerContactAction.whatsapp &&
+            result == ContactHandoff.unavailable;
+        _contactMessage = switch (result) {
+          ContactHandoff.opened => switch (action) {
+            CustomerContactAction.dialer =>
+              'تم فتح واجهة الاتصال. ابدأ المكالمة أو أكدها من هناك.',
+            CustomerContactAction.whatsapp =>
+              'تم تسليم طلب فتح محادثة واتساب. لم يُؤكد إرسال أي رسالة.',
+            CustomerContactAction.whatsappLink =>
+              'تم فتح رابط محادثة واتساب خارجيًا؛ قد يظهر في المتصفح. لم يُؤكد إرسال أي رسالة.',
+          },
+          ContactHandoff.unavailable =>
+            action == CustomerContactAction.dialer
+                ? 'لوحة الاتصال غير متاحة على هذا الجهاز.'
+                : action == CustomerContactAction.whatsappLink
+                ? 'لا توجد جهة متاحة لفتح رابط المحادثة على هذا الجهاز.'
+                : 'جهة واتساب غير متاحة. يمكنك اختيار فتح رابط المحادثة خارجيًا.',
+          ContactHandoff.cancelled => 'أُلغي طلب الفتح قبل تسليمه.',
+          ContactHandoff.denied =>
+            'رفض النظام فتح جهة الاتصال. راجع إعدادات الجهاز.',
+          ContactHandoff.permanentlyDenied =>
+            'منع النظام فتح جهة الاتصال. راجع الأذونات في إعدادات الجهاز.',
+          ContactHandoff.changed =>
+            'تغيّر الملف؛ أعد تجهيز الأرقام وراجع اختيارك.',
+          ContactHandoff.stale => 'تغيّر الوصول؛ أعد تجهيز الأرقام قبل الفتح.',
+          ContactHandoff.busy => 'طلب فتح آخر قيد التجهيز.',
+          ContactHandoff.failed =>
+            'تعذر فتح جهة الاتصال. يمكنك إعادة المحاولة.',
+        };
+        if (result == ContactHandoff.changed) {
+          _contactNumber = null;
+          _contactReady = false;
+        }
+      });
+    } catch (e) {
+      if (!current()) return;
+      setState(() {
+        _contactNumber = null;
+        _contactReady = false;
+        _contactMessage = customerError(
+          e is CustomerReadException ? e.code : 'read_failed',
+        );
+        if (e is CustomerReadException &&
+            {
+              'forbidden',
+              'session_expired',
+              'unauthenticated',
+            }.contains(e.code)) {
+          _failure(e);
+        }
+      });
+    } finally {
+      if (mounted && epoch == _epoch && request == _contactRequest) {
+        setState(() => _contactBusy = false);
+      }
+      if (mounted &&
+          epoch == _epoch &&
+          request == _contactRequest &&
+          (!_canContact || _sessionStamp() == null)) {
+        setState(
+          () => _failure(const CustomerReadException('session_expired')),
+        );
+      }
+      if (mounted &&
+          epoch == _epoch &&
+          request == _contactRequest &&
+          _stage == 'contact') {
+        if (_contactQueued) {
+          _contactQueued = false;
+          _prepareContact(record, _contactAction, refresh: true);
+        } else if (!current()) {
+          setState(() {
+            _contactNumber = null;
+            _contactReady = false;
+            _contactFallback = false;
+            _contactMessage = 'تغيّر الوصول؛ أعد تجهيز الأرقام قبل الفتح.';
+          });
+        }
+      }
+    }
+  }
+
+  List<Widget> _contactWidgets() {
+    final c = _contactRecord;
+    if (c == null) return [];
+    return [
+      _heading(
+        _contactAction == CustomerContactAction.dialer
+            ? 'الاتصال بالعميل'
+            : 'محادثة واتساب',
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (c.phones.isEmpty)
-            const Text('بدون رقم هاتف')
-          else
-            _contact(c.phones.firstWhere((p) => p.primary).normalized),
-          Text(
-            c.lastAtShop == null
-                ? 'لا توجد عمليات مرتبطة'
-                : 'آخر عملية: ${customerDate(c.lastAtShop!)}',
-          ),
-          if (clickable && c.statistics != null) ...[
-            const Text('اشترى العميل من المحل (جرام)'),
-            _weightTiles(c.statistics!, compact: true),
-            const Text('صافي العمليات المؤكدة المرتبطة فقط'),
-          ],
-          if (c.latestNote != null)
-            Text(c.latestNote!, maxLines: 3, overflow: TextOverflow.ellipsis),
-          Wrap(
-            spacing: 8,
-            children: [
-              if (c.vip)
-                const Chip(
-                  avatar: Icon(Icons.star_outline),
-                  label: Text('عميل مميز'),
+      Text(c.name),
+      if (_contactBusy) const LinearProgressIndicator(),
+      if (_contactMessage != null)
+        Semantics(liveRegion: true, child: Text(_contactMessage!)),
+      _heading('اختر رقم الهاتف'),
+      if (c.phones.isEmpty) const Text('لا يوجد رقم هاتف للاتصال.'),
+      RadioGroup<String>(
+        groupValue: _contactNumber,
+        onChanged: (value) {
+          if (_contactReady && !_contactBusy && _canContact) {
+            setState(() {
+              _contactNumber = value;
+              _contactFallback = false;
+              _contactMessage = null;
+            });
+          }
+        },
+        child: Column(
+          children: [
+            for (final p in c.phones)
+              RadioListTile<String>(
+                value: p.normalized,
+                enabled:
+                    _contactReady &&
+                    !_contactBusy &&
+                    _canContact &&
+                    customerContactUri(_contactAction, p.normalized) != null,
+                title: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: _contact(p.normalized),
                 ),
-              if (c.openRequest) const Chip(label: Text('طلب مفتوح')),
-              if (c.archived) const Chip(label: Text('مؤرشف')),
+                subtitle: Text(p.primary ? 'الرقم الأساسي' : 'رقم إضافي'),
+              ),
+          ],
+        ),
+      ),
+      if (_contactNumber != null) ...[
+        const Text('الرقم المختار'),
+        _contact(_contactNumber!),
+      ],
+      const SizedBox(height: 16),
+      _action(
+        _contactAction == CustomerContactAction.dialer
+            ? 'فتح لوحة الاتصال'
+            : 'فتح محادثة واتساب',
+        _contactBusy || !_canContact || _contactNumber == null
+            ? null
+            : () => _launchContact(_contactAction),
+        key: const Key('customer-contact-open'),
+        primary: true,
+      ),
+      if (_contactFallback)
+        _action(
+          'فتح رابط واتساب خارجيًا',
+          _contactBusy || !_canContact || _contactNumber == null
+              ? null
+              : () => _launchContact(CustomerContactAction.whatsappLink),
+        ),
+      _action(
+        'تحديث أرقام الاتصال',
+        _contactBusy || !_canContact
+            ? null
+            : () => _prepareContact(c, _contactAction, refresh: true),
+      ),
+      if (_contactNumber == null && !_readOnly)
+        _action(
+          'تعديل بيانات العميل',
+          _blocked || _contactBusy
+              ? null
+              : () {
+                  _detail = CustomerDetail(
+                    c,
+                    const CustomerSection([], null),
+                    const CustomerSection([], null),
+                    const CustomerSection([], null),
+                  );
+                  _edit(c);
+                },
+        ),
+      _action(
+        'إلغاء',
+        _contactBusy
+            ? null
+            : () {
+                _back();
+              },
+      ),
+    ];
+  }
+
+  Widget _card(CustomerRecord c, {bool clickable = true}) => Card(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          key: Key('customer-${c.id}'),
+          onTap: clickable ? () => _openCustomer(c) : null,
+          leading: MediaQuery.textScalerOf(context).scale(16) > 20
+              ? null
+              : CircleAvatar(child: Text(c.name.characters.first)),
+          titleAlignment: ListTileTitleAlignment.top,
+          title: Text(
+            c.name,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (c.phones.isEmpty)
+                const Text('بدون رقم هاتف')
+              else
+                _contact(c.phones.firstWhere((p) => p.primary).normalized),
+              if (clickable)
+                Text(
+                  c.phones.isEmpty
+                      ? 'حالة حفظ الرقم الأساسي لواتساب: غير متاحة؛ بدون هاتف'
+                      : 'حالة حفظ الرقم الأساسي لواتساب: ${savedNumberLabel(c.phones.firstWhere((p) => p.primary).saved?.state)}',
+                ),
+              Text(
+                c.lastAtShop == null
+                    ? 'لا توجد عمليات مرتبطة'
+                    : 'آخر عملية: ${customerDate(c.lastAtShop!)}',
+              ),
+              if (clickable && c.statistics != null) ...[
+                const Text('اشترى العميل من المحل (جرام)'),
+                _weightTiles(c.statistics!, compact: true),
+                const Text('صافي العمليات المؤكدة المرتبطة فقط'),
+              ],
+              if (c.latestNote != null)
+                Text(
+                  c.latestNote!,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (c.vip)
+                    const Chip(
+                      avatar: Icon(Icons.star_outline),
+                      label: Text('عميل مميز'),
+                    ),
+                  if (c.openRequest) const Chip(label: Text('طلب مفتوح')),
+                  if (c.archived) const Chip(label: Text('مؤرشف')),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        ),
+        if (clickable)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              start: 16,
+              end: 16,
+              bottom: 8,
+            ),
+            child: Tooltip(
+              message: 'محادثة واتساب مع ${c.name}',
+              child: TextButton.icon(
+                key: Key('customer-whatsapp-${c.id}'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                  minimumSize: const Size(48, 48),
+                ),
+                onPressed:
+                    !_canContact ||
+                        _contactBusy ||
+                        _loading ||
+                        !c.phones.any(
+                          (p) =>
+                              customerContactUri(
+                                CustomerContactAction.whatsapp,
+                                p.normalized,
+                              ) !=
+                              null,
+                        )
+                    ? null
+                    : () => _prepareContact(c, CustomerContactAction.whatsapp),
+                icon: const CustomerWhatsappIcon(),
+                label: const Text('واتساب'),
+              ),
+            ),
+          ),
+      ],
     ),
   );
   Widget _weightTiles(CustomerStatistics statistics, {bool compact = false}) =>
@@ -807,16 +1330,53 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final c = d.customer;
     return [
       _card(c, clickable: false),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: !_canContact || _loading || c.phones.isEmpty
+                ? null
+                : () => _prepareContact(c, CustomerContactAction.dialer),
+            icon: const Icon(Icons.phone_outlined),
+            label: const Text('الاتصال'),
+          ),
+          OutlinedButton.icon(
+            onPressed: !_canContact || _loading || c.phones.isEmpty
+                ? null
+                : () => _prepareContact(c, CustomerContactAction.whatsapp),
+            icon: const CustomerWhatsappIcon(),
+            label: const Text('واتساب'),
+          ),
+        ],
+      ),
+      if (c.phones.isEmpty)
+        const Text(
+          'أضف رقم هاتف من تعديل بيانات العميل عند توفر صلاحية التعديل.',
+        ),
       ..._statisticsWidgets(c),
       _heading('بيانات العميل'),
+      if (c.phones.isEmpty)
+        const Text('حالة حفظ الرقم لواتساب غير متاحة؛ بدون هاتف.'),
       for (final p in c.phones)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Wrap(
-            spacing: 8,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _contact(p.normalized),
               if (p.primary) const Text('الرقم الأساسي'),
+              Text(savedNumberLabel(p.saved?.state)),
+              if (p.saved?.declaredAtShop != null)
+                Text(
+                  '${p.saved!.actorName} · ${customerDate(p.saved!.declaredAtShop!)}',
+                ),
+              if (!_readOnly && p.saved != null)
+                _action(
+                  'تحديد حالة حفظ الرقم لواتساب',
+                  _blocked ? null : () => _prepareSaved(p),
+                  key: Key('saved-number-${p.saved!.id}'),
+                ),
             ],
           ),
         ),
@@ -938,6 +1498,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
                   Text(
                     'الاسم المسجل: ${(event['payload'] as Map)['display_name']}',
                   ),
+                if (event['event_type'] == 'saved_number_changed') ...[
+                  _contact(
+                    (event['payload'] as Map)['normalized_number'] as String,
+                  ),
+                  Text(
+                    savedNumberLabel(
+                      (event['payload'] as Map)['state'] as String,
+                    ),
+                  ),
+                ],
                 if (event['event_type'] == 'edited')
                   ExpansionTile(
                     title: const Text('تفاصيل تعديل الاسم والهاتف'),
@@ -967,6 +1537,52 @@ class _CustomerScreenState extends State<CustomerScreen> {
     'list' => _list(),
     'edit' => _editForm(),
     'detail' => _detailWidgets(),
+    'contact' => _contactWidgets(),
+    'saved_preparing' => [const Text('جارٍ تجهيز حالة الرقم الحالية…')],
+    'saved' => [
+      _heading('حالة حفظ الرقم لواتساب'),
+      if (_savedPhone != null) _contact(_savedPhone!.normalized),
+      const Text(
+        'إقرار من المالك؛ لا يتحقق التطبيق من واتساب أو جهات اتصال الجهاز.',
+      ),
+      RadioGroup<String>(
+        groupValue: _savedState,
+        onChanged: (v) {
+          if (!_blocked && !_stale && v != null) {
+            setState(() => _savedState = v);
+          }
+        },
+        child: Column(
+          children: [
+            for (final state in savedNumberStates)
+              RadioListTile<String>(
+                value: state,
+                title: Text(
+                  state == 'unknown'
+                      ? 'مسح الإقرار — لم يحدد المالك الحالة'
+                      : savedNumberLabel(state),
+                ),
+                enabled: !_blocked && !_stale,
+              ),
+          ],
+        ),
+      ),
+      _action(
+        'مراجعة إقرار المالك',
+        _blocked || _stale || _savedPhone == null
+            ? null
+            : () => setState(() {
+                _review = {
+                  ..._payload('customer_saved_number'),
+                  'number_id': _savedPhone!.saved!.id,
+                  'normalized_number': _savedPhone!.normalized,
+                  'state': _savedState,
+                };
+                _stage = 'review';
+              }),
+        primary: true,
+      ),
+    ],
     'note' => [
       TextField(
         key: const Key('customer-note'),
@@ -1053,6 +1669,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _heading('مراجعة التغيير'),
       if (_detail != null) Text('العميل: ${_detail!.customer.name}'),
       if (_operation != null) _operationCard(_operation!),
+      if (_review?['kind'] == 'customer_saved_number') ...[
+        _contact(_review!['normalized_number'] as String),
+        Text(savedNumberLabel(_review!['state'] as String)),
+        const Text(
+          'هذا إقرار من المالك، وليس تحققًا تلقائيًا من واتساب أو الجهاز.',
+        ),
+      ],
       Text(switch (_review?['kind']) {
         'customer_link' => 'سيُربط هذا البيع أو الشراء بالعميل الذي اخترته.',
         'customer_unlink' => 'سيُلغى الارتباط الحالي مع الاحتفاظ بسجله.',
