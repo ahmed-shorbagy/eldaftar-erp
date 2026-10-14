@@ -14,6 +14,9 @@ import '../application/debt_contract.dart';
 import '../application/debt_gateway.dart';
 import '../domain/debt_rules.dart';
 import 'debt_copy.dart';
+import '../application/debt_statement_gateway.dart';
+import '../application/debt_statement_flow.dart';
+import 'debt_statement_screen.dart';
 
 class DebtScreen extends StatefulWidget {
   const DebtScreen({
@@ -28,6 +31,8 @@ class DebtScreen extends StatefulWidget {
     this.onMutated,
     this.newKey,
     this.canWrite,
+    this.canRead,
+    this.statementPlatform,
   });
 
   final DebtGateway gateway;
@@ -40,6 +45,8 @@ class DebtScreen extends StatefulWidget {
   final VoidCallback? onMutated;
   final String Function()? newKey;
   final bool Function()? canWrite;
+  final bool Function()? canRead;
+  final DebtStatementPlatform? statementPlatform;
 
   @override
   State<DebtScreen> createState() => _DebtScreenState();
@@ -79,6 +86,7 @@ class _DebtScreenState extends State<DebtScreen> {
   int _generation = 0;
   bool _backendReady = false;
   bool _pendingLoadFailed = false;
+  bool _statementOpening = false;
   PendingFinancialCommand? _foreignPending;
 
   _Stage _stage = _Stage.list;
@@ -905,6 +913,37 @@ class _DebtScreenState extends State<DebtScreen> {
       if (item.externalReference != null)
         Text('المرجع: ${item.externalReference}'),
       Text('أُنشئ: ${formatServerCairoTimestamp(item.createdAtShop)}'),
+      if (widget.gateway is DebtStatementGateway)
+        _button(
+          'كشف حساب دين PDF',
+          _statementOpening
+              ? null
+              : () async {
+                  if (_statementOpening) return;
+                  setState(() => _statementOpening = true);
+                  final gateway = widget.gateway as DebtStatementGateway;
+                  try {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => DebtStatementScreen(
+                          gateway: gateway,
+                          platform: widget.statementPlatform,
+                          userId: widget.userId,
+                          shopId: widget.shopId,
+                          sourceKind: item.sourceKind,
+                          sourceId: item.sourceId,
+                          syncTicks: widget.syncTicks,
+                          canRead: () =>
+                              mounted && (widget.canRead?.call() ?? true),
+                        ),
+                      ),
+                    );
+                  } finally {
+                    if (mounted) setState(() => _statementOpening = false);
+                  }
+                },
+          key: const Key('debt-statement'),
+        ),
       const SizedBox(height: 8),
       Text('السجل', style: Theme.of(context).textTheme.titleMedium),
       for (final event in detail.history) _historyEntry(event, item.unit),

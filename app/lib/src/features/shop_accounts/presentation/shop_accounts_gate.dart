@@ -483,6 +483,10 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             ? null
             : (context) => DebtScreen(
                 gateway: opening as DebtGateway,
+                canRead: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
                 canWrite: () =>
                     mounted &&
                     widget.currentUserId?.call() == userId &&

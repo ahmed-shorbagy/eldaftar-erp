@@ -12,6 +12,10 @@ import '../../inventory/data/inventory_codec.dart';
 import '../../debts/application/debt_contract.dart';
 import '../../debts/application/debt_gateway.dart';
 import '../../debts/data/debt_codec.dart';
+import '../../debts/application/debt_statement_gateway.dart';
+import '../../debts/data/debt_statement_codec.dart';
+import '../../debts/domain/debt_statement.dart';
+import '../../debts/domain/debt_rules.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../../repairs/application/repair_gateway.dart';
 import '../../repairs/data/repair_codec.dart';
@@ -118,6 +122,7 @@ class HttpOpeningGateway
         LedgerFeedGateway,
         RepairGateway,
         DebtGateway,
+        DebtStatementGateway,
         CustomerGateway,
         CustomerContactSession {
   @override
@@ -1715,6 +1720,28 @@ class HttpOpeningGateway
     } catch (_) {
       throw const DebtReadException();
     }
+  }
+
+  @override
+  Object? statementSession(String callerUserId) => contactSession(callerUserId);
+
+  @override
+  Future<DebtStatement> readStatement({
+    required String callerUserId,
+    required String shopId,
+    required DebtSourceKind sourceKind,
+    required String sourceId,
+  }) async {
+    final statement = await _debtRead(callerUserId, 'get_debt_statement_v1', {
+      'p_source_kind': sourceKind.wire,
+      'p_source_id': sourceId,
+    }, parseDebtStatement);
+    if (statement.shopId != shopId ||
+        statement.sourceKind != sourceKind ||
+        statement.sourceId != sourceId) {
+      throw const DebtReadException('discarded');
+    }
+    return statement;
   }
 
   @override
