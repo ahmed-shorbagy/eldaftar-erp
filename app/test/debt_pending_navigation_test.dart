@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'daily_ledger_widget_test.dart' as ledger_fixtures;
 import 'debt_widget_test.dart' show shopId, userId;
 import 'financial_trade_screen_test.dart' show FakeFinancialGateway;
+import 'debt_due_fixtures.dart';
 
 const key = 'd3000000-0000-4000-8000-000000000202';
 
@@ -23,9 +24,8 @@ class _LedgerGateway extends FakeFinancialGateway {
   var financialRetries = 0;
 
   @override
-  Future<DailyLedgerView> ledger({
-    required String callerUserId,
-  }) async => ledger_fixtures.confirmedLedger();
+  Future<DailyLedgerView> ledger({required String callerUserId}) async =>
+      ledger_fixtures.confirmedLedger();
 
   @override
   Future<StatusResult> status({
@@ -52,68 +52,72 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  testWidgets('ledger debt recovery opens debts and keeps the envelope', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    const pending = PendingFinancialCommand(
-      key: key,
-      kind: 'debt_declare',
-      body: {
-        'p_idempotency_key': key,
-        'p_payload': {
-          'version': 1,
-          'kind': 'debt_declare',
-          'direction': 'shop_owes',
-          'unit': 'money',
-          'karat': null,
-          'amount': '1500',
-          'party_name': 'طرف',
-          'contact_phone': '',
-          'reason': 'سبب تاريخي',
-          'external_reference': null,
+  for (final kind in ['debt_declare', 'debt_due']) {
+    testWidgets('ledger $kind recovery opens debts and keeps the envelope', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final pending = PendingFinancialCommand(
+        key: key,
+        kind: kind,
+        body: {
+          'p_idempotency_key': key,
+          'p_payload': kind == 'debt_due'
+              ? FakeDue().payload()
+              : {
+                  'version': 1,
+                  'kind': 'debt_declare',
+                  'direction': 'shop_owes',
+                  'unit': 'money',
+                  'karat': null,
+                  'amount': '1500',
+                  'party_name': 'طرف',
+                  'contact_phone': '',
+                  'reason': 'سبب تاريخي',
+                  'external_reference': null,
+                },
         },
-      },
-    );
-    const store = PendingFinancialCommands();
-    await store.save(userId, shopId, pending);
-    final gateway = _LedgerGateway();
-    var opens = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('ar'),
-        supportedLocales: const [Locale('ar')],
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        theme: AppTheme.light(),
-        home: DailyLedgerScreen(
-          shop: const ShopAccount(
-            id: shopId,
-            name: 'متجر اختبار',
-            role: 'owner',
-            entitlement: ShopEntitlement.active,
+      );
+      const store = PendingFinancialCommands();
+      await store.save(userId, shopId, pending);
+      final gateway = _LedgerGateway();
+      var opens = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          theme: AppTheme.light(),
+          home: DailyLedgerScreen(
+            shop: const ShopAccount(
+              id: shopId,
+              name: 'متجر اختبار',
+              role: 'owner',
+              entitlement: ShopEntitlement.active,
+            ),
+            gateway: gateway,
+            store: ledger_fixtures.MemoryStore(),
+            userId: userId,
+            onToggleTheme: (_) async {},
+            onOpenDebts: () async {
+              opens++;
+            },
           ),
-          gateway: gateway,
-          store: ledger_fixtures.MemoryStore(),
-          userId: userId,
-          onToggleTheme: (_) async {},
-          onOpenDebts: () async {
-            opens++;
-          },
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('متابعة طلب الديون'), findsOneWidget);
-    expect(find.text('متابعة طلب الصيانة'), findsNothing);
-    await tester.ensureVisible(find.byKey(const Key('ledger-retry-pending')));
-    await tester.tap(find.byKey(const Key('ledger-retry-pending')));
-    await tester.pumpAndSettle();
-    expect(opens, 1);
-    expect(gateway.statusCalls, 0);
-    expect(gateway.financialRetries, 0);
-    expect((await store.read(userId, shopId))!.body, pending.body);
-  });
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('متابعة طلب الديون'), findsOneWidget);
+      expect(find.text('متابعة طلب الصيانة'), findsNothing);
+      await tester.ensureVisible(find.byKey(const Key('ledger-retry-pending')));
+      await tester.tap(find.byKey(const Key('ledger-retry-pending')));
+      await tester.pumpAndSettle();
+      expect(opens, 1);
+      expect(gateway.statusCalls, 0);
+      expect(gateway.financialRetries, 0);
+      expect((await store.read(userId, shopId))!.body, pending.body);
+    });
+  }
 }

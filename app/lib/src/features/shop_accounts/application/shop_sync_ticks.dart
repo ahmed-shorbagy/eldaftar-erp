@@ -47,7 +47,9 @@ class ShopSyncTicks extends ChangeNotifier {
     if (scopes.contains(ShopSyncScope.debt) ||
         scopes.contains(ShopSyncScope.ledger) ||
         scopes.contains(ShopSyncScope.inventory) ||
-        scopes.contains(ShopSyncScope.trader)) {
+        scopes.contains(ShopSyncScope.trader) ||
+        scopes.contains(ShopSyncScope.location) ||
+        scopes.contains(ShopSyncScope.subscription)) {
       debt++;
       changed = true;
     }

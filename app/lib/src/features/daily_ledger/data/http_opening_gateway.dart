@@ -10,6 +10,9 @@ import '../../inventory/application/inventory_contract.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../inventory/data/inventory_codec.dart';
 import '../../debts/application/debt_contract.dart';
+import '../../debts/application/debt_due_contract.dart';
+import '../../debts/application/debt_due_gateway.dart';
+import '../../debts/data/debt_due_codec.dart';
 import '../../debts/application/debt_gateway.dart';
 import '../../debts/data/debt_codec.dart';
 import '../../debts/application/debt_statement_gateway.dart';
@@ -78,6 +81,10 @@ const _errorCodes = <String>{
   'custody_already_released',
   'audit_append_only',
   'stale_debt',
+  'stale_due',
+  'stale_due_cursor',
+  'due_not_active',
+  'invalid_date',
   'ledger_effect_required',
   'duplicate_reference',
   'duplicate_debt',
@@ -123,6 +130,7 @@ class HttpOpeningGateway
         RepairGateway,
         DebtGateway,
         DebtStatementGateway,
+        DebtDueGateway,
         CustomerGateway,
         CustomerContactSession {
   @override
@@ -1724,6 +1732,112 @@ class HttpOpeningGateway
 
   @override
   Object? statementSession(String callerUserId) => contactSession(callerUserId);
+
+  @override
+  Object? dueSession(String userId) => contactSession(userId);
+
+  @override
+  Future<DebtDueDetail> readDue({
+    required String userId,
+    required String shopId,
+    required DebtSourceKind sourceKind,
+    required String sourceId,
+  }) async {
+    final d = await _debtRead(userId, 'get_debt_due_v1', {
+      'p_source_kind': sourceKind.wire,
+      'p_source_id': sourceId,
+    }, parseDebtDueDetail);
+    if (d.row.shopId != shopId ||
+        d.row.summary.sourceKind != sourceKind ||
+        d.row.summary.sourceId != sourceId) {
+      throw const DebtReadException('discarded');
+    }
+    return d;
+  }
+
+  @override
+  Future<DebtReminderPage> readReminders({
+    required String userId,
+    required String shopId,
+    required String query,
+    required String filter,
+    required String? cursor,
+  }) async {
+    final p = await _debtRead(userId, 'get_debt_reminders_v1', {
+      'p_query': query,
+      'p_filter': filter,
+      'p_limit': 20,
+      'p_cursor': cursor,
+    }, parseDebtReminderPage);
+    if (p.shopId != shopId ||
+        p.items.any((r) => filter != 'all' && r.state != filter)) {
+      throw const DebtReadException('discarded');
+    }
+    return p;
+  }
+
+  @override
+  Future<DebtDueTransport> sendDue({
+    required String userId,
+    required String shopId,
+    required PendingFinancialCommand command,
+  }) => _dueTransport(userId, shopId, command, false);
+  @override
+  Future<DebtDueTransport> dueStatus({
+    required String userId,
+    required String shopId,
+    required PendingFinancialCommand command,
+  }) => _dueTransport(userId, shopId, command, true);
+
+  Future<DebtDueTransport> _dueTransport(
+    String user,
+    String shop,
+    PendingFinancialCommand command,
+    bool status,
+  ) async {
+    if (!matchesDebtDueEnvelope(command.key, command.kind, command.body)) {
+      return const DebtDueTransport(error: 'invalid_input');
+    }
+    try {
+      final r = await _post(
+        user,
+        status ? 'get_debt_due_status_v1' : 'post_debt_due_v1',
+        command.body,
+      );
+      if (!_callerStill(user) || r.statusCode >= 500) {
+        return const DebtDueTransport();
+      }
+      if (r.statusCode >= 400) {
+        return DebtDueTransport(error: _errorCode(r.body));
+      }
+      final j = debtMap(jsonDecode(r.body));
+      if (status && j['status'] == 'absent' && j.length == 1) {
+        return const DebtDueTransport(absent: true);
+      }
+      if (status && (j['status'] != 'completed' || j.length != 2)) {
+        return const DebtDueTransport();
+      }
+      final receipt = parseDebtDueReceipt(status ? j['result'] : j);
+      final payload = debtMap(command.body['p_payload']);
+      if (receipt.shopId != shop ||
+          receipt.actorId != user ||
+          receipt.key != command.key ||
+          receipt.sourceKind != payload['source_kind'] ||
+          receipt.sourceId != payload['source_id'] ||
+          receipt.date?.wire != payload['due_date'] ||
+          receipt.version !=
+              BigInt.parse(payload['expected_due_version'] as String) +
+                  BigInt.one ||
+          canonicalDueJson(receipt.payload) != canonicalDueJson(payload)) {
+        return const DebtDueTransport();
+      }
+      return DebtDueTransport(receipt: receipt);
+    } on _CallerRejected catch (e) {
+      return DebtDueTransport(error: e.code);
+    } catch (_) {
+      return const DebtDueTransport();
+    }
+  }
 
   @override
   Future<DebtStatement> readStatement({

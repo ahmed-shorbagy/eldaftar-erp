@@ -95,7 +95,9 @@ The Arabic RTL preview keeps the existing Cairo, brown/cream/dark semantic roles
 
 Every file action rechecks current session/shop/source/content identity; revisions/reconnect/access loss dispose PDF/raster/cache/temp copies and late replies. Mobile sharing uses unique Arabic filenames and reviewed Android cache/share and iOS system-temp cleanup. Windows offers explicit file save and supported system print; its viewer-opening plugin path is not labelled as sharing. Controls follow actual platform capability. Observable save, explicit cancellation, unavailability and unknown external handoff stay honest: generation/system dialog never proves delivery, payment or physical printing. Existing tokens/theme persistence remain unchanged; no guide card or new palette. [Validation](reviews/debt-statement-pdf-2026-10-14/independent-validation.md), [deployment/preservation](reviews/debt-statement-pdf-2026-10-14/deployment.md). Native/device/owner acceptance remains open.
 
-## Planned due-date/in-app layout
+## Historical due-date layout proposal — superseded
+
+The following planning text is preserved from 2026-10-14 and is superseded by the delivered layout below. D19/D32 are now confirmed in ADR 0019; [current completion](operations/debt-due-dates-completion-status-2026-10-15.md) records implementation and development delivery.
 
 Slice 8 proposes an optional Arabic date row/action in selected debt detail and a direct upcoming/due-today/overdue list/filter in the existing debt workspace. No approved due-date mockup exists. D19/D32 must be confirmed first; no implemented control or alarm promise is added by this guide. Current source identity, party, direction, original unit/karat and remaining stay visible. Use Arabic calendar validation, isolated LTR dates/digits, Cairo and existing semantic tokens/720-pixel measure/48-pixel controls. Review date intent and zero financial effects before server confirmation.
 
@@ -146,3 +148,12 @@ The [repairs review](reviews/repairs-2026-10-12/validation.md) records custody/f
 The [debts review](reviews/debts-2026-10-13/validation.md) records the local DEBT-01 layout and its validation limits. [Development deployment](reviews/debts-2026-10-13/deployment.md) and independent validation recorded; native owner acceptance remains open.
 
 Cash input fields group whole thousands while typing and preserve entered cents and cursor position. Presentation removes only valid grouping before passing exact decimal strings to domain calculations; stored money is unchanged. Return, correction, exchange and scrap-conversion displays use two-decimal grams with exact milligrams at financial-effect confirmation. The owner requested direct implementation without tests or verification for this formatting follow-up on 2026-10-12; it remains unverified.
+
+
+## Debt due-date and in-app reminder layout — 2026-10-15
+
+No approved due-date mockup exists. A compact live date/status row in existing selected-debt detail opens the direct date route. The existing debt workspace has a direct مواعيد الديون action; no guide card or alarm/background control. The list has search, wrapping all/overdue/today/upcoming filters, server shop-local date/snapshot time, one tappable source row per reminder and explicit older-page loading. Stale/day/revision cursors require بدء القائمة من جديد; unloaded/offline/failure/empty are distinct. Gold shows three decimal grams at one original karat; money says نقد, with no mixed-unit total.
+
+The date route shows Arabic source/party/direction/unit/karat, isolated source ID and exact remaining. Add/change/clear freshly rereads before a review of old/new date and zero cash/gold/stock/custody/invoice effect. Preparing, pending original request, failure/retry, stale review, confirmed and read-only/archived states are explicit. Revisions/session/day changes block stale confirmation without erasing the date draft. Metadata audit is a separate disclosure; existing financial history/PDF remains separate.
+
+Cairo, current semantic brown/cream/dark roles, 720-pixel measure and 48-pixel controls remain. Arabic date input uses سنة-شهر-يوم and LTR dates. The accessible calendar offers full-size day rows at phone/enlarged widths and a days-of-month grid where 48-pixel cells fit. Full 1.7 text scaling and keyboard/escape controls remain; no native-calendar scale cap or small-cell exception. Shared persisted theme choice is reused. Actual 320/390/1440 light/dark captures, including empty/preparing/review/pending/failure/stale/confirmed/expired/archived/calendar/focus, are recorded in [validation](reviews/debt-due-dates-2026-10-14/independent-validation.md). Synthetic evidence does not close native/device/owner acceptance.

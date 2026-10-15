@@ -17,6 +17,7 @@ import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../debts/application/debt_contract.dart';
+import '../../debts/application/debt_due_contract.dart';
 import '../../customers/application/customer_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/ledger_activity.dart';
@@ -287,6 +288,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       if (pending != null &&
           (repairRpcs.containsKey(pending.kind) ||
               debtRpcs.containsKey(pending.kind) ||
+              pending.kind == debtDueKind ||
               customerRpcs.containsKey(pending.kind))) {
         if (mounted && userId == widget.userId) {
           setState(() {
@@ -358,8 +360,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     }
     if (repairRpcs.containsKey(pending.kind) ||
         debtRpcs.containsKey(pending.kind) ||
+        pending.kind == debtDueKind ||
         customerRpcs.containsKey(pending.kind)) {
-      final debt = debtRpcs.containsKey(pending.kind);
+      final debt =
+          debtRpcs.containsKey(pending.kind) || pending.kind == debtDueKind;
       final customer = customerRpcs.containsKey(pending.kind);
       final open = customer
           ? widget.onOpenCustomers
@@ -867,7 +871,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                           Text(
                             repairRpcs.containsKey(_financialPending!.kind)
                                 ? 'طلب صيانة بانتظار تأكيد الحفظ'
-                                : debtRpcs.containsKey(_financialPending!.kind)
+                                : (debtRpcs.containsKey(
+                                        _financialPending!.kind,
+                                      ) ||
+                                      _financialPending!.kind == debtDueKind)
                                 ? 'طلب ديون بانتظار تأكيد الحفظ'
                                 : customerRpcs.containsKey(
                                     _financialPending!.kind,
@@ -891,9 +898,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                               label: Text(
                                 repairRpcs.containsKey(_financialPending!.kind)
                                     ? 'متابعة طلب الصيانة'
-                                    : debtRpcs.containsKey(
-                                        _financialPending!.kind,
-                                      )
+                                    : (debtRpcs.containsKey(
+                                            _financialPending!.kind,
+                                          ) ||
+                                          _financialPending!.kind ==
+                                              debtDueKind)
                                     ? 'متابعة طلب الديون'
                                     : customerRpcs.containsKey(
                                         _financialPending!.kind,

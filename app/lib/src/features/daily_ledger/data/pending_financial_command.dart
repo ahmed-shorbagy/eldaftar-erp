@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../debts/application/debt_contract.dart';
+import '../../debts/application/debt_due_contract.dart';
 import '../../inventory/application/inventory_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/idempotency_key.dart';
@@ -81,6 +82,7 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       ...inventoryRpcs.keys,
       ...repairRpcs.keys,
       ...debtRpcs.keys,
+      debtDueKind,
       ...customerRpcs.keys,
     }.contains(kind)) {
       throw const FormatException('pending_financial');
@@ -214,6 +216,7 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
     if (debtRpcs.containsKey(kind)) {
       return matchesDebtEnvelope(key, kind, body);
     }
+    if (kind == debtDueKind) return matchesDebtDueEnvelope(key, kind, body);
     return kind == 'open_day' && body.length == 1;
   }
 }

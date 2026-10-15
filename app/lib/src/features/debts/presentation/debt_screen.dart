@@ -17,6 +17,9 @@ import 'debt_copy.dart';
 import '../application/debt_statement_gateway.dart';
 import '../application/debt_statement_flow.dart';
 import 'debt_statement_screen.dart';
+import '../application/debt_due_contract.dart';
+import '../application/debt_due_gateway.dart';
+import 'debt_due_screen.dart';
 
 class DebtScreen extends StatefulWidget {
   const DebtScreen({
@@ -87,6 +90,7 @@ class _DebtScreenState extends State<DebtScreen> {
   bool _backendReady = false;
   bool _pendingLoadFailed = false;
   bool _statementOpening = false;
+  bool _dueOpening = false;
   PendingFinancialCommand? _foreignPending;
 
   _Stage _stage = _Stage.list;
@@ -627,6 +631,13 @@ class _DebtScreenState extends State<DebtScreen> {
                     'يوجد طلب آخر بانتظار التأكيد. عد إلى الدفتر لمتابعته.',
                     key: Key('debt-other-pending'),
                   ),
+                if (_foreignPending?.kind == debtDueKind &&
+                    widget.gateway is DebtDueGateway)
+                  _button(
+                    'متابعة موعد الاستحقاق',
+                    () => _openDue(),
+                    key: const Key('debt-due-recover'),
+                  ),
                 if (_reviewStale)
                   _button(
                     'تحميل البيانات وإعادة المراجعة',
@@ -670,6 +681,12 @@ class _DebtScreenState extends State<DebtScreen> {
   List<Widget> _list(ThemeData theme) {
     final items = _page?.items ?? const <DebtSummary>[];
     return [
+      if (widget.gateway is DebtDueGateway)
+        _button(
+          'مواعيد الديون',
+          _dueOpening ? null : () => _openDue(),
+          key: const Key('debt-reminders'),
+        ),
       TextField(
         key: const Key('debt-search'),
         controller: _search,
@@ -913,6 +930,16 @@ class _DebtScreenState extends State<DebtScreen> {
       if (item.externalReference != null)
         Text('المرجع: ${item.externalReference}'),
       Text('أُنشئ: ${formatServerCairoTimestamp(item.createdAtShop)}'),
+      if (widget.gateway is DebtDueGateway)
+        DebtDueDateRow(
+          gateway: widget.gateway as DebtDueGateway,
+          userId: widget.userId,
+          shopId: widget.shopId,
+          summary: item,
+          canRead: () => mounted && (widget.canRead?.call() ?? true),
+          syncTicks: widget.syncTicks,
+          open: () => _openDue(item),
+        ),
       if (widget.gateway is DebtStatementGateway)
         _button(
           'كشف حساب دين PDF',
@@ -962,6 +989,45 @@ class _DebtScreenState extends State<DebtScreen> {
           key: const Key('debt-archive'),
         ),
     ];
+  }
+
+  Future<void> _openDue([DebtSummary? selected]) async {
+    if (_dueOpening ||
+        widget.gateway is! DebtDueGateway ||
+        !(widget.canRead?.call() ?? true)) {
+      return;
+    }
+    final identity = _identity;
+    setState(() => _dueOpening = true);
+    try {
+      final item = await Navigator.of(context).push<DebtSummary>(
+        MaterialPageRoute(
+          builder: (_) => DebtDueScreen(
+            gateway: widget.gateway as DebtDueGateway,
+            store: widget.store,
+            userId: widget.userId,
+            shopId: widget.shopId,
+            sourceKind: selected?.sourceKind,
+            sourceId: selected?.sourceId,
+            syncTicks: widget.syncTicks,
+            canRead: () =>
+                mounted &&
+                identity == _identity &&
+                (widget.canRead?.call() ?? true),
+            canWrite: () => mounted && identity == _identity && !_readOnly,
+            onMutated: widget.onMutated,
+            newKey: widget.newKey,
+          ),
+        ),
+      );
+      if (!mounted || identity != _identity) return;
+      await _load();
+      if (item != null && mounted && identity == _identity) {
+        await _openDetail(item);
+      }
+    } finally {
+      if (mounted) setState(() => _dueOpening = false);
+    }
   }
 
   Widget _historyEntry(DebtHistoryEntry event, DebtUnit unit) {
