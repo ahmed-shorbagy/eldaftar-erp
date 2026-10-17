@@ -1479,6 +1479,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           builder: (_) => FinancialOperationScreen(
             gateway: widget.gateway,
             userId: widget.userId,
+            shopId: widget.shopId,
             line: line,
           ),
         ),

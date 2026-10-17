@@ -1,0 +1,7 @@
+# Current delivery pointer — 2026-10-17
+
+Milestone 4 slice 10 is implemented, separately reviewed, independently validated, and applied only to authorized development xchapwvmvoefriqcxtvn after the owner's D12/D34 confirmation. [Completion and acceptance limits](invoice-branding-completion-status-2026-10-17.md), [ADR 0021](../adr/0021-invoice-appearance-and-presentation-copies.md), [separate review](../reviews/invoice-branding-2026-10-17/implementation-review.md), [independent validation](../reviews/invoice-branding-2026-10-17/independent-validation-2026-10-17.md), [deployment/preservation](../reviews/invoice-branding-2026-10-17/deployment.md).
+
+The exact submitted execution prompt is preserved byte-for-byte in [its immutable archive](invoice-branding-submitted-prompt-2026-10-17.md). The [dated planning copy](invoice-branding-slice-prompt-2026-10-16.md) and prior slice evidence remain unchanged. Historical next-slice links refer to the pointer at that time. Use the immutable archives for the original text.
+
+No next implementation slice is selected. SET-04, remaining DOC-04, D18/Milestone 5, wider all-screens D12 prototype approval, and native reminder device/owner acceptance stay open. DOC-01 and Milestone 4 stay open beyond this appearance scope. Export, preview, share, and WhatsApp do not confirm sending or delivery. No commit, push, publishing, release or production build, real logo upload, reset, or history deletion.

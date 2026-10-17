@@ -1,3 +1,4 @@
+import 'features/debts/application/debt_reminder_coordinator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:phone_form_field/phone_form_field.dart';
@@ -18,6 +19,7 @@ import 'theme/theme_controller.dart';
 class ElDafttarApp extends StatelessWidget {
   const ElDafttarApp({
     super.key,
+    this.reminders,
     required this.supabaseStatus,
     required this.themeController,
     this.authGateway,
@@ -30,6 +32,7 @@ class ElDafttarApp extends StatelessWidget {
     this.syncGateway,
   });
 
+  final DebtReminderCoordinator? reminders;
   final SupabaseStartupStatus supabaseStatus;
   final ThemeController themeController;
   final AuthGateway? authGateway;
@@ -62,6 +65,7 @@ class ElDafttarApp extends StatelessWidget {
           darkTheme: AppTheme.dark(),
           themeMode: themeController.mode,
           home: AuthGate(
+            reminders: reminders,
             supabaseStatus: supabaseStatus,
             authGateway: authGateway,
             shopAccountGateway: shopAccountGateway,

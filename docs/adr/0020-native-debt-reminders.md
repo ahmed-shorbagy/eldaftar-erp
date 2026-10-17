@@ -1,0 +1,19 @@
+# ADR 0020: bounded native debt reminders
+
+Status: owner-confirmed D19 native extension and D33; implemented, separately reviewed, independently validated and applied to development; platform/device/owner acceptance remains open.
+Date: 2026-10-15. Decision owner: product owner in this implementation conversation.
+Scope: Milestone 4 slice 9, bounded local-notification portion of DEBT-03.
+
+The owner explicitly confirmed all three clarification questions together before dependent implementation. Android, iOS and Windows are included; no platform is deferred by the owner. One-time OS-scheduled local notifications satisfy this bounded scope, subject to native setup, permission, sound settings and operating-system restrictions. There is no guaranteed exact instant, full-screen/persistent alarm, silent-mode/Do Not Disturb bypass, or display/read/delivery proof. Unsupported packaging must be reported honestly and remains an acceptance gap.
+
+Shared intent is an optional, explicitly selected HH:mm on the existing source calendar due date in the shop time zone. The server converts it to UTC and rejects nonexistent or ambiguous DST wall times. There is no inferred default time, backfill, repeat or snooze. D32 calendar deadline/overdue semantics are unchanged. Date/time/zone/source changes require fresh reconciliation. Past triggers are visibly missed and do not produce catch-up notifications. Each installation schedules at most 32 pending requests within a rolling 30-day horizon; all capacity/horizon gaps remain visible.
+
+Enablement is per installation and starts disabled. Only an explicit owner enable action may ask for OS permission. Enabled devices may duplicate reminders. Arabic lock-screen content is generic and contains no party, phone, amount, karat, credential or authenticated URL. Partial settlement/cancellation retains intent. Zero remaining, full cancellation, archive, date clear or disable cancels local requests on reconciliation. Already-confirmed reminders continue for expired but authorized readers; shared writes still require active entitlement. Local disable/cancel remains available without an active subscription.
+
+Logout/access loss cancels when the app can act. An offline/closed device cannot learn an unseen settlement/revocation or remotely cancel an OS request; stale generic reminders may occur until reconciliation. The owner explicitly accepted this limitation. Taps require authentication and fresh authorized source reads; account changes must expose no other shop's data. No settlement, invoice dispatch or export is automatic.
+
+Source/date truth and financial history remain server-owned. Native intent uses a narrow additive versioned command/read/status/audit contract with original-envelope idempotency, source/date/zone freshness and established shop-before-source locking. A confirmed database write and an OS request are separate recoverable phases. Durable installation desired/applied manifests and OS adapters live behind application-owned interfaces. Permission, registration and delivery are distinct states. No balances or contacts are copied into scheduler state.
+
+Separate read-only implementation review and independent validation are required before necessary additive development application to xchapwvmvoefriqcxtvn through the connected Supabase plugin. Actual device notification QA requires separately authorized controlled synthetic records. Adapter/widget/debug checks do not establish physical-device delivery or owner acceptance. No push/email/SMS/WhatsApp provider, exact-alarm privilege, financial change, paid environment, commit, push, publishing, production/release build, reset or history deletion.
+
+[Exact submitted prompt](../operations/debt-native-reminders-submitted-prompt-2026-10-15.md), [date policy](0019-debt-calendar-due-dates.md), [owner isolation](0003-owner-only-shop-access.md), [accounting](0013-debt-balances-and-settlement.md).

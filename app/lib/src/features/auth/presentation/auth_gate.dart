@@ -1,3 +1,4 @@
+import '../../debts/application/debt_reminder_coordinator.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ import 'recovery_copy.dart';
 class AuthGate extends StatefulWidget {
   const AuthGate({
     super.key,
+    this.reminders,
     required this.supabaseStatus,
     required this.authGateway,
     required this.shopAccountGateway,
@@ -34,6 +36,7 @@ class AuthGate extends StatefulWidget {
     this.syncGateway,
   });
 
+  final DebtReminderCoordinator? reminders;
   final SupabaseStartupStatus supabaseStatus;
   final AuthGateway? authGateway;
   final PasswordRecoveryGateway? recoveryGateway;
@@ -174,6 +177,7 @@ class _AuthGateState extends State<AuthGate> {
     if (!_hold && _status == AuthStatus.signedIn) {
       final userId = widget.currentUserId?.call();
       return ShopAccountsGate(
+        reminders: widget.reminders,
         key: ValueKey(userId),
         gateway: shops,
         onToggleTheme: widget.onToggleTheme,

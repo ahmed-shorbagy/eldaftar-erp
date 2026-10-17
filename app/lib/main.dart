@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'src/features/debts/application/debt_reminder_coordinator.dart';
+import 'src/features/debts/data/debt_notification_port.dart';
+import 'src/features/debts/data/debt_reminder_device_store.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +33,32 @@ Future<void> main() async {
   final authGateway = supabaseStatus == SupabaseStartupStatus.ready
       ? SupabaseAuthGateway(Supabase.instance.client)
       : null;
+  final openingGateway = supabaseStatus == SupabaseStartupStatus.ready
+      ? HttpOpeningGateway(
+          client: http.Client(),
+          supabaseUrl: config.trimmedUrl,
+          publishableKey: config.trimmedPublishableKey,
+          accessToken: () =>
+              Supabase.instance.client.auth.currentSession?.accessToken ?? '',
+          currentUserId: () => Supabase.instance.client.auth.currentUser?.id,
+        )
+      : null;
+  final reminders = openingGateway == null
+      ? null
+      : DebtReminderCoordinator(
+          gateway: openingGateway,
+          store: const SecureDeviceReminderStore(),
+          port: LocalDebtNotificationPort(),
+          clock: SystemReminderClock(),
+        );
+  if (reminders != null && Supabase.instance.client.auth.currentUser == null) {
+    await reminders.bind(null, null);
+  }
+  if (reminders != null) {
+    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.session == null) unawaited(reminders.bind(null, null));
+    });
+  }
   runApp(
     ElDafttarApp(
       supabaseStatus: supabaseStatus,
@@ -41,18 +71,8 @@ Future<void> main() async {
       syncGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopSyncGateway(Supabase.instance.client)
           : null,
-      openingGateway: supabaseStatus == SupabaseStartupStatus.ready
-          ? HttpOpeningGateway(
-              client: http.Client(),
-              supabaseUrl: config.trimmedUrl,
-              publishableKey: config.trimmedPublishableKey,
-              accessToken: () =>
-                  Supabase.instance.client.auth.currentSession?.accessToken ??
-                  '',
-              currentUserId: () =>
-                  Supabase.instance.client.auth.currentUser?.id,
-            )
-          : null,
+      openingGateway: openingGateway,
+      reminders: reminders,
       pendingOpeningStore: supabaseStatus == SupabaseStartupStatus.ready
           ? SharedPreferencesPendingOpeningStore(preferences)
           : null,

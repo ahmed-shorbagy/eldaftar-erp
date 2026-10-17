@@ -1,3 +1,5 @@
+import '../../invoice_appearance/application/invoice_appearance_contract.dart';
+import '../../debts/application/debt_native_contract.dart';
 import 'dart:convert';
 import '../../customers/application/customer_contract.dart';
 
@@ -83,6 +85,9 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       ...repairRpcs.keys,
       ...debtRpcs.keys,
       debtDueKind,
+      debtNativeKind,
+      invoiceAppearanceKind,
+      invoicePresentationKind,
       ...customerRpcs.keys,
     }.contains(kind)) {
       throw const FormatException('pending_financial');
@@ -216,7 +221,16 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
     if (debtRpcs.containsKey(kind)) {
       return matchesDebtEnvelope(key, kind, body);
     }
+    if (kind == debtNativeKind) {
+      return matchesDebtNativeEnvelope(key, kind, body);
+    }
     if (kind == debtDueKind) return matchesDebtDueEnvelope(key, kind, body);
+    if (kind == invoiceAppearanceKind) {
+      return matchesInvoiceAppearanceEnvelope(key, kind, body);
+    }
+    if (kind == invoicePresentationKind) {
+      return matchesInvoicePresentationEnvelope(key, kind, body);
+    }
     return kind == 'open_day' && body.length == 1;
   }
 }

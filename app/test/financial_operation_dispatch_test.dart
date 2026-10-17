@@ -111,6 +111,7 @@ void main() {
     await tester.pumpWidget(screen(false));
     await tester.pumpAndSettle();
     expect(find.text('لم يؤكد الإرسال'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('تأكيد الإرسال بعد إرساله'), 200);
     final confirm = tester.widget<OutlinedButton>(
       find.ancestor(
         of: find.text('تأكيد الإرسال بعد إرساله'),

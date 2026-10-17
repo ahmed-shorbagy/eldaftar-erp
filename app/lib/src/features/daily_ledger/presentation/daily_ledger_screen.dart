@@ -1,3 +1,4 @@
+import '../../debts/application/debt_native_contract.dart';
 import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
 import 'dart:async';
@@ -19,6 +20,7 @@ import '../../inventory/application/inventory_gateway.dart';
 import '../../debts/application/debt_contract.dart';
 import '../../debts/application/debt_due_contract.dart';
 import '../../customers/application/customer_contract.dart';
+import '../../invoice_appearance/application/invoice_appearance_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/ledger_activity.dart';
 import '../application/ledger_line_items.dart';
@@ -63,6 +65,7 @@ class DailyLedgerScreen extends StatefulWidget {
     this.onOpenRepairs,
     this.onOpenDebts,
     this.onOpenCustomers,
+    this.onOpenInvoiceAppearance,
   });
 
   final ShopAccount shop;
@@ -81,6 +84,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final Future<void> Function()? onOpenRepairs;
   final Future<void> Function()? onOpenDebts;
   final Future<void> Function()? onOpenCustomers;
+  final Future<void> Function()? onOpenInvoiceAppearance;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -288,8 +292,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       if (pending != null &&
           (repairRpcs.containsKey(pending.kind) ||
               debtRpcs.containsKey(pending.kind) ||
-              pending.kind == debtDueKind ||
-              customerRpcs.containsKey(pending.kind))) {
+              (pending.kind == debtDueKind || pending.kind == debtNativeKind) ||
+              customerRpcs.containsKey(pending.kind) ||
+              pending.kind == invoiceAppearanceKind ||
+              pending.kind == invoicePresentationKind)) {
         if (mounted && userId == widget.userId) {
           setState(() {
             _financialPending = pending;
@@ -358,12 +364,39 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         _dayCommandBusy) {
       return;
     }
+    if (pending.kind == invoiceAppearanceKind ||
+        pending.kind == invoicePresentationKind) {
+      if (pending.kind == invoiceAppearanceKind) {
+        final open = widget.onOpenInvoiceAppearance;
+        if (open == null) {
+          setState(
+            () => _financialError =
+                'يوجد طلب مظهر فاتورة محفوظ. افتح مظهر الفاتورة من المزيد للتحقق منه.',
+          );
+          return;
+        }
+        await open();
+      } else {
+        final opened = await _openPendingPresentation(pending);
+        if (!opened && mounted) {
+          setState(
+            () => _financialError =
+                'يوجد طلب نسخة عرض محفوظ. افتح العملية المؤكدة للتحقق منه.',
+          );
+        }
+      }
+      if (!mounted) return;
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
+      return;
+    }
     if (repairRpcs.containsKey(pending.kind) ||
         debtRpcs.containsKey(pending.kind) ||
-        pending.kind == debtDueKind ||
+        (pending.kind == debtDueKind || pending.kind == debtNativeKind) ||
         customerRpcs.containsKey(pending.kind)) {
       final debt =
-          debtRpcs.containsKey(pending.kind) || pending.kind == debtDueKind;
+          debtRpcs.containsKey(pending.kind) ||
+          (pending.kind == debtDueKind || pending.kind == debtNativeKind);
       final customer = customerRpcs.containsKey(pending.kind);
       final open = customer
           ? widget.onOpenCustomers
@@ -608,6 +641,41 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     return ledgerLineItemsFromPayload(payload);
   }
 
+  Future<bool> _openPendingPresentation(PendingFinancialCommand pending) async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    final raw = pending.body['p_payload'];
+    final operationId = raw is Map ? raw['operation_id'] : null;
+    if (gateway == null || userId == null || operationId is! String) {
+      return false;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FinancialOperationScreen(
+          gateway: gateway,
+          userId: userId,
+          shopId: widget.shop.id,
+          canRead: () => mounted && widget.userId == userId,
+          canWrite: () =>
+              mounted &&
+              widget.userId == userId &&
+              !_expired &&
+              widget.shop.entitlement == ShopEntitlement.active,
+          line: LedgerFeedLine(
+            kind: 'sale',
+            labelAr: 'بيع',
+            operationId: operationId,
+            actorDisplayName: '',
+            occurredAt: '',
+            occurredAtCairo: '',
+          ),
+          syncTicks: widget.syncTicks,
+        ),
+      ),
+    );
+    return true;
+  }
+
   Future<void> _openOperation(LedgerFeedLine line) async {
     final gateway = _financialGateway;
     final userId = widget.userId;
@@ -617,6 +685,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         builder: (_) => FinancialOperationScreen(
           gateway: gateway,
           userId: userId,
+          shopId: widget.shop.id,
+          canRead: () => mounted && widget.userId == userId,
+          canWrite: () =>
+              mounted &&
+              widget.userId == userId &&
+              !_expired &&
+              widget.shop.entitlement == ShopEntitlement.active,
           line: line,
           syncTicks: widget.syncTicks,
         ),
@@ -869,12 +944,21 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            repairRpcs.containsKey(_financialPending!.kind)
+                            _financialPending!.kind == invoiceAppearanceKind
+                                ? 'طلب مظهر فاتورة بانتظار التأكيد'
+                                : _financialPending!.kind ==
+                                      invoicePresentationKind
+                                ? 'طلب نسخة عرض بانتظار التأكيد'
+                                : repairRpcs.containsKey(
+                                    _financialPending!.kind,
+                                  )
                                 ? 'طلب صيانة بانتظار تأكيد الحفظ'
                                 : (debtRpcs.containsKey(
                                         _financialPending!.kind,
                                       ) ||
-                                      _financialPending!.kind == debtDueKind)
+                                      (_financialPending!.kind == debtDueKind ||
+                                          _financialPending!.kind ==
+                                              debtNativeKind))
                                 ? 'طلب ديون بانتظار تأكيد الحفظ'
                                 : customerRpcs.containsKey(
                                     _financialPending!.kind,
@@ -896,13 +980,22 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                                   : () => _resolveFinancialPending(retry: true),
                               icon: const Icon(Icons.sync),
                               label: Text(
-                                repairRpcs.containsKey(_financialPending!.kind)
+                                _financialPending!.kind == invoiceAppearanceKind
+                                    ? 'متابعة مظهر الفاتورة'
+                                    : _financialPending!.kind ==
+                                          invoicePresentationKind
+                                    ? 'متابعة طلب النسخة'
+                                    : repairRpcs.containsKey(
+                                        _financialPending!.kind,
+                                      )
                                     ? 'متابعة طلب الصيانة'
                                     : (debtRpcs.containsKey(
                                             _financialPending!.kind,
                                           ) ||
-                                          _financialPending!.kind ==
-                                              debtDueKind)
+                                          (_financialPending!.kind ==
+                                                  debtDueKind ||
+                                              _financialPending!.kind ==
+                                                  debtNativeKind))
                                     ? 'متابعة طلب الديون'
                                     : customerRpcs.containsKey(
                                         _financialPending!.kind,

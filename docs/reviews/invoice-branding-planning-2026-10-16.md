@@ -1,0 +1,11 @@
+# Invoice appearance — planning review
+
+Date: 2026-10-16, Africa/Cairo. Documentation-only planning after Milestone 4 slice 9. No implementation, hosted inspection/mutation, asset upload or deployment was performed in this update.
+
+Selected recommendation: Milestone 4 slice 10, SET-03 and appearance portion of DOC-01. [Full next prompt](../operations/next-slice-prompt.md) and [dated planning copy](../operations/invoice-branding-slice-prompt-2026-10-16.md) are byte-identical. Invoice-specific D12 and proposed D34 remain unconfirmed; recommendations are not accepted decisions. SET-04 custom messages and DOC-04 new image/print formats follow separately; Milestone 5 reports remain conditional on D18. Native reminder device/owner acceptance stays open.
+
+Preservation: the previous pointer is archived byte-for-byte as [the native reminder completion pointer](../operations/debt-native-reminders-completion-pointer-2026-10-16.md). All eight prior completion/planning/submitted/review/deployment records in the planning baseline remain byte-identical, including [slice 9 completion](../operations/debt-native-reminders-completion-status-2026-10-16.md). The seven current planning/index documents received targeted updates; no application, backend, prior migration, financial snapshot or historical audit was edited. Existing uncommitted implementation remains in place.
+
+Validation: 18 reviewed documents and 400 local links, zero missing; proposed-versus-confirmed decision and scope consistency, contiguous D34 table row, archive/current-copy hashes and privacy review passed. No customer/contact rows, credentials, tokens, private assets or source documents copied into evidence. git diff --check passed. Application tests/builds were not run because this update changes documentation only. No commit, push, publishing, release/production build, notification or message was performed.
+
+Ignored evidence: tmp/invoice-branding-planning-baseline.json and tmp/invoice-branding-planning-validation.json. This is a planning review, not independent implementation validation or native acceptance.

@@ -1,0 +1,7 @@
+# Current delivery pointer — 2026-10-16
+
+Milestone 4 slice 9 is implemented, separately reviewed, independently validated and applied only to authorized development xchapwvmvoefriqcxtvn after the owner's D19/D33 confirmations. [Completion and acceptance limits](debt-native-reminders-completion-status-2026-10-16.md), [ADR 0020](../adr/0020-native-debt-reminders.md), [separate review](../reviews/debt-native-reminders-2026-10-15/implementation-review.md), [final independent validation](../reviews/debt-native-reminders-2026-10-15/independent-validation-2026-10-16.md), [deployment/preservation](../reviews/debt-native-reminders-2026-10-15/deployment.md), [platform matrix](../reviews/debt-native-reminders-2026-10-15/platform-capabilities.md).
+
+The exact submitted execution prompt is preserved byte-for-byte in [its immutable archive](debt-native-reminders-submitted-prompt-2026-10-15.md); the [dated planning copy](debt-native-reminders-slice-prompt-2026-10-15.md) and prior slice evidence remain unchanged. Historical next-slice links refer to the pointer at that time; use immutable archives for original text.
+
+No next implementation slice is selected. Android/iOS/Windows device and owner acceptance remain open; DEBT-03 is not fully accepted. Actual controlled synthetic notification QA requires separate owner authorization. Adapter tests, permission and OS registration do not prove display/read/delivery. No commit, push, publishing, release/production build, real-customer notification, reset or history deletion.

@@ -1,3 +1,6 @@
+import '../../debts/application/debt_native_gateway.dart';
+import '../../debts/application/debt_native_contract.dart';
+import '../../debts/data/debt_native_codec.dart';
 import 'dart:convert';
 import '../../customers/application/customer_contract.dart';
 import '../../customers/application/customer_gateway.dart';
@@ -22,6 +25,9 @@ import '../../debts/domain/debt_rules.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../../repairs/application/repair_gateway.dart';
 import '../../repairs/data/repair_codec.dart';
+import '../../invoice_appearance/application/invoice_appearance_contract.dart';
+import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
+import '../../invoice_appearance/data/invoice_appearance_codec.dart';
 import '../../daily_notes/application/notes_gateway.dart';
 import '../../daily_notes/data/note_codec.dart';
 import '../../daily_notes/domain/daily_note_draft.dart';
@@ -35,6 +41,11 @@ import '../domain/financial_draft.dart';
 import 'daily_ledger_codec.dart';
 
 const _errorCodes = <String>{
+  'stale_native',
+  'stale_native_cursor',
+  'invalid_time',
+  'unresolved_wall_time',
+  'due_date_required',
   'attachment_rejected',
   'note_too_long',
   'image_too_large',
@@ -110,6 +121,13 @@ const _errorCodes = <String>{
   'cancel_not_allowed',
   'archive_not_allowed',
   'settlement_not_allowed',
+  'stale_appearance',
+  'stale_presentation',
+  'stale_operation',
+  'logo_rejected',
+  'logo_not_uploaded',
+  'logo_mismatch',
+  'asset_missing',
 };
 
 class HttpOpeningGateway
@@ -131,8 +149,10 @@ class HttpOpeningGateway
         DebtGateway,
         DebtStatementGateway,
         DebtDueGateway,
+        DebtNativeGateway,
         CustomerGateway,
-        CustomerContactSession {
+        CustomerContactSession,
+        InvoiceAppearanceGateway {
   @override
   Object? contactSession(String callerUserId) {
     try {
@@ -1840,6 +1860,126 @@ class HttpOpeningGateway
   }
 
   @override
+  Object? nativeSession(String userId) => contactSession(userId);
+  @override
+  Future<DebtNativeReview> reviewNative({
+    required String userId,
+    required String shopId,
+    required DebtSourceKind sourceKind,
+    required String sourceId,
+    required String? time,
+  }) async {
+    final r = await _debtRead(userId, 'review_debt_native_v1', {
+      'p_source_kind': sourceKind.wire,
+      'p_source_id': sourceId,
+      'p_reminder_time': time,
+    }, parseDebtNativeReview);
+    if (r.detail.row.due.shopId != shopId ||
+        r.detail.row.due.summary.sourceKind != sourceKind ||
+        r.detail.row.due.summary.sourceId != sourceId ||
+        r.time != time) {
+      throw const DebtReadException('discarded');
+    }
+    return r;
+  }
+
+  @override
+  Future<DebtNativeDetail> readNative({
+    required String userId,
+    required String shopId,
+    required DebtSourceKind sourceKind,
+    required String sourceId,
+  }) async {
+    final d = await _debtRead(userId, 'get_debt_native_v1', {
+      'p_source_kind': sourceKind.wire,
+      'p_source_id': sourceId,
+    }, parseDebtNativeDetail);
+    if (d.row.due.shopId != shopId ||
+        d.row.due.summary.sourceKind != sourceKind ||
+        d.row.due.summary.sourceId != sourceId) {
+      throw const DebtReadException('discarded');
+    }
+    return d;
+  }
+
+  @override
+  Future<DebtNativePage> readNativeQueue({
+    required String userId,
+    required String shopId,
+    required String? cursor,
+  }) async {
+    final p = await _debtRead(userId, 'get_debt_native_queue_v1', {
+      'p_limit': 50,
+      'p_cursor': cursor,
+    }, parseDebtNativePage);
+    if (p.shopId != shopId) throw const DebtReadException('discarded');
+    return p;
+  }
+
+  @override
+  Future<DebtNativeTransport> sendNative({
+    required String userId,
+    required String shopId,
+    required PendingFinancialCommand command,
+  }) => _nativeTransport(userId, shopId, command, false);
+  @override
+  Future<DebtNativeTransport> nativeStatus({
+    required String userId,
+    required String shopId,
+    required PendingFinancialCommand command,
+  }) => _nativeTransport(userId, shopId, command, true);
+
+  Future<DebtNativeTransport> _nativeTransport(
+    String user,
+    String shop,
+    PendingFinancialCommand command,
+    bool status,
+  ) async {
+    if (!matchesDebtNativeEnvelope(command.key, command.kind, command.body)) {
+      return const DebtNativeTransport(error: 'invalid_input');
+    }
+    try {
+      final r = await _post(
+        user,
+        status ? 'get_debt_native_status_v1' : 'post_debt_native_v1',
+        command.body,
+      );
+      if (!_callerStill(user) || r.statusCode >= 500) {
+        return const DebtNativeTransport();
+      }
+      if (r.statusCode >= 400) {
+        return DebtNativeTransport(error: _errorCode(r.body));
+      }
+      final j = debtMap(jsonDecode(r.body));
+      if (status && j['status'] == 'absent' && j.length == 1) {
+        return const DebtNativeTransport(absent: true);
+      }
+      if (status && (j['status'] != 'completed' || j.length != 2)) {
+        return const DebtNativeTransport();
+      }
+      final receipt = parseDebtNativeReceipt(status ? j['result'] : j);
+      final payload = debtMap(command.body['p_payload']);
+      if (receipt.shopId != shop ||
+          receipt.actorId != user ||
+          receipt.key != command.key ||
+          receipt.sourceKind != payload['source_kind'] ||
+          receipt.sourceId != payload['source_id'] ||
+          receipt.time != payload['reminder_time'] ||
+          receipt.version !=
+              BigInt.parse(payload['expected_native_version'] as String) +
+                  BigInt.one ||
+          canonicalDueJson(receipt.payload) != canonicalDueJson(payload)) {
+        return const DebtNativeTransport();
+      }
+      return DebtNativeTransport(receipt: receipt);
+    } on _CallerRejected catch (e) {
+      return DebtNativeTransport(error: e.code);
+    } catch (_) {
+      return const DebtNativeTransport();
+    }
+  }
+
+  @override
   Future<DebtStatement> readStatement({
     required String callerUserId,
     required String shopId,
@@ -2012,6 +2152,306 @@ class HttpOpeningGateway
     {'p_query': query, 'p_limit': 20, 'p_cursor': cursor},
     (raw) => parseCustomerSection(raw, type: 'candidates'),
   );
+
+  @override
+  Object? appearanceSession(String userId) {
+    try {
+      return _callerToken(userId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<AppearanceTransport> _appearanceCommand(
+    String callerUserId,
+    String shopId,
+    String rpc,
+    String kind,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      final response = await _post(callerUserId, rpc, body);
+      if (!_callerStill(callerUserId)) {
+        return const AppearanceTransport(error: 'discarded');
+      }
+      if (response.statusCode >= 500) return const AppearanceTransport();
+      if (response.statusCode >= 400) {
+        return AppearanceTransport(error: _errorCode(response.body));
+      }
+      final receipt = parseAppearanceReceipt(
+        jsonDecode(response.body),
+        kind: kind,
+      );
+      if (receipt.shopId != shopId) {
+        return const AppearanceTransport();
+      }
+      return AppearanceTransport(receipt: receipt);
+    } on _OwnerChanged {
+      return const AppearanceTransport(error: 'discarded');
+    } on _CallerRejected catch (error) {
+      return AppearanceTransport(error: error.code);
+    } catch (_) {
+      return const AppearanceTransport();
+    }
+  }
+
+  @override
+  Future<InvoiceAppearanceSnapshot> readAppearance({
+    required String userId,
+    required String shopId,
+  }) => _appearanceRead(
+    userId,
+    'get_invoice_appearance_v1',
+    const {},
+    (raw) => parseInvoiceAppearance(raw, shopId: shopId),
+  );
+
+  @override
+  Future<InvoiceAppearanceReview> reviewAppearance({
+    required String userId,
+    required String shopId,
+    required Map<String, Object?> payload,
+  }) => _appearanceRead(userId, 'review_invoice_appearance_v1', {
+    'p_payload': payload,
+  }, parseInvoiceAppearanceReview);
+
+  @override
+  Future<AppearanceTransport> sendAppearance({
+    required String userId,
+    required String shopId,
+    required String key,
+    required Map<String, Object?> body,
+  }) => _appearanceCommand(
+    userId,
+    shopId,
+    'post_invoice_appearance_v1',
+    invoiceAppearanceKind,
+    body,
+  );
+
+  @override
+  Future<AppearanceTransport> appearanceStatus({
+    required String userId,
+    required String shopId,
+    required String key,
+    required Map<String, Object?> body,
+  }) => _appearanceStatus(
+    userId,
+    shopId,
+    'get_invoice_appearance_status_v1',
+    invoiceAppearanceKind,
+    body,
+  );
+
+  @override
+  Future<LogoUploadResult> uploadInvoiceLogo({
+    required String userId,
+    required String shopId,
+    required String objectName,
+    required String mimeType,
+    required List<int> bytes,
+  }) async {
+    final extension = mimeType == 'image/png'
+        ? 'png'
+        : mimeType == 'image/jpeg'
+        ? 'jpg'
+        : null;
+    final parts = objectName.split('/');
+    final sha = parts.length == 2 && extension != null
+        ? parts[1].replaceFirst(RegExp('.$extension\$'), '')
+        : '';
+    if (extension == null ||
+        parts.length != 2 ||
+        parts[0] != shopId ||
+        !isUuid(shopId) ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha) ||
+        objectName != '$shopId/$sha.$extension' ||
+        bytes.isEmpty ||
+        bytes.length > 2097152) {
+      return const LogoUploadResult(
+        LogoUploadDisposition.rejected,
+        code: 'logo_rejected',
+      );
+    }
+    try {
+      final response = await _storage(
+        userId,
+        'POST',
+        'object/$invoiceLogoBucket/${_encodePath(objectName)}',
+        headers: {'Content-Type': mimeType, 'x-upsert': 'false'},
+        body: bytes,
+      );
+      if (!_callerStill(userId)) {
+        return const LogoUploadResult(LogoUploadDisposition.unknown);
+      }
+      if (response.statusCode == 200) {
+        return const LogoUploadResult(LogoUploadDisposition.stored);
+      }
+      if (response.statusCode == 409) {
+        return const LogoUploadResult(LogoUploadDisposition.alreadyPresent);
+      }
+      if (response.statusCode >= 400 && response.statusCode < 500) {
+        return LogoUploadResult(
+          LogoUploadDisposition.rejected,
+          code: _errorCode(response.body) ?? 'logo_rejected',
+        );
+      }
+      return const LogoUploadResult(LogoUploadDisposition.unknown);
+    } on _CallerRejected catch (error) {
+      return LogoUploadResult(LogoUploadDisposition.rejected, code: error.code);
+    } catch (_) {
+      return const LogoUploadResult(LogoUploadDisposition.unknown);
+    }
+  }
+
+  @override
+  Future<LogoConfirmation> confirmInvoiceLogo({
+    required String userId,
+    required String shopId,
+    required String base64Bytes,
+    required String sha256,
+  }) => _appearanceRead(
+    userId,
+    'confirm_invoice_logo_v1',
+    {'p_bytes': base64Bytes},
+    (raw) => parseLogoConfirmation(raw, shopId: shopId, sha256: sha256),
+  );
+
+  @override
+  Future<InvoiceBrandSource> readBrandSource({
+    required String userId,
+    required String shopId,
+    required String operationId,
+  }) => _appearanceRead(
+    userId,
+    'get_invoice_brand_source_v1',
+    {'p_operation_id': operationId},
+    (raw) =>
+        parseInvoiceBrandSource(raw, shopId: shopId, operationId: operationId),
+  );
+
+  @override
+  Future<AppearanceTransport> sendPresentation({
+    required String userId,
+    required String shopId,
+    required String key,
+    required Map<String, Object?> body,
+  }) => _appearanceCommand(
+    userId,
+    shopId,
+    'post_invoice_presentation_v1',
+    invoicePresentationKind,
+    body,
+  );
+
+  @override
+  Future<AppearanceTransport> presentationStatus({
+    required String userId,
+    required String shopId,
+    required String key,
+    required Map<String, Object?> body,
+  }) => _appearanceStatus(
+    userId,
+    shopId,
+    'get_invoice_presentation_status_v1',
+    invoicePresentationKind,
+    body,
+  );
+
+  @override
+  Future<InvoicePresentationList> listPresentations({
+    required String userId,
+    required String shopId,
+    required String operationId,
+  }) => _appearanceRead(
+    userId,
+    'get_invoice_presentations_v1',
+    {'p_operation_id': operationId},
+    (raw) => parseInvoicePresentationList(
+      raw,
+      shopId: shopId,
+      operationId: operationId,
+    ),
+  );
+
+  @override
+  Future<InvoicePresentationCopy> readPresentation({
+    required String userId,
+    required String shopId,
+    required String operationId,
+    required int edition,
+  }) => _appearanceRead(
+    userId,
+    'get_invoice_presentation_v1',
+    {'p_operation_id': operationId, 'p_edition': edition},
+    (raw) => parseInvoicePresentationCopy(
+      raw,
+      shopId: shopId,
+      operationId: operationId,
+      edition: edition,
+    ),
+  );
+
+  Future<AppearanceTransport> _appearanceStatus(
+    String callerUserId,
+    String shopId,
+    String rpc,
+    String kind,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      final response = await _post(callerUserId, rpc, body);
+      if (!_callerStill(callerUserId)) {
+        return const AppearanceTransport(error: 'discarded');
+      }
+      if (response.statusCode >= 500) return const AppearanceTransport();
+      if (response.statusCode >= 400) {
+        return AppearanceTransport(error: _errorCode(response.body));
+      }
+      final transport = parseAppearanceStatus(
+        jsonDecode(response.body),
+        kind: kind,
+      );
+      if (transport.receipt != null && transport.receipt!.shopId != shopId) {
+        return const AppearanceTransport();
+      }
+      return transport;
+    } on _OwnerChanged {
+      return const AppearanceTransport(error: 'discarded');
+    } on _CallerRejected catch (error) {
+      return AppearanceTransport(error: error.code);
+    } catch (_) {
+      return const AppearanceTransport();
+    }
+  }
+
+  Future<T> _appearanceRead<T>(
+    String callerUserId,
+    String rpc,
+    Map<String, Object?> body,
+    T Function(Object?) parse,
+  ) async {
+    try {
+      final response = await _post(callerUserId, rpc, body);
+      if (!_callerStill(callerUserId)) {
+        throw const InvoiceAppearanceException('session_expired');
+      }
+      if (response.statusCode >= 400) {
+        throw InvoiceAppearanceException(_errorCode(response.body));
+      }
+      return parse(jsonDecode(response.body));
+    } on InvoiceAppearanceException {
+      rethrow;
+    } on _OwnerChanged {
+      throw const InvoiceAppearanceException('session_expired');
+    } on _CallerRejected catch (error) {
+      throw InvoiceAppearanceException(error.code);
+    } on FormatException {
+      throw const InvoiceAppearanceException();
+    } catch (_) {
+      throw const InvoiceAppearanceException();
+    }
+  }
 }
 
 bool _noteObjectName(String name) {

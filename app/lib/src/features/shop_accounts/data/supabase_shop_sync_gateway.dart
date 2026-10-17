@@ -147,6 +147,7 @@ class SupabaseShopSyncGateway implements ShopSyncGateway {
       repairRevision: _int(row['repair_revision']) ?? 0,
       debtRevision: _int(row['debt_revision']) ?? 0,
       customerRevision: _int(row['customer_revision']) ?? 0,
+      appearanceRevision: _int(row['appearance_revision']) ?? 0,
     );
   }
 

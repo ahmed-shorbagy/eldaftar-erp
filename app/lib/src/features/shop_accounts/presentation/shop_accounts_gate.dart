@@ -1,3 +1,7 @@
+import '../../debts/application/debt_reminder_coordinator.dart';
+import '../../debts/application/debt_reminder_device.dart';
+import '../../debts/application/debt_native_gateway.dart';
+import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -19,6 +23,9 @@ import '../../customers/presentation/customer_screen.dart';
 import '../../debts/presentation/debt_screen.dart';
 import '../../repairs/application/repair_gateway.dart';
 import '../../repairs/presentation/repair_screen.dart';
+import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
+import '../../invoice_appearance/application/invoice_copy_files.dart';
+import '../../invoice_appearance/presentation/invoice_appearance_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../application/shop_sync_coordinator.dart';
 import '../application/shop_sync_ticks.dart';
@@ -30,6 +37,7 @@ import 'subscription_activation.dart';
 class ShopAccountsGate extends StatefulWidget {
   const ShopAccountsGate({
     super.key,
+    this.reminders,
     required this.gateway,
     required this.onSignOut,
     required this.onToggleTheme,
@@ -40,6 +48,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.syncGateway,
   });
 
+  final DebtReminderCoordinator? reminders;
   final ShopAccountGateway gateway;
   final Future<void> Function() onSignOut;
   final Future<void> Function(Brightness) onToggleTheme;
@@ -77,12 +86,17 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   Route<void>? _activationRoute;
   String? _activationShopId;
   bool _refreshQueued = false;
+  StreamSubscription<ReminderDeviceReport>? _reminderEvents;
+  bool _tapOpening = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _userId = widget.currentUserId?.call();
+    _reminderEvents = widget.reminders?.changes.listen(
+      (_) => _openReminderTap(),
+    );
     _refresh();
     _refreshTimer = Timer.periodic(
       const Duration(minutes: 1),
@@ -94,6 +108,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   void didUpdateWidget(covariant ShopAccountsGate oldWidget) {
     super.didUpdateWidget(oldWidget);
     final nextUser = widget.currentUserId?.call();
+    if (nextUser != _userId) {
+      unawaited(const InvoiceCopyFiles().clear());
+    }
     if (oldWidget.gateway != widget.gateway ||
         oldWidget.syncGateway != widget.syncGateway ||
         nextUser != _userId) {
@@ -124,6 +141,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _sync?.resume();
+      unawaited(widget.reminders?.reconcile());
       unawaited(_refresh());
     }
   }
@@ -134,6 +152,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     _requestGeneration++;
     _syncGeneration++;
     _refreshTimer?.cancel();
+    _reminderEvents?.cancel();
+    unawaited(widget.reminders?.bind(null, null));
     unawaited(_tearDownSync());
     _ticks.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -162,14 +182,14 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       final previous = _selected;
       setState(() {
         if (_accounts != null && _accounts!.isNotEmpty && accounts.isEmpty) {
-          _accessLost = true;
+          _markAccessLost();
         }
         _accounts = accounts;
         if (_selected != null) {
           final matching = accounts.where((item) => item.id == _selected!.id);
           if (matching.isEmpty) {
             _selected = null;
-            _accessLost = true;
+            _markAccessLost();
           } else {
             _selected = matching.first;
           }
@@ -195,6 +215,19 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         }
       });
       _dismissResolvedActivation();
+      final reminderShop = _selected;
+      unawaited(
+        widget.reminders?.bind(
+          reminderShop != null &&
+                  reminderShop.entitlement != ShopEntitlement.pending
+              ? userId
+              : null,
+          reminderShop != null &&
+                  reminderShop.entitlement != ShopEntitlement.pending
+              ? reminderShop.id
+              : null,
+        ),
+      );
       unawaited(_ensureSync());
       _maybePromptActivation();
     } on ShopAccountException catch (error) {
@@ -202,10 +235,17 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       setState(() {
         _selected = null;
         _accounts = null;
-        _accessLost = error.failure == ShopAccountFailure.unauthorized;
+        if (error.failure == ShopAccountFailure.unauthorized) {
+          _markAccessLost();
+        } else {
+          _accessLost = false;
+        }
         _error = _failureText(error.failure);
       });
       unawaited(_ensureSync());
+      if (error.failure == ShopAccountFailure.unauthorized) {
+        unawaited(widget.reminders?.bind(null, null));
+      }
     } catch (_) {
       if (!isCurrent()) return;
       setState(() {
@@ -221,6 +261,78 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           unawaited(_refresh());
         }
       }
+    }
+  }
+
+  Future<void> _openReminderTap() async {
+    final reminders = widget.reminders,
+        selected = _selected,
+        user = widget.currentUserId?.call();
+    if (_tapOpening ||
+        reminders?.manifest?.tapToken == null ||
+        selected == null ||
+        user == null ||
+        selected.entitlement == ShopEntitlement.pending) {
+      return;
+    }
+    _tapOpening = true;
+    try {
+      final detail = await reminders!.readTap();
+      if (!mounted ||
+          widget.currentUserId?.call() != user ||
+          _selected?.id != selected.id) {
+        return;
+      }
+      await reminders.dismissTap();
+      if (!mounted) return;
+      if (detail == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'التذكير غير متاح لهذا الحساب. أعد فتح الديون للمراجعة.',
+            ),
+          ),
+        );
+        return;
+      }
+      final opening = widget.openingGateway;
+      if (opening is! DebtNativeGateway) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => DebtNativeScreen(
+            gateway: opening as DebtNativeGateway,
+            store: const PendingFinancialCommands(),
+            userId: user,
+            shopId: selected.id,
+            sourceKind: detail.row.due.summary.sourceKind,
+            sourceId: detail.row.due.summary.sourceId,
+            reminders: reminders,
+            syncTicks: _ticks,
+            canRead: () =>
+                mounted &&
+                widget.currentUserId?.call() == user &&
+                _selected?.id == selected.id &&
+                !_accessLost,
+            canWrite: () =>
+                mounted &&
+                widget.currentUserId?.call() == user &&
+                _selected?.id == selected.id &&
+                _selected?.entitlement == ShopEntitlement.active,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'تعذر قراءة التذكير بإذن حديث. افتح الديون عند عودة الاتصال.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _tapOpening = false;
     }
   }
 
@@ -264,6 +376,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         }
         if (!mounted || generation != _syncGeneration) return;
         _ticks.apply(scopes);
+        unawaited(widget.reminders?.reconcile());
         setState(() {
           if (scopes.contains(ShopSyncScope.ledger) ||
               scopes.contains(ShopSyncScope.day) ||
@@ -365,6 +478,18 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     }
   }
 
+  void _markAccessLost() {
+    if (!_accessLost) unawaited(const InvoiceCopyFiles().clear());
+    _accessLost = true;
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await const InvoiceCopyFiles().clear();
+    } catch (_) {}
+    await widget.onSignOut();
+  }
+
   Future<void> _openActivation() async {
     final selected = _selected;
     if (selected == null || !selected.needsActivation) return;
@@ -395,7 +520,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         userId: userId,
         refreshGeneration: _ledgerGeneration,
         syncTicks: _ticks,
-        onSignOut: widget.onSignOut,
+        onSignOut: _signOut,
         onToggleTheme: widget.onToggleTheme,
         onActivateSubscription: selected.needsActivation
             ? _openActivation
@@ -482,6 +607,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         debtBuilder: opening is! DebtGateway || userId == null
             ? null
             : (context) => DebtScreen(
+                reminders: widget.reminders,
                 gateway: opening as DebtGateway,
                 canRead: () =>
                     mounted &&
@@ -507,6 +633,26 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                   });
                 },
               ),
+        appearanceBuilder:
+            opening is! InvoiceAppearanceGateway || userId == null
+            ? null
+            : (context) => InvoiceAppearanceScreen(
+                gateway: opening as InvoiceAppearanceGateway,
+                store: const PendingFinancialCommands(),
+                userId: userId,
+                shopId: selected.id,
+                canRead: () =>
+                    mounted &&
+                    !_accessLost &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+                syncTicks: _ticks,
+              ),
       );
     }
     return Scaffold(
@@ -527,7 +673,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           ),
           IconButton(
             tooltip: 'تسجيل الخروج',
-            onPressed: widget.onSignOut,
+            onPressed: _signOut,
             icon: const Icon(Icons.logout),
           ),
         ],
@@ -588,7 +734,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                   const SizedBox(height: 16),
                   OutlinedButton(
                     key: const Key('shop-empty-sign-out'),
-                    onPressed: widget.onSignOut,
+                    onPressed: _signOut,
                     child: const Text('تسجيل الخروج'),
                   ),
                 ],

@@ -1,3 +1,8 @@
+import '../application/debt_reminder_coordinator.dart';
+import '../application/debt_native_gateway.dart';
+import '../application/debt_native_contract.dart';
+import 'debt_native_screen.dart';
+import 'debt_native_time_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -24,6 +29,7 @@ import 'debt_due_screen.dart';
 class DebtScreen extends StatefulWidget {
   const DebtScreen({
     super.key,
+    this.reminders,
     required this.gateway,
     required this.store,
     required this.userId,
@@ -38,6 +44,7 @@ class DebtScreen extends StatefulWidget {
     this.statementPlatform,
   });
 
+  final DebtReminderCoordinator? reminders;
   final DebtGateway gateway;
   final FinancialCommandLocker store;
   final String userId;
@@ -91,6 +98,7 @@ class _DebtScreenState extends State<DebtScreen> {
   bool _pendingLoadFailed = false;
   bool _statementOpening = false;
   bool _dueOpening = false;
+  bool _nativeOpening = false;
   PendingFinancialCommand? _foreignPending;
 
   _Stage _stage = _Stage.list;
@@ -638,6 +646,13 @@ class _DebtScreenState extends State<DebtScreen> {
                     () => _openDue(),
                     key: const Key('debt-due-recover'),
                   ),
+                if (_foreignPending?.kind == debtNativeKind &&
+                    widget.gateway is DebtNativeGateway)
+                  _button(
+                    'متابعة وقت التذكير',
+                    () => _openNative(),
+                    key: const Key('debt-native-recover'),
+                  ),
                 if (_reviewStale)
                   _button(
                     'تحميل البيانات وإعادة المراجعة',
@@ -686,6 +701,12 @@ class _DebtScreenState extends State<DebtScreen> {
           'مواعيد الديون',
           _dueOpening ? null : () => _openDue(),
           key: const Key('debt-reminders'),
+        ),
+      if (widget.gateway is DebtNativeGateway)
+        _button(
+          'تذكيرات هذا الجهاز',
+          _nativeOpening ? null : () => _openNative(),
+          key: const Key('debt-native-settings'),
         ),
       TextField(
         key: const Key('debt-search'),
@@ -940,6 +961,18 @@ class _DebtScreenState extends State<DebtScreen> {
           syncTicks: widget.syncTicks,
           open: () => _openDue(item),
         ),
+      if (widget.gateway is DebtNativeGateway)
+        DebtNativeTimeRow(
+          gateway: widget.gateway as DebtNativeGateway,
+          userId: widget.userId,
+          shopId: widget.shopId,
+          summary: item,
+          canRead: () =>
+              mounted && !_nativeOpening && (widget.canRead?.call() ?? true),
+          open: () => _openNative(item),
+          reminders: widget.reminders,
+          syncTicks: widget.syncTicks,
+        ),
       if (widget.gateway is DebtStatementGateway)
         _button(
           'كشف حساب دين PDF',
@@ -989,6 +1022,42 @@ class _DebtScreenState extends State<DebtScreen> {
           key: const Key('debt-archive'),
         ),
     ];
+  }
+
+  Future<void> _openNative([DebtSummary? selected]) async {
+    if (_nativeOpening ||
+        widget.gateway is! DebtNativeGateway ||
+        !(widget.canRead?.call() ?? true)) {
+      return;
+    }
+    final identity = _identity;
+    setState(() => _nativeOpening = true);
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => DebtNativeScreen(
+            gateway: widget.gateway as DebtNativeGateway,
+            store: widget.store,
+            userId: widget.userId,
+            shopId: widget.shopId,
+            sourceKind: selected?.sourceKind,
+            sourceId: selected?.sourceId,
+            reminders: widget.reminders,
+            syncTicks: widget.syncTicks,
+            canRead: () =>
+                mounted &&
+                identity == _identity &&
+                (widget.canRead?.call() ?? true),
+            canWrite: () => mounted && identity == _identity && !_readOnly,
+            onMutated: widget.onMutated,
+            newKey: widget.newKey,
+          ),
+        ),
+      );
+      if (mounted && identity == _identity) await _load();
+    } finally {
+      if (mounted) setState(() => _nativeOpening = false);
+    }
   }
 
   Future<void> _openDue([DebtSummary? selected]) async {

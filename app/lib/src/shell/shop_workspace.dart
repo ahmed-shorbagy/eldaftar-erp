@@ -26,6 +26,7 @@ class ShopWorkspace extends StatefulWidget {
     this.repairBuilder,
     this.debtBuilder,
     this.customerBuilder,
+    this.appearanceBuilder,
     this.syncTicks,
   });
 
@@ -44,6 +45,7 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? repairBuilder;
   final WidgetBuilder? debtBuilder;
   final WidgetBuilder? customerBuilder;
+  final WidgetBuilder? appearanceBuilder;
   final Listenable? syncTicks;
 
   @override
@@ -54,11 +56,13 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   int _destination = 0;
   Route<void>? _repairRoute;
   Route<void>? _debtRoute;
+  Route<void>? _appearanceRoute;
 
   @override
   void dispose() {
     _detach(_repairRoute);
     _detach(_debtRoute);
+    _detach(_appearanceRoute);
     super.dispose();
   }
 
@@ -136,6 +140,12 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     (route) => _debtRoute = route,
   );
 
+  Future<void> _openAppearance() => _pushSingleton(
+    widget.appearanceBuilder,
+    () => _appearanceRoute,
+    (route) => _appearanceRoute = route,
+  );
+
   Future<void> _pushSingleton(
     WidgetBuilder? builder,
     Route<void>? Function() current,
@@ -166,6 +176,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       inventoryPage: widget.inventoryBuilder,
       onOpenRepairs: _openRepairs,
       onOpenDebts: _openDebts,
+      onOpenInvoiceAppearance: _openAppearance,
       onOpenCustomers: () async {
         _select(2);
       },
@@ -234,6 +245,21 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           leading: ExcludeSemantics(
             child: Icon(Icons.account_balance_wallet_outlined),
           ),
+        ),
+      if (widget.appearanceBuilder != null)
+        _link(
+          'مظهر الفاتورة',
+          Icons.receipt_long_outlined,
+          _openAppearance,
+          key: const Key('workspace-invoice-appearance'),
+        )
+      else
+        const ListTile(
+          key: Key('workspace-invoice-appearance-unavailable'),
+          enabled: false,
+          title: Text('مظهر الفاتورة'),
+          subtitle: Text('مظهر الفاتورة غير متاح في هذا الاتصال.'),
+          leading: ExcludeSemantics(child: Icon(Icons.receipt_long_outlined)),
         ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(

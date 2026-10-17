@@ -5,6 +5,8 @@ import '../../../theme/amount_format.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
+import '../../invoice_appearance/presentation/invoice_copy_panel.dart';
 import '../application/confirmed_operation_pdf.dart';
 import '../application/financial_gateway.dart';
 import '../application/daily_ledger_view.dart';
@@ -25,12 +27,18 @@ class FinancialOperationScreen extends StatefulWidget {
     required this.userId,
     required this.line,
     this.syncTicks,
+    this.shopId,
+    this.canRead,
+    this.canWrite,
   });
 
   final FinancialGateway gateway;
   final String userId;
   final LedgerFeedLine line;
   final Listenable? syncTicks;
+  final String? shopId;
+  final bool Function()? canRead;
+  final bool Function()? canWrite;
 
   @override
   State<FinancialOperationScreen> createState() =>
@@ -48,6 +56,11 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   bool _handoffStarted = false;
   String? _dispatchMessage;
   String? _confirmationKey;
+
+  String get _copyKind {
+    final loaded = _operation?['kind'];
+    return loaded is String ? loaded : widget.line.kind;
+  }
 
   @override
   void initState() {
@@ -596,6 +609,23 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                             ),
                           ),
                       ],
+                      if (_copyKind == 'sale' || _copyKind == 'purchase')
+                        InvoiceCopyPanel(
+                          operations: widget.gateway,
+                          appearance: widget.gateway is InvoiceAppearanceGateway
+                              ? widget.gateway as InvoiceAppearanceGateway
+                              : null,
+                          userId: widget.userId,
+                          shopId:
+                              widget.shopId ??
+                              (_operation?['shop_id'] as String?),
+                          operationId: widget.line.operationId,
+                          kind: _copyKind,
+                          operation: _operation,
+                          canRead: widget.canRead ?? () => true,
+                          canWrite: widget.canWrite ?? () => true,
+                          syncTicks: widget.syncTicks,
+                        ),
                       if (widget.gateway is InvoiceDispatchGateway &&
                           (widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase')) ...[
