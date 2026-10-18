@@ -1,0 +1,22 @@
+# Invoice messaging — planning review
+
+Date: 2026-10-18, Africa/Cairo. Documentation-only planning after Milestone 4 slice 10. Grok Build authored the draft through the requested grok-delegate workflow; Codex reviewed the actual diff, corrected the points below, and independently checked the final documents. No implementation, hosted inspection/mutation, message sending, logo upload, notification scheduling or deployment was performed.
+
+Selected recommendation: Milestone 4 slice 11, SET-04 custom invoice/WhatsApp message text with validated placeholders. [Full next prompt](../operations/next-slice-prompt.md) and [dated planning copy](../operations/invoice-messaging-slice-prompt-2026-10-18.md) are byte-identical. Proposed D35 remains unconfirmed; recommendations are not accepted decisions. DOC-04 new image/print formats follow separately; Milestone 5 reports remain conditional on D18. Native reminder device/owner acceptance stays open.
+
+Preservation: slice 10 [completion pointer](../operations/invoice-branding-completion-pointer-2026-10-17.md), [submitted prompt](../operations/invoice-branding-submitted-prompt-2026-10-17.md), [planning copy](../operations/invoice-branding-slice-prompt-2026-10-16.md), [completion](../operations/invoice-branding-completion-status-2026-10-17.md) and review/validation/deployment records remain historical and unedited. Native reminder archives and earlier slice evidence remain in place. Six existing planning/index files changed; the dated prompt and this review are new. No application, backend, prior migration or ADR changed. The slice 10 submitted/planning pair still has SHA-256 `18b4c683be0fbde18816b550d81765d70783744f4983ebe9c5116de446edbe5e`.
+
+Grok's recommendations are external WhatsApp body text, a separate server-versioned profile current at handoff, a finite placeholder allowlist, whitespace reset to the existing default, and conservative application length limits. They preserve legacy PDF sharing and separate branded-copy actions. A local-only alternative requires an explicit owner deferral of shared persistence/synchronization. The current Egyptian invoice-phone rule is preserved; international expansion is outside this proposal. Neither a URL launch nor a share-sheet result proves sending or attaches a PDF automatically.
+
+Codex tightened Unicode scalar counting and CRLF normalization, single-pass escaping/nonrecursive substitution, explicit current shop identity versus immutable payload facts, authoritative shop-zone time rendering, item-line count versus piece count, and preview invalidation when template/name/zone changes. The expiry wording now distinguishes blocked new confirmations from permitted reconciliation of an existing result. Proposed URI caps are application choices, not measured OS/WhatsApp guarantees. Synthetic sale/purchase, stale-preview and invalid-template acceptance examples were added. Backend application permission must be direct, not inferred from this plan.
+
+Independent final documentation checks:
+
+- `git diff --check`: passed; Git's LF/CRLF checkout notices are informational, with no whitespace errors.
+- Relative Markdown links: 363 occurrences across all eight added/edited files, zero missing targets. A Python regex extracted inline links, decoded relative paths and checked each target relative to its document directory. External URLs and fragment-only links were excluded; remote URLs and heading fragments were not verified.
+- Prompt identity: dated copy and live pointer match byte-for-byte; SHA-256 `f692f121f55f2b591c9715f106f4a454738594c3cd002ea3923b905ff378902d`.
+- Scope and consistency: the changed-file allowlist contains only these eight documents. README, delivery queue, SET-04 matrix row, product scope, proposed D35 and the live pointer agree that slice 11 is planned and SET-04 unimplemented. Historical completion pointers remain historical.
+- Privacy: manual review of added content and a credential-pattern scan found no real customer/contact data, credentials, tokens, private assets or source requirement documents. The examples contain synthetic numeric values only.
+- Application tests, builds, SQL and native visual checks were not run because this change is documentation only. Native/device/owner acceptance remains open.
+
+Grok left the work uncommitted. Codex owns the subsequent documentation commit after verification; no push, publishing or deployment is included. This record is a planning review, not independent implementation validation or native acceptance.
