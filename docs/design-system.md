@@ -1,5 +1,15 @@
 # ElDafttar UI theme contract
 
+## Invoice message text — 2026-10-18
+
+More → «نص رسالة الفاتورة» is a direct sibling of invoice appearance. Within the existing 720-pixel measure, show the saved revision/default-or-custom state and separate shop-local template-save time, a persistent Arabic multiline editor, an expandable token-insertion control, and a synthetic preview labeled «معاينة تجريبية لا تُنشئ عملية أو إرسالاً». Keep review/save/reset/recovery actions in the same scrolling surface. The token disclosure keeps the preview and primary review closer to the editor on narrow/enlarged screens. Whitespace/reset changes the draft; a subsequent review confirms restoring the default. No guide card or tour.
+
+Loading/submitting freezes controls; server confirmation establishes success. Unknown saves freeze the original durable envelope and expose status/retry. Stale shared changes keep dirty drafts and require another review. Expired readers retain saved text; new writes are blocked. Access or token loss clears visible draft/preview without deleting recovery data. Appearance and message settings have separate invalidations; location/subscription changes still refresh access.
+
+Confirmed-operation WhatsApp opens a constrained Arabic review dialog with current message revision, isolated snapshot destination and the actual rendered body. Recheck server facts/template/session just before the injected external adapter; changed facts replace the preview and require another explicit action. Preparing, stale, missing phone, unavailable, failed, unknown and opened states are distinct Arabic text. Opened never says sent or delivered; explicit owner confirmation remains on the operation screen. Native https cancellation is not observable. The legacy PDF and branded-copy controls remain separate.
+
+Reuse Cairo, semantic brown/cream/dark roles, persisted themes and 48-pixel controls. Display-only isolates stabilize digits/times; stored templates and external bodies remain validated plain text. [Actual synthetic captures and review](reviews/invoice-messaging-2026-10-18/independent-validation.md) cover 320/390/1440, both themes and 1.0/1.7 text scaling. Keyboard Tab/Shift-Tab/Enter/Escape and Arabic semantic-label regressions supplement sampled visual review. This does not establish native device or screen-reader acceptance.
+
 ## Current direction
 
 The owner's 2026-10-05 feedback establishes a simpler Arabic RTL experience for authentication and the daily ledger. Neutral cream and charcoal surfaces, restrained gold controls, compact figures and short business forms replace the earlier chart-heavy home and guide cards. The explicit request removes onboarding, training entry points and guides. Three signup steps collect required account data; they do not introduce a product tour. Historical review records remain unchanged.

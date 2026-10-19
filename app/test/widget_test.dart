@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:eldafttar/src/app.dart';
 import 'package:eldafttar/src/config/supabase_startup.dart';
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
@@ -9,11 +11,19 @@ import 'package:eldafttar/src/theme/theme_controller.dart';
 import 'package:eldafttar/src/theme/theme_preference_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
+class EmptyCopyPathProvider extends PathProviderPlatform {
+  @override
+  Future<String?> getTemporaryPath() async =>
+      '${Directory.current.path}/build/signout-empty-copy-fixture';
+}
 
 class FakeAuthGateway implements AuthGateway {
   FakeAuthGateway(this.current);
 
   AuthStatus current;
+  final signedOut = Completer<void>();
 
   @override
   AuthStatus get status => current;
@@ -39,6 +49,7 @@ class FakeAuthGateway implements AuthGateway {
   @override
   Future<void> signOut() async {
     current = AuthStatus.signedOut;
+    if (!signedOut.isCompleted) signedOut.complete();
   }
 }
 
@@ -169,6 +180,9 @@ void main() {
   testWidgets('verified sign-in opens shell and sign-out closes it', (
     tester,
   ) async {
+    final previousPaths = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = EmptyCopyPathProvider();
+    addTearDown(() => PathProviderPlatform.instance = previousPaths);
     await pumpShell(
       tester,
       status: SupabaseStartupStatus.ready,
@@ -190,7 +204,13 @@ void main() {
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);
     await tester.tap(find.text('المزيد').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('تسجيل الخروج'));
+    final auth =
+        tester.widget<ElDafttarApp>(find.byType(ElDafttarApp)).authGateway
+            as FakeAuthGateway;
     await tester.tap(find.text('تسجيل الخروج'));
+    await tester.pump();
+    await tester.runAsync(() => auth.signedOut.future);
     await tester.pumpAndSettle();
     expect(find.text('تسجيل الدخول'), findsOneWidget);
     expect(find.text(ShellCopy.prototypeLabel), findsNothing);

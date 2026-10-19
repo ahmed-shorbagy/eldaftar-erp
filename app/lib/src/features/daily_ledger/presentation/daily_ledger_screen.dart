@@ -1,3 +1,4 @@
+import '../../invoice_message/application/message_contract.dart';
 import '../../debts/application/debt_native_contract.dart';
 import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
@@ -66,6 +67,7 @@ class DailyLedgerScreen extends StatefulWidget {
     this.onOpenDebts,
     this.onOpenCustomers,
     this.onOpenInvoiceAppearance,
+    this.onOpenInvoiceMessage,
   });
 
   final ShopAccount shop;
@@ -85,6 +87,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final Future<void> Function()? onOpenDebts;
   final Future<void> Function()? onOpenCustomers;
   final Future<void> Function()? onOpenInvoiceAppearance;
+  final Future<void> Function()? onOpenInvoiceMessage;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -294,6 +297,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               debtRpcs.containsKey(pending.kind) ||
               (pending.kind == debtDueKind || pending.kind == debtNativeKind) ||
               customerRpcs.containsKey(pending.kind) ||
+              pending.kind == invoiceMessageKind ||
               pending.kind == invoiceAppearanceKind ||
               pending.kind == invoicePresentationKind)) {
         if (mounted && userId == widget.userId) {
@@ -362,6 +366,14 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         userId == null ||
         gateway == null ||
         _dayCommandBusy) {
+      return;
+    }
+    if (pending.kind == invoiceMessageKind) {
+      final open = widget.onOpenInvoiceMessage;
+      if (open != null) await open();
+      if (!mounted) return;
+      await _controller?.refresh();
+      await _maybeLoadFinancialDay(force: true);
       return;
     }
     if (pending.kind == invoiceAppearanceKind ||
@@ -944,7 +956,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            _financialPending!.kind == invoiceAppearanceKind
+                            _financialPending!.kind == invoiceMessageKind
+                                ? 'طلب نص رسالة بانتظار التأكيد'
+                                : _financialPending!.kind ==
+                                      invoiceAppearanceKind
                                 ? 'طلب مظهر فاتورة بانتظار التأكيد'
                                 : _financialPending!.kind ==
                                       invoicePresentationKind
@@ -980,7 +995,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                                   : () => _resolveFinancialPending(retry: true),
                               icon: const Icon(Icons.sync),
                               label: Text(
-                                _financialPending!.kind == invoiceAppearanceKind
+                                _financialPending!.kind == invoiceMessageKind
+                                    ? 'متابعة طلب نص الرسالة'
+                                    : _financialPending!.kind ==
+                                          invoiceAppearanceKind
                                     ? 'متابعة مظهر الفاتورة'
                                     : _financialPending!.kind ==
                                           invoicePresentationKind

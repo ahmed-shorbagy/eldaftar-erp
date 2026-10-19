@@ -27,6 +27,7 @@ class ShopWorkspace extends StatefulWidget {
     this.debtBuilder,
     this.customerBuilder,
     this.appearanceBuilder,
+    this.messageBuilder,
     this.syncTicks,
   });
 
@@ -46,6 +47,7 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? debtBuilder;
   final WidgetBuilder? customerBuilder;
   final WidgetBuilder? appearanceBuilder;
+  final WidgetBuilder? messageBuilder;
   final Listenable? syncTicks;
 
   @override
@@ -57,12 +59,14 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   Route<void>? _repairRoute;
   Route<void>? _debtRoute;
   Route<void>? _appearanceRoute;
+  Route<void>? _messageRoute;
 
   @override
   void dispose() {
     _detach(_repairRoute);
     _detach(_debtRoute);
     _detach(_appearanceRoute);
+    _detach(_messageRoute);
     super.dispose();
   }
 
@@ -146,6 +150,12 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     (route) => _appearanceRoute = route,
   );
 
+  Future<void> _openMessage() => _pushSingleton(
+    widget.messageBuilder,
+    () => _messageRoute,
+    (route) => _messageRoute = route,
+  );
+
   Future<void> _pushSingleton(
     WidgetBuilder? builder,
     Route<void>? Function() current,
@@ -177,6 +187,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       onOpenRepairs: _openRepairs,
       onOpenDebts: _openDebts,
       onOpenInvoiceAppearance: _openAppearance,
+      onOpenInvoiceMessage: _openMessage,
       onOpenCustomers: () async {
         _select(2);
       },
@@ -260,6 +271,19 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           title: Text('مظهر الفاتورة'),
           subtitle: Text('مظهر الفاتورة غير متاح في هذا الاتصال.'),
           leading: ExcludeSemantics(child: Icon(Icons.receipt_long_outlined)),
+        ),
+      if (widget.messageBuilder != null)
+        _link(
+          'نص رسالة الفاتورة',
+          Icons.message_outlined,
+          _openMessage,
+          key: const Key('workspace-invoice-message'),
+        )
+      else
+        const ListTile(
+          enabled: false,
+          title: Text('نص رسالة الفاتورة'),
+          subtitle: Text('نص الرسالة غير متاح في هذا الاتصال.'),
         ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(

@@ -1,0 +1,19 @@
+# Invoice message templates — local verification, no hosted application
+
+Closed 2026-10-19, Africa/Cairo. D35 and local implementation were authorized. Hosted inspection, application and deployment were not authorized and were not performed. No Supabase hosted queries, schema changes, Auth changes, uploads, real customer messages, commits, pushes, publication or release/production builds occurred. Only synthetic local fixtures and injected launchers were used.
+
+The concrete pending backend change is [20261018075947_invoice_message_templates.sql](../../../supabase/migrations/20261018075947_invoice_message_templates.sql), SHA-256:
+
+```
+2340064a9501017822a131e0c712297be006571ec93fe0e7c4593c117a5df986
+```
+
+It adds independent message sync metadata, owner-readable append-only revision/audit/request tables, a private parser and narrow read/review/command/status/source RPCs. It extends `private.bump_shop_sync` to support the new scope while retaining previous scope behavior. Audits contain actor/key/revision/server-UTC/hash/length metadata, not composed bodies or recipient phones; the protected request store retains the original template command for recovery. No appearance, presentation, dispatch, Auth policy or financial command is replaced. There is no data backfill or historical rewrite. [API contract](../../../supabase/contracts/invoice-message-v1.md), [separate review](implementation-review.md), [local validation](independent-validation.md).
+
+Before any future application, obtain direct authorization for this exact reviewed migration and target development project `xchapwvmvoefriqcxtvn`. Then reconcile local and hosted migration identities/mappings and hashes before selecting a narrow application; do not use blind `db push` or rewrite migration history. If hosted mappings or prerequisites differ, review the concrete difference first. Authorization for implementation is not authorization for hosted inspection/application.
+
+Immediately before and after an authorized application, capture protected counts and deterministic row digests for cash/gold/stock/custody/ledger/debt/CRM/repair/dispatch/appearance/presentation/history and existing sync scopes, verify only the intended metadata schema/functions/grants changed, and distinguish legitimate concurrent activity from migration effects. Verify no original operation payload, prior edition, owner attestation, audit or pending command was rewritten. Retire only authorized synthetic access/session/entitlement fixtures without erasing audits. This future hosted preservation proof is still outstanding; local synthetic evidence does not substitute for it.
+
+Local tests used dedicated PostgreSQL 17.6 scratch databases only. The final fresh round trip on `127.0.0.1:55464`, database `eldaftar_invoice_message_roundtrip_20261019`, passed and shut down its own cluster while retaining all files/history. The earlier Codex cluster on 55463 was also stopped with data retained; status of the original task-owned 55462 cluster reports no server running. No unrelated cluster was stopped or reset. SQL rollback fixtures leave protected existing rows unchanged; concurrency fixtures retain revisions/requests/audits and retire their synthetic membership/entitlement access.
+
+Repository preservation compared 744 pre-existing tracked historical files against HEAD: 129 text files with checkout CRLF normalized for comparison, and 615 binaries byte-for-byte; zero changed historical files. No historical file was written. Selected raw hashes and the exact submitted-plan archive hash are recorded in [preservation evidence](preservation-check-2026-10-19.json). The slice 10 submitted/planning raw hashes still match their prior recorded value. Historical mixed line endings are why this record does not claim every text checkout is raw-byte-identical to its Git blob.

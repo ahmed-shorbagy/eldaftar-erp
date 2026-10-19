@@ -122,7 +122,9 @@ Do not use a push notification as an accounting event. Notifications can be dela
 
 ## Invoice and communication path
 
-Confirmed transactions produce a versioned invoice snapshot and Arabic PDF. Rendering may run asynchronously, with a visible pending state. The pending-send queue holds the owner's unsent invoices. A WhatsApp deep link creates a handoff record; unless a provider callback or explicit owner attestation exists, mark the outcome as handed off or unverified, not delivered. Log the owner actor and server timestamp. Repeated attempts must not change the financial transaction.
+Owner-confirmed SET-04 / [ADR 0022](adr/0022-invoice-message-templates.md) adds a separate append-only message profile, metadata audit, original-command request record and message sync revision. It changes no financial snapshot, appearance revision or presentation edition. A read-only source RPC returns current template and authorized operation facts together. Domain-only parsing/rendering uses integer units; application ports own recovery and handoff. A fresh preview binds session/shop/operation/template/name/zone/destination and is rechecked before the external adapter. UI-owned numeric isolation is absent from stored input and the external body. Shared backend application remains separately authorized; [contract](../supabase/contracts/invoice-message-v1.md).
+
+Confirmed transactions produce a versioned invoice snapshot and Arabic PDF. Rendering may run asynchronously, with a visible pending state. The pending-send queue holds the owner's unsent invoices. The client tracks external WhatsApp handoff locally. Only the explicit owner attestation writes the existing dispatch confirmation; opening a deep link or share sheet remains unverified and never claims delivery. Log the owner actor and server timestamp. Repeated attempts must not change the financial transaction.
 
 ## Operational design
 

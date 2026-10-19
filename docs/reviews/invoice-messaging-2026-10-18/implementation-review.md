@@ -1,0 +1,17 @@
+# Invoice message templates — separate implementation review
+
+Closed 2026-10-19, Africa/Cairo. Scope is owner-confirmed [D35 / ADR 0022](../../adr/0022-invoice-message-templates.md), the entire [reviewed plan](../../operations/invoice-messaging-slice-prompt-2026-10-18.md), and the actual new/modified client, backend, tests and evidence files. The separate `invoice_message_review` agent reviewed read-only. It did not implement changes, run validation gates, access hosted data or establish native/device acceptance. Codex independently ran the gates in [validation](independent-validation.md).
+
+The review initially found three defects, all corrected and rechecked:
+
+- Backend error identifiers could reach the Arabic handoff UI. Transport errors now map to Arabic; domain validation remains a separate Arabic message. Widget regressions exercise both.
+- A post-save authoritative refresh could leave the editor enabled and overwrite a new draft when its reply arrived. Loading/submitting now freezes editing; a held-refresh widget regression verifies this boundary.
+- SQL trimmed a lone edge CR before validation, unlike the domain parser. Both now reject remaining CR before trimming; edge-CR regressions cover this explicitly.
+
+Requested coverage was added for keyboard Tab/Shift-Tab/Enter/Escape, Arabic semantics, shop-zone midnight boundaries, the More route, server denial clearing visible state while retaining recovery, an actual HTTP timeout after a committed save, and the operation-screen dispatch boundary. The latter uses the real HTTP gateway with an injected launcher: opening WhatsApp writes no confirmation; the later explicit owner confirmation sends only operation ID and idempotency key, without body/phone or financial `post_*` calls. The legacy PDF action remains present.
+
+The reviewer inspected actual synthetic PNGs across all three widths, both themes and normal/enlarged text, including settings, tokens, review/recovery and handoff states. No visible clipping or contrast blocker was found in the sampled captures. This is sampled visual review, not a claim that every PNG was manually opened. Codex also inspected actual captures. See [capture evidence](independent-validation.md#arabic-rtl-captures).
+
+Final read-only review reported no remaining blocker. It independently matched the current migration SHA-256 `2340064a9501017822a131e0c712297be006571ec93fe0e7c4593c117a5df986` to the fresh-cluster log and verified rollback/apply, message authorization/concurrency, appearance/sync/trade regression and retained-data shutdown markers. It reread parser parity, RLS, locked command/status/source functions and concurrency access retirement. The existing-database runner branch skips migration application; the fresh database run is the exact migration proof.
+
+Grok implemented a bounded backend draft under the [grok-delegate skill](C:/Users/Aqsa/.agents/skills/grok-delegate/SKILL.md), with complete D35 context and prohibitions on commit/push/deploy/hosted access/messages. Its initial launch failed reading its local auth/policy files. An authorized retry ran in Grok's workspace sandbox; a resumed correction run ended with wrapper `status=failed`, exit 1 and maximum-turn/background-wait timeout. This is not recorded as successful delegated completion. Codex inspected its actual SQL/test/runner diff, corrected and checked the integrated result, and independently reran all relevant local gates. No result relies on Grok's self-report. No agent committed, pushed, deployed or sent a message.

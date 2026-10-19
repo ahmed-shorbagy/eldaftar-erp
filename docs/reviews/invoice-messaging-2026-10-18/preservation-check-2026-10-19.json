@@ -1,0 +1,22 @@
+{
+  "checked_on": "2026-10-19",
+  "baseline": "HEAD; initial worktree clean",
+  "historical_tracked_files_checked": 744,
+  "text_files_compared_after_CRLF_normalization": 129,
+  "binary_files_compared_byte_for_byte": 615,
+  "changed_historical_files": [],
+  "note": "No historical files written; existing mixed checkout line endings are normalized for text comparison only. Raw hashes below checkpoint selected current files.",
+  "selected_raw_sha256": {
+    "docs/operations/invoice-branding-completion-pointer-2026-10-17.md": "47b96d2bdcbbf57e1983e0de92f416ee842cfbb23a4d733afad036b922dc5197",
+    "docs/operations/invoice-branding-completion-status-2026-10-17.md": "4debee7d7c9c856a5f8e496cdd41f8769e094e2e5e84419bc81f9a28d3357092",
+    "docs/operations/invoice-branding-slice-prompt-2026-10-16.md": "18b4c683be0fbde18816b550d81765d70783744f4983ebe9c5116de446edbe5e",
+    "docs/operations/invoice-branding-submitted-prompt-2026-10-17.md": "18b4c683be0fbde18816b550d81765d70783744f4983ebe9c5116de446edbe5e",
+    "docs/reviews/invoice-branding-2026-10-17/deployment.md": "3c310dc9034bc2cf616398a64379b9ba784573dfd56b6c1192ad9a0c3991835e",
+    "docs/reviews/invoice-branding-2026-10-17/implementation-review.md": "5814e06185555f8562161f65824cd2fcb5910b3147b907e27ef319572738ef0b",
+    "docs/reviews/invoice-branding-2026-10-17/independent-validation-2026-10-17.md": "4fccd8442a2e5bac46a26f8e472377f391de0dd16487ec6afe9bdaca13eaa774",
+    "supabase/migrations/20261015065930_debt_native_reminders.sql": "4eb1e4f27acc3b8e473425f1a60af433b986b3dcf5213cdce98302fc18650e1d",
+    "supabase/migrations/20261017140000_invoice_appearance.sql": "9dd047d0d0c01823b805faad5f22e331453db81995137a00daa2034d6e8ea777"
+  },
+  "submitted_archive_matches_reviewed_plan_byte_for_byte": true,
+  "submitted_archive_sha256": "f692f121f55f2b591c9715f106f4a454738594c3cd002ea3923b905ff378902d"
+}

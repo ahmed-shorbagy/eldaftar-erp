@@ -1,3 +1,5 @@
+import '../../invoice_message/application/message_gateway.dart';
+import '../../invoice_message/presentation/message_settings_screen.dart';
 import '../../debts/application/debt_reminder_coordinator.dart';
 import '../../debts/application/debt_reminder_device.dart';
 import '../../debts/application/debt_native_gateway.dart';
@@ -633,6 +635,26 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                   });
                 },
               ),
+        messageBuilder: opening is! InvoiceMessageGateway || userId == null
+            ? null
+            : (context) => MessageSettingsScreen(
+                gateway: opening as InvoiceMessageGateway,
+                store: const PendingFinancialCommands(),
+                userId: userId,
+                shopId: selected.id,
+                canRead: () =>
+                    mounted &&
+                    !_accessLost &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
+                canWrite: () =>
+                    mounted &&
+                    !_accessLost &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+                syncTicks: _ticks.messageSettings,
+              ),
         appearanceBuilder:
             opening is! InvoiceAppearanceGateway || userId == null
             ? null
@@ -651,7 +673,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                     widget.currentUserId?.call() == userId &&
                     _selected?.id == selected.id &&
                     _selected?.entitlement == ShopEntitlement.active,
-                syncTicks: _ticks,
+                syncTicks: _ticks.appearanceSettings,
               ),
       );
     }

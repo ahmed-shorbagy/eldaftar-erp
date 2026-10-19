@@ -11,6 +11,7 @@ enum ShopSyncScope {
   debt,
   customer,
   appearance,
+  message,
 }
 
 class ShopSyncSnapshot {
@@ -28,6 +29,7 @@ class ShopSyncSnapshot {
     this.debtRevision = 0,
     this.customerRevision = 0,
     this.appearanceRevision = 0,
+    this.messageRevision = 0,
     this.forceRefresh = false,
   });
 
@@ -44,6 +46,7 @@ class ShopSyncSnapshot {
   final int debtRevision;
   final int customerRevision;
   final int appearanceRevision;
+  final int messageRevision;
 
   /// Connection recovery requests an authoritative read even at the same revision.
   final bool forceRefresh;
@@ -62,6 +65,7 @@ class ShopSyncSnapshot {
     debtRevision: debtRevision,
     customerRevision: customerRevision,
     appearanceRevision: appearanceRevision,
+    messageRevision: messageRevision,
     forceRefresh: true,
   );
 
@@ -102,6 +106,9 @@ class ShopSyncSnapshot {
     }
     if (appearanceRevision != previous.appearanceRevision) {
       scopes.add(ShopSyncScope.appearance);
+    }
+    if (messageRevision != previous.messageRevision) {
+      scopes.add(ShopSyncScope.message);
     }
     if (scopes.isEmpty && revision != previous.revision) {
       return ShopSyncScope.values.toSet();

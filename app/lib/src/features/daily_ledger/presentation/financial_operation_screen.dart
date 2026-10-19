@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
 import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../invoice_message/application/message_gateway.dart';
+import '../../invoice_message/application/message_handoff.dart';
+import '../../invoice_message/data/url_message_launcher.dart';
+import '../../invoice_message/presentation/message_handoff_dialog.dart';
+import '../../invoice_message/domain/message_template.dart';
 
 import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
 import '../../invoice_appearance/presentation/invoice_copy_panel.dart';
@@ -30,6 +34,7 @@ class FinancialOperationScreen extends StatefulWidget {
     this.shopId,
     this.canRead,
     this.canWrite,
+    this.messageLauncher = const UrlMessageLauncher(),
   });
 
   final FinancialGateway gateway;
@@ -39,6 +44,7 @@ class FinancialOperationScreen extends StatefulWidget {
   final String? shopId;
   final bool Function()? canRead;
   final bool Function()? canWrite;
+  final MessageLauncher messageLauncher;
 
   @override
   State<FinancialOperationScreen> createState() =>
@@ -149,42 +155,43 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   }
 
   Future<void> _openWhatsapp() async {
-    final operation = _operation;
-    final payload = operation?['payload'];
-    if (operation == null || payload is! Map) return;
-    final phone = whatsappPhone(payload['customer_phone']);
-    if (phone == null) {
+    final gateway = widget.gateway;
+    final shop = widget.shopId ?? _operation?['shop_id'];
+    if (_dispatchBusy ||
+        gateway is! InvoiceMessageGateway ||
+        shop is! String ||
+        widget.canRead?.call() == false) {
       setState(
-        () => _dispatchMessage = 'أضف رقم هاتف صحيحاً للعميل قبل الإرسال',
+        () => _dispatchMessage =
+            'تعذر تجهيز النص الحالي في هذا الاتصال. لم يتم تأكيد الإرسال.',
       );
       return;
     }
-    final sequence = operation['shop_sequence'];
-    final message =
-        'ملخص العملية رقم $sequence\n'
-        '${widget.line.labelAr}\n'
-        'الإجمالي: ${_pounds(payload['total_piastres'])}\n'
-        'يرجى مراجعة تفاصيل العملية قبل الإرسال.';
-    final link = Uri.https('wa.me', '/$phone', {'text': message});
-    try {
-      final opened = await launchUrl(
-        link,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!mounted) return;
-      setState(() {
-        _handoffStarted = opened;
-        _dispatchMessage = opened
-            ? 'تم فتح واتساب. أكد الإرسال هنا بعد إرسال الرسالة فعلاً.'
-            : 'تعذر فتح واتساب. لم يتم تأكيد الإرسال.';
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _dispatchMessage = 'تعذر فتح واتساب. لم يتم تأكيد الإرسال.',
-        );
-      }
-    }
+    setState(() => _dispatchBusy = true);
+    final opened = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => MessageHandoffDialog(
+        handoff: MessageHandoff(
+          gateway as InvoiceMessageGateway,
+          widget.messageLauncher,
+          canRead: () => mounted && widget.canRead?.call() != false,
+        ),
+        user: widget.userId,
+        shop: shop,
+        operation: widget.line.operationId,
+        canRead: () => mounted && widget.canRead?.call() != false,
+        invalidations: widget.syncTicks,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _dispatchBusy = false;
+      if (opened == true) _handoffStarted = true;
+      _dispatchMessage = opened == true
+          ? 'فُتح رابط واتساب. أكد الإرسال هنا بعد إرسال الرسالة فعلاً.'
+          : 'لم يتم تأكيد إرسال الرسالة.';
+    });
   }
 
   Future<void> _sharePdf() async {
@@ -697,12 +704,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
 }
 
 String? whatsappPhone(Object? value) {
-  if (value is! String) return null;
-  final raw = value.trim().replaceAll(RegExp(r'[\s()-]'), '');
-  if (RegExp(r'^01[0-9]{9}$').hasMatch(raw)) return '20${raw.substring(1)}';
-  if (RegExp(r'^\+201[0-9]{9}$').hasMatch(raw)) return raw.substring(1);
-  if (RegExp(r'^201[0-9]{9}$').hasMatch(raw)) return raw;
-  return null;
+  return messageEgyptianPhone(value);
 }
 
 String _pounds(Object? value) {

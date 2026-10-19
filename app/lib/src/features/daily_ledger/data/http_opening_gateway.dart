@@ -28,6 +28,8 @@ import '../../repairs/data/repair_codec.dart';
 import '../../invoice_appearance/application/invoice_appearance_contract.dart';
 import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
 import '../../invoice_appearance/data/invoice_appearance_codec.dart';
+import '../../invoice_message/application/message_gateway.dart';
+import '../../invoice_message/data/message_codec.dart';
 import '../../daily_notes/application/notes_gateway.dart';
 import '../../daily_notes/data/note_codec.dart';
 import '../../daily_notes/domain/daily_note_draft.dart';
@@ -122,6 +124,7 @@ const _errorCodes = <String>{
   'archive_not_allowed',
   'settlement_not_allowed',
   'stale_appearance',
+  'stale_message',
   'stale_presentation',
   'stale_operation',
   'logo_rejected',
@@ -152,7 +155,8 @@ class HttpOpeningGateway
         DebtNativeGateway,
         CustomerGateway,
         CustomerContactSession,
-        InvoiceAppearanceGateway {
+        InvoiceAppearanceGateway,
+        InvoiceMessageGateway {
   @override
   Object? contactSession(String callerUserId) {
     try {
@@ -2422,6 +2426,100 @@ class HttpOpeningGateway
       return AppearanceTransport(error: error.code);
     } catch (_) {
       return const AppearanceTransport();
+    }
+  }
+
+  @override
+  Object? messageSession(String userId) => appearanceSession(userId);
+
+  Future<T> _messageRead<T>(
+    String user,
+    String rpc,
+    Map<String, Object?> body,
+    T Function(Object?) parse,
+  ) async {
+    try {
+      return await _appearanceRead(user, rpc, body, parse);
+    } on InvoiceAppearanceException catch (e) {
+      throw MessageGatewayException(e.code);
+    }
+  }
+
+  @override
+  Future<MessageProfile> readMessage(String user, String shop) => _messageRead(
+    user,
+    'get_invoice_message_v1',
+    {},
+    (raw) => parseMessageProfile(raw, shop),
+  );
+  @override
+  Future<MessageReview> reviewMessage(
+    String user,
+    String shop,
+    Map<String, Object?> payload,
+  ) => _messageRead(user, 'review_invoice_message_v1', {
+    'p_payload': payload,
+  }, parseMessageReview);
+  @override
+  Future<MessageSource> readMessageSource(
+    String user,
+    String shop,
+    String operation,
+  ) => _messageRead(
+    user,
+    'get_invoice_message_source_v1',
+    {'p_operation_id': operation},
+    (raw) => parseMessageSource(raw, shop, operation),
+  );
+  @override
+  Future<MessageTransport> sendMessage(
+    String user,
+    String shop,
+    Map<String, Object?> body,
+  ) => _messageTransport(user, shop, 'post_invoice_message_v1', body, false);
+  @override
+  Future<MessageTransport> messageStatus(
+    String user,
+    String shop,
+    Map<String, Object?> body,
+  ) => _messageTransport(
+    user,
+    shop,
+    'get_invoice_message_status_v1',
+    body,
+    true,
+  );
+
+  Future<MessageTransport> _messageTransport(
+    String user,
+    String shop,
+    String rpc,
+    Map<String, Object?> body,
+    bool status,
+  ) async {
+    try {
+      final response = await _post(user, rpc, body);
+      if (!_callerStill(user)) {
+        return const MessageTransport(error: 'discarded');
+      }
+      if (response.statusCode >= 500) return const MessageTransport();
+      if (response.statusCode >= 400) {
+        return MessageTransport(error: _errorCode(response.body));
+      }
+      final raw = jsonDecode(response.body);
+      final result = status
+          ? parseMessageStatus(raw)
+          : MessageTransport(receipt: parseMessageReceipt(raw));
+      if (result.receipt != null && result.receipt!.shop != shop) {
+        return const MessageTransport();
+      }
+      return result;
+    } on _OwnerChanged {
+      return const MessageTransport(error: 'discarded');
+    } on _CallerRejected catch (e) {
+      return MessageTransport(error: e.code);
+    } catch (_) {
+      return const MessageTransport();
     }
   }
 

@@ -13,6 +13,18 @@ class ShopSyncTicks extends ChangeNotifier {
   int debt = 0;
   int customer = 0;
   int appearance = 0;
+  int message = 0;
+  final _appearanceSettings = ChangeNotifier();
+  final _messageSettings = ChangeNotifier();
+  Listenable get appearanceSettings => _appearanceSettings;
+  Listenable get messageSettings => _messageSettings;
+
+  @override
+  void dispose() {
+    _appearanceSettings.dispose();
+    _messageSettings.dispose();
+    super.dispose();
+  }
 
   void apply(Set<ShopSyncScope> scopes) {
     var changed = false;
@@ -64,6 +76,19 @@ class ShopSyncTicks extends ChangeNotifier {
     if (scopes.contains(ShopSyncScope.appearance)) {
       appearance++;
       changed = true;
+    }
+    if (scopes.contains(ShopSyncScope.message)) {
+      message++;
+      changed = true;
+    }
+    final access =
+        scopes.contains(ShopSyncScope.subscription) ||
+        scopes.contains(ShopSyncScope.location);
+    if (access || scopes.contains(ShopSyncScope.appearance)) {
+      _appearanceSettings.notifyListeners();
+    }
+    if (access || scopes.contains(ShopSyncScope.message)) {
+      _messageSettings.notifyListeners();
     }
     if (changed) notifyListeners();
   }

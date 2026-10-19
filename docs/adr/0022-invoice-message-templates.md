@@ -1,0 +1,13 @@
+# ADR 0022: current shared invoice message text
+
+Status: D35 explicitly owner-confirmed on 2026-10-18 (Africa/Cairo). Local verification and directly authorized development application closed 2026-10-19. [Bounded completion](../operations/invoice-messaging-completion-status-2026-10-18.md), [local validation](../reviews/invoice-messaging-2026-10-18/independent-validation.md), [development application/preservation](../reviews/invoice-messaging-2026-10-18/deployment-2026-10-19.md). Native/two-device/owner acceptance remains open.
+
+The owner confirmed the entire D35 bundle in the [reviewed plan](../operations/invoice-messaging-slice-prompt-2026-10-18.md), answering “Confirm the entire D35 bundle”. That document's recommendations 1–10 and acceptance examples define this decision without alteration.
+
+External WhatsApp text and its preview use a separate shop-shared server revision current at handoff. Fresh authorized immutable sale/purchase facts supply the finite allowlist: `sequence`, `kind`, `shop_name`, `operation_time`, `total`, `customer_name`, `item_count`, `grams_14`, `grams_18`, `grams_21`, `grams_22`, `grams_24`, `paid`, `obligation`. Required facts fail closed; optional values follow the documented empty rules. Integer money and three-decimal grams remain exact. Brace escaping is nonrecursive; invalid syntax and controls fail save and render.
+
+Normalize CRLF to LF and trim. Reject malformed Unicode, remaining CR and disallowed controls. Limits are 400 Unicode scalars and eight newlines for the template, 500 scalars for rendered text, and 1800 ASCII characters for the actual encoded URI. Never truncate. Whitespace save or reviewed reset restores the existing four-line default. These are application bounds, not platform guarantees.
+
+Versioned metadata uses expected revision, original-envelope idempotency/recovery, owner/server-UTC audit without composed bodies or recipient phones, and an independent message sync revision. Expired authorized owners retain reads and local handoff; new writes require active entitlement. Preview binds session/token epoch, shop, operation/content, message revision, renderer version, current shop name/zone and snapshot destination; changes require a new explicit review.
+
+Egyptian snapshot-phone rules, legacy PDFs, branded editions, unrelated pending commands and owner-confirmed dispatch history remain. Opening WhatsApp never confirms sending or delivery. PDF/footer/print/image work, international phone expansion, automatic sending, reports and financial changes remain excluded. Shared persistence was confirmed; client-only deferral was not selected. Hosted changes require later direct authorization and preservation checks.
