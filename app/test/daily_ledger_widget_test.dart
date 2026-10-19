@@ -355,7 +355,10 @@ void main() {
           expect(find.byKey(const Key('ledger-more-metrics')), findsNothing);
           expect(find.byKey(const Key('ledger-metric-strip')), findsOneWidget);
           expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
-          expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
+          expect(
+            find.byKey(const Key('ledger-metric-expense')),
+            findsOneWidget,
+          );
           await tester.tap(find.byKey(const Key('ledger-cash-methods')));
           await tester.pumpAndSettle();
           expect(find.byKey(const Key('ledger-cash-empty')), findsNothing);

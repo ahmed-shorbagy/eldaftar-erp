@@ -98,7 +98,7 @@ void main() {
   ) async {
     await pumpDashboard(tester);
     expect(find.text('124'), findsOneWidget);
-    expect(find.text('1.75'), findsOneWidget);
+    expect(find.byKey(const Key('ledger-total-gold')), findsNothing);
     expect(find.textContaining('عيار 18'), findsNothing);
     expect(find.textContaining('123.45'), findsNothing);
     expect(find.byKey(const Key('ledger-view-cash')), findsNothing);

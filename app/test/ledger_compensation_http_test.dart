@@ -25,6 +25,15 @@ void main() {
       final gateway = HttpOpeningGateway(
         client: MockClient((request) async {
           seen[request.url.path] = jsonDecode(request.body);
+          if (request.url.path.endsWith('get_opening_status')) {
+            return http.Response(
+              jsonEncode({
+                'status': 'completed',
+                'operation_id': 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+              }),
+              200,
+            );
+          }
           expect(request.headers['apikey'], 'publishable');
           expect(request.headers['authorization'], 'Bearer token');
           return http.Response(
@@ -125,7 +134,13 @@ void main() {
           ),
           isA<FinancialCommitted>(),
         );
-        expect(seen['/rest/v1/rpc/$rpc'], body);
+        if (kind == 'ledger_correction') {
+          expect(seen['/rest/v1/rpc/$rpc'], body);
+        } else {
+          expect(seen['/rest/v1/rpc/get_opening_status'], {
+            'p_idempotency_key': _key,
+          });
+        }
       }
     },
   );

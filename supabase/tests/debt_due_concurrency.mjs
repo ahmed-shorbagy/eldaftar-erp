@@ -50,6 +50,10 @@ if(row.remaining_amount!=='9000'||row.due_state!=='overdue')throw Error('partial
 row=await sourceFirst('post_debt_archive_v1',archivePayload(row),'standalone',source)
 if(row.due_state!=='inactive'||row.remaining_amount!=='9000')throw Error('archive_due_remaining')
 
+await run(`-- Disposable-database fixture only. Restores return writes revoked by ledger trade edit/delete.
+grant execute on function public.post_daily_ledger_return(uuid, uuid, text) to authenticated;
+grant execute on function public.post_linked_return_v1(uuid, jsonb) to authenticated;
+grant execute on function public.post_exchange_v1(uuid, jsonb) to authenticated;`)
 const purchase=await rpc('post_daily_ledger_trade',`'${randomUUID()}','{"version":1,"kind":"purchase","total_piastres":"8000","tenders":[],"items":[{"category":"worked_jewelry","karat":21,"milligrams":"2000","count":"2","item_name":"رصيد اختبار","line_price_piastres":null}],"description":"","customer_name":"تاجر تزامن","customer_phone":"","note":"","purchase_obligation_piastres":"8000"}'`)
 const payable=purchase.operation_id
 await send(randomUUID(),envelope(await read('purchase_cash_payable',payable),'2024-02-29'))

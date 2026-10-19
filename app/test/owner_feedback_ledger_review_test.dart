@@ -150,7 +150,7 @@ void main() {
         await tester.tap(find.byKey(const Key('ledger-customize')));
         await tester.pumpAndSettle();
         await tester.ensureVisible(
-          find.byKey(const Key('ledger-remaining-expense')),
+          find.byKey(const Key('ledger-slot-0-total_cash')),
         );
         await saveReview(tester, key, 'customization-$suffix');
         await tester.pumpAndSettle();
@@ -158,15 +158,9 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const Key('ledger-quick-actions')));
         await tester.pumpAndSettle();
-        expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(find.byKey(const Key('ledger-new-return')));
+        expect(find.byKey(const Key('ledger-new-return')), findsNothing);
         await saveReview(tester, key, 'quick-actions-$suffix');
-        await tester.tap(find.byKey(const Key('ledger-new-return')));
-        await tester.pumpAndSettle();
-        await saveReview(tester, key, 'return-source-$suffix');
-        expect(find.byKey(const Key('ledger-filter-return')), findsNothing);
-        await tester.tap(find.byKey(const Key('detail-close')));
+        await tester.tap(find.byKey(const Key('ledger-close-quick-actions')));
         await tester.pumpAndSettle();
         await tester.ensureVisible(
           find.byKey(const Key('ledger-other-movements')),

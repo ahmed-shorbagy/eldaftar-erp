@@ -108,34 +108,35 @@ void main() {
   );
 
   testWidgets(
-    'exactly six metrics stay on home and remaining is saved per shop',
+    'six selected metrics persist per shop with per-karat replacements',
     (tester) async {
       await host(tester);
-      expect(find.byKey(const Key('ledger-metric-operations')), findsNothing);
-      expect(find.byKey(const Key('ledger-more-metrics')), findsNothing);
-      expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
-      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-total-gold')), findsNothing);
       await tapVisible(tester, find.byKey(const Key('ledger-customize')));
       await tapVisible(
         tester,
-        find.byKey(const Key('ledger-remaining-total_cash')),
+        find.byKey(const Key('ledger-slot-0-total_cash')),
       );
-      await tapVisible(tester, find.byTooltip('نقل إجمالي الشراء إلى الأعلى'));
+      await tester.tap(find.text('مبيعات عيار 18').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('detail-close')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('ledger-total-cash')), findsNothing);
-      expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getStringList('ledger_layout_feedback-shop')!;
-      expect(saved, contains('remaining:total_cash'));
+      expect(
+        find.byKey(const Key('ledger-metric-sale_karat_18')),
+        findsOneWidget,
+      );
+      final saved = (await SharedPreferences.getInstance()).getStringList(
+        'ledger_layout_feedback-shop',
+      )!;
+      expect(saved, contains('metric:sale_karat_18'));
       expect(saved.where((value) => value.startsWith('metric:')), hasLength(6));
       await tester.pumpWidget(const SizedBox.shrink());
       await host(tester);
       expect(find.byKey(const Key('ledger-total-cash')), findsNothing);
-      expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
       await host(tester, shop: 'other-shop');
       expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
-      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
     },
   );
 
@@ -189,7 +190,7 @@ void main() {
       expect(find.byKey(const Key('ledger-metric-sale_gold')), findsOneWidget);
       expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
       await host(tester, shop: 'other-shop');
-      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
       expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
     },
   );
@@ -264,55 +265,13 @@ void main() {
     );
   });
   testWidgets(
-    'return quick action selects an original trade without posting a financial operation',
+    'retired refund action stays absent even with a legacy return-capable gateway',
     (tester) async {
       final view = await ReviewGateway().ledger(
         callerUserId: 'synthetic-owner',
       );
-      final selected = <LedgerFeedLine>[];
-      await host(
-        tester,
-        view: view,
-        canReturn: true,
-        onOperation: selected.add,
-      );
+      await host(tester, view: view, canReturn: true, onOperation: (_) {});
       await tapVisible(tester, find.byKey(const Key('ledger-quick-actions')));
-      expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
-      expect(find.text('المزيد من الإجراءات'), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('ledger-new-return')));
-      final history = find.byKey(const Key('ledger-history'));
-      expect(find.text('اختر العملية الأصلية للمرتجع'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: history,
-          matching: find.byKey(
-            const Key(
-              'ledger-open-sale_return-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-            ),
-          ),
-        ),
-        findsNothing,
-      );
-      expect(selected, isEmpty);
-      await tapVisible(
-        tester,
-        find.descendant(
-          of: history,
-          matching: find.byKey(
-            const Key('ledger-open-sale-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
-          ),
-        ),
-      );
-      expect(selected.single.kind, 'sale');
-      expect(history, findsNothing);
-      await host(
-        tester,
-        view: view,
-        canReturn: false,
-        onOperation: selected.add,
-      );
-      await tapVisible(tester, find.byKey(const Key('ledger-quick-actions')));
-      expect(find.byKey(const Key('ledger-more-actions')), findsNothing);
       expect(find.byKey(const Key('ledger-new-return')), findsNothing);
     },
   );

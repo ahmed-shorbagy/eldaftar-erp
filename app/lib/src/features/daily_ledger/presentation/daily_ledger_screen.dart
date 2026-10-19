@@ -44,6 +44,9 @@ import 'daily_close_screen.dart';
 import 'cash_transfer_screen.dart';
 import 'scrap_to_stock_screen.dart';
 import 'ledger_app_bar.dart';
+import '../application/ledger_date_gateway.dart';
+import '../application/ledger_trade_change.dart';
+import 'ledger_date_screen.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
@@ -469,8 +472,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           if (!mounted) return;
           setState(() {
             _financialPending = null;
-            _financialError =
-                'تعذر حفظ العملية. حدّث الدفتر وراجع البيانات قبل المحاولة مجددًا.';
+            _financialError = result.code == 'retired_return'
+                ? tradeChangeFailure(result.code)
+                : 'تعذر حفظ العملية. حدّث الدفتر وراجع البيانات قبل المحاولة مجددًا.';
           });
         } else if (result is FinancialCountMismatch) {
           await _financialPendingStore.clear(
@@ -672,6 +676,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               mounted &&
               widget.userId == userId &&
               !_expired &&
+              _controller?.readOnly == false &&
               widget.shop.entitlement == ShopEntitlement.active,
           line: LedgerFeedLine(
             kind: 'sale',
@@ -703,6 +708,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               mounted &&
               widget.userId == userId &&
               !_expired &&
+              _controller?.readOnly == false &&
               widget.shop.entitlement == ShopEntitlement.active,
           line: line,
           syncTicks: widget.syncTicks,
@@ -712,6 +718,25 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     if (!mounted) return;
     await _controller?.refresh();
     await _maybeLoadFinancialDay(force: true);
+  }
+
+  Future<void> _openDateLedger() async {
+    final gateway = _financialGateway;
+    final userId = widget.userId;
+    if (gateway is! LedgerDateGateway || userId == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LedgerDateScreen(
+          gateway: gateway as LedgerDateGateway,
+          userId: userId,
+          shopId: widget.shop.id,
+          canRead: () => mounted && widget.userId == userId,
+          syncTicks: widget.syncTicks,
+          onOperation: _openOperation,
+          loadItems: _loadOperationItems,
+        ),
+      ),
+    );
   }
 
   void _openPendingInvoices() {
@@ -891,6 +916,17 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               compact ? 28 : 36,
             ),
             children: [
+              if (_financialGateway is LedgerDateGateway &&
+                  controller?.ledger?.isConfirmed == true)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    key: const Key('ledger-date-navigation'),
+                    onPressed: _openDateLedger,
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: const Text('دفتر حسب التاريخ'),
+                  ),
+                ),
               if (_expired || (controller?.readOnly ?? false)) ...[
                 DecoratedBox(
                   decoration: BoxDecoration(

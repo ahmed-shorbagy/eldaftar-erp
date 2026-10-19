@@ -130,7 +130,9 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final stock = _stock(json['stock'], confirmed: confirmed);
   final scrap = _scrap(json['scrap'], confirmed: confirmed);
   final feed = _feed(json['feed'], confirmed: confirmed);
-  final daySummary = version == 2 ? _daySummary(json['day_summary']) : null;
+  final daySummary = version == 2
+      ? parseLedgerDaySummary(json['day_summary'])
+      : null;
   if (version == 2 && !confirmed) throw const FormatException('day_summary');
   if (json.containsKey('feed_page') && !confirmed) {
     throw const FormatException('feed_page');
@@ -140,6 +142,16 @@ DailyLedgerView parseDailyLedger(Object? json) {
       : null;
   if (confirmed && businessDay == null) {
     throw const FormatException('business_day');
+  }
+  final tradeChangeSequence = json['trade_change_sequence'];
+  if (tradeChangeSequence != null &&
+      (tradeChangeSequence is! String ||
+          PostgresInteger.parseCanonical(
+                tradeChangeSequence,
+                allowZero: true,
+              ) ==
+              null)) {
+    throw const FormatException('trade_change_sequence');
   }
   final view = DailyLedgerView(
     state: state,
@@ -152,6 +164,7 @@ DailyLedgerView parseDailyLedger(Object? json) {
     feed: feed,
     daySummary: daySummary,
     feedCursor: feedCursor,
+    tradeChangeSequence: tradeChangeSequence as String?,
   );
   if (confirmed && view.totalCashPounds == null) {
     throw const FormatException('cash_total');
@@ -159,7 +172,7 @@ DailyLedgerView parseDailyLedger(Object? json) {
   return view;
 }
 
-LedgerDaySummary _daySummary(Object? value) {
+LedgerDaySummary parseLedgerDaySummary(Object? value) {
   if (value is! Map || (value.length != 6 && value.length != 7)) {
     throw const FormatException('day_summary');
   }

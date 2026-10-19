@@ -90,7 +90,9 @@ void main() {
       expect(strip, findsOneWidget);
       final ids = [
         'ledger-total-cash',
-        'ledger-total-gold',
+        'ledger-metric-sale_karat_18',
+        'ledger-metric-sale_karat_21',
+        'ledger-metric-sale_karat_24',
         'ledger-metric-sale',
         'ledger-metric-purchase',
         'ledger-metric-sale_gold',

@@ -15,6 +15,7 @@ final class DailyLedgerView {
     required this.feed,
     this.daySummary,
     this.feedCursor,
+    this.tradeChangeSequence,
   });
 
   final String state;
@@ -27,6 +28,9 @@ final class DailyLedgerView {
   final List<LedgerFeedLine> feed;
   final LedgerDaySummary? daySummary;
   final LedgerFeedCursor? feedCursor;
+
+  /// Server sequence of the latest edit/delete; invalidates cached older pages.
+  final String? tradeChangeSequence;
 
   bool get isConfirmed => state == 'confirmed';
   bool get isUninitialized => state == 'uninitialized';

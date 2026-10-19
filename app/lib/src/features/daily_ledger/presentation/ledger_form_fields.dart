@@ -5,10 +5,12 @@ InputDecoration ledgerFieldDecoration(
   BuildContext context, {
   required String label,
   String? helper,
+  String? hint,
 }) {
   return InputDecoration(
     labelText: label,
     helperText: helper,
+    hintText: hint,
     alignLabelWithHint: true,
   );
 }

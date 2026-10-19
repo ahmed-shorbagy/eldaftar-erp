@@ -3,13 +3,17 @@ import 'package:eldafttar/src/features/daily_ledger/presentation/opening_copy.da
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('default layout is six home figures and expense in More', () {
-    final layout = migrateLedgerMetricLayout(null);
-    expect(layout.homeIds, ledgerDefaultHomeMetrics);
-    expect(layout.remainingId, 'expense');
-    expect(layout.isValid, isTrue);
-    expect(layout.homeIds, isNot(contains('operations')));
-  });
+  test(
+    'default layout has six figures and seven distinct karat choices in More',
+    () {
+      final layout = migrateLedgerMetricLayout(null);
+      expect(layout.homeIds, ledgerDefaultHomeMetrics);
+      expect(layout.moreIds, hasLength(7));
+      expect(layout.homeIds, isNot(contains('total_gold')));
+      expect(layout.isValid, isTrue);
+      expect(layout.homeIds, isNot(contains('operations')));
+    },
+  );
 
   test(
     'legacy hidden count and operations drop without shrinking below six',
@@ -34,7 +38,8 @@ void main() {
       ]);
       expect(layout.homeIds.length, 6);
       expect(layout.homeIds, isNot(contains('operations')));
-      expect(layout.remainingId, 'expense');
+      expect(layout.moreIds, hasLength(7));
+      expect(layout.homeIds, isNot(contains('total_gold')));
     },
   );
 
@@ -50,14 +55,14 @@ void main() {
       'hidden:metric:total_cash',
     ]);
     expect(layout.homeIds, [
-      'total_gold',
       'sale',
       'purchase',
       'sale_gold',
       'purchase_gold',
       'expense',
+      'sale_karat_18',
     ]);
-    expect(layout.remainingId, 'total_cash');
+    expect(layout.moreIds, contains('total_cash'));
   });
 
   test('shops stay isolated because migration is pure per saved list', () {
@@ -71,15 +76,16 @@ void main() {
       'remaining:purchase_gold',
     ]);
     final second = migrateLedgerMetricLayout(null);
-    expect(first.remainingId, 'purchase_gold');
-    expect(second.remainingId, 'expense');
+    expect(first.moreIds, contains('purchase_gold'));
+    expect(second.homeIds, contains('purchase_gold'));
     expect(first.homeIds.first, 'expense');
   });
 
-  test('replacing remaining swaps exactly one home figure', () {
+  test('selecting a slot swaps exactly one home figure without duplicates', () {
     final start = migrateLedgerMetricLayout(null);
-    final next = replaceRemainingMetric(start, 'total_cash');
-    expect(next.remainingId, 'total_cash');
+    final next = selectMetricForSlot(start, 0, 'scrap_purchase_22');
+    expect(next.moreIds, contains('total_cash'));
+    expect(next.homeIds.first, 'scrap_purchase_22');
     expect(next.homeIds, contains('expense'));
     expect(next.homeIds, isNot(contains('total_cash')));
     expect(next.homeIds.length, 6);

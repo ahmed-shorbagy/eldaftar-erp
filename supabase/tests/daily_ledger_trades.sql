@@ -2,6 +2,13 @@
 -- Run after daily_ledger_scrap_to_stock.sql. All fixture data rolls back.
 begin;
 
+-- Trade edit/delete revokes authenticated EXECUTE on return and exchange
+-- writers. This fixture restores that privilege only inside this rolled-back
+-- transaction so historic return math still runs. It is not a production grant.
+grant execute on function public.post_daily_ledger_return(uuid, uuid, text) to authenticated;
+grant execute on function public.post_linked_return_v1(uuid, jsonb) to authenticated;
+grant execute on function public.post_exchange_v1(uuid, jsonb) to authenticated;
+
 insert into auth.users (id, instance_id, aud, role, email, is_anonymous, created_at, updated_at)
 values
   ('81818181-8181-4181-8181-818181818181', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ledger-a@example.test', false, now(), now()),

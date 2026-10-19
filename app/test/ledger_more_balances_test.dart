@@ -84,13 +84,18 @@ void main() {
       expect(find.textContaining('أهلاً مجوهرات كذا'), findsOneWidget);
       await tester.tap(find.byKey(const Key('workspace-nav-4')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('more-metric-expense')), findsOneWidget);
+      expect(
+        find.byKey(const Key('more-metric-sale_karat_18')),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('more-inventory-scrap')), findsOneWidget);
       expect(gateway.reads, greaterThan(0));
       final before = gateway.reads;
       ticks.notifyListeners();
       await tester.pumpAndSettle();
       expect(gateway.reads, greaterThan(before));
+      await tester.ensureVisible(find.byKey(const Key('more-inventory-scrap')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('more-inventory-scrap')));
       await tester.pumpAndSettle();
       expect(find.text('المخزون والكسر'), findsWidgets);

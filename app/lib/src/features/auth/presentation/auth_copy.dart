@@ -62,7 +62,8 @@ abstract final class AuthCopy {
   static const governorateLoadFailed =
       'تعذر تحميل المحافظات. تحقق من الاتصال وحاول مجددًا.';
   static const governorateRetry = 'إعادة المحاولة';
-  static const passwordInvalid = 'أدخل كلمة مرور صالحة من ٨ إلى ٧٢ بايتًا';
+  static const passwordInvalid =
+      'أدخل كلمة مرور صالحة، واختصر عدد الأحرف أو الرموز إذا كانت طويلة جدًا.';
   static const signInFailed =
       'تعذر تسجيل الدخول. تحقق من البريد أو الهاتف وكلمة المرور ثم حاول مجددًا.';
   static const signInUnavailable = 'خدمة تسجيل الدخول غير متاحة الآن.';

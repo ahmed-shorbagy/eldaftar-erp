@@ -1,6 +1,12 @@
 -- Compensating ledger. One connection, one transaction, ROLLBACK.
 -- Lot sync runs immediately. Deferred journal checks are forced immediate.
 begin;
+-- Trade edit/delete revokes authenticated EXECUTE on return and exchange
+-- writers. This fixture restores that privilege only inside this rolled-back
+-- transaction so historic return math still runs. It is not a production grant.
+grant execute on function public.post_daily_ledger_return(uuid, uuid, text) to authenticated;
+grant execute on function public.post_linked_return_v1(uuid, jsonb) to authenticated;
+grant execute on function public.post_exchange_v1(uuid, jsonb) to authenticated;
 set local time zone 'UTC';
 do $collision$
 begin

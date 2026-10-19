@@ -14,6 +14,11 @@ function run(sql, allowFailure = false) { return new Promise((resolve,reject) =>
 const owner='e3e3e3e3-e3e3-43e3-83e3-e3e3e3e3e3e3',shop='f3f3f3f3-f3f3-43f3-83f3-f3f3f3f3f3f3'
 const auth = `set local role authenticated; select set_config('request.jwt.claim.sub','${owner}',true);`
 const setup = await run(`begin;
+-- Disposable-database fixture only. The trade-change migration revokes these
+-- writers; this grant lets the historic return race keep running here.
+grant execute on function public.post_daily_ledger_return(uuid, uuid, text) to authenticated;
+grant execute on function public.post_linked_return_v1(uuid, jsonb) to authenticated;
+grant execute on function public.post_exchange_v1(uuid, jsonb) to authenticated;
 do $guard$ begin if exists(select 1 from auth.users where id='${owner}') or exists(select 1 from public.shops where id='${shop}') then raise exception 'fixture_collision'; end if; end; $guard$;
 insert into auth.users(id,instance_id,aud,role,email,is_anonymous,created_at,updated_at) values('${owner}','00000000-0000-0000-0000-000000000000','authenticated','authenticated','comp-race@example.test',false,now(),now());
 insert into public.shops(id,name,owner_display_name,time_zone) values('${shop}','متجر اختبار تزامن','مالك اختبار','Africa/Cairo');

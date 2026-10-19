@@ -170,7 +170,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
     }
     setState(() => _busy = true);
     try {
-      final consideration = Piastres.parsePounds(cashInputValue(_consideration.text));
+      final consideration = Piastres.parsePounds(
+        cashInputValue(_consideration.text),
+      );
       final tender = Piastres.parsePounds(cashInputValue(_tender.text));
       if (consideration is! Accepted<Piastres> ||
           tender is! Accepted<Piastres>) {
@@ -357,7 +359,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
   void _fillRemaining() {
     final bounds = _bounds!;
     setState(() {
-      _consideration.text = editableCashText(signedPoundsText(bounds.remainderConsideration));
+      _consideration.text = editableCashText(
+        signedPoundsText(bounds.remainderConsideration),
+      );
       for (final field in _lines) {
         field.include = true;
         field.grams.text = signedGramsText(field.item.remainderMilligrams);
@@ -366,18 +370,18 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
         }
       }
       if (bounds.hasPricing) {
-        _base.text = editableCashText(signedPoundsText(
-          bounds.pricingRemainder!['base_piastres']!,
-        ));
-        _work.text = editableCashText(signedPoundsText(
-          bounds.pricingRemainder!['workmanship_piastres']!,
-        ));
-        _other.text = editableCashText(signedPoundsText(
-          bounds.pricingRemainder!['other_charges_piastres']!,
-        ));
-        _discount.text = editableCashText(signedPoundsText(
-          bounds.pricingRemainder!['discount_piastres']!,
-        ));
+        _base.text = editableCashText(
+          signedPoundsText(bounds.pricingRemainder!['base_piastres']!),
+        );
+        _work.text = editableCashText(
+          signedPoundsText(bounds.pricingRemainder!['workmanship_piastres']!),
+        );
+        _other.text = editableCashText(
+          signedPoundsText(bounds.pricingRemainder!['other_charges_piastres']!),
+        );
+        _discount.text = editableCashText(
+          signedPoundsText(bounds.pricingRemainder!['discount_piastres']!),
+        );
       }
       _message = 'أدخل توزيع النقد المرتجع ثم راجع كامل المتبقي.';
     });
@@ -593,6 +597,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       TextField(
                         key: Key('partial-grams-$index'),
                         controller: _lines[index].grams,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -605,6 +612,7 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         TextField(
                           key: Key('partial-count-$index'),
                           controller: _lines[index].count,
+                          keyboardType: TextInputType.number,
                           readOnly: locked,
                           textDirection: TextDirection.ltr,
                           decoration: ledgerFieldDecoration(
@@ -619,6 +627,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       key: const Key('partial-consideration'),
                       controller: _consideration,
                       inputFormatters: const [CashInputFormatter()],
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       readOnly: locked,
                       textDirection: TextDirection.ltr,
                       decoration: ledgerFieldDecoration(
@@ -642,11 +653,15 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                             ? _tender
                             : _extraTenders[method.code],
                         inputFormatters: const [CashInputFormatter()],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
                           context,
                           label: 'النقد المرتجع · ${_methodLabel(method.code)}',
+                          hint: '0',
                         ),
                       ),
                     ],
@@ -656,6 +671,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         key: const Key('partial-base'),
                         controller: _base,
                         inputFormatters: const [CashInputFormatter()],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -667,6 +685,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         key: const Key('partial-work'),
                         controller: _work,
                         inputFormatters: const [CashInputFormatter()],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -678,6 +699,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         key: const Key('partial-other'),
                         controller: _other,
                         inputFormatters: const [CashInputFormatter()],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(
@@ -689,6 +713,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         key: const Key('partial-discount'),
                         controller: _discount,
                         inputFormatters: const [CashInputFormatter()],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         readOnly: locked,
                         textDirection: TextDirection.ltr,
                         decoration: ledgerFieldDecoration(

@@ -85,55 +85,68 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  test('return RPC and durable retry use the exact same envelope', () async {
-    const key = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-    final expected = {
-      'p_idempotency_key': key,
-      'p_original_operation_id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      'p_note': 'سبب',
-    };
-    var requests = 0;
-    final gateway = HttpOpeningGateway(
-      client: MockClient((request) async {
-        requests++;
-        expect(request.url.path, '/rest/v1/rpc/post_daily_ledger_return');
-        expect(jsonDecode(request.body), expected);
-        return http.Response(
-          jsonEncode({
-            'ok': true,
-            'operation_id': 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-            'replayed': requests > 1,
-          }),
-          200,
-        );
-      }),
-      supabaseUrl: 'https://example.test',
-      publishableKey: 'test',
-      accessToken: () => 'token',
-      currentUserId: () => 'owner-a',
-    );
-    expect(
-      await gateway.returnOperation(
-        callerUserId: 'owner-a',
-        idempotencyKey: key,
-        originalOperationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        note: 'سبب',
-      ),
-      isA<FinancialCommitted>(),
-    );
-    expect(
-      await gateway.retryPending(
-        callerUserId: 'owner-a',
-        command: PendingFinancialCommand(
-          key: key,
-          kind: 'purchase_return',
-          body: expected,
+  test(
+    'historical return reconciles its saved status without posting a new refund',
+    () async {
+      const key = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+      final expected = {
+        'p_idempotency_key': key,
+        'p_original_operation_id': 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        'p_note': 'سبب',
+      };
+      var requests = 0;
+      final gateway = HttpOpeningGateway(
+        client: MockClient((request) async {
+          requests++;
+          if (request.url.path.endsWith('get_opening_status')) {
+            expect(jsonDecode(request.body), {'p_idempotency_key': key});
+            return http.Response(
+              jsonEncode({
+                'status': 'completed',
+                'operation_id': 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+              }),
+              200,
+            );
+          }
+          expect(request.url.path, '/rest/v1/rpc/post_daily_ledger_return');
+          expect(jsonDecode(request.body), expected);
+          return http.Response(
+            jsonEncode({
+              'ok': true,
+              'operation_id': 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+              'replayed': requests > 1,
+            }),
+            200,
+          );
+        }),
+        supabaseUrl: 'https://example.test',
+        publishableKey: 'test',
+        accessToken: () => 'token',
+        currentUserId: () => 'owner-a',
+      );
+      expect(
+        await gateway.returnOperation(
+          callerUserId: 'owner-a',
+          idempotencyKey: key,
+          originalOperationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          note: 'سبب',
         ),
-      ),
-      isA<FinancialCommitted>(),
-    );
-    expect(requests, 2);
-  });
+        isA<FinancialCommitted>(),
+      );
+      expect(
+        await gateway.retryPending(
+          callerUserId: 'owner-a',
+          command: PendingFinancialCommand(
+            key: key,
+            kind: 'purchase_return',
+            body: expected,
+          ),
+        ),
+        isA<FinancialCommitted>(),
+      );
+      expect(requests, 2);
+    },
+  );
 
   Future<_Gateway> pumpReturn(
     WidgetTester tester, {

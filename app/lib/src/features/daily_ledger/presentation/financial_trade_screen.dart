@@ -1,7 +1,10 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../application/ledger_home_metrics.dart';
 
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
@@ -41,6 +44,11 @@ class FinancialTradeScreen extends StatefulWidget {
     this.sheet = false,
     this.catalog,
     this.inventoryPage,
+    this.initialPayload,
+    this.onDraftReviewed,
+    this.canRead,
+    this.canWrite,
+    this.syncTicks,
   });
 
   final FinancialKind kind;
@@ -48,6 +56,8 @@ class FinancialTradeScreen extends StatefulWidget {
   final OpeningGateway statusGateway;
   final String userId;
   final String shopId;
+  final bool Function()? canRead, canWrite;
+  final Listenable? syncTicks;
   final bool practice;
   final Map<String, Object?>? exchangeReturnPayload;
   final PartialReturnReview? exchangeReturnReview;
@@ -55,6 +65,8 @@ class FinancialTradeScreen extends StatefulWidget {
   final bool sheet;
   final InventoryGateway? catalog;
   final WidgetBuilder? inventoryPage;
+  final Map<String, Object?>? initialPayload;
+  final Future<bool> Function(FinancialDraft draft)? onDraftReviewed;
 
   @override
   State<FinancialTradeScreen> createState() => _FinancialTradeScreenState();
@@ -71,6 +83,7 @@ class _ItemEntry {
 
   String category;
   bool customName = false;
+  String? originalMilligrams;
   int karat;
   final TextEditingController name;
   final FocusNode priceFocus = FocusNode();
@@ -130,13 +143,16 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   final _tenderFocus = FocusNode();
   int _step = 0;
   bool _showOther = false;
+  Set<int> _hiddenScrapKarats = const {};
 
   bool get _fastEntry =>
       widget.exchangeReturnPayload == null &&
       (widget.kind == FinancialKind.sale ||
           widget.kind == FinancialKind.purchase);
 
-  String get _title => widget.exchangeReturnPayload != null
+  String get _title => widget.initialPayload != null
+      ? 'تعديل العملية'
+      : widget.exchangeReturnPayload != null
       ? 'البديل في الاستبدال'
       : switch (widget.kind) {
           FinancialKind.sale => 'إضافة بيع',
@@ -148,14 +164,100 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   @override
   void initState() {
     super.initState();
+    widget.syncTicks?.addListener(_accessChanged);
+    unawaited(_loadScrapPreferences());
     if (widget.kind != FinancialKind.expense) {
       _items.add(_ItemEntry(scrap: widget.kind == FinancialKind.scrapSale));
     }
     _tenders.add(_TenderEntry(CashMethod.cash));
+    final initial = widget.initialPayload;
+    if (initial != null) _prefill(initial);
     if (widget.kind == FinancialKind.expense) _step = 2;
     if (widget.catalog != null) {
       _catalogLoading = true;
       unawaited(_loadCatalogPages());
+    }
+  }
+
+  void _prefill(Map<String, Object?> initial) {
+    String pounds(Object? wire) {
+      final value = wire is String ? Piastres.parseWire(wire) : null;
+      return value is Accepted<Piastres> ? value.value.poundsText : '';
+    }
+
+    for (final row in _items) {
+      row.dispose();
+    }
+    _items.clear();
+    for (final raw in (initial['items'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final row = _ItemEntry(scrap: raw['category'] == 'scrap');
+      row.category = raw['category'] as String;
+      row.karat = raw['karat'] as int;
+      row.name.text = raw['item_name'] as String? ?? '';
+      row.customName = true;
+      row.originalMilligrams = raw['milligrams'] as String;
+      final weight = Milligrams.parseWire(row.originalMilligrams!);
+      if (weight is Accepted<Milligrams>) {
+        row.grams.text = weight.value.gramsText;
+      }
+      row.count.text = raw['count'] as String? ?? '1';
+      row.price.text = pounds(raw['line_price_piastres']);
+      _items.add(row);
+    }
+    for (final row in _tenders) {
+      row.dispose();
+    }
+    _tenders.clear();
+    for (final raw in (initial['tenders'] as List? ?? const [])) {
+      if (raw is! Map) continue;
+      final method = CashMethod.byCode(raw['method'] as String? ?? '');
+      if (method != null) {
+        _tenders.add(
+          _TenderEntry(method)..amount.text = pounds(raw['piastres']),
+        );
+      }
+    }
+    if (_tenders.isEmpty) _tenders.add(_TenderEntry(CashMethod.cash));
+    _purchaseTotal.text = pounds(initial['total_piastres']);
+    _customerName.text = initial['customer_name'] as String? ?? '';
+    _customerPhone.text = initial['customer_phone'] as String? ?? '';
+    _note.text = initial['note'] as String? ?? '';
+    _description.text = initial['description'] as String? ?? '';
+    final pricing = initial['pricing'];
+    if (pricing is Map) {
+      _priceDetails = true;
+      _basePrice.text = pounds(pricing['base_piastres']);
+      _workmanship.text = pounds(pricing['workmanship_piastres']);
+      _otherCharges.text = pounds(pricing['other_charges_piastres']);
+      _discount.text = pounds(pricing['discount_piastres']);
+      _otherChargesLabel.text = pricing['other_charges_label'] as String? ?? '';
+    }
+  }
+
+  Future<void> _reviewEditedDraft(FinancialDraft draft) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final saved = await widget.onDraftReviewed!(draft);
+      if (mounted && saved) Navigator.of(context).pop(true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _loadScrapPreferences() async {
+    final shop = widget.shopId;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final layout = migrateLedgerMetricLayout(
+        prefs.getStringList('ledger_layout_$shop'),
+      );
+      if (mounted && widget.shopId == shop) {
+        setState(() => _hiddenScrapKarats = layout.hiddenScrapKarats);
+      }
+    } catch (_) {
+      // Existing measured entries remain available if local preferences fail.
     }
   }
 
@@ -178,6 +280,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     _otherChargesLabel.dispose();
     _discount.dispose();
     _guideScroll.dispose();
+    widget.syncTicks?.removeListener(_accessChanged);
     _gramsFocus.dispose();
     _tenderFocus.dispose();
     super.dispose();
@@ -198,7 +301,32 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     return parsed is Accepted<Piastres> ? parsed.value.poundsText : null;
   }
 
+  void _accessChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _startReview() {
+    if (widget.canRead?.call() == false ||
+        widget.canWrite?.call() == false ||
+        _busy) {
+      return;
+    }
+    if (widget.kind == FinancialKind.sale) {
+      for (final row in _items) {
+        final grams = gramEntryValue(row.grams.text, decimalPlaces: 2);
+        if (grams == null) {
+          final inherited = Milligrams.parseGrams(row.grams.text);
+          if (row.originalMilligrams != null &&
+              inherited is Accepted<Milligrams> &&
+              inherited.value.wire == row.originalMilligrams) {
+            continue;
+          }
+          setState(() => _error = 'أدخل الوزن بمنزلتين عشريتين كحد أقصى.');
+          return;
+        }
+        row.grams.text = grams;
+      }
+    }
     InvoicePricing? pricing;
     if (_priceDetails) {
       final result = _composePricing();
@@ -245,6 +373,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       customerPhone: _customerPhone.text,
       note: _note.text,
     );
+    if (result.draft != null && widget.onDraftReviewed != null) {
+      unawaited(_reviewEditedDraft(result.draft!));
+      return;
+    }
     setState(() {
       _error = result.issue == null ? null : _issueCopy(result.issue!);
       _review = result.draft;
@@ -463,6 +595,14 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (widget.canRead?.call() == false) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('تعديل العملية')),
+        body: const Center(
+          child: Text('لم تعد بيانات العملية متاحة لهذا الحساب.'),
+        ),
+      );
+    }
     return PopScope(
       canPop: !_busy && !_unknown,
       child: Scaffold(
@@ -569,7 +709,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(52),
                           ),
-                          onPressed: _busy
+                          onPressed: _busy || widget.canWrite?.call() == false
                               ? null
                               : _review == null
                               ? (_fastEntry ? _reviewFast : _nextStep)
@@ -873,10 +1013,19 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     ),
     const SizedBox(height: 16),
     ..._paymentFields(theme),
+    if (widget.initialPayload?['pricing'] is Map) ..._pricingFields(theme),
     ExpansionTile(
       key: const Key('trade-customer-disclosure'),
       title: const Text('تفاصيل العميل (اختياري)'),
       children: [
+        if (widget.initialPayload != null) ...[
+          TextField(
+            key: const Key('trade-edit-description'),
+            controller: _description,
+            decoration: ledgerFieldDecoration(context, label: 'الوصف'),
+          ),
+          const SizedBox(height: 12),
+        ],
         TextField(
           key: const Key('trade-customer-name'),
           controller: _customerName,
@@ -1259,7 +1408,15 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 '${suggestion.label} · ${displayGrams(suggestion.grams)}',
               ),
               onPressed: () => setState(() {
-                row.grams.text = suggestion.grams;
+                final grams = gramEntryValue(
+                  suggestion.grams,
+                  decimalPlaces: widget.kind == FinancialKind.sale ? 2 : 3,
+                );
+                if (grams == null) {
+                  _error = 'أدخل الوزن المقاس بمنزلتين عشريتين كحد أقصى.';
+                  return;
+                }
+                row.grams.text = grams;
                 row.name.text = suggestion.label;
               }),
             ),
@@ -1342,7 +1499,13 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         : [...openingCategoryChoices];
     final categoryCode = row.category;
     final karats = categoryCode == 'scrap'
-        ? (ScrapKarats.allowed.toList()..sort())
+        ? (ScrapKarats.allowed
+              .where(
+                (karat) =>
+                    !_hiddenScrapKarats.contains(karat) || karat == row.karat,
+              )
+              .toList()
+            ..sort())
         : (StockCategory.byCode(categoryCode)!.karats.toList()..sort());
     return Card(
       child: Padding(
@@ -1422,6 +1585,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 second: TextField(
                   key: Key('trade-grams-$index'),
                   controller: row.grams,
+                  inputFormatters: [
+                    GramInputFormatter(
+                      decimalPlaces: widget.kind == FinancialKind.sale ? 2 : 3,
+                    ),
+                  ],
                   focusNode: index == 0 ? _gramsFocus : null,
                   textDirection: TextDirection.ltr,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -1432,7 +1600,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   decoration: ledgerFieldDecoration(
                     context,
                     label: 'الوزن بالجرام',
-                    helper: 'دقة 0.001 جرام',
+                    helper: widget.kind == FinancialKind.sale
+                        ? 'دقة 0.01 جرام · منزلتان عشريتان كحد أقصى'
+                        : 'دقة 0.001 جرام',
                   ),
                 ),
               )
@@ -1440,6 +1610,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               TextField(
                 key: Key('trade-grams-$index'),
                 controller: row.grams,
+                inputFormatters: [
+                  GramInputFormatter(
+                    decimalPlaces: widget.kind == FinancialKind.sale ? 2 : 3,
+                  ),
+                ],
                 focusNode: index == 0 ? _gramsFocus : null,
                 textDirection: TextDirection.ltr,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -1450,8 +1625,25 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 decoration: ledgerFieldDecoration(
                   context,
                   label: 'الوزن بالجرام',
-                  helper: 'دقة 0.001 جرام',
+                  helper: widget.kind == FinancialKind.sale
+                      ? 'دقة 0.01 جرام · منزلتان عشريتان كحد أقصى'
+                      : 'دقة 0.001 جرام',
                 ),
+              ),
+            if (_fastEntry &&
+                widget.initialPayload != null &&
+                (widget.initialPayload!['items'] as List).any(
+                  (item) => item is Map && item['line_price_piastres'] != null,
+                ))
+              TextField(
+                key: Key('trade-edit-line-price-$index'),
+                controller: row.price,
+                inputFormatters: const [CashInputFormatter()],
+                textDirection: TextDirection.ltr,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: ledgerFieldDecoration(context, label: 'قيمة الصنف'),
               ),
             ..._nominalWidgets(row, index),
             const SizedBox(height: 12),

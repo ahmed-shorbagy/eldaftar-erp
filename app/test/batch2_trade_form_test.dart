@@ -32,6 +32,14 @@ void main() {
     expect(find.byKey(const Key('trade-send-invoice')), findsNothing);
     await chooseTradeItem(tester, 'خاتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.255');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+          .controller!
+          .text,
+      isEmpty,
+    );
+    await enterTradeField(tester, const Key('trade-grams-0'), '1.26');
     await enterTradeField(
       tester,
       const Key('trade-tender-amount-0'),
@@ -46,7 +54,7 @@ void main() {
     expect(find.text('4,200.25'), findsWidgets);
     expect(find.textContaining('وزن الذهب: 1.26 جرام'), findsOneWidget);
     expect(
-      find.textContaining('ينقص المخزون بمقدار 1.26 جرام (1,255 ملليجرام)'),
+      find.textContaining('ينقص المخزون بمقدار 1.26 جرام'),
       findsOneWidget,
     );
     expect(gateway.keys, isEmpty);
@@ -60,7 +68,7 @@ void main() {
     expect(gateway.payloads.single['total_piastres'], '420025');
     expect(
       (gateway.payloads.single['items'] as List).single['milligrams'],
-      '1255',
+      '1260',
     );
     expect(tester.takeException(), isNull);
   });
@@ -195,22 +203,27 @@ void main() {
           .widget<TextField>(find.byKey(const Key('trade-grams-0')))
           .controller
           ?.text,
-      '0.250',
+      '0.25',
     );
     await enterTradeField(tester, const Key('trade-grams-0'), '0.255');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+          .controller!
+          .text,
+      '0.25',
+    );
+    await enterTradeField(tester, const Key('trade-grams-0'), '0.26');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     await reviewTrade(tester);
-    expect(
-      find.textContaining('بمقدار 0.26 جرام (255 ملليجرام)'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('بمقدار 0.26 جرام'), findsOneWidget);
     expect(plain.payloads, isEmpty);
     await revealTrade(tester, find.byKey(const Key('trade-confirm')));
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     final postedItem = (plain.payloads.single['items'] as List).single as Map;
     expect(postedItem['item_name'], 'سبيكة');
-    expect(postedItem['milligrams'], '255');
+    expect(postedItem['milligrams'], '260');
 
     final catalog = Batch2Catalog(
       coinPage: ReadPage.ready([

@@ -2,6 +2,13 @@
 -- cash, stock, debt, or business-day changes, and must not rewrite invoices.
 begin;
 
+-- Trade edit/delete revokes authenticated EXECUTE on return and exchange
+-- writers. This fixture restores that privilege only inside this rolled-back
+-- transaction so historic return math still runs. It is not a production grant.
+grant execute on function public.post_daily_ledger_return(uuid, uuid, text) to authenticated;
+grant execute on function public.post_linked_return_v1(uuid, jsonb) to authenticated;
+grant execute on function public.post_exchange_v1(uuid, jsonb) to authenticated;
+
 create function pg_temp.customer_fail_after_write() returns trigger
 language plpgsql as $failure$
 begin

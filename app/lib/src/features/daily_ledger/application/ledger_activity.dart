@@ -303,12 +303,14 @@ class LedgerActivityController {
   LedgerActivityState state = LedgerActivityState.empty;
   int _generation = 0;
   int? _busyGeneration;
+  String? _tradeChangeSequence;
 
   bool get busy => _busyGeneration == _generation;
 
   void reset() {
     _generation += 1;
     state = LedgerActivityState.empty;
+    _tradeChangeSequence = null;
   }
 
   bool _still(int generation, String userId, String shopId, String dayId) =>
@@ -325,6 +327,21 @@ class LedgerActivityController {
     final day = ledger?.businessDay;
     if (ledger == null || !ledger.isConfirmed || day == null) return;
     final cursor = ledger.feedCursor;
+    final revision = ledger.tradeChangeSequence;
+    final sameIdentity = state.userId == userId && state.shopId == shopId;
+    if (sameIdentity &&
+        revision != null &&
+        _tradeChangeSequence != null &&
+        BigInt.parse(revision) > BigInt.parse(_tradeChangeSequence!)) {
+      // An edit/delete may remove a row from any previously loaded page.
+      reset();
+    }
+    if (!sameIdentity ||
+        _tradeChangeSequence == null ||
+        (revision != null &&
+            BigInt.parse(revision) >= BigInt.parse(_tradeChangeSequence!))) {
+      _tradeChangeSequence = revision;
+    }
     state = mergeLedgerPage(
       current: state,
       userId: userId,

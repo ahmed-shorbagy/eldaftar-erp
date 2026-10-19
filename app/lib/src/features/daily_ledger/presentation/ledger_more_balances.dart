@@ -3,15 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../theme/amount_format.dart';
 import '../../../theme/detail_surface.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/ledger_home_metrics.dart';
 import '../application/opening_gateway.dart';
-import '../domain/opening_issue.dart';
-import '../domain/quantities.dart';
 import 'ledger_balance_sections.dart';
+import 'ledger_metric_specs.dart';
 import 'opening_copy.dart';
 
 /// Live remaining metric plus inventory/scrap, sourced from the confirmed ledger.
@@ -204,85 +202,6 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
     setState(() => _metrics = migrateLedgerMetricLayout(saved));
   }
 
-  Map<String, _MoreMetric> _values(DailyLedgerView view) {
-    final summary = view.daySummary;
-    String money(String? wire) => wire == null
-        ? '—'
-        : displayPounds(
-            (Piastres.parseWire(wire) as Accepted<Piastres>).value.poundsText,
-          );
-    BigInt weight(String kind) =>
-        summary?.goldByBucket
-            .where((row) => row.kind == kind)
-            .fold<BigInt>(
-              BigInt.zero,
-              (sum, row) => sum + BigInt.parse(row.milligrams),
-            ) ??
-        BigInt.zero;
-    final gold =
-        view.stock.fold<BigInt>(
-          BigInt.zero,
-          (sum, line) =>
-              sum + (BigInt.tryParse(line.milligrams) ?? BigInt.zero),
-        ) +
-        view.scrap.fold<BigInt>(
-          BigInt.zero,
-          (sum, line) =>
-              sum + (BigInt.tryParse(line.milligrams) ?? BigInt.zero),
-        );
-    return {
-      'total_cash': _MoreMetric(
-        ledgerMetricLabel('total_cash'),
-        displayPounds(view.totalCashPounds ?? '—'),
-        '',
-        Icons.account_balance_wallet_outlined,
-        LedgerMetricTone.primary,
-      ),
-      'total_gold': _MoreMetric(
-        ledgerMetricLabel('total_gold'),
-        displayGrams(gold.toString()),
-        'جرام',
-        Icons.diamond_outlined,
-        LedgerMetricTone.primary,
-      ),
-      'sale': _MoreMetric(
-        ledgerMetricLabel('sale'),
-        money(summary?.salePiastres),
-        '',
-        Icons.trending_up,
-        LedgerMetricTone.positive,
-      ),
-      'purchase': _MoreMetric(
-        ledgerMetricLabel('purchase'),
-        money(summary?.purchasePiastres),
-        '',
-        Icons.trending_down,
-        LedgerMetricTone.negative,
-      ),
-      'sale_gold': _MoreMetric(
-        ledgerMetricLabel('sale_gold'),
-        displayGrams(weight('sale').toString()),
-        'جرام',
-        Icons.south_west,
-        LedgerMetricTone.positive,
-      ),
-      'purchase_gold': _MoreMetric(
-        ledgerMetricLabel('purchase_gold'),
-        displayGrams(weight('purchase').toString()),
-        'جرام',
-        Icons.south_east,
-        LedgerMetricTone.negative,
-      ),
-      'expense': _MoreMetric(
-        ledgerMetricLabel('expense'),
-        money(summary?.expensePiastres),
-        '',
-        Icons.receipt_long_outlined,
-        LedgerMetricTone.neutral,
-      ),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -314,7 +233,14 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
         if (view != null && view.isConfirmed) ...[
           Text('باقي أرقام الدفتر', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          _remainingTile(view),
+          LedgerNormalizationControl(
+            value: _metrics.normalizationKarat,
+            onChanged: _saveNormalization,
+          ),
+          for (final id in _metrics.moreIds) ...[
+            const SizedBox(height: 12),
+            _remainingTile(view, id),
+          ],
           const SizedBox(height: 20),
           TextButton.icon(
             key: const Key('more-inventory-scrap'),
@@ -327,11 +253,34 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
     );
   }
 
-  Widget _remainingTile(DailyLedgerView view) {
-    final spec = _values(view)[_metrics.remainingId]!;
-    final cash = _metrics.remainingId == 'total_cash';
+  Future<void> _saveNormalization(int karat) async {
+    final key = _preferenceKey;
+    setState(() => _metrics = _metrics.copyWith(normalizationKarat: karat));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted || key != _preferenceKey) return;
+      final saved =
+          prefs.getStringList(key) ?? encodeLedgerMetricLayout(_metrics);
+      await prefs.setStringList(key, [
+        ...saved.where((e) => !e.startsWith('normalize:')),
+        'normalize:$karat',
+      ]);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر حفظ اختيار العيار على هذا الجهاز.'),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _remainingTile(DailyLedgerView view, String id) {
+    final spec = ledgerMetricValues(view, _metrics.normalizationKarat)[id]!;
+    final cash = id == 'total_cash';
     return LedgerMetricTile(
-      key: Key('more-metric-${_metrics.remainingId}'),
+      key: Key('more-metric-$id'),
       label: spec.label,
       value: spec.value,
       unit: spec.unit,
@@ -347,13 +296,4 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
           : null,
     );
   }
-}
-
-class _MoreMetric {
-  const _MoreMetric(this.label, this.value, this.unit, this.icon, this.tone);
-  final String label;
-  final String value;
-  final String unit;
-  final IconData icon;
-  final LedgerMetricTone tone;
 }

@@ -13,6 +13,7 @@ import '../../inventory/application/inventory_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/idempotency_key.dart';
 import '../application/pending_financial_command.dart';
+import '../application/ledger_trade_change.dart';
 
 /// Stores one in-flight financial command per owner and shop.
 final class PendingFinancialCommands implements FinancialCommandLocker {
@@ -82,6 +83,7 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       'ledger_correction',
       'linked_return',
       'exchange',
+      tradeChangeKind,
       ...inventoryRpcs.keys,
       ...repairRpcs.keys,
       ...debtRpcs.keys,
@@ -150,6 +152,9 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       });
 
   bool _matchesEnvelope(String key, String kind, Map<String, Object?> body) {
+    if (kind == tradeChangeKind) {
+      return matchesTradeChangeEnvelope(key, kind, body);
+    }
     if (body['p_idempotency_key'] != key) return false;
     if (const {
       'ledger_correction',

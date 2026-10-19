@@ -41,9 +41,18 @@ import '../application/pending_financial_command.dart';
 import '../application/opening_gateway.dart';
 import '../domain/financial_draft.dart';
 import 'daily_ledger_codec.dart';
+import '../application/ledger_date_gateway.dart';
+import '../application/ledger_trade_change.dart';
+import 'ledger_date_codec.dart';
+import 'ledger_trade_change_codec.dart';
 
 const _errorCodes = <String>{
   'stale_native',
+  'trade_not_editable',
+  'trade_has_followups',
+  'trade_inactive',
+  'stale_trade_review',
+  'operation_replaced',
   'stale_native_cursor',
   'invalid_time',
   'unresolved_wall_time',
@@ -136,6 +145,8 @@ const _errorCodes = <String>{
 class HttpOpeningGateway
     implements
         OpeningGateway,
+        LedgerDateGateway,
+        LedgerTradeChangeGateway,
         FinancialGateway,
         InvoiceDispatchGateway,
         PurchaseSettlementGateway,
@@ -306,6 +317,17 @@ class HttpOpeningGateway
     required String callerUserId,
     required PendingFinancialCommand command,
   }) {
+    if (const {
+      'sale_return',
+      'purchase_return',
+      'linked_return',
+      'exchange',
+    }.contains(command.kind)) {
+      return _reconcileRetiredReturn(callerUserId, command);
+    }
+    if (command.kind == tradeChangeKind) {
+      return postTradeChange(userId: callerUserId, command: command);
+    }
     if (matchesExplicitLotSale(command.key, command.kind, command.body)) {
       return _financialCommand(
         callerUserId,
@@ -333,6 +355,97 @@ class HttpOpeningGateway
     final inventory = inventoryRpcs[command.kind];
     if (inventory == null) throw const FormatException('pending_financial');
     return _inventoryCommand(callerUserId, inventory, command.body);
+  }
+
+  Future<FinancialCommandResult> _reconcileRetiredReturn(
+    String userId,
+    PendingFinancialCommand command,
+  ) async {
+    final saved = await status(
+      callerUserId: userId,
+      idempotencyKey: command.key,
+    );
+    return switch (saved) {
+      StatusCompleted(:final operationId) => FinancialCommitted(
+        operationId,
+        replayed: true,
+      ),
+      StatusAbsent() => const FinancialRejected('retired_return'),
+      _ => const FinancialUnknown(),
+    };
+  }
+
+  Future<Object?> _ledgerFeatureRead(
+    String userId,
+    String rpc,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      final response = await _post(userId, rpc, body);
+      if (_rpcMissing(response)) {
+        throw const LedgerReadException('not_available');
+      }
+      if (response.statusCode >= 400) {
+        throw LedgerReadException(_errorCode(response.body));
+      }
+      return jsonDecode(response.body);
+    } on _CallerRejected catch (e) {
+      throw LedgerReadException(e.code);
+    }
+  }
+
+  @override
+  Future<LedgerDateSnapshot> readLedgerDate({
+    required String userId,
+    required String shopId,
+    String? businessDate,
+    String? beforeSequence,
+  }) async {
+    final snapshot = parseLedgerDate(
+      await _ledgerFeatureRead(userId, 'get_ledger_date_v1', {
+        'p_business_date': businessDate,
+        'p_before_sequence': beforeSequence,
+        'p_limit': 100,
+      }),
+      shopId,
+    );
+    if (snapshot.businessDate != (businessDate ?? snapshot.serverDate)) {
+      throw const FormatException('requested_ledger_date');
+    }
+    return snapshot;
+  }
+
+  @override
+  Future<LedgerTradeChangeReview> reviewTradeChange({
+    required String userId,
+    required String shopId,
+    required String operationId,
+    required String action,
+    Map<String, Object?>? replacement,
+  }) async => parseTradeChangeReview(
+    await _ledgerFeatureRead(userId, 'review_ledger_trade_change_v1', {
+      'p_operation_id': operationId,
+      'p_action': action,
+      'p_replacement': replacement,
+    }),
+    shopId: shopId,
+    operationId: operationId,
+    action: action,
+  );
+
+  @override
+  Future<FinancialCommandResult> postTradeChange({
+    required String userId,
+    required PendingFinancialCommand command,
+  }) {
+    if (!matchesTradeChangeEnvelope(command.key, command.kind, command.body)) {
+      return Future.value(const FinancialRejected('invalid_input'));
+    }
+    return _financialCommand(
+      userId,
+      'post_ledger_trade_change_v1',
+      command.body,
+    );
   }
 
   @override

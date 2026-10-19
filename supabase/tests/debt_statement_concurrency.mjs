@@ -40,6 +40,10 @@ try {
     if(mid.freshness!==before.freshness||after.freshness===before.freshness) throw Error('mixed_statement_snapshot_'+kind)
     console.log(JSON.stringify({snapshot:kind,result:'old complete snapshot during write; new complete snapshot afterward'}))
   }
+  await run(`-- Disposable-database fixture only. Restores return writes revoked by ledger trade edit/delete.
+grant execute on function public.post_daily_ledger_return(uuid, uuid, text) to authenticated;
+grant execute on function public.post_linked_return_v1(uuid, jsonb) to authenticated;
+grant execute on function public.post_exchange_v1(uuid, jsonb) to authenticated;`)
   const purchase={version:1,kind:'purchase',total_piastres:'8000',tenders:[],items:[{category:'worked_jewelry',karat:21,milligrams:'1000',count:'1',item_name:'خاتم آجل',line_price_piastres:null}],description:'',customer_name:'تاجر متزامن',customer_phone:'',note:'',purchase_obligation_piastres:'8000'}
   const acquired=JSON.parse((await run(`begin;${auth}select public.post_daily_ledger_trade('${randomUUID()}','${JSON.stringify(purchase)}');commit;`)).split('\n').filter(x=>x.startsWith('{')).at(-1))
   const payable=acquired.operation_id

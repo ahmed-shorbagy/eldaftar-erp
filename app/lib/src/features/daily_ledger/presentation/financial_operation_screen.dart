@@ -20,8 +20,10 @@ import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import 'opening_copy.dart';
 import 'purchase_cash_settlement_screen.dart';
-import 'linked_return_screen.dart';
-import 'partial_return_screen.dart';
+import '../application/ledger_trade_change.dart';
+import '../domain/financial_draft.dart';
+import 'financial_trade_screen.dart';
+import 'ledger_trade_change_screen.dart';
 import 'exchange_effect_review.dart';
 
 class FinancialOperationScreen extends StatefulWidget {
@@ -56,6 +58,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   bool _loading = true;
   bool _syncQueued = false;
   bool _failed = false;
+  bool _accessLost = false;
   InvoiceDispatchState? _dispatch;
   bool _dispatchLoading = false;
   bool _dispatchBusy = false;
@@ -110,13 +113,31 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         operationId: widget.line.operationId,
       );
       if (!mounted) return;
-      setState(() => _operation = value);
+      setState(() {
+        _operation = value;
+        _accessLost = false;
+      });
       if (widget.gateway is InvoiceDispatchGateway &&
           (widget.line.kind == 'sale' || widget.line.kind == 'purchase')) {
         await _loadDispatch();
       }
-    } catch (_) {
-      if (mounted && _operation == null) setState(() => _failed = true);
+    } catch (error) {
+      if (mounted &&
+          error is LedgerReadException &&
+          const {
+            'forbidden',
+            'unauthenticated',
+            'session_expired',
+            'shop_unavailable',
+          }.contains(error.code)) {
+        setState(() {
+          _operation = null;
+          _dispatch = null;
+          _accessLost = true;
+        });
+      } else if (mounted && _operation == null) {
+        setState(() => _failed = true);
+      }
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -175,12 +196,14 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         handoff: MessageHandoff(
           gateway as InvoiceMessageGateway,
           widget.messageLauncher,
-          canRead: () => mounted && widget.canRead?.call() != false,
+          canRead: () =>
+              mounted && !_accessLost && widget.canRead?.call() != false,
         ),
         user: widget.userId,
         shop: shop,
         operation: widget.line.operationId,
-        canRead: () => mounted && widget.canRead?.call() != false,
+        canRead: () =>
+            mounted && !_accessLost && widget.canRead?.call() != false,
         invalidations: widget.syncTicks,
       ),
     );
@@ -304,68 +327,177 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
     if (saved == true && mounted) await _load();
   }
 
-  Future<void> _returnOperation() async {
+  bool _changeBusy = false;
+  String? _changeError;
+  bool get _active => _operation?['trade_change'] == null;
+
+  Future<bool> _reviewChange(
+    String action, {
+    Map<String, Object?>? replacement,
+  }) async {
     final gateway = widget.gateway;
-    final operation = _operation;
-    final shopId = operation?['shop_id'];
-    if (gateway is! LinkedReturnGateway ||
+    final shop = widget.shopId ?? _operation?['shop_id'];
+    if (gateway is! LedgerTradeChangeGateway ||
         gateway is! OpeningGateway ||
-        operation == null ||
-        shopId is! String) {
-      return;
+        shop is! String ||
+        widget.canRead?.call() == false ||
+        widget.canWrite?.call() == false) {
+      return false;
     }
-    if (gateway is PartialReturnGateway) {
-      try {
-        final remainder = await (gateway as PartialReturnGateway).remainder(
-          callerUserId: widget.userId,
-          operationId: widget.line.operationId,
+    try {
+      final review = await (gateway as LedgerTradeChangeGateway)
+          .reviewTradeChange(
+            userId: widget.userId,
+            shopId: shop,
+            operationId: widget.line.operationId,
+            action: action,
+            replacement: replacement,
+          );
+      if (!mounted ||
+          widget.canRead?.call() == false ||
+          widget.canWrite?.call() == false) {
+        return false;
+      }
+      final saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => LedgerTradeChangeScreen(
+            review: review,
+            gateway: gateway as LedgerTradeChangeGateway,
+            statusGateway: gateway as OpeningGateway,
+            userId: widget.userId,
+            replacement: replacement,
+            syncTicks: widget.syncTicks,
+            canRead: () =>
+                mounted && !_accessLost && widget.canRead?.call() != false,
+            canWrite: () => mounted && widget.canWrite?.call() != false,
+          ),
+        ),
+      );
+      if (saved != true && mounted) await _load();
+      return saved == true;
+    } catch (e) {
+      if (mounted) {
+        final message = tradeChangeFailure(
+          e is LedgerReadException ? e.code : null,
         );
-        if (!mounted) return;
-        final saved = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) => PartialReturnScreen(
-              gateway: gateway as PartialReturnGateway,
-              statusGateway: gateway as OpeningGateway,
-              dayGateway: gateway,
+        setState(() {
+          _changeError = message;
+          if (e is LedgerReadException &&
+              const {
+                'forbidden',
+                'unauthenticated',
+                'session_expired',
+                'shop_unavailable',
+              }.contains(e.code)) {
+            _accessLost = true;
+          }
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+      return false;
+    }
+  }
+
+  Future<void> _changeTrade(String action) async {
+    if (_changeBusy || !_active || _loading) return;
+    setState(() {
+      _changeBusy = true;
+      _changeError = null;
+    });
+    try {
+      bool saved;
+      if (action == 'edit') {
+        final gateway = widget.gateway;
+        final shop = widget.shopId ?? _operation?['shop_id'];
+        if (gateway is! LedgerTradeChangeGateway ||
+            gateway is! OpeningGateway ||
+            shop is! String) {
+          return;
+        }
+        final source = await (gateway as LedgerTradeChangeGateway)
+            .reviewTradeChange(
               userId: widget.userId,
-              shopId: shopId,
-              remainder: remainder,
-            ),
+              shopId: shop,
+              operationId: widget.line.operationId,
+              action: 'edit',
+              replacement: {
+                ...Map<String, Object?>.from(_operation!['payload'] as Map),
+                if ((_operation!['payload'] as Map)['tenders'] == null)
+                  'tenders': <Object?>[],
+              },
+            );
+        if (!mounted ||
+            widget.canRead?.call() == false ||
+            widget.canWrite?.call() == false) {
+          return;
+        }
+        saved =
+            await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => FinancialTradeScreen(
+                  kind: source.source['kind'] == 'sale'
+                      ? FinancialKind.sale
+                      : FinancialKind.purchase,
+                  gateway: widget.gateway,
+                  statusGateway: gateway as OpeningGateway,
+                  userId: widget.userId,
+                  shopId: shop,
+                  initialPayload: Map<String, Object?>.from(
+                    source.source['payload'] as Map,
+                  ),
+                  canRead: () =>
+                      mounted &&
+                      !_accessLost &&
+                      widget.canRead?.call() != false,
+                  canWrite: () => mounted && widget.canWrite?.call() != false,
+                  syncTicks: widget.syncTicks,
+                  onDraftReviewed: (draft) =>
+                      _reviewChange('edit', replacement: draft.toJson()),
+                ),
+              ),
+            ) ==
+            true;
+      } else {
+        saved = await _reviewChange('delete');
+      }
+      if (saved && mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        if (e is LedgerReadException &&
+            const {
+              'forbidden',
+              'unauthenticated',
+              'session_expired',
+              'shop_unavailable',
+            }.contains(e.code)) {
+          _accessLost = true;
+          _operation = null;
+          _dispatch = null;
+        }
+        setState(
+          () => _changeError = tradeChangeFailure(
+            e is LedgerReadException ? e.code : null,
           ),
         );
-        if (saved == true && mounted) await _load();
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'تعذر قراءة المتبقي من العملية. حدّث الدفتر وأعد المحاولة.',
-              ),
-            ),
-          );
-        }
       }
-      return;
+    } finally {
+      if (mounted) setState(() => _changeBusy = false);
     }
-    final returnGateway = gateway as LinkedReturnGateway;
-    final statusGateway = gateway as OpeningGateway;
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => LinkedReturnScreen(
-          gateway: returnGateway,
-          statusGateway: statusGateway,
-          userId: widget.userId,
-          shopId: shopId,
-          operation: operation,
-        ),
-      ),
-    );
-    if (saved == true && mounted) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (_accessLost || widget.canRead?.call() == false) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('تفاصيل العملية')),
+        body: const Center(
+          child: Text('لم تعد بيانات العملية متاحة لهذا الحساب.'),
+        ),
+      );
+    }
     final operation = _operation;
     final payload = operation?['payload'];
     final details = payload is Map ? payload : const <String, Object?>{};
@@ -592,26 +724,45 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       if (details['description'] is String &&
                           (details['description'] as String).isNotEmpty)
                         Text('الوصف: ${details['description']}'),
-                      if ((widget.line.kind == 'sale' ||
+                      if (!_active)
+                        const Text(
+                          'هذه العملية ممسوحة أو مستبدلة؛ سجل التدقيق محفوظ.',
+                        ),
+                      if (_active &&
+                          (widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase') &&
-                          widget.gateway is LinkedReturnGateway &&
-                          widget.gateway is OpeningGateway) ...[
-                        const SizedBox(height: 20),
-                        if (operation?['returned_by_operation_id'] is String)
-                          const Text('سُجل مرتجع كامل لهذه العملية.')
-                        else
-                          OutlinedButton.icon(
-                            key: const Key('operation-create-return'),
-                            onPressed: _returnOperation,
-                            icon: const Icon(Icons.assignment_return_outlined),
-                            label: Text(
-                              widget.gateway is PartialReturnGateway
-                                  ? 'تسجيل مرتجع أو استبدال'
-                                  : 'تسجيل مرتجع كامل',
-                            ),
+                          widget.gateway is LedgerTradeChangeGateway &&
+                          widget.gateway is OpeningGateway &&
+                          widget.canWrite?.call() != false) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'التعديل والمسح لعمليات اليوم المفتوح فقط، دون معاملات لاحقة مرتبطة. تُراجع آثار النقد والمخزون قبل التأكيد.',
+                        ),
+                        if (_changeBusy) const LinearProgressIndicator(),
+                        OutlinedButton.icon(
+                          key: const Key('operation-edit'),
+                          onPressed: _changeBusy || _loading
+                              ? null
+                              : () => _changeTrade('edit'),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('تعديل'),
+                        ),
+                        OutlinedButton.icon(
+                          key: const Key('operation-delete'),
+                          onPressed: _changeBusy || _loading
+                              ? null
+                              : () => _changeTrade('delete'),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('مسح العملية'),
+                        ),
+                        if (_changeError != null)
+                          Text(
+                            _changeError!,
+                            key: const Key('operation-change-error'),
                           ),
                       ],
-                      if (_copyKind == 'sale' || _copyKind == 'purchase')
+                      if (_active &&
+                          (_copyKind == 'sale' || _copyKind == 'purchase'))
                         InvoiceCopyPanel(
                           operations: widget.gateway,
                           appearance: widget.gateway is InvoiceAppearanceGateway
@@ -628,7 +779,8 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           canWrite: widget.canWrite ?? () => true,
                           syncTicks: widget.syncTicks,
                         ),
-                      if (widget.gateway is InvoiceDispatchGateway &&
+                      if (_active &&
+                          widget.gateway is InvoiceDispatchGateway &&
                           (widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase')) ...[
                         const SizedBox(height: 20),
