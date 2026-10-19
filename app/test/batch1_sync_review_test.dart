@@ -155,7 +155,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 121));
       await tester.pump();
-      expect(find.text('متجر بعد المزامنة'), findsWidgets);
+      expect(find.textContaining('أهلاً متجر بعد المزامنة'), findsWidgets);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       if (!gateway.events.isClosed) await tester.runAsync(gateway.close);
@@ -239,7 +239,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 121));
       await tester.pump();
-      expect(find.text('متجر المالك الثاني'), findsWidgets);
+      expect(find.textContaining('أهلاً متجر المالك الثاني'), findsWidgets);
       next.name = 'متجر المالك الثاني بعد المزامنة';
       gateway.events.add(
         ShopSyncSnapshot(shopId: next.id, revision: 2, locationRevision: 1),
@@ -247,8 +247,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 121));
       await tester.pump();
-      expect(find.text('متجر المالك الثاني بعد المزامنة'), findsWidgets);
-      expect(find.text('متجر الاختبار'), findsNothing);
+      expect(
+        find.textContaining('أهلاً متجر المالك الثاني بعد المزامنة'),
+        findsWidgets,
+      );
+      expect(find.textContaining('أهلاً متجر الاختبار'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
       await tester.runAsync(gateway.close);

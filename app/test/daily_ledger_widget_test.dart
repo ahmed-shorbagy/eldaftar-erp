@@ -285,115 +285,85 @@ Future<void> show(WidgetTester tester, Key key) async {
 void main() {
   for (final brightness in [Brightness.light, Brightness.dark]) {
     for (final width in [320.0, 1440.0]) {
-      testWidgets('gold movements fit at $width in $brightness RTL', (
-        tester,
-      ) async {
-        SharedPreferences.setMockInitialValues({});
-        tester.view.physicalSize = Size(width, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        final base = confirmedLedger();
-        final view = DailyLedgerView(
-          state: base.state,
-          entitlementStatus: base.entitlementStatus,
-          canConfirm: base.canConfirm,
-          businessDay: base.businessDay,
-          cash: base.cash,
-          stock: base.stock,
-          scrap: base.scrap,
-          feed: base.feed,
-          daySummary: const LedgerDaySummary(
-            salePiastres: '5000',
-            purchasePiastres: '2000',
-            expensePiastres: '500',
-            saleCount: 1,
-            purchaseCount: 1,
-            expenseCount: 1,
-            goldByBucket: [
-              LedgerGoldMovement(
-                kind: 'sale',
-                category: 'worked_jewelry',
-                karat: 18,
-                milligrams: '2000',
-                count: '2',
-              ),
-              LedgerGoldMovement(
-                kind: 'purchase',
-                category: 'scrap',
-                karat: 21,
-                milligrams: '1250',
-                count: '0',
-              ),
-            ],
-          ),
-        );
-        await tester.pumpWidget(
-          MaterialApp(
-            locale: const Locale('ar'),
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
-            themeMode: brightness == Brightness.dark
-                ? ThemeMode.dark
-                : ThemeMode.light,
-            home: Directionality(
-              textDirection: TextDirection.rtl,
-              child: Scaffold(
-                body: SingleChildScrollView(
-                  child: ConfirmedLedgerDashboard(ledger: view, shopId: shopId),
+      testWidgets(
+        'home metrics and cash disclosure fit at $width in $brightness RTL',
+        (tester) async {
+          SharedPreferences.setMockInitialValues({});
+          tester.view.physicalSize = Size(width, 900);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final base = confirmedLedger();
+          final view = DailyLedgerView(
+            state: base.state,
+            entitlementStatus: base.entitlementStatus,
+            canConfirm: base.canConfirm,
+            businessDay: base.businessDay,
+            cash: base.cash,
+            stock: base.stock,
+            scrap: base.scrap,
+            feed: base.feed,
+            daySummary: const LedgerDaySummary(
+              salePiastres: '5000',
+              purchasePiastres: '2000',
+              expensePiastres: '500',
+              saleCount: 1,
+              purchaseCount: 1,
+              expenseCount: 1,
+              goldByBucket: [
+                LedgerGoldMovement(
+                  kind: 'sale',
+                  category: 'worked_jewelry',
+                  karat: 18,
+                  milligrams: '2000',
+                  count: '2',
+                ),
+                LedgerGoldMovement(
+                  kind: 'purchase',
+                  category: 'scrap',
+                  karat: 21,
+                  milligrams: '1250',
+                  count: '0',
+                ),
+              ],
+            ),
+          );
+          await tester.pumpWidget(
+            MaterialApp(
+              locale: const Locale('ar'),
+              theme: AppTheme.light(),
+              darkTheme: AppTheme.dark(),
+              themeMode: brightness == Brightness.dark
+                  ? ThemeMode.dark
+                  : ThemeMode.light,
+              home: Directionality(
+                textDirection: TextDirection.rtl,
+                child: Scaffold(
+                  body: SingleChildScrollView(
+                    child: ConfirmedLedgerDashboard(
+                      ledger: view,
+                      shopId: shopId,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-        expect(tester.takeException(), isNull);
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key('ledger-more-metrics')));
-        await tester.pumpAndSettle();
-        expect(find.text('حركة الذهب'), findsOneWidget);
-        await tester.ensureVisible(find.text('حركة الذهب'));
-        await tester.tap(find.text('حركة الذهب'));
-        await tester.pumpAndSettle();
-        expect(find.text('2.00 جرام'), findsOneWidget);
-        expect(find.text('بيع: 2.00 جرام'), findsOneWidget);
-        expect(
-          find.byKey(const Key('ledger-gold-sale-worked_jewelry-18')),
-          findsOneWidget,
-        );
-        await tester.ensureVisible(find.byKey(const Key('ledger-karat-21')));
-        await tester.tap(find.byKey(const Key('ledger-karat-21')));
-        await tester.pump();
-        expect(find.text('شراء: 1.25 جرام'), findsOneWidget);
-        expect(
-          find.byKey(const Key('ledger-gold-sale-worked_jewelry-18')),
-          findsNothing,
-        );
-        expect(
-          find.byKey(const Key('ledger-gold-purchase-scrap-21')),
-          findsOneWidget,
-        );
-        if (brightness == Brightness.light && width == 320) {
-          await tester.ensureVisible(
-            find.byKey(const Key('ledger-customize-movement')),
           );
-          await tester.tap(find.byKey(const Key('ledger-customize-movement')));
-          await tester.pump();
-          await tester.ensureVisible(find.byKey(const Key('ledger-show-sale')));
-          await tester.tap(find.byKey(const Key('ledger-show-sale')));
-          await tester.pump();
-          expect(find.byKey(const Key('ledger-movement-sale')), findsNothing);
-          await tester.ensureVisible(
-            find.byTooltip('نقل المشتريات إلى الأعلى'),
-          );
-          await tester.tap(find.byTooltip('نقل المشتريات إلى الأعلى'));
+          expect(tester.takeException(), isNull);
           await tester.pumpAndSettle();
-          final saved = (await SharedPreferences.getInstance()).getStringList(
-            'ledger_movement_layout_$shopId',
-          );
-          expect(saved?.first, 'purchase');
-          expect(saved, contains('hidden:sale'));
-        }
-      });
+          expect(find.text('حركة الذهب'), findsNothing);
+          expect(find.byKey(const Key('ledger-more-metrics')), findsNothing);
+          expect(find.byKey(const Key('ledger-metric-strip')), findsOneWidget);
+          expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
+          expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
+          await tester.tap(find.byKey(const Key('ledger-cash-methods')));
+          await tester.pumpAndSettle();
+          expect(find.byKey(const Key('ledger-cash-empty')), findsNothing);
+          await tester.tap(find.byKey(const Key('detail-close')));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
   }
   testWidgets(
@@ -522,9 +492,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('رصيد افتتاحي'), findsWidgets);
     expect(find.text('26 سبتمبر 2026، 03:30:00'), findsNothing);
-    await tester.tap(find.byKey(const Key('ledger-history-details')));
-    await tester.pumpAndSettle();
-    expect(find.text('26 سبتمبر 2026، 03:30:00'), findsOneWidget);
+    expect(find.textContaining('\u20663:30\u2069 ص'), findsWidgets);
     expect(find.textContaining('T'), findsNothing);
     expect(gateway.confirmCalls, 1);
   });
@@ -1095,15 +1063,15 @@ void main() {
 
     await pump();
     await tester.pumpAndSettle();
-    expect(find.text('متجر الأول'), findsOneWidget);
+    expect(find.textContaining('أهلاً متجر الأول'), findsOneWidget);
     expect(find.text('10,000'), findsWidgets);
     userId = 'user-2';
     await pump();
     await tester.pump();
-    expect(find.text('متجر الأول'), findsNothing);
+    expect(find.textContaining('أهلاً متجر الأول'), findsNothing);
     expect(find.text('10,000'), findsNothing);
     await tester.pumpAndSettle();
-    expect(find.text('متجر الثاني'), findsOneWidget);
+    expect(find.textContaining('أهلاً متجر الثاني'), findsOneWidget);
     await auth.controller.close();
   });
 

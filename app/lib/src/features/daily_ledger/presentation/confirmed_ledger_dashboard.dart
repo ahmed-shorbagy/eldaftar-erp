@@ -10,6 +10,7 @@ import '../domain/quantities.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/detail_surface.dart';
+import 'ledger_balance_sections.dart';
 import 'ledger_journal_table.dart';
 import 'ledger_quick_actions.dart';
 
@@ -64,22 +65,11 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
 }
 
 class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
-  static const _sections = ['metrics', 'movement', 'cash', 'gold', 'activity'];
-  static const _metricIds = [
-    'total_cash',
-    'total_gold',
-    'sale',
-    'purchase',
-    'sale_gold',
-    'purchase_gold',
-    'expense',
-    'operations',
-  ];
-  final _metricOrder = List<String>.of(_metricIds);
-  final _metricVisible = <String, bool>{for (final id in _metricIds) id: true};
+  static const _sections = ['metrics', 'activity'];
+  LedgerMetricLayout _metricLayout = migrateLedgerMetricLayout(null);
   bool _showReturns = true;
   final _visible = <String, bool>{
-    for (final section in _sections) section: section != 'movement',
+    for (final section in _sections) section: true,
   };
   final _order = List<String>.of(_sections);
   final _detailRevision = ValueNotifier<int>(0);
@@ -104,9 +94,8 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     if (oldWidget.shopId != widget.shopId) {
       _dismissDetails();
       _order.setAll(0, _sections);
-      _visible.updateAll((section, _) => section != 'movement');
-      _metricOrder.setAll(0, _metricIds);
-      _metricVisible.updateAll((_, _) => true);
+      _visible.updateAll((_, _) => true);
+      _metricLayout = migrateLedgerMetricLayout(null);
       _showReturns = true;
       _layoutEdited = false;
       _loadLayout();
@@ -131,23 +120,11 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     ordered.addAll(_sections.where((section) => !ordered.contains(section)));
     setState(() {
       _order.setAll(0, ordered);
-      final metricOrder = savedLayout
-          .where((key) => key.startsWith('metric:'))
-          .map((key) => key.substring(7))
-          .where(_metricIds.contains)
-          .toSet()
-          .toList();
-      metricOrder.addAll(_metricIds.where((id) => !metricOrder.contains(id)));
-      _metricOrder.setAll(0, metricOrder);
-      for (final id in _metricIds) {
-        _metricVisible[id] = !savedLayout.contains('hidden:metric:$id');
-      }
+      _metricLayout = migrateLedgerMetricLayout(savedLayout);
       _showReturns = !savedLayout.contains('hidden:returns');
       for (final section in _sections) {
-        _visible[section] = !savedLayout.contains('hidden:$section');
-        if (section == 'movement' && !savedLayout.contains('metrics')) {
-          _visible[section] = false;
-        }
+        _visible[section] =
+            section == 'metrics' || !savedLayout.contains('hidden:$section');
       }
     });
   }
@@ -158,9 +135,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     final key = _preferenceKey;
     final snapshot = [
       ..._order,
-      for (final id in _metricOrder) 'metric:$id',
-      for (final id in _metricIds)
-        if (!_metricVisible[id]!) 'hidden:metric:$id',
+      ...encodeLedgerMetricLayout(_metricLayout),
       if (!_showReturns) 'hidden:returns',
       for (final section in _sections)
         if (!_visible[section]!) 'hidden:$section',
@@ -178,28 +153,21 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   }
 
   void _move(String section, int direction) {
-    final sections = _order.where((s) => s != 'movement').toList();
-    final next = sections.indexOf(section) + direction;
-    if (next < 0 || next >= sections.length) return;
+    final next = _order.indexOf(section) + direction;
+    if (next < 0 || next >= _order.length) return;
     setState(() {
       final index = _order.indexOf(section);
-      final neighbor = _order.indexOf(sections[next]);
-      _order[index] = sections[next];
-      _order[neighbor] = section;
+      final neighbor = _order[next];
+      _order[index] = neighbor;
+      _order[next] = section;
     });
     _saveLayout();
   }
 
   void _moveMetric(String id, int direction) {
-    final metrics = _metricOrder;
-    final next = metrics.indexOf(id) + direction;
-    if (next < 0 || next >= metrics.length) return;
-    setState(() {
-      final index = _metricOrder.indexOf(id);
-      final neighbor = _metricOrder.indexOf(metrics[next]);
-      _metricOrder[index] = metrics[next];
-      _metricOrder[neighbor] = id;
-    });
+    setState(
+      () => _metricLayout = moveHomeMetric(_metricLayout, id, direction),
+    );
     _saveLayout();
   }
 
@@ -243,35 +211,8 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     _detailContext = null;
   }
 
-  void _showSummary() => _details('تفاصيل اليوم', (surface) {
-    final view = widget.ledger!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _metrics(
-          view,
-          _sum(view.stock.map((e) => e.milligrams)) +
-              _sum(view.scrap.map((e) => e.milligrams)),
-          detailed: true,
-        ),
-        if (view.daySummary != null) ...[
-          const SizedBox(height: 20),
-          _DailyMovementSection(
-            summary: view.daySummary!,
-            shopId: widget.shopId,
-          ),
-        ],
-        if (!_visible['cash']!) ...[
-          const SizedBox(height: 20),
-          _CashSection(view: view),
-        ],
-        if (!_visible['gold']!) ...[
-          const SizedBox(height: 20),
-          _GoldSection(view: view),
-        ],
-      ],
-    );
-  });
+  void _showCashMethods() =>
+      _details('وسائل الدفع', (_) => LedgerCashBreakdown(view: widget.ledger!));
 
   void _showHistory([String filter = 'all']) => _details(
     filter == 'return_source' ? 'اختر العملية الأصلية للمرتجع' : 'حركة الدفتر',
@@ -299,23 +240,39 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('الأقسام وترتيبها', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
         Text('الأرقام الظاهرة', style: theme.textTheme.titleMedium),
         Text(
-          'يظهر أعلى الدفتر أول ٥ أو ٦ أرقام حسب ترتيب التفضيل وعرض الهاتف. يمكن إظهار الباقي أو إعادة الترتيب من هنا.',
+          'يظهر في الدفتر ستة أرقام بالترتيب. الرقم السابع يظهر في المزيد.',
           style: theme.textTheme.bodySmall,
         ),
-        for (final id in _metricOrder)
-          _SectionControl(
-            section: id,
-            visible: _metricVisible[id]!,
-            first: _metricOrder.first == id,
-            last: _metricOrder.last == id,
-            onChanged: (value) {
-              setState(() => _metricVisible[id] = value);
+        const SizedBox(height: 8),
+        Text('الرقم في المزيد', style: theme.textTheme.titleSmall),
+        for (final id in ledgerMetricIds)
+          ListTile(
+            key: Key('ledger-remaining-$id'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(ledgerMetricLabel(id)),
+            selected: _metricLayout.remainingId == id,
+            leading: Icon(
+              _metricLayout.remainingId == id
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_off,
+            ),
+            onTap: () {
+              setState(
+                () => _metricLayout = replaceRemainingMetric(_metricLayout, id),
+              );
               _saveLayout();
             },
+          ),
+        const SizedBox(height: 8),
+        for (final id in _metricLayout.homeIds)
+          _SectionControl(
+            section: id,
+            visible: true,
+            first: _metricLayout.homeIds.first == id,
+            last: _metricLayout.homeIds.last == id,
+            onChanged: null,
             onUp: () => _moveMetric(id, -1),
             onDown: () => _moveMetric(id, 1),
           ),
@@ -328,27 +285,12 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
             _saveLayout();
           },
         ),
-        SwitchListTile(
-          key: const Key('ledger-show-metrics'),
-          title: const Text('ملخص الأرقام أعلى الدفتر'),
-          value: _visible['metrics']!,
-          onChanged: (value) {
-            setState(() => _visible['metrics'] = value);
-            _saveLayout();
-          },
-        ),
-        for (final section in _order.where(
-          (s) => s != 'movement' && s != 'metrics',
-        ))
+        for (final section in _order.where((s) => s != 'metrics'))
           _SectionControl(
             section: section,
             visible: _visible[section]!,
-            first:
-                _order.where((s) => s != 'movement' && s != 'metrics').first ==
-                section,
-            last:
-                _order.where((s) => s != 'movement' && s != 'metrics').last ==
-                section,
+            first: _order.where((s) => s != 'metrics').first == section,
+            last: _order.where((s) => s != 'metrics').last == section,
             onChanged: (value) {
               setState(() => _visible[section] = value);
               _saveLayout();
@@ -360,7 +302,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     );
   }
 
-  Widget _metrics(DailyLedgerView view, BigInt gold, {bool detailed = false}) {
+  Widget _metrics(DailyLedgerView view, BigInt gold) {
     final summary = view.daySummary;
     String money(String? wire) => wire == null
         ? '—'
@@ -377,141 +319,109 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
         BigInt.zero;
     final values = <String, _MetricSpec>{
       'total_cash': _MetricSpec(
-        'إجمالي النقدية',
+        ledgerMetricLabel('total_cash'),
         displayPounds(view.totalCashPounds ?? '—'),
         '',
         Icons.account_balance_wallet_outlined,
-        _MetricTone.primary,
+        LedgerMetricTone.primary,
       ),
       'total_gold': _MetricSpec(
-        'إجمالي الذهب',
+        ledgerMetricLabel('total_gold'),
         _grams(gold),
         'جرام',
         Icons.diamond_outlined,
-        _MetricTone.primary,
+        LedgerMetricTone.primary,
       ),
       'sale': _MetricSpec(
-        'إجمالي البيع',
+        ledgerMetricLabel('sale'),
         money(summary?.salePiastres),
-        detailed || summary == null
-            ? ''
-            : '${_grams(weight('sale'))} جرام مباع',
+        summary == null ? '' : '${_grams(weight('sale'))} جرام مباع',
         Icons.trending_up,
-        _MetricTone.positive,
+        LedgerMetricTone.positive,
       ),
       'purchase': _MetricSpec(
-        'إجمالي الشراء',
+        ledgerMetricLabel('purchase'),
         money(summary?.purchasePiastres),
-        detailed || summary == null
-            ? ''
-            : '${_grams(weight('purchase'))} جرام مشترى',
+        summary == null ? '' : '${_grams(weight('purchase'))} جرام مشترى',
         Icons.trending_down,
-        _MetricTone.negative,
+        LedgerMetricTone.negative,
       ),
       'expense': _MetricSpec(
-        'المصروفات',
+        ledgerMetricLabel('expense'),
         money(summary?.expensePiastres),
         '',
         Icons.receipt_long_outlined,
-        _MetricTone.neutral,
-      ),
-      'operations': _MetricSpec(
-        'عدد العمليات',
-        summary == null
-            ? '—'
-            : '${summary.saleCount + summary.purchaseCount + summary.expenseCount}',
-        '',
-        Icons.tag_outlined,
-        _MetricTone.neutral,
+        LedgerMetricTone.neutral,
       ),
       'sale_gold': _MetricSpec(
-        'ذهب مباع',
+        ledgerMetricLabel('sale_gold'),
         _grams(weight('sale')),
         'جرام',
         Icons.south_west,
-        _MetricTone.positive,
+        LedgerMetricTone.positive,
       ),
       'purchase_gold': _MetricSpec(
-        'ذهب مشترى',
+        ledgerMetricLabel('purchase_gold'),
         _grams(weight('purchase')),
         'جرام',
         Icons.south_east,
-        _MetricTone.negative,
+        LedgerMetricTone.negative,
       ),
     };
-    final visible = _metricOrder.where((id) => _metricVisible[id]!).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        LayoutBuilder(
-          builder: (context, size) {
-            final textScale = MediaQuery.textScalerOf(context).scale(1);
-            final shown = detailed
-                ? visible
-                : visible
-                      .take(
-                        ledgerHomeMetricSlots(
-                          width: size.maxWidth,
-                          textScale: textScale,
-                        ),
-                      )
-                      .toList();
-            if (!detailed) {
-              return SingleChildScrollView(
-                key: const Key('ledger-metric-strip'),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final id in shown)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 8),
-                        child: SizedBox(
-                          width: _metricWidth(
-                            context,
-                            values[id]!.value,
-                            size.maxWidth < 390 ? 148 : 168,
-                          ),
-                          child: _metricTile(id, values[id]!, detailed: false),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            }
-            final columns = size.maxWidth < 260 || textScale > 1.6 ? 1 : 2;
-            const gap = 10.0;
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: [
-                for (final id in shown)
-                  SizedBox(
-                    width: (size.maxWidth - gap * (columns - 1)) / columns,
-                    child: _metricTile(id, values[id]!, detailed: true),
+    final shown = _metricLayout.homeIds;
+    return LayoutBuilder(
+      builder: (context, size) {
+        return SingleChildScrollView(
+          key: const Key('ledger-metric-strip'),
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final id in shown)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: SizedBox(
+                    width: _metricWidth(
+                      context,
+                      values[id]!.value,
+                      size.maxWidth < 390 ? 148 : 168,
+                    ),
+                    child: _metricTile(id, values[id]!),
                   ),
-              ],
-            );
-          },
-        ),
-      ],
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _metricTile(String id, _MetricSpec spec, {required bool detailed}) =>
-      _MetricTile(
-        key: Key(
-          detailed
-              ? 'ledger-detail-$id'
-              : id == 'total_cash'
-              ? 'ledger-total-cash'
-              : id == 'total_gold'
-              ? 'ledger-total-gold'
-              : 'ledger-metric-$id',
-        ),
-        spec: spec,
-        compact: !detailed,
-      );
+  Widget _metricTile(String id, _MetricSpec spec) {
+    final cash = id == 'total_cash';
+    return LedgerMetricTile(
+      key: Key(
+        id == 'total_cash'
+            ? 'ledger-total-cash'
+            : id == 'total_gold'
+            ? 'ledger-total-gold'
+            : 'ledger-metric-$id',
+      ),
+      label: spec.label,
+      value: spec.value,
+      unit: spec.unit,
+      icon: spec.icon,
+      tone: spec.tone,
+      compact: true,
+      trailing: cash
+          ? IconButton(
+              key: const Key('ledger-cash-methods'),
+              tooltip: 'وسائل الدفع',
+              onPressed: _showCashMethods,
+              icon: const Icon(Icons.keyboard_arrow_left),
+            )
+          : null,
+    );
+  }
 
   double _metricWidth(BuildContext context, String value, double minimum) {
     final painter = TextPainter(
@@ -616,65 +526,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
             ..._order.where((s) => s != 'metrics'),
           ])
             if (_visible[section]!) ...[
-              if (section == 'metrics') ...[
-                _metrics(view, goldWeight),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: TextButton.icon(
-                    key: const Key('ledger-more-metrics'),
-                    onPressed: _showSummary,
-                    label: const Text('عرض المزيد'),
-                    icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                  ),
-                ),
-              ],
-              if ((section == 'cash' || section == 'gold') &&
-                  section ==
-                      _order.firstWhere(
-                        (s) => _visible[s]! && (s == 'cash' || s == 'gold'),
-                      ))
-                LayoutBuilder(
-                  builder: (context, size) {
-                    final links = _order
-                        .where(
-                          (s) => _visible[s]! && (s == 'cash' || s == 'gold'),
-                        )
-                        .toList();
-                    final columns =
-                        size.maxWidth < 260 ||
-                            MediaQuery.textScalerOf(context).scale(14) > 20
-                        ? 1
-                        : links.length;
-                    return Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final link in links)
-                          SizedBox(
-                            width:
-                                (size.maxWidth - 10 * (columns - 1)) / columns,
-                            child: _DetailLink(
-                              key: Key('ledger-view-$link'),
-                              title: link == 'cash'
-                                  ? 'أرصدة النقدية'
-                                  : 'المخزون والكسر',
-                              icon: link == 'cash'
-                                  ? Icons.account_balance_wallet_outlined
-                                  : Icons.diamond_outlined,
-                              onTap: () => _details(
-                                link == 'cash'
-                                    ? 'أرصدة النقدية'
-                                    : 'المخزون والكسر',
-                                (_) => link == 'cash'
-                                    ? _CashSection(view: widget.ledger!)
-                                    : _GoldSection(view: widget.ledger!),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+              if (section == 'metrics') _metrics(view, goldWeight),
               if (section == 'activity') ...[
                 const SizedBox(height: 12),
                 _JournalPreview(
@@ -688,56 +540,18 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                 ),
               ],
             ],
-          if (!_visible['metrics']! || !_visible['activity']!)
-            Wrap(
-              spacing: 12,
-              children: [
-                if (!_visible['metrics']!)
-                  TextButton(
-                    onPressed: _showSummary,
-                    child: const Text('تفاصيل اليوم'),
-                  ),
-                if (!_visible['activity']!)
-                  TextButton(
-                    onPressed: _showHistory,
-                    child: const Text('عرض حركة الدفتر'),
-                  ),
-              ],
+          if (!_visible['activity']!)
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: _showHistory,
+                child: const Text('عرض حركة الدفتر'),
+              ),
             ),
         ],
       ),
     );
   }
-}
-
-class _DetailLink extends StatelessWidget {
-  const _DetailLink({
-    super.key,
-    required this.title,
-    required this.icon,
-    required this.onTap,
-  });
-  final String title;
-  final IconData icon;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => OutlinedButton(
-    onPressed: onTap,
-    style: OutlinedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, size: 20),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.titleSmall),
-        ),
-        const Icon(Icons.chevron_left_rounded, size: 16),
-      ],
-    ),
-  );
 }
 
 /// Separate, bounded journals keep the owner's books visible on home.
@@ -866,12 +680,12 @@ class _JournalPreviewState extends State<_JournalPreview> {
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Text('لا توجد عمليات حتى الآن.'),
                   ),
-                for (final line in journal.$3.take(
-                  journal.$1 == 'return' ? 1 : 3,
-                ))
+                for (final (index, line)
+                    in journal.$3.take(journal.$1 == 'return' ? 1 : 3).indexed)
                   LedgerOperationTable(
                     key: ValueKey('${line.kind}-${line.operationId}'),
                     line: line,
+                    position: index + 1,
                     showDetails: _details[journal.$1] ?? false,
                     loadItems: widget.loadItems,
                     onOpen: widget.onOperation == null
@@ -1044,19 +858,13 @@ class _OperationsPanel extends StatelessWidget {
 
 String _label(String section) => switch (section) {
   'metrics' => 'ملخص الأرقام',
-  'total_cash' => 'إجمالي النقدية',
-  'total_gold' => 'إجمالي الذهب',
-  'sale_gold' => 'ذهب مباع',
-  'purchase_gold' => 'ذهب مشترى',
-  'operations' => 'عدد العمليات',
-
-  'movement' => 'حركة اليوم',
-  'sale' => 'المبيعات',
-  'purchase' => 'المشتريات',
-  'expense' => 'المصروفات',
-  'gold_movement' => 'حركة الذهب',
-  'cash' => 'النقدية',
-  'gold' => 'الذهب',
+  'total_cash' ||
+  'total_gold' ||
+  'sale' ||
+  'purchase' ||
+  'sale_gold' ||
+  'purchase_gold' ||
+  'expense' => ledgerMetricLabel(section),
   _ => 'حركة الدفتر',
 };
 
@@ -1075,7 +883,7 @@ class _SectionControl extends StatelessWidget {
   final bool visible;
   final bool first;
   final bool last;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
   final VoidCallback onUp;
   final VoidCallback onDown;
 
@@ -1083,13 +891,19 @@ class _SectionControl extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [
       Expanded(
-        child: SwitchListTile.adaptive(
-          key: Key('ledger-show-$section'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(_label(section)),
-          value: visible,
-          onChanged: onChanged,
-        ),
+        child: onChanged == null
+            ? ListTile(
+                key: Key('ledger-show-$section'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(_label(section)),
+              )
+            : SwitchListTile.adaptive(
+                key: Key('ledger-show-$section'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(_label(section)),
+                value: visible,
+                onChanged: onChanged,
+              ),
       ),
       IconButton(
         tooltip: 'نقل ${_label(section)} إلى الأعلى',
@@ -1103,616 +917,6 @@ class _SectionControl extends StatelessWidget {
       ),
     ],
   );
-}
-
-class _DailyMovementSection extends StatefulWidget {
-  const _DailyMovementSection({required this.summary, required this.shopId});
-  final LedgerDaySummary summary;
-  final String shopId;
-
-  @override
-  State<_DailyMovementSection> createState() => _DailyMovementSectionState();
-}
-
-class _DailyMovementSectionState extends State<_DailyMovementSection> {
-  static const _cards = ['sale', 'purchase', 'expense', 'gold_movement'];
-  final _order = List<String>.of(_cards);
-  final _visible = <String, bool>{for (final card in _cards) card: true};
-  bool _customizing = false;
-  bool _layoutEdited = false;
-  Future<void> _saveTail = Future<void>.value();
-
-  String get _key => 'ledger_movement_layout_${widget.shopId}';
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void didUpdateWidget(covariant _DailyMovementSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.shopId != widget.shopId) {
-      _order.setAll(0, _cards);
-      _visible.updateAll((_, _) => true);
-      _layoutEdited = false;
-      _load();
-    }
-  }
-
-  Future<void> _load() async {
-    final key = _key;
-    List<String>? saved;
-    try {
-      saved = (await SharedPreferences.getInstance()).getStringList(key);
-    } catch (_) {
-      return;
-    }
-    if (!mounted || key != _key || _layoutEdited || saved == null) return;
-    final order = saved.where(_cards.contains).toSet().toList();
-    order.addAll(_cards.where((card) => !order.contains(card)));
-    setState(() {
-      _order.setAll(0, order);
-      for (final card in _cards) {
-        _visible[card] = !saved!.contains('hidden:$card');
-      }
-    });
-  }
-
-  void _save() {
-    _layoutEdited = true;
-    final key = _key;
-    final snapshot = [
-      ..._order,
-      for (final card in _cards)
-        if (!_visible[card]!) 'hidden:$card',
-    ];
-    _saveTail = _saveTail.then((_) async {
-      try {
-        await (await SharedPreferences.getInstance()).setStringList(
-          key,
-          snapshot,
-        );
-      } catch (_) {
-        // The current screen still reflects the owner's choice.
-      }
-    });
-  }
-
-  void _move(String card, int direction) {
-    final available = _order
-        .where(
-          (entry) =>
-              entry != 'gold_movement' ||
-              widget.summary.goldByBucket.isNotEmpty,
-        )
-        .toList();
-    final from = available.indexOf(card);
-    final to = from + direction;
-    if (to < 0 || to >= available.length) return;
-    final first = _order.indexOf(card);
-    final second = _order.indexOf(available[to]);
-    setState(() {
-      _order[first] = available[to];
-      _order[second] = card;
-    });
-    _save();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final summary = widget.summary;
-    final cards = _order
-        .where(
-          (card) => card != 'gold_movement' || summary.goldByBucket.isNotEmpty,
-        )
-        .toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('حركة يوم العمل', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          'المبيعات والمشتريات',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: TextButton.icon(
-            key: const Key('ledger-customize-movement'),
-            onPressed: () => setState(() => _customizing = !_customizing),
-            icon: const Icon(Icons.tune),
-            label: Text(
-              _customizing ? 'إغلاق ترتيب البطاقات' : 'ترتيب البطاقات',
-            ),
-          ),
-        ),
-        if (_customizing)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  for (final card in cards)
-                    _SectionControl(
-                      section: card,
-                      visible: _visible[card]!,
-                      first: cards.first == card,
-                      last: cards.last == card,
-                      onChanged: (value) {
-                        setState(() => _visible[card] = value);
-                        _save();
-                      },
-                      onUp: () => _move(card, -1),
-                      onDown: () => _move(card, 1),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final itemWidth = width >= 540
-                ? (width - 24) / 3
-                : width >= 300
-                ? (width - 12) / 2
-                : width;
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final card in cards)
-                  if (_visible[card]!)
-                    switch (card) {
-                      'sale' => _DailyMovementCard(
-                        key: const Key('ledger-movement-sale'),
-                        width: itemWidth,
-                        title: 'المبيعات',
-                        amount: _money(summary.salePiastres),
-                        count: summary.saleCount,
-                        icon: Icons.trending_up,
-                      ),
-                      'purchase' => _DailyMovementCard(
-                        key: const Key('ledger-movement-purchase'),
-                        width: itemWidth,
-                        title: 'المشتريات',
-                        amount: _money(summary.purchasePiastres),
-                        count: summary.purchaseCount,
-                        icon: Icons.inventory_2_outlined,
-                      ),
-                      'expense' => _DailyMovementCard(
-                        key: const Key('ledger-movement-expense'),
-                        width: itemWidth,
-                        title: 'المصروفات',
-                        amount: _money(summary.expensePiastres),
-                        count: summary.expenseCount,
-                        icon: Icons.receipt_long_outlined,
-                      ),
-                      _ => SizedBox(
-                        width: width,
-                        child: ExpansionTile(
-                          title: const Text('حركة الذهب'),
-                          children: [_GoldMovementSection(summary: summary)],
-                        ),
-                      ),
-                    },
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 4),
-      ],
-    );
-  }
-}
-
-class _DailyMovementCard extends StatelessWidget {
-  const _DailyMovementCard({
-    super.key,
-    required this.width,
-    required this.title,
-    required this.amount,
-    required this.count,
-    required this.icon,
-  });
-
-  final double width;
-  final String title;
-  final String amount;
-  final int count;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return SizedBox(
-      width: width,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.55),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(icon, size: 18, color: scheme.primary),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(title, style: theme.textTheme.titleSmall),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                amount,
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                'عدد العمليات: $count',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GoldMovementSection extends StatefulWidget {
-  const _GoldMovementSection({required this.summary});
-  final LedgerDaySummary summary;
-
-  @override
-  State<_GoldMovementSection> createState() => _GoldMovementSectionState();
-}
-
-class _GoldMovementSectionState extends State<_GoldMovementSection> {
-  int? _selectedKarat;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final karats = widget.summary.goldByBucket.map((line) => line.karat).toSet()
-      ..removeWhere((karat) => !const {14, 18, 21, 22, 24}.contains(karat));
-    final orderedKarats = karats.toList()..sort();
-    if (orderedKarats.isEmpty) return const SizedBox.shrink();
-    final selected = orderedKarats.contains(_selectedKarat)
-        ? _selectedKarat!
-        : orderedKarats.first;
-    final lines = [
-      for (final movement in widget.summary.goldByBucket)
-        if (movement.karat == selected) movement,
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 8),
-        Text('حركة الذهب', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          'اختر العيار لعرض وزن البيع والشراء، ثم تفاصيل النوع والعدد',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (var index = 0; index < orderedKarats.length; index++) ...[
-                if (index > 0) const SizedBox(width: 8),
-                ChoiceChip(
-                  key: Key('ledger-karat-${orderedKarats[index]}'),
-                  label: Text('عيار ${orderedKarats[index]}'),
-                  selected: orderedKarats[index] == selected,
-                  materialTapTargetSize: MaterialTapTargetSize.padded,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 8,
-                  ),
-                  onSelected: (_) =>
-                      setState(() => _selectedKarat = orderedKarats[index]),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: theme.colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'إجمالي عيار $selected',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'بيع: ${_grams(widget.summary.goldMilligrams(kind: 'sale', karat: selected))} جرام',
-                  key: const Key('ledger-karat-sale-total'),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'شراء: ${_grams(widget.summary.goldMilligrams(kind: 'purchase', karat: selected))} جرام',
-                  key: const Key('ledger-karat-purchase-total'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (lines.isEmpty)
-          Text(
-            'لا تفاصيل لهذا العيار في حركة اليوم.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          )
-        else
-          for (var index = 0; index < lines.length; index++) ...[
-            if (index > 0) const SizedBox(height: 10),
-            _GoldMovementLine(movement: lines[index]),
-          ],
-      ],
-    );
-  }
-}
-
-class _GoldMovementLine extends StatelessWidget {
-  const _GoldMovementLine({required this.movement});
-
-  final LedgerGoldMovement movement;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final sale = movement.kind == 'sale';
-    return Card(
-      key: Key(
-        'ledger-gold-${movement.kind}-${movement.category}-${movement.karat}',
-      ),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              sale ? Icons.north_east : Icons.south_west,
-              color: scheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${sale ? 'بيع' : 'شراء'} · '
-                    '${_goldCategoryLabel(movement.category)} · عيار ${movement.karat}',
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  if (movement.category != 'scrap') ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'عدد القطع: ${movement.count}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '${_grams(BigInt.parse(movement.milligrams))} جرام',
-              textDirection: TextDirection.ltr,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _money(String wire) {
-  final parsed = Piastres.parseWire(wire);
-  return parsed is Accepted<Piastres>
-      ? displayPounds(parsed.value.poundsText)
-      : '—';
-}
-
-String _goldCategoryLabel(String category) => switch (category) {
-  'worked_jewelry' || 'jewelry' => 'مشغولات',
-  'bullion' => 'سبائك',
-  'coin' => 'جنيهات',
-  'scrap' => 'كسر',
-  _ => 'ذهب',
-};
-
-class _CashSection extends StatelessWidget {
-  const _CashSection({required this.view});
-  final DailyLedgerView view;
-  @override
-  Widget build(BuildContext context) => _SectionCard(
-    title: 'النقدية',
-    subtitle: 'توزيع الأرصدة حسب وسيلة الدفع',
-    icon: Icons.payments_outlined,
-    child: view.cash.isEmpty
-        ? const Text('لا توجد أرصدة نقدية.')
-        : LayoutBuilder(
-            builder: (context, size) {
-              final columns = size.maxWidth >= 360 ? 2 : 1;
-              final gap = 10.0;
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  for (final line in view.cash)
-                    SizedBox(
-                      width: columns == 1
-                          ? size.maxWidth
-                          : (size.maxWidth - gap) / 2,
-                      child: _FlagTile(
-                        accent: Theme.of(context).colorScheme.primary,
-                        icon: _paymentIcon(line.method),
-                        title: line.labelAr,
-                        value: displayPounds(line.pounds),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-  );
-}
-
-class _GoldSection extends StatelessWidget {
-  const _GoldSection({required this.view});
-  final DailyLedgerView view;
-  @override
-  Widget build(BuildContext context) {
-    final byKarat = <int, BigInt>{};
-    for (final line in view.stock) {
-      byKarat.update(
-        line.karat,
-        (v) => v + BigInt.parse(line.milligrams),
-        ifAbsent: () => BigInt.parse(line.milligrams),
-      );
-    }
-    for (final line in view.scrap) {
-      byKarat.update(
-        line.karat,
-        (v) => v + BigInt.parse(line.milligrams),
-        ifAbsent: () => BigInt.parse(line.milligrams),
-      );
-    }
-    final karats = byKarat.keys.toList()..sort((a, b) => b.compareTo(a));
-    final groups = <String, List<({int karat, String grams, String? count})>>{};
-    final labels = <String, String>{};
-    for (final line in view.stock) {
-      labels.putIfAbsent(
-        line.category,
-        () => line.labelAr.isNotEmpty
-            ? line.labelAr
-            : _goldCategoryLabel(line.category),
-      );
-      groups.putIfAbsent(line.category, () => []).add((
-        karat: line.karat,
-        grams: line.grams,
-        count: line.count,
-      ));
-    }
-    if (view.scrap.isNotEmpty) {
-      labels['scrap'] = _goldCategoryLabel('scrap');
-      groups['scrap'] = [
-        for (final line in view.scrap)
-          (karat: line.karat, grams: line.grams, count: null),
-      ];
-    }
-    final categoryOrder = [
-      'worked_jewelry',
-      'jewelry',
-      'bullion',
-      'coin',
-      'scrap',
-      ...groups.keys.where(
-        (key) => !const {
-          'worked_jewelry',
-          'jewelry',
-          'bullion',
-          'coin',
-          'scrap',
-        }.contains(key),
-      ),
-    ].where(groups.containsKey).toList();
-
-    return _SectionCard(
-      title: 'الذهب حسب العيار',
-      subtitle: 'إجمالي المخزون والكسر لكل عيار',
-      icon: Icons.scale_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (karats.isEmpty)
-            const Text('لا توجد أرصدة ذهب.')
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final karat in karats)
-                  _KaratFlag(
-                    karat: karat,
-                    weight: '${_grams(byKarat[karat]!)} جرام',
-                  ),
-              ],
-            ),
-          ExpansionTile(
-            key: const Key('ledger-inventory-details'),
-            tilePadding: EdgeInsets.zero,
-            title: const Text('المخزون والكسر'),
-            children: [
-              for (final category in categoryOrder)
-                _InventoryCategoryBlock(
-                  category: category,
-                  label: labels[category] ?? _goldCategoryLabel(category),
-                  items: groups[category]!,
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ActivitySection extends StatefulWidget {
@@ -1824,10 +1028,11 @@ class _ActivitySectionState extends State<_ActivitySection> {
             padding: EdgeInsets.all(16),
             child: Text('لا توجد عمليات حتى الآن.'),
           ),
-        for (final line in shown)
+        for (final (index, line) in shown.indexed)
           LedgerOperationTable(
             key: ValueKey('${line.kind}-${line.operationId}'),
             line: line,
+            position: index + 1,
             showDetails: _showDetails,
             loadItems: widget.loadItems,
             onOpen: widget.onOperation == null
@@ -1851,502 +1056,14 @@ class _ActivitySectionState extends State<_ActivitySection> {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.child,
-  });
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.55)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Icon(icon, size: 20, color: scheme.primary),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: theme.textTheme.titleMedium),
-                      if (subtitle.isNotEmpty)
-                        Text(
-                          subtitle,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            height: 1.35,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-enum _MetricTone { primary, positive, negative, neutral }
-
 class _MetricSpec {
   const _MetricSpec(this.label, this.value, this.unit, this.icon, this.tone);
-
   final String label;
   final String value;
   final String unit;
   final IconData icon;
-  final _MetricTone tone;
+  final LedgerMetricTone tone;
 }
-
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({super.key, required this.spec, this.compact = false});
-
-  final _MetricSpec spec;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final (Color accent, Color wash) = switch (spec.tone) {
-      _MetricTone.primary => (
-        scheme.primary,
-        scheme.primary.withValues(alpha: 0.14),
-      ),
-      _MetricTone.positive => (
-        scheme.tertiary,
-        scheme.tertiary.withValues(alpha: 0.16),
-      ),
-      _MetricTone.negative => (
-        scheme.error,
-        scheme.error.withValues(alpha: 0.12),
-      ),
-      _MetricTone.neutral => (
-        scheme.onSurfaceVariant,
-        scheme.surfaceContainerHighest.withValues(alpha: 0.7),
-      ),
-    };
-    return Semantics(
-      label: [
-        spec.label,
-        spec.value,
-        if (spec.unit.isNotEmpty) spec.unit,
-      ].join(' '),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppSemanticColors.of(context).goldFrame),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            compact ? 10 : 14,
-            compact ? 10 : 14,
-            compact ? 10 : 14,
-            compact ? 10 : 14,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: wash,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(spec.icon, size: 18, color: accent),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      spec.label,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.25,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: MediaQuery.textScalerOf(context).scale(30),
-                child: FittedBox(
-                  alignment: AlignmentDirectional.centerStart,
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    spec.value,
-                    maxLines: 1,
-                    textDirection: TextDirection.ltr,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
-                  ),
-                ),
-              ),
-              Text(
-                spec.unit.isEmpty ? ' ' : spec.unit,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FlagTile extends StatelessWidget {
-  const _FlagTile({
-    required this.accent,
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
-
-  final Color accent;
-  final IconData icon;
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: const BorderRadiusDirectional.only(
-                  topStart: Radius.circular(20),
-                  bottomStart: Radius.circular(20),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(icon, size: 18, color: accent),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      value,
-                      textDirection: TextDirection.ltr,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KaratFlag extends StatelessWidget {
-  const _KaratFlag({required this.karat, required this.weight});
-
-  final int karat;
-  final String weight;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Semantics(
-      label: 'عيار $karat $weight',
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.primaryContainer.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: scheme.primary.withValues(alpha: 0.4)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _KaratBadge(karat: karat, fill: scheme.primary),
-              const SizedBox(height: 8),
-              Text(
-                weight,
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _KaratBadge extends StatelessWidget {
-  const _KaratBadge({required this.karat, required this.fill});
-
-  final int karat;
-  final Color fill;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final onFill = fill == scheme.error
-        ? scheme.onError
-        : fill == scheme.tertiary
-        ? scheme.onTertiary
-        : fill == scheme.secondary
-        ? scheme.onSecondary
-        : scheme.onPrimary;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Text(
-          'عيار $karat',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: onFill,
-            fontWeight: FontWeight.w800,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InventoryCategoryBlock extends StatelessWidget {
-  const _InventoryCategoryBlock({
-    required this.category,
-    required this.label,
-    required this.items,
-  });
-
-  final String category;
-  final String label;
-  final List<({int karat, String grams, String? count})> items;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final accent = _categoryAccent(scheme, category);
-    final icon = _categoryIcon(category);
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, bottom: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(icon, size: 18, color: accent),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                  ),
-                ),
-              ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const SizedBox(width: 18, height: 8),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final item in items)
-                _InventoryPiece(
-                  accent: accent,
-                  karat: item.karat,
-                  grams: item.grams,
-                  count: item.count,
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InventoryPiece extends StatelessWidget {
-  const _InventoryPiece({
-    required this.accent,
-    required this.karat,
-    required this.grams,
-    this.count,
-  });
-
-  final Color accent;
-  final int karat;
-  final String grams;
-  final String? count;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Semantics(
-      label: [
-        'عيار $karat',
-        if (count != null) '$count قطعة',
-        '${displayGrams(grams)} جرام',
-      ].join(' '),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: accent.withValues(alpha: 0.45)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _KaratBadge(karat: karat, fill: accent),
-              const SizedBox(height: 8),
-              Text(
-                '${displayGrams(grams)} جرام',
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (count != null)
-                Text(
-                  '$count قطعة',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Color _categoryAccent(ColorScheme scheme, String category) =>
-    switch (category) {
-      'worked_jewelry' || 'jewelry' => scheme.primary,
-      'bullion' => scheme.tertiary,
-      'coin' => scheme.secondary,
-      'scrap' => scheme.error,
-      _ => scheme.onSurfaceVariant,
-    };
-
-IconData _categoryIcon(String category) => switch (category) {
-  'worked_jewelry' || 'jewelry' => Icons.diamond_outlined,
-  'bullion' => Icons.view_in_ar_outlined,
-  'coin' => Icons.monetization_on_outlined,
-  'scrap' => Icons.content_cut_outlined,
-  _ => Icons.category_outlined,
-};
 
 BigInt _sum(Iterable<String> values) => values.fold(
   BigInt.zero,
@@ -2354,11 +1071,3 @@ BigInt _sum(Iterable<String> values) => values.fold(
 );
 
 String _grams(BigInt milligrams) => displayGrams(milligrams.toString());
-
-IconData _paymentIcon(String method) => switch (method) {
-  'cash' => Icons.payments_outlined,
-  'card' => Icons.credit_card_outlined,
-  'wallet' => Icons.account_balance_wallet_outlined,
-  'instant_transfer' => Icons.bolt_outlined,
-  _ => Icons.savings_outlined,
-};

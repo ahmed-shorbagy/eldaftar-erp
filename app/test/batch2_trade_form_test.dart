@@ -300,7 +300,7 @@ void main() {
     expect(catalog.denomCursors, contains('bars-2'));
   });
 
-  testWidgets('other selects catalog rows and still allows a manual name', (
+  testWidgets('other opens a text-only predefined grid without inventory', (
     tester,
   ) async {
     final catalog = Batch2Catalog(
@@ -333,97 +333,54 @@ void main() {
         ),
       ),
     );
-    final loadsBefore = catalog.productCursors.length;
     await chooseTradeItem(tester, 'أخرى');
-    expect(find.byKey(const Key('trade-catalog-table')), findsOneWidget);
-    expect(find.byKey(const Key('trade-product-p1')), findsOneWidget);
-    expect(find.byKey(const Key('trade-product-p2')), findsNothing);
-    await revealTrade(tester, find.byKey(const Key('trade-product-p1')));
-    await tester.tap(find.byKey(const Key('trade-product-p1')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-select-name')))
-          .controller
-          ?.text,
-      'خاتم ملكي',
-    );
-    await revealTrade(tester, find.byKey(const Key('trade-catalog-more')));
-    await tester.tap(find.byKey(const Key('trade-catalog-more')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('trade-product-p2')), findsOneWidget);
-    await revealTrade(tester, find.byKey(const Key('trade-product-p2')));
-    await tester.tap(find.byKey(const Key('trade-product-p2')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-select-name')))
-          .controller
-          ?.text,
-      'سلسلة نادرة',
-    );
-    final beforeInventory = catalog.productCursors.length;
-    await revealTrade(tester, find.byKey(const Key('trade-open-inventory')));
-    await tester.tap(find.byKey(const Key('trade-open-inventory')));
-    await tester.pumpAndSettle();
-    expect(find.text('رجوع من المخزون'), findsOneWidget);
-    await tester.tap(find.text('رجوع من المخزون'));
-    await tester.pumpAndSettle();
-    expect(openedInventory, isTrue);
-    expect(catalog.productCursors.length, greaterThan(beforeInventory));
-    expect(loadsBefore, greaterThan(0));
-
-    final manual = Batch2TradeGateway();
-    await pumpTradeScreen(
-      tester,
-      gateway: manual,
-      statusGateway: manual,
-      kind: FinancialKind.sale,
-    );
-    await chooseTradeItem(tester, 'أخرى');
-    expect(find.byKey(const Key('trade-catalog-manual')), findsOneWidget);
+    expect(find.byKey(const Key('trade-other-grid')), findsOneWidget);
     expect(find.byKey(const Key('trade-catalog-table')), findsNothing);
-    await enterTradeField(tester, const Key('trade-select-name'), 'قطعة خاصة');
+    expect(find.byKey(const Key('trade-open-inventory')), findsNothing);
+    expect(find.byKey(const Key('trade-select-name')), findsNothing);
+    expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
+    await revealTrade(tester, find.byKey(const Key('trade-select-غويشة')));
+    await tester.tap(find.byKey(const Key('trade-select-غويشة')));
+    await tester.pumpAndSettle();
+    expect(openedInventory, isFalse);
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '50');
     await reviewTrade(tester);
-    expect(find.textContaining('قطعة خاصة'), findsWidgets);
+    expect(find.textContaining('غويشة'), findsWidgets);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(
-      (manual.payloads.single['items'] as List).single['item_name'],
-      'قطعة خاصة',
+      (gateway.payloads.single['items'] as List).single['item_name'],
+      'غويشة',
+    );
+    expect(
+      (gateway.payloads.single['items'] as List).single['category'],
+      'worked_jewelry',
     );
   });
 
-  testWidgets('catalog failure offers retry and keeps manual entry', (
+  testWidgets('other grid rejects an empty selection without typing', (
     tester,
   ) async {
-    final catalog = Batch2Catalog()..productFailures = 1;
     final gateway = Batch2TradeGateway();
     await pumpTradeScreen(
       tester,
       gateway: gateway,
       statusGateway: gateway,
       kind: FinancialKind.sale,
-      catalog: catalog,
     );
     await chooseTradeItem(tester, 'أخرى');
-    expect(find.byKey(const Key('trade-catalog-retry')), findsOneWidget);
-    catalog.productsPage = ReadPage.ready([
-      tradeProduct(id: 'p1', name: 'خاتم ملكي'),
-    ], null);
-    await tester.tap(find.byKey(const Key('trade-catalog-retry')));
+    expect(find.byKey(const Key('trade-other-grid')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-name')), findsNothing);
+    await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '50');
+    await reviewTrade(tester);
+    expect(find.text('اختر الصنف.'), findsOneWidget);
+    await revealTrade(tester, find.byKey(const Key('trade-select-طقم')));
+    await tester.tap(find.byKey(const Key('trade-select-طقم')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('trade-product-p1')), findsOneWidget);
-    await enterTradeField(tester, const Key('trade-select-name'), 'اسم يدوي');
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-select-name')))
-          .controller
-          ?.text,
-      'اسم يدوي',
-    );
+    await reviewTrade(tester);
+    expect(find.textContaining('طقم'), findsWidgets);
   });
 
   testWidgets('unknown sale keeps one key and ignores a duplicate tap', (
@@ -529,7 +486,8 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-send-invoice')));
     await tester.pumpAndSettle();
     expect(find.text('إرسال عبر واتساب'), findsOneWidget);
-    expect(find.textContaining('12 أكتوبر 2026، 15:04:05'), findsOneWidget);
+    expect(find.textContaining('\u20663:04\u2069 م'), findsOneWidget);
+    expect(find.textContaining('أكتوبر'), findsNothing);
     expect(find.textContaining('رقم العملية: 42'), findsOneWidget);
     expect(ready.operationIds, [tradeOperationId, tradeOperationId]);
 
@@ -557,7 +515,8 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-send-invoice')));
     await tester.pumpAndSettle();
     expect(reconciled.operationIds, [tradeCompletedId, tradeCompletedId]);
-    expect(find.textContaining('12 أكتوبر 2026، 15:04:05'), findsOneWidget);
+    expect(find.textContaining('\u20663:04\u2069 م'), findsOneWidget);
+    expect(find.textContaining('أكتوبر'), findsNothing);
   });
 
   testWidgets('purchase confirmation does not offer invoice dispatch', (

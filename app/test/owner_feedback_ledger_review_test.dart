@@ -51,6 +51,11 @@ class ReviewGateway extends FakeFinancialGateway
             actorDisplayName: 'مالك تجريبي',
             occurredAt: '2026-09-26T00:30:00Z',
             occurredAtCairo: '2026-09-26T03:30:00',
+            shopSequence: row.$1 == 'sale'
+                ? '1'
+                : row.$1 == 'purchase'
+                ? '2'
+                : '3',
             partyName: row.$3,
             totalPounds: row.$4,
             weightGrams: row.$5,
@@ -59,6 +64,7 @@ class ReviewGateway extends FakeFinancialGateway
             itemSummary: 'خاتم',
             pieceCount: '1',
             isReturn: row.$1 == 'sale_return',
+            hasNote: row.$1 == 'sale',
           ),
       ],
     );
@@ -95,130 +101,137 @@ void main() {
   });
   for (final width in [320.0, 390.0, 1440.0]) {
     for (final dark in [false, true]) {
-      testWidgets(
-        'owner ledger and journals ${dark ? 'dark' : 'light'} $width',
-        (tester) async {
-          tester.view.physicalSize = Size(width, 900);
-          tester.view.devicePixelRatio = 1;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
-          final key = GlobalKey();
-          final gateway = ReviewGateway();
-          await tester.pumpWidget(
-            MaterialApp(
-              locale: const Locale('ar'),
-              supportedLocales: const [Locale('ar')],
-              localizationsDelegates: GlobalMaterialLocalizations.delegates,
-              theme: dark ? AppTheme.dark() : AppTheme.light(),
-              builder: (context, child) =>
-                  RepaintBoundary(key: key, child: child!),
-              home: DailyLedgerScreen(
-                shop: const ShopAccount(
-                  id: 'shop-1',
-                  name: 'محل تجريبي',
-                  role: 'owner',
-                  entitlement: ShopEntitlement.active,
-                ),
-                gateway: gateway,
-                store: MemoryStore(),
-                userId: 'owner-1',
-                onToggleTheme: (_) async {},
-                onChangeShop: () {},
+      testWidgets('owner ledger and journals ${dark ? 'dark' : 'light'} $width', (
+        tester,
+      ) async {
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final key = GlobalKey();
+        final gateway = ReviewGateway();
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            theme: dark ? AppTheme.dark() : AppTheme.light(),
+            builder: (context, child) =>
+                RepaintBoundary(key: key, child: child!),
+            home: DailyLedgerScreen(
+              shop: const ShopAccount(
+                id: 'shop-1',
+                name: 'محل تجريبي',
+                role: 'owner',
+                entitlement: ShopEntitlement.active,
+              ),
+              gateway: gateway,
+              store: MemoryStore(),
+              userId: 'owner-1',
+              onToggleTheme: (_) async {},
+              onChangeShop: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+        expect(find.byKey(const Key('ledger-quick-actions')), findsOneWidget);
+        final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
+        await saveReview(tester, key, 'top-$suffix');
+        for (final journal in ['sale', 'purchase', 'return']) {
+          await tester.ensureVisible(
+            find.byKey(Key('ledger-journal-$journal')),
+          );
+          await saveReview(tester, key, 'home-$journal-$suffix');
+        }
+        await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
+        await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-customize')));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.byKey(const Key('ledger-remaining-expense')),
+        );
+        await saveReview(tester, key, 'customization-$suffix');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('detail-close')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-quick-actions')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.byKey(const Key('ledger-new-return')));
+        await saveReview(tester, key, 'quick-actions-$suffix');
+        await tester.tap(find.byKey(const Key('ledger-new-return')));
+        await tester.pumpAndSettle();
+        await saveReview(tester, key, 'return-source-$suffix');
+        expect(find.byKey(const Key('ledger-filter-return')), findsNothing);
+        await tester.tap(find.byKey(const Key('detail-close')));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.byKey(const Key('ledger-other-movements')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-other-movements')));
+        await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-filter-sale')));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('ledger-history')),
+            matching: find.byKey(
+              const Key(
+                'ledger-open-sale-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
               ),
             ),
-          );
-          await tester.pumpAndSettle();
-          expect(find.byKey(const Key('onboarding-guide')), findsNothing);
-          expect(find.byKey(const Key('ledger-quick-actions')), findsOneWidget);
-          final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
-          await saveReview(tester, key, 'top-$suffix');
-          for (final journal in ['sale', 'purchase', 'return']) {
-            await tester.ensureVisible(
-              find.byKey(Key('ledger-journal-$journal')),
-            );
-            await saveReview(tester, key, 'home-$journal-$suffix');
-          }
-          await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
-          await tester.pumpAndSettle();
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-customize')));
-          await tester.pumpAndSettle();
-          await tester.ensureVisible(
-            find.byKey(const Key('ledger-show-operations')),
-          );
-          await saveReview(tester, key, 'customization-$suffix');
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('detail-close')));
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-quick-actions')));
-          await tester.pumpAndSettle();
-          expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
-          await tester.pumpAndSettle();
-          await tester.ensureVisible(
-            find.byKey(const Key('ledger-new-return')),
-          );
-          await saveReview(tester, key, 'quick-actions-$suffix');
-          await tester.tap(find.byKey(const Key('ledger-new-return')));
-          await tester.pumpAndSettle();
-          await saveReview(tester, key, 'return-source-$suffix');
-          expect(find.byKey(const Key('ledger-filter-return')), findsNothing);
-          await tester.tap(find.byKey(const Key('detail-close')));
-          await tester.pumpAndSettle();
-          await tester.ensureVisible(
-            find.byKey(const Key('ledger-other-movements')),
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-other-movements')));
-          await tester.pumpAndSettle();
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-filter-sale')));
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-history-details')));
-          await tester.pumpAndSettle();
-          await tester.pumpAndSettle();
-          expect(
-            find.descendant(
-              of: find.byKey(const Key('ledger-history')),
-              matching: find.text('بيع · عميل تجريبي'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('ledger-history')),
+            matching: find.byKey(
+              const Key(
+                'ledger-open-sale_return-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              ),
             ),
-            findsOneWidget,
-          );
-          expect(
-            find.descendant(
-              of: find.byKey(const Key('ledger-history')),
-              matching: find.text('مرتجع بيع · عميل تجريبي'),
+          ),
+          findsNothing,
+        );
+        await saveReview(tester, key, 'journals-$suffix');
+        await tester.ensureVisible(
+          find.byKey(const Key('ledger-filter-return')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-filter-return')));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('ledger-history')),
+            matching: find.byKey(
+              const Key(
+                'ledger-open-sale_return-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              ),
             ),
-            findsNothing,
-          );
-          await saveReview(tester, key, 'journals-$suffix');
-          await tester.ensureVisible(
-            find.byKey(const Key('ledger-filter-return')),
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-filter-return')));
-          await tester.pumpAndSettle();
-          expect(
-            find.descendant(
-              of: find.byKey(const Key('ledger-history')),
-              matching: find.text('مرتجع بيع · عميل تجريبي'),
-            ),
-            findsOneWidget,
-          );
-          await saveReview(tester, key, 'returns-$suffix');
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('detail-close')));
-          await tester.pumpAndSettle();
-          await tester.ensureVisible(find.byKey(const Key('ledger-view-gold')));
-          await tester.pumpAndSettle();
-          await tester.pumpAndSettle();
-          await tester.tap(find.byKey(const Key('ledger-view-gold')));
-          await tester.pumpAndSettle();
-          await saveReview(tester, key, 'gold-$suffix');
-          expect(gateway.keys, isEmpty);
-          expect(tester.takeException(), isNull);
-          await tester.pumpWidget(const SizedBox.shrink());
-        },
-      );
+          ),
+          findsOneWidget,
+        );
+        await saveReview(tester, key, 'returns-$suffix');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('detail-close')));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.byKey(const Key('ledger-cash-methods')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('ledger-cash-methods')));
+        await tester.pumpAndSettle();
+        await saveReview(tester, key, 'cash-$suffix');
+        expect(gateway.keys, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
     }
   }
 }

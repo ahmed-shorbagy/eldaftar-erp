@@ -101,15 +101,14 @@ void main() {
     expect(find.text('1.75'), findsOneWidget);
     expect(find.textContaining('عيار 18'), findsNothing);
     expect(find.textContaining('123.45'), findsNothing);
-    await tester.tap(find.byKey(const Key('ledger-view-cash')));
+    expect(find.byKey(const Key('ledger-view-cash')), findsNothing);
+    expect(find.byKey(const Key('ledger-view-gold')), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-cash-methods')));
     await tester.pumpAndSettle();
     expect(find.textContaining('123.45'), findsOneWidget);
+    expect(find.textContaining('0.55'), findsOneWidget);
     await tester.tap(find.byKey(const Key('detail-close')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ledger-view-gold')));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('عيار 18'), findsOneWidget);
-    expect(find.textContaining('عيار 21'), findsOneWidget);
     expect(find.byKey(const Key('ledger-gold-chart')), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -118,15 +117,16 @@ void main() {
     await pumpDashboard(tester);
     await tester.tap(find.byKey(const Key('ledger-customize')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('ledger-show-cash')));
-    await tester.tap(find.byKey(const Key('ledger-show-cash')));
+    await tester.ensureVisible(find.byKey(const Key('ledger-show-activity')));
+    await tester.tap(find.byKey(const Key('ledger-show-activity')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('123.45'), findsNothing);
+    await tester.tap(find.byKey(const Key('detail-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ledger-journal-sort')), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpDashboard(tester);
-    expect(find.textContaining('123.45'), findsNothing);
-    expect(find.byKey(const Key('ledger-view-cash')), findsNothing);
-    expect(find.byKey(const Key('ledger-view-gold')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-journal-sort')), findsNothing);
+    expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
   });
 
   testWidgets('narrow dark layout has no overflow', (tester) async {
@@ -145,19 +145,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('inventory details start collapsed and expand on demand', (
+  testWidgets('inventory details stay off home and cash methods disclose', (
     tester,
   ) async {
     await pumpDashboard(tester);
     expect(find.text('مشغولات'), findsNothing);
-    await tester.tap(find.byKey(const Key('ledger-view-gold')));
+    expect(find.byKey(const Key('ledger-view-gold')), findsNothing);
+    expect(find.text('حركة الذهب'), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-cash-methods')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('المخزون والكسر').last);
-    await tester.tap(find.text('المخزون والكسر').last);
+    expect(find.textContaining('123.45'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('detail-close')));
     await tester.pumpAndSettle();
-    expect(find.text('مشغولات'), findsOneWidget);
-    expect(find.textContaining('عيار 18'), findsWidgets);
-    expect(find.textContaining('1.25 جرام'), findsWidgets);
+    expect(find.text('مشغولات'), findsNothing);
   });
 
   testWidgets('full karat and payment cards fit phone and desktop', (
@@ -253,10 +253,10 @@ void main() {
       size: const Size(320, 900),
       disableAnimations: true,
     );
-    await tester.tap(find.byKey(const Key('ledger-view-gold')));
+    expect(find.byKey(const Key('ledger-view-gold')), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-cash-methods')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('عيار 24'), findsOneWidget);
-    expect(find.textContaining('عيار 14'), findsOneWidget);
+    expect(find.textContaining('10,000'), findsWidgets);
     expect(tester.takeException(), isNull);
     await tester.tap(find.byKey(const Key('detail-close')));
     await tester.pumpAndSettle();

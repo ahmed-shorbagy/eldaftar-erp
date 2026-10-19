@@ -399,11 +399,14 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       ),
                       if (sequence is String) Text('رقم العملية: $sequence'),
                       Text(
-                        'المسجل: ${operation?['actor_display_name'] ?? widget.line.actorDisplayName}',
+                        'اسم البائع: ${operation?['actor_display_name'] ?? widget.line.actorDisplayName}',
                       ),
                       Text(
-                        'الوقت: ${formatServerCairoTimestamp(widget.line.displayTime)}',
+                        'الوقت: ${formatShopTwelveHourTime(widget.line.displayTime)}',
+                        key: const Key('operation-time'),
                       ),
+                      ..._customerBlock(details),
+                      ..._notesBlock(theme, details, widget.line.hasNote),
                       const SizedBox(height: 16),
                       if (details['total_piastres'] is String) ...[
                         Card(
@@ -589,14 +592,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       if (details['description'] is String &&
                           (details['description'] as String).isNotEmpty)
                         Text('الوصف: ${details['description']}'),
-                      if (details['customer_name'] is String &&
-                          (details['customer_name'] as String).isNotEmpty)
-                        Text(
-                          '${widget.line.kind == 'purchase' ? 'العميل' : 'العميل'}: ${details['customer_name']}',
-                        ),
-                      if (details['note'] is String &&
-                          (details['note'] as String).isNotEmpty)
-                        Text('الملاحظة: ${details['note']}'),
                       if ((widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase') &&
                           widget.gateway is LinkedReturnGateway &&
@@ -700,6 +695,61 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _customerBlock(Map details) {
+    final name = details['customer_name'] is String
+        ? (details['customer_name'] as String).trim()
+        : '';
+    final phone = details['customer_phone'] is String
+        ? (details['customer_phone'] as String).trim()
+        : '';
+    if (name.isEmpty && phone.isEmpty) {
+      return const [
+        Text('لا توجد بيانات عميل', key: Key('operation-customer-absent')),
+      ];
+    }
+    return [
+      Text(
+        name.isEmpty ? 'اسم العميل: لا يوجد اسم' : 'اسم العميل: $name',
+        key: const Key('operation-customer-name'),
+      ),
+      Text(
+        phone.isEmpty ? 'الجوال: لا يوجد رقم' : 'الجوال: \u2066$phone\u2069',
+        key: const Key('operation-customer-phone'),
+      ),
+    ];
+  }
+
+  List<Widget> _notesBlock(ThemeData theme, Map details, bool feedHasNote) {
+    final note = details['note'] is String
+        ? (details['note'] as String).trim()
+        : '';
+    final present = note.isNotEmpty || feedHasNote;
+    return [
+      Text(
+        present ? 'توجد ملاحظات' : 'لا توجد ملاحظات',
+        key: const Key('operation-notes-flag'),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      if (present)
+        ExpansionTile(
+          key: const Key('operation-notes'),
+          tilePadding: EdgeInsets.zero,
+          title: const Text('عرض الملاحظات'),
+          children: [
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                note.isEmpty ? 'لا يظهر نص الملاحظة في هذا الاتصال.' : note,
+              ),
+            ),
+          ],
+        ),
+    ];
   }
 }
 

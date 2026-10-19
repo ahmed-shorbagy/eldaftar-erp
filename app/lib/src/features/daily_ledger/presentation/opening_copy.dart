@@ -89,3 +89,23 @@ String formatCompactServerTimestamp(String value) {
   final date = formatServerDate(pieces[0]).replaceFirst(RegExp(r' \d{4}$'), '');
   return '$date · $time';
 }
+
+/// Shop-local 12-hour time with Arabic ص/م and no calendar day.
+///
+/// [value] is a persisted shop-zone wall time (`YYYY-MM-DDTHH:MM:SS`), already
+/// converted from the server UTC instant. Other global timestamp formatters
+/// stay unchanged.
+String formatShopTwelveHourTime(String value) {
+  final pieces = value.split('T');
+  if (pieces.length != 2) return value.replaceAll('T', ' ');
+  final match = RegExp(r'^(\d{2}):(\d{2})').firstMatch(pieces[1]);
+  if (match == null) return formatServerCairoTimestamp(value);
+  final hour24 = int.tryParse(match.group(1)!);
+  if (hour24 == null || hour24 < 0 || hour24 > 23) {
+    return formatServerCairoTimestamp(value);
+  }
+  final minute = match.group(2)!;
+  final period = hour24 < 12 ? 'ص' : 'م';
+  final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
+  return '\u2066$hour12:$minute\u2069 $period';
+}

@@ -14,6 +14,8 @@ export const tokens = {
   darkTableBorder: '#9A7B45',
   lightGoldFrame: '#8F6B2E',
   darkGoldFrame: '#9A7B45',
+  lightLedgerCardBorder: '#8F6B2E',
+  darkLedgerCardBorder: '#E6C36A',
   brandGold: '#E6C36A',
   lightAccent: '#94681F',
   darkAccent: '#D4AF37',

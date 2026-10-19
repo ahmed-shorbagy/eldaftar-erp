@@ -110,6 +110,13 @@ void main() {
     );
     await tester.pumpWidget(screen(false));
     await tester.pumpAndSettle();
+    expect(find.text('اسم البائع: المالك'), findsOneWidget);
+    expect(find.byKey(const Key('operation-time')), findsOneWidget);
+    expect(find.textContaining('سبتمبر'), findsNothing);
+    expect(find.text('اسم العميل: عميل تجريبي'), findsOneWidget);
+    expect(find.textContaining('01012345678'), findsOneWidget);
+    expect(find.text('لا توجد ملاحظات'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('لم يؤكد الإرسال'), 200);
     expect(find.text('لم يؤكد الإرسال'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('تأكيد الإرسال بعد إرساله'), 200);
     final confirm = tester.widget<OutlinedButton>(

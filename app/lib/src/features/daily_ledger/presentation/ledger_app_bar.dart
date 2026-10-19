@@ -31,7 +31,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize {
     final textHeight =
         textScaler.scale(compact ? AppTokens.bodySize : AppTokens.titleSize) *
-            1.15 +
+            2.3 +
         2 +
         textScaler.scale(AppTokens.detailSize) * 1.5 +
         (subtitle == null || subtitle!.isEmpty
@@ -114,9 +114,9 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'الدفتر اليومي',
+                      'أهلاً $shopName',
                       key: const Key('ledger-title'),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style:
                           (compact
@@ -129,7 +129,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      shopName,
+                      'الدفتر اليومي',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(

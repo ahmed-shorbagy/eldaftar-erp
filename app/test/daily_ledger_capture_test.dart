@@ -30,7 +30,7 @@ const primaryStems = <String>[
   'review-top',
   'review-lower',
   'confirmed-top',
-  'confirmed-movement',
+  'confirmed-cash',
   'confirmed-lower',
   'pending-activation',
 ];
@@ -293,9 +293,7 @@ Future<void> expectConfirmedFeed(WidgetTester tester) async {
   await tester.pumpAndSettle();
   expect(find.text('رصيد افتتاحي'), findsWidgets);
   expect(find.text(cairoStamp), findsNothing);
-  await tester.tap(find.byKey(const Key('ledger-history-details')));
-  await tester.pumpAndSettle();
-  expect(find.text(cairoStamp), findsOneWidget);
+  expect(find.textContaining('\u20663:30\u2069 ص'), findsWidgets);
   expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
   expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
 }
@@ -596,7 +594,7 @@ Future<void> captureMatrix(
     screenKey: 'uninitialized-$label',
   );
   expect(find.text('إعداد الأرصدة الافتتاحية'), findsOneWidget);
-  expect(find.text('ذهب الجيزة'), findsOneWidget);
+  expect(find.textContaining('أهلاً ذهب الجيزة'), findsOneWidget);
   expect(
     tester
         .widget<FilledButton>(find.byKey(const Key('review-values')))
@@ -676,29 +674,14 @@ Future<void> captureMatrix(
     lowerMarker: find.byKey(const Key('ledger-other-movements')),
     middleWhenTall: true,
   );
-  await show(tester, const Key('ledger-view-gold'));
-  await tester.tap(find.byKey(const Key('ledger-view-gold')));
+  expect(find.byKey(const Key('ledger-view-gold')), findsNothing);
+  expect(find.text('حركة الذهب'), findsNothing);
+  await show(tester, const Key('ledger-cash-methods'));
+  await tester.tap(find.byKey(const Key('ledger-cash-methods')));
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.byKey(const Key('ledger-inventory-details')));
-  await tester.tap(
-    find.descendant(
-      of: find.byKey(const Key('ledger-inventory-details')),
-      matching: find.text('المخزون والكسر'),
-    ),
-  );
-  await tester.pumpAndSettle();
-  expect(find.text('سبائك'), findsOneWidget);
-  expect(find.text('كسر'), findsOneWidget);
+  await capture(tester, 'confirmed-cash-$label.png');
   await tester.tap(find.byKey(const Key('detail-close')));
   await tester.pumpAndSettle();
-  await show(tester, const Key('ledger-more-metrics'));
-  await tester.tap(find.byKey(const Key('ledger-more-metrics')));
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('حركة الذهب'));
-  await tester.tap(find.text('حركة الذهب'));
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.byKey(const Key('ledger-karat-18')));
-  await capture(tester, 'confirmed-movement-$label.png');
 
   await blank(tester);
   tester.view.physicalSize = size;

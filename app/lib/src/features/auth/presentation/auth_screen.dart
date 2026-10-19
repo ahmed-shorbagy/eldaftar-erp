@@ -529,110 +529,17 @@ class _AuthScreenState extends State<AuthScreen> {
               children: [
                 const _AuthAtmosphere(),
                 SafeArea(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      key: const Key('auth-measure'),
-                      constraints: const BoxConstraints(maxWidth: _measure),
-                      child: Form(
-                        key: _formKey,
-                        autovalidateMode: _validated
-                            ? AutovalidateMode.onUserInteraction
-                            : AutovalidateMode.disabled,
-                        child: AutofillGroup(
-                          child: FocusTraversalGroup(
-                            policy: OrderedTraversalPolicy(),
-                            child: SingleChildScrollView(
-                              key: const Key('auth-scroll'),
-                              controller: _scroll,
-                              keyboardDismissBehavior:
-                                  ScrollViewKeyboardDismissBehavior.onDrag,
-                              padding: EdgeInsets.fromLTRB(
-                                _compactLogin ? 16 : 20,
-                                _compactLogin ? 0 : 4,
-                                _compactLogin ? 16 : 20,
-                                (_compactLogin ? 12 : 28) +
-                                    MediaQuery.viewInsetsOf(context).bottom,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _header(theme),
-                                  SizedBox(
-                                    height: _compactLogin
-                                        ? 0
-                                        : AppTokens.spaceSm,
-                                  ),
-                                  BrandHero(
-                                    markSize: _compactLogin
-                                        ? AppTokens.minControlSize
-                                        : 56,
-                                    compact: _compactLogin,
-                                  ),
-                                  SizedBox(height: _authLead(context)),
-                                  _panel(theme, [
-                                    _headline(theme),
-                                    SizedBox(height: _compactLogin ? 8 : 20),
-                                    if (widget.recoveryNotice != null) ...[
-                                      _recoveryNotice(theme),
-                                      const SizedBox(height: 12),
-                                    ],
-                                    if (_signingUp) ...[
-                                      _signupProgress(theme),
-                                      const SizedBox(height: 20),
-                                      ..._signUpFields(theme),
-                                    ] else
-                                      ..._signInFields(theme),
-                                    if (!_signingUp &&
-                                        widget.onForgotPassword != null)
-                                      _forgotPassword(),
-                                    if (_fieldAlert != null)
-                                      Semantics(
-                                        key: const Key('auth-field-alert'),
-                                        liveRegion: true,
-                                        label: _fieldAlert,
-                                        child: const SizedBox.shrink(),
-                                      ),
-                                    _status(theme.colorScheme),
-                                    const SizedBox(height: 8),
-                                    _submit(),
-                                    if (!_signingUp) ...[
-                                      SizedBox(height: _compactLogin ? 8 : 16),
-                                      Row(
-                                        children: [
-                                          const Expanded(child: Divider()),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                            ),
-                                            child: Text(
-                                              'أو',
-                                              style: theme.textTheme.bodyMedium,
-                                            ),
-                                          ),
-                                          const Expanded(child: Divider()),
-                                        ],
-                                      ),
-                                      SizedBox(height: _compactLogin ? 8 : 16),
-                                      OutlinedButton.icon(
-                                        key: const Key('show-signup'),
-                                        onPressed: _busy
-                                            ? null
-                                            : () => _showMode(
-                                                AuthFormMode.signUp,
-                                              ),
-                                        icon: const Icon(
-                                          Icons.person_add_outlined,
-                                        ),
-                                        label: const Text('إنشاء حساب جديد'),
-                                      ),
-                                    ],
-                                  ]),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: _validated
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
+                    child: AutofillGroup(
+                      child: FocusTraversalGroup(
+                        policy: OrderedTraversalPolicy(),
+                        child: _signingUp
+                            ? _signupShell(theme)
+                            : _loginShell(theme),
                       ),
                     ),
                   ),
@@ -745,6 +652,150 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  Widget _loginShell(ThemeData theme) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        key: const Key('auth-measure'),
+        constraints: const BoxConstraints(maxWidth: _measure),
+        child: SingleChildScrollView(
+          key: const Key('auth-scroll'),
+          controller: _scroll,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(
+            _compactLogin ? 16 : 20,
+            _compactLogin ? 0 : 4,
+            _compactLogin ? 16 : 20,
+            (_compactLogin ? 12 : 28) + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _header(theme),
+              SizedBox(height: _compactLogin ? 0 : AppTokens.spaceSm),
+              BrandHero(
+                markSize: _compactLogin ? AppTokens.minControlSize : 56,
+                compact: _compactLogin,
+              ),
+              SizedBox(height: _authLead(context)),
+              _panel(theme, [
+                _headline(theme),
+                SizedBox(height: _compactLogin ? 8 : 20),
+                if (widget.recoveryNotice != null) ...[
+                  _recoveryNotice(theme),
+                  const SizedBox(height: 12),
+                ],
+                ..._signInFields(theme),
+                if (widget.onForgotPassword != null) _forgotPassword(),
+                if (_fieldAlert != null)
+                  Semantics(
+                    key: const Key('auth-field-alert'),
+                    liveRegion: true,
+                    label: _fieldAlert,
+                    child: const SizedBox.shrink(),
+                  ),
+                _status(theme.colorScheme),
+                const SizedBox(height: 8),
+                _submit(),
+                SizedBox(height: _compactLogin ? 8 : 16),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('أو', style: theme.textTheme.bodyMedium),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                SizedBox(height: _compactLogin ? 8 : 16),
+                OutlinedButton.icon(
+                  key: const Key('show-signup'),
+                  onPressed: _busy
+                      ? null
+                      : () => _showMode(AuthFormMode.signUp),
+                  icon: const Icon(Icons.person_add_outlined),
+                  label: const Text('إنشاء حساب جديد'),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _signupShell(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: _header(theme),
+        ),
+        BrandHero(markSize: AppTokens.minControlSize, compact: true),
+        Expanded(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              key: const Key('auth-measure'),
+              constraints: const BoxConstraints(maxWidth: _measure),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: DecoratedBox(
+                  key: const Key('auth-signup-panel'),
+                  decoration: _panelDecoration(theme.colorScheme),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                    child: LayoutBuilder(
+                      builder: (context, panel) {
+                        return SingleChildScrollView(
+                          key: const Key('auth-scroll'),
+                          controller: _scroll,
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: panel.maxHeight,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _headline(theme),
+                                const SizedBox(height: 12),
+                                _signupProgress(theme),
+                                if (widget.recoveryNotice != null) ...[
+                                  const SizedBox(height: 12),
+                                  _recoveryNotice(theme),
+                                ],
+                                const SizedBox(height: 12),
+                                ..._signUpFields(theme),
+                                if (_fieldAlert != null)
+                                  Semantics(
+                                    key: const Key('auth-field-alert'),
+                                    liveRegion: true,
+                                    label: _fieldAlert,
+                                    child: const SizedBox.shrink(),
+                                  ),
+                                _status(theme.colorScheme),
+                                const SizedBox(height: 8),
+                                _submit(),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _header(ThemeData theme) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
@@ -772,21 +823,24 @@ class _AuthScreenState extends State<AuthScreen> {
     ],
   );
 
-  Widget _panel(ThemeData theme, List<Widget> children) {
-    final scheme = theme.colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.18),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-        ],
+  BoxDecoration _panelDecoration(ColorScheme scheme) => BoxDecoration(
+    color: scheme.surfaceContainerLow.withValues(
+      alpha: scheme.brightness == Brightness.dark ? 0.84 : 0.9,
+    ),
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: scheme.outlineVariant),
+    boxShadow: [
+      BoxShadow(
+        color: scheme.shadow.withValues(alpha: 0.18),
+        blurRadius: 28,
+        offset: const Offset(0, 12),
       ),
+    ],
+  );
+
+  Widget _panel(ThemeData theme, List<Widget> children) {
+    return DecoratedBox(
+      decoration: _panelDecoration(theme.colorScheme),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           18,
@@ -1646,7 +1700,7 @@ class _FieldCheck {
   final String? invalid;
 }
 
-/// Full-bleed jewelry photo that fades into the page surface.
+/// Full-bleed jewelry/workshop photo visible around the readable form card.
 class _AuthAtmosphere extends StatelessWidget {
   const _AuthAtmosphere();
 
@@ -1656,42 +1710,19 @@ class _AuthAtmosphere extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final height = MediaQuery.sizeOf(context).height;
     return ExcludeSemantics(
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              height: height * 0.58,
-              width: double.infinity,
-              child: Image.asset(
-                _asset,
-                fit: BoxFit.cover,
-                alignment: const Alignment(0, 0.55),
-                color: dark
-                    ? scheme.surface.withValues(alpha: 0.42)
-                    : scheme.surface.withValues(alpha: 0.12),
-                colorBlendMode: BlendMode.darken,
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SizedBox(
-              height: height * 0.28,
-              width: double.infinity,
-              child: Opacity(
-                opacity: dark ? 0.34 : 0.22,
-                child: Image.asset(
-                  _asset,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0, -0.35),
-                  color: scheme.surface.withValues(alpha: dark ? 0.55 : 0.35),
-                  colorBlendMode: BlendMode.darken,
-                ),
-              ),
+          Positioned.fill(
+            child: Image.asset(
+              _asset,
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, 0.2),
+              color: dark
+                  ? scheme.surface.withValues(alpha: 0.18)
+                  : scheme.surface.withValues(alpha: 0.04),
+              colorBlendMode: BlendMode.darken,
             ),
           ),
           DecoratedBox(
@@ -1700,12 +1731,12 @@ class _AuthAtmosphere extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  scheme.surface.withValues(alpha: dark ? 0.55 : 0.28),
-                  scheme.surface.withValues(alpha: dark ? 0.18 : 0.08),
-                  scheme.surface.withValues(alpha: 0.82),
-                  scheme.surface,
+                  scheme.surface.withValues(alpha: dark ? 0.70 : 0.12),
+                  scheme.surface.withValues(alpha: dark ? 0.62 : 0.04),
+                  scheme.surface.withValues(alpha: dark ? 0.38 : 0.22),
+                  scheme.surface.withValues(alpha: dark ? 0.62 : 0.48),
                 ],
-                stops: const [0, 0.28, 0.52, 0.72],
+                stops: const [0, 0.22, 0.62, 1],
               ),
             ),
           ),

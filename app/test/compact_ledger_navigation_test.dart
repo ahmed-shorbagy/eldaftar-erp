@@ -81,13 +81,20 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('ledger-view-all')));
     await tester.tap(find.byKey(const Key('ledger-view-all')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ledger-history-details')));
-    await tester.pumpAndSettle();
-    expect(find.text('شراء · طرف تجريبي 199'), findsOneWidget);
+    expect(
+      find.byKey(const Key('ledger-open-purchase-operation-199')),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('ledger-filter-sale')));
     await tester.pumpAndSettle();
-    expect(find.text('شراء · طرف تجريبي 199'), findsNothing);
-    expect(find.text('بيع · طرف تجريبي 198'), findsOneWidget);
+    expect(
+      find.byKey(const Key('ledger-open-purchase-operation-199')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('ledger-open-sale-operation-198')),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('detail-close')));
     await tester.pumpAndSettle();
     expect(find.text('تفاصيل اليوم'), findsNothing);
@@ -117,8 +124,6 @@ void main() {
       await tester.ensureVisible(find.byKey(const Key('ledger-view-all')));
       await tester.tap(find.byKey(const Key('ledger-view-all')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('ledger-history-details')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('ledger-filter-purchase')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('ledger-load-older')));
@@ -138,14 +143,14 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('ledger-history')),
-          matching: find.text('شراء · طرف تجريبي 5'),
+          matching: find.byKey(const Key('ledger-open-purchase-operation-5')),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: find.byKey(const Key('ledger-history')),
-          matching: find.text('بيع · طرف تجريبي 4'),
+          matching: find.byKey(const Key('ledger-open-sale-operation-4')),
         ),
         findsNothing,
       );
@@ -172,19 +177,20 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('ledger-view-all')));
     await tester.tap(find.byKey(const Key('ledger-view-all')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ledger-history-details')));
-    await tester.pumpAndSettle();
     expect(
       find.descendant(
         of: find.byKey(const Key('ledger-history')),
-        matching: find.text('شراء · طرف تجريبي 3'),
+        matching: find.byKey(const Key('ledger-open-purchase-operation-3')),
       ),
       findsOneWidget,
     );
     update(() => visible = false);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('detail-close')), findsNothing);
-    expect(find.text('شراء · طرف تجريبي 3'), findsNothing);
+    expect(
+      find.byKey(const Key('ledger-open-purchase-operation-3')),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -221,8 +227,8 @@ void main() {
       textScale: 2,
     );
     expect(find.text('1,000,000.55'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('ledger-view-cash')));
-    await tester.tap(find.byKey(const Key('ledger-view-cash')));
+    await tester.ensureVisible(find.byKey(const Key('ledger-cash-methods')));
+    await tester.tap(find.byKey(const Key('ledger-cash-methods')));
     await tester.pumpAndSettle();
     expect(
       find.descendant(

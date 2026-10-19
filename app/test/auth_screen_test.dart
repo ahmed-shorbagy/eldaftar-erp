@@ -584,4 +584,29 @@ void main() {
       });
     }
   }
+
+  testWidgets(
+    'signup stays in a bounded panel with internal scroll at 320 with keyboard',
+    (tester) async {
+      await pumpAuth(
+        tester,
+        size: const Size(320, 560),
+        keyboardInset: 280,
+        textScale: 1.3,
+      );
+      await openSignup(tester);
+      final panel = tester.getRect(find.byKey(const Key('auth-signup-panel')));
+      expect(panel.height, lessThan(560));
+      expect(find.byKey(const Key('auth-scroll')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('signup-submit')));
+      expect(
+        find.byKey(const Key('signup-submit')).hitTestable(),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.byKey(const Key('signup-owner-name')));
+      expect(find.byKey(const Key('signup-step-0')), findsOneWidget);
+      expect(find.byKey(const Key('signup-step-2')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

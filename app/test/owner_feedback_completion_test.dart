@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'daily_ledger_capture_test.dart' show confirmedLedger;
 import 'financial_trade_screen_test.dart'
-    show FakeFinancialGateway, pumpTrade, beginTrade, nextTrade;
+    show FakeFinancialGateway, pumpTrade, nextTrade;
 import 'ledger_feed_merge_test.dart' show pageJson, line, shop;
 import 'owner_feedback_ledger_review_test.dart' show ReviewGateway;
 
@@ -108,37 +108,34 @@ void main() {
   );
 
   testWidgets(
-    'cash and gold can be hidden and metrics reordered across reopen',
+    'exactly six metrics stay on home and remaining is saved per shop',
     (tester) async {
       await host(tester);
       expect(find.byKey(const Key('ledger-metric-operations')), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('ledger-more-metrics')));
-      expect(find.byKey(const Key('ledger-detail-operations')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-more-metrics')), findsNothing);
+      expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
+      await tapVisible(tester, find.byKey(const Key('ledger-customize')));
+      await tapVisible(
+        tester,
+        find.byKey(const Key('ledger-remaining-total_cash')),
+      );
+      await tapVisible(tester, find.byTooltip('نقل إجمالي الشراء إلى الأعلى'));
       await tester.tap(find.byKey(const Key('detail-close')));
       await tester.pumpAndSettle();
-      await tapVisible(tester, find.byKey(const Key('ledger-customize')));
-      await tapVisible(tester, find.byKey(const Key('ledger-show-total_cash')));
-      await tapVisible(tester, find.byKey(const Key('ledger-show-total_gold')));
-      await tapVisible(tester, find.byTooltip('نقل المشتريات إلى الأعلى'));
-      await tapVisible(tester, find.byTooltip('نقل المشتريات إلى الأعلى'));
-      await tapVisible(tester, find.byTooltip('نقل المشتريات إلى الأعلى'));
+      expect(find.byKey(const Key('ledger-total-cash')), findsNothing);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getStringList('ledger_layout_feedback-shop')!;
-      expect(saved, contains('hidden:metric:total_cash'));
-      expect(saved, contains('hidden:metric:total_gold'));
-      expect(
-        saved.where((value) => value.startsWith('metric:')).first,
-        'metric:purchase',
-      );
+      expect(saved, contains('remaining:total_cash'));
+      expect(saved.where((value) => value.startsWith('metric:')), hasLength(6));
       await tester.pumpWidget(const SizedBox.shrink());
       await host(tester);
       expect(find.byKey(const Key('ledger-total-cash')), findsNothing);
-      expect(find.byKey(const Key('ledger-total-gold')), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('ledger-customize')));
-      await tapVisible(tester, find.byKey(const Key('ledger-show-total_cash')));
-      await tester.tap(find.byKey(const Key('detail-close')));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
+      await host(tester, shop: 'other-shop');
       expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
     },
   );
 
@@ -154,7 +151,7 @@ void main() {
       await host(tester, view: view);
       await tapVisible(tester, find.byKey(const Key('ledger-other-movements')));
       expect(find.byKey(const Key('ledger-filter-return')), findsOneWidget);
-      expect(find.text('المسجل: مالك تجريبي'), findsWidgets);
+      expect(find.textContaining('اسم البائع: مالك تجريبي'), findsWidgets);
       await tester.tap(find.byKey(const Key('detail-close')));
       await tester.pumpAndSettle();
       await tapVisible(tester, find.byKey(const Key('ledger-customize')));
@@ -170,95 +167,102 @@ void main() {
   );
 
   testWidgets(
-    'all eight metrics can be prioritized, hidden and restored per shop',
+    'legacy hidden operations migrate to six current figures per shop',
     (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'ledger_layout_feedback-shop': [
+          'metrics',
+          'activity',
+          'metric:operations',
+          'metric:total_cash',
+          'metric:total_gold',
+          'metric:sale',
+          'metric:purchase',
+          'metric:sale_gold',
+          'metric:purchase_gold',
+          'hidden:metric:expense',
+        ],
+      });
       await host(tester);
-      expect(find.byKey(const Key('ledger-metric-sale_gold')), findsOneWidget);
       expect(find.byKey(const Key('ledger-metric-operations')), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('ledger-customize')));
-      for (var i = 0; i < 7; i++) {
-        await tapVisible(tester, find.byTooltip('نقل عدد العمليات إلى الأعلى'));
-      }
-      await tapVisible(tester, find.byKey(const Key('ledger-show-sale_gold')));
-      await tester.tap(find.byKey(const Key('detail-close')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('ledger-metric-operations')), findsOneWidget);
-      expect(find.byKey(const Key('ledger-metric-sale_gold')), findsNothing);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await host(tester);
-      expect(find.byKey(const Key('ledger-metric-operations')), findsOneWidget);
-      expect(find.byKey(const Key('ledger-metric-sale_gold')), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('ledger-more-metrics')));
-      expect(find.byKey(const Key('ledger-detail-sale_gold')), findsNothing);
-      await tester.tap(find.byKey(const Key('detail-close')));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-metric-sale_gold')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
       await host(tester, shop: 'other-shop');
-      expect(find.byKey(const Key('ledger-metric-operations')), findsNothing);
-      expect(find.byKey(const Key('ledger-metric-sale_gold')), findsOneWidget);
+      expect(find.byKey(const Key('ledger-metric-expense')), findsNothing);
+      expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
     },
   );
 
-  testWidgets(
-    'separate home journals retain item, actor, payment and date and open their own book',
-    (tester) async {
-      final view = await ReviewGateway().ledger(
-        callerUserId: 'synthetic-owner',
-      );
-      await host(tester, view: view);
-      for (final type in ['sale', 'purchase', 'return']) {
-        expect(find.byKey(Key('ledger-journal-$type')), findsOneWidget);
-      }
-      final sales = find.byKey(const Key('ledger-journal-sale'));
-      expect(
-        find.descendant(of: sales, matching: find.text('بيع · عميل تجريبي')),
-        findsNothing,
-      );
-      await tapVisible(
-        tester,
-        find.byKey(const Key('ledger-journal-details-sale')),
-      );
-      expect(
-        find.descendant(of: sales, matching: find.text('بيع · عميل تجريبي')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: sales, matching: find.text('المسجل: مالك تجريبي')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: sales, matching: find.text('خاتم · عدد القطع: 1')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: sales, matching: find.textContaining('كاش')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: sales, matching: find.text('شراء · تاجر تجريبي')),
-        findsNothing,
-      );
-      await tapVisible(
-        tester,
-        find.byKey(const Key('ledger-journal-all-purchase')),
-      );
-      await tapVisible(tester, find.byKey(const Key('ledger-history-details')));
-      final history = find.byKey(const Key('ledger-history'));
-      expect(
-        find.descendant(of: history, matching: find.text('شراء · تاجر تجريبي')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: history, matching: find.text('بيع · عميل تجريبي')),
-        findsNothing,
-      );
-      expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(const Key('ledger-filter-purchase')))
-            .selected,
-        isTrue,
-      );
-    },
-  );
+  testWidgets('home journals show seller and time without weight or payment', (
+    tester,
+  ) async {
+    final view = await ReviewGateway().ledger(callerUserId: 'synthetic-owner');
+    await host(tester, view: view);
+    for (final type in ['sale', 'purchase', 'return']) {
+      expect(find.byKey(Key('ledger-journal-$type')), findsOneWidget);
+    }
+    final sales = find.byKey(const Key('ledger-journal-sale'));
+    expect(
+      find.descendant(of: sales, matching: find.text('بيع · عميل تجريبي')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: sales,
+        matching: find.text('اسم البائع: مالك تجريبي'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: sales, matching: find.text('خاتم · عدد القطع: 1')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: sales, matching: find.textContaining('كاش')),
+      findsNothing,
+    );
+    expect(find.textContaining('1.830'), findsNothing);
+    await tapVisible(
+      tester,
+      find.byKey(const Key('ledger-journal-details-sale')),
+    );
+    expect(
+      find.descendant(of: sales, matching: find.text('خاتم · عدد القطع: 1')),
+      findsOneWidget,
+    );
+    await tapVisible(
+      tester,
+      find.byKey(const Key('ledger-journal-all-purchase')),
+    );
+    final history = find.byKey(const Key('ledger-history'));
+    expect(
+      find.descendant(
+        of: history,
+        matching: find.byKey(
+          const Key(
+            'ledger-open-purchase-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          ),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: history,
+        matching: find.byKey(
+          const Key('ledger-open-sale-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+        ),
+      ),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<ChoiceChip>(find.byKey(const Key('ledger-filter-purchase')))
+          .selected,
+      isTrue,
+    );
+  });
   testWidgets(
     'return quick action selects an original trade without posting a financial operation',
     (tester) async {
@@ -276,20 +280,28 @@ void main() {
       expect(find.byKey(const Key('ledger-new-return')), findsOneWidget);
       expect(find.text('المزيد من الإجراءات'), findsNothing);
       await tapVisible(tester, find.byKey(const Key('ledger-new-return')));
-      await tapVisible(tester, find.byKey(const Key('ledger-history-details')));
       final history = find.byKey(const Key('ledger-history'));
       expect(find.text('اختر العملية الأصلية للمرتجع'), findsOneWidget);
       expect(
         find.descendant(
           of: history,
-          matching: find.text('مرتجع بيع · عميل تجريبي'),
+          matching: find.byKey(
+            const Key(
+              'ledger-open-sale_return-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            ),
+          ),
         ),
         findsNothing,
       );
       expect(selected, isEmpty);
       await tapVisible(
         tester,
-        find.descendant(of: history, matching: find.text('بيع · عميل تجريبي')),
+        find.descendant(
+          of: history,
+          matching: find.byKey(
+            const Key('ledger-open-sale-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+          ),
+        ),
       );
       expect(selected.single.kind, 'sale');
       expect(history, findsNothing);
@@ -309,12 +321,14 @@ void main() {
     (tester) async {
       final gateway = FakeFinancialGateway();
       await pumpTrade(tester, gateway, FinancialKind.purchase);
-      await tapVisible(tester, find.byKey(const Key('trade-extra-categories')));
+      await tapVisible(tester, find.byKey(const Key('trade-select-أخرى')));
+      expect(find.byKey(const Key('trade-other-grid')), findsOneWidget);
       expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
       expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
       expect(find.byKey(const Key('trade-select-name')), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('trade-extra-categories')));
-      await beginTrade(tester);
+      expect(find.byKey(const Key('trade-catalog-table')), findsNothing);
+      expect(find.byKey(const Key('trade-open-inventory')), findsNothing);
+      await tapVisible(tester, find.byKey(const Key('trade-select-دبلة')));
       expect(find.byKey(const Key('trade-name-0')), findsNothing);
       await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
       await nextTrade(tester);

@@ -58,6 +58,7 @@ abstract final class AppTheme {
         AppSemanticColors(
           tableBorder: tableBorder,
           goldFrame: AppTokens.goldFrameFor(brightness),
+          ledgerCardBorder: AppTokens.ledgerCardBorderFor(brightness),
         ),
       ],
       visualDensity: VisualDensity.standard,
@@ -212,10 +213,15 @@ abstract final class AppTheme {
 /// Semantic colors that Material's scheme does not name.
 @immutable
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
-  const AppSemanticColors({required this.tableBorder, required this.goldFrame});
+  const AppSemanticColors({
+    required this.tableBorder,
+    required this.goldFrame,
+    required this.ledgerCardBorder,
+  });
 
   final Color tableBorder;
   final Color goldFrame;
+  final Color ledgerCardBorder;
 
   static AppSemanticColors of(BuildContext context) {
     final colors = Theme.of(context).extension<AppSemanticColors>();
@@ -223,15 +229,22 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
         AppSemanticColors(
           tableBorder: AppTokens.tableBorderFor(Theme.of(context).brightness),
           goldFrame: AppTokens.goldFrameFor(Theme.of(context).brightness),
+          ledgerCardBorder: AppTokens.ledgerCardBorderFor(
+            Theme.of(context).brightness,
+          ),
         );
   }
 
   @override
-  AppSemanticColors copyWith({Color? tableBorder, Color? goldFrame}) =>
-      AppSemanticColors(
-        tableBorder: tableBorder ?? this.tableBorder,
-        goldFrame: goldFrame ?? this.goldFrame,
-      );
+  AppSemanticColors copyWith({
+    Color? tableBorder,
+    Color? goldFrame,
+    Color? ledgerCardBorder,
+  }) => AppSemanticColors(
+    tableBorder: tableBorder ?? this.tableBorder,
+    goldFrame: goldFrame ?? this.goldFrame,
+    ledgerCardBorder: ledgerCardBorder ?? this.ledgerCardBorder,
+  );
 
   @override
   AppSemanticColors lerp(ThemeExtension<AppSemanticColors>? other, double t) {
@@ -239,6 +252,9 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     return AppSemanticColors(
       tableBorder: Color.lerp(tableBorder, other.tableBorder, t) ?? tableBorder,
       goldFrame: Color.lerp(goldFrame, other.goldFrame, t) ?? goldFrame,
+      ledgerCardBorder:
+          Color.lerp(ledgerCardBorder, other.ledgerCardBorder, t) ??
+          ledgerCardBorder,
     );
   }
 }

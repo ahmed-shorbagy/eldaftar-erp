@@ -75,7 +75,7 @@ void main() {
           surface(
             LedgerOperationTable(
               line: line('sale'),
-              showDetails: false,
+              showDetails: true,
               loadItems: (_) async => items,
             ),
             dark: dark,
@@ -88,6 +88,8 @@ void main() {
         expect(find.text('تعليقة اختبار'), findsNothing);
         expect(find.text('1,200,000.25'), findsOneWidget);
         expect(find.textContaining('عميل اختبار'), findsNothing);
+        expect(find.textContaining('اسم البائع: مالك اختبار'), findsOneWidget);
+        expect(find.textContaining('كاش'), findsNothing);
         await tester.tap(find.text('عرض المزيد'));
         await tester.pumpAndSettle();
         expect(find.text('تعليقة اختبار'), findsOneWidget);
@@ -107,7 +109,7 @@ void main() {
       surface(
         LedgerOperationTable(
           line: line('old'),
-          showDetails: false,
+          showDetails: true,
           loadItems: read,
         ),
       ),
@@ -116,7 +118,7 @@ void main() {
       surface(
         LedgerOperationTable(
           line: line('new'),
-          showDetails: false,
+          showDetails: true,
           loadItems: read,
         ),
       ),
@@ -146,7 +148,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('عميل اختبار'), findsOneWidget);
+    expect(find.textContaining('اسم البائع: مالك اختبار'), findsOneWidget);
+    expect(find.textContaining('عميل اختبار'), findsNothing);
     expect(find.text('خاتم اختبار'), findsNothing);
     await tester.tap(find.text('تعذر تحميل الأصناف. إعادة المحاولة'));
     await tester.pumpAndSettle();

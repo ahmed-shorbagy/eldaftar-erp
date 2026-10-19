@@ -26,6 +26,10 @@ abstract final class AppTokens {
   static const Color lightGoldFrame = lightTableBorder;
   static const Color darkGoldFrame = darkTableBorder;
 
+  /// Journal card rule. Dark uses a lighter yellow so cards stay readable.
+  static const Color lightLedgerCardBorder = lightGoldFrame;
+  static const Color darkLedgerCardBorder = brandGold;
+
   static const Color lightSuccess = Color(0xFF206638);
   static const Color darkSuccess = Color(0xFF86D99F);
 
@@ -34,6 +38,11 @@ abstract final class AppTokens {
 
   static Color goldFrameFor(Brightness brightness) =>
       brightness == Brightness.dark ? darkGoldFrame : lightGoldFrame;
+
+  static Color ledgerCardBorderFor(Brightness brightness) =>
+      brightness == Brightness.dark
+      ? darkLedgerCardBorder
+      : lightLedgerCardBorder;
 
   static const double fieldRadius = 14;
   static const double cardRadius = 22;

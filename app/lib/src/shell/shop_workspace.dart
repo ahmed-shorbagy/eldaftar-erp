@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/daily_ledger/application/opening_gateway.dart';
 import '../features/daily_ledger/application/pending_opening_store.dart';
 import '../features/daily_ledger/presentation/daily_ledger_screen.dart';
+import '../features/daily_ledger/presentation/ledger_more_balances.dart';
 import '../features/onboarding/application/onboarding_store.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../theme/app_tokens.dart';
@@ -223,6 +224,17 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       _link('فتح الدفتر اليومي', Icons.menu_book_outlined, () => _select(0)),
     ]),
     _ => _page('المزيد', [
+      LedgerMoreBalances(
+        key: ValueKey(
+          'more-${widget.shop.id}-${widget.userId}-${widget.refreshGeneration}',
+        ),
+        shop: widget.shop,
+        gateway: widget.gateway,
+        userId: widget.userId,
+        refreshGeneration: widget.refreshGeneration,
+        syncTicks: widget.syncTicks,
+      ),
+      const SizedBox(height: 12),
       if (widget.traderBuilder != null)
         _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
       if (widget.repairBuilder != null)
