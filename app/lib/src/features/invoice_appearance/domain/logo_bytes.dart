@@ -100,8 +100,8 @@ LogoFacts _png(Uint8List bytes, {required bool strict}) {
           (interlace != 0 && interlace != 1) ||
           width < 1 ||
           height < 1 ||
-          width > logoMaxDimension ||
-          height > logoMaxDimension) {
+          (strict &&
+              (width > logoMaxDimension || height > logoMaxDimension))) {
         throw const LogoByteRejection('logo_rejected');
       }
       sawHeader = true;
@@ -210,8 +210,8 @@ LogoFacts _jpeg(Uint8List bytes, {required bool strict}) {
       width = (bytes[offset + 5] << 8) | bytes[offset + 6];
       if (width < 1 ||
           height < 1 ||
-          width > logoMaxDimension ||
-          height > logoMaxDimension) {
+          (strict &&
+              (width > logoMaxDimension || height > logoMaxDimension))) {
         throw const LogoByteRejection('logo_rejected');
       }
       frames++;

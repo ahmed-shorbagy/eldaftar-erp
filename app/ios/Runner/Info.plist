@@ -53,6 +53,12 @@
 	<true/>
 	<key>UIStatusBarHidden</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>يُستخدم التصوير لإضافة صورة المتجر في الدفتر.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>يُستخدم معرض الصور لاختيار صورة المتجر في الدفتر.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>يُستخدم حفظ الصور عند اختيار صورة المتجر.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

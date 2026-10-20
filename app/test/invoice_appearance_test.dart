@@ -114,7 +114,9 @@ void main() {
       wide[17] = 0;
       wide[18] = 0x08;
       wide[19] = 0x01;
-      expect(() => inspectLogoSource(wide), throwsA(isA<LogoByteRejection>()));
+      // Source inspection allows oversized phone photos; stored bytes stay ≤2048.
+      expect(inspectLogoSource(wide).width, 2049);
+      expect(() => inspectLogoBytes(wide), throwsA(isA<LogoByteRejection>()));
       final textChunk = _pngWithChunk(png, 'tEXt', [0x41, 0, 0x62]);
       expect(inspectLogoSource(textChunk).mime, 'image/png');
       expect(
@@ -155,6 +157,18 @@ void main() {
       expect(() => inspectLogoBytes(prepared.bytes), returnsNormally);
       final preparedJpeg = await prepareLogo(exif);
       expect(inspectLogoBytes(preparedJpeg.bytes).mime, 'image/jpeg');
+
+      // Phone camera sizes exceed 2048; prepare downscales instead of rejecting.
+      final camera = img.Image(width: 3000, height: 2000);
+      img.fill(camera, color: img.ColorRgba8(40, 80, 120, 255));
+      final cameraJpeg = Uint8List.fromList(
+        img.encodeJpg(camera, quality: 90),
+      );
+      final preparedCamera = await prepareLogo(cameraJpeg);
+      final cameraFacts = inspectLogoBytes(preparedCamera.bytes);
+      expect(cameraFacts.mime, 'image/jpeg');
+      expect(cameraFacts.width, lessThanOrEqualTo(logoMaxDimension));
+      expect(cameraFacts.height, lessThanOrEqualTo(logoMaxDimension));
     },
   );
 

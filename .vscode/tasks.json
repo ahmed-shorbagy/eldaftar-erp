@@ -10,11 +10,11 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}/scripts/build.ps1",
+        "${workspaceFolder:repo}/scripts/build.ps1",
         "sync"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder:repo}"
       },
       "presentation": {
         "echo": true,
@@ -27,15 +27,6 @@
       "problemMatcher": []
     },
     {
-      "label": "Prepare Android run",
-      "dependsOn": [
-        "Sync public Supabase config",
-        "Ensure Android emulator"
-      ],
-      "dependsOrder": "sequence",
-      "problemMatcher": []
-    },
-    {
       "label": "Build Android release APK",
       "type": "shell",
       "command": "powershell",
@@ -44,11 +35,11 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}/scripts/build.ps1",
+        "${workspaceFolder:repo}/scripts/build.ps1",
         "apk"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder:repo}"
       },
       "presentation": {
         "echo": true,
@@ -68,11 +59,11 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}/scripts/build.ps1",
+        "${workspaceFolder:repo}/scripts/build.ps1",
         "windows"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder:repo}"
       },
       "presentation": {
         "echo": true,
@@ -92,11 +83,11 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}/scripts/build.ps1",
+        "${workspaceFolder:repo}/scripts/build.ps1",
         "admin"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder:repo}"
       },
       "presentation": {
         "echo": true,
@@ -108,7 +99,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Ensure Android emulator",
+      "label": "Start Android emulator",
       "type": "shell",
       "command": "powershell",
       "args": [
@@ -116,10 +107,10 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}/.vscode/ensure-android-emulator.ps1"
+        "${workspaceFolder:repo}/.vscode/ensure-android-emulator.ps1"
       ],
       "options": {
-        "cwd": "${workspaceFolder}/app"
+        "cwd": "${workspaceFolder:app}"
       },
       "presentation": {
         "echo": true,
@@ -127,7 +118,7 @@
         "focus": false,
         "panel": "shared",
         "showReuseMessage": false,
-        "close": true
+        "close": false
       },
       "problemMatcher": []
     }

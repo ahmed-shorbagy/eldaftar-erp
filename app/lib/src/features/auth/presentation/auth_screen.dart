@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phone_form_field/phone_form_field.dart';
@@ -8,11 +7,11 @@ import 'package:phone_form_field/phone_form_field.dart';
 import '../../../shell/shell_copy.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
-import '../../invoice_appearance/application/logo_codec.dart';
 import '../../invoice_appearance/domain/logo_bytes.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../shop_accounts/domain/shop_image.dart';
 import '../../shop_accounts/presentation/shop_image_copy.dart';
+import '../../shop_accounts/presentation/shop_image_picker.dart';
 import '../domain/registration_country.dart';
 import '../domain/auth_gateway.dart';
 import 'auth_copy.dart';
@@ -468,21 +467,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _pickShopImage() async {
     if (_locked || widget.shopImageGateway == null) return;
-    final selected = await openFile(
-      acceptedTypeGroups: [
-        const XTypeGroup(
-          label: 'images',
-          extensions: ['png', 'jpg', 'jpeg'],
-          mimeTypes: ['image/png', 'image/jpeg'],
-        ),
-      ],
-    );
-    if (selected == null || !mounted) return;
     try {
-      final prepared = await prepareLogo(await selected.readAsBytes());
-      if (!mounted) return;
+      final bytes = await pickShopImageBytes(context);
+      if (!mounted || bytes == null) return;
       setState(() {
-        _shopImageBytes = prepared.bytes;
+        _shopImageBytes = bytes;
         _shopImageAlert = null;
       });
     } on LogoByteRejection {

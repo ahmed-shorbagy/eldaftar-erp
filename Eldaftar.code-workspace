@@ -1,0 +1,66 @@
+﻿{
+  "folders": [
+    {
+      "name": "app",
+      "path": "app"
+    },
+    {
+      "name": "admin",
+      "path": "admin"
+    }
+  ],
+  "settings": {
+    "dart.flutterSdkPath": "C:\\flutter",
+    "dart.projectSearchDepth": 1,
+    "dart.analysisExcludedFolders": ["admin"],
+    "java.import.gradle.enabled": false,
+    "gradle.nestedProjects": false,
+    "files.exclude": {
+      "**/.gradle": true,
+      "**/build": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "Dart-Code.dart-code",
+      "Dart-Code.flutter"
+    ],
+    "unwantedRecommendations": [
+      "vscjava.vscode-gradle",
+      "fwcd.kotlin"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Flutter",
+        "type": "dart",
+        "request": "launch",
+        "cwd": "${workspaceFolder:app}",
+        "program": "lib/main.dart",
+        "toolArgs": [
+          "--dart-define-from-file=config/local.json"
+        ]
+      },
+      {
+        "name": "Flutter (Windows)",
+        "type": "dart",
+        "request": "launch",
+        "cwd": "${workspaceFolder:app}",
+        "program": "lib/main.dart",
+        "deviceId": "windows",
+        "toolArgs": [
+          "--dart-define-from-file=config/local.json"
+        ]
+      },
+      {
+        "name": "React Admin (Web)",
+        "type": "node-terminal",
+        "request": "launch",
+        "command": "npm run dev -- --open",
+        "cwd": "${workspaceFolder:admin}"
+      }
+    ]
+  }
+}

@@ -1,13 +1,12 @@
 import 'dart:typed_data';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
-import '../../invoice_appearance/application/logo_codec.dart';
 import '../../invoice_appearance/domain/logo_bytes.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_image.dart';
 import 'shop_image_copy.dart';
+import 'shop_image_picker.dart';
 
 class ShopImageScreen extends StatefulWidget {
   const ShopImageScreen({
@@ -76,23 +75,18 @@ class _ShopImageScreenState extends State<ShopImageScreen> {
 
   Future<void> _pick() async {
     if (_busy) return;
-    final selected = await openFile(
-      acceptedTypeGroups: [
-        const XTypeGroup(
-          label: 'images',
-          extensions: ['png', 'jpg', 'jpeg'],
-          mimeTypes: ['image/png', 'image/jpeg'],
-        ),
-      ],
-    );
-    if (selected == null || !mounted) return;
     setState(() {
       _busy = true;
       _status = null;
     });
     try {
-      final prepared = await prepareLogo(await selected.readAsBytes());
-      final saved = await widget.gateway.setImage(prepared.bytes);
+      final picked = await pickShopImageBytes(context);
+      if (!mounted) return;
+      if (picked == null) {
+        setState(() => _busy = false);
+        return;
+      }
+      final saved = await widget.gateway.setImage(picked);
       if (!mounted) return;
       setState(() {
         _bytes = saved.bytes;

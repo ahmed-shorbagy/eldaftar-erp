@@ -14,9 +14,12 @@ abstract final class ShopImageCopy {
   static const empty = 'لا توجد صورة للمتجر بعد. يظهر شعار الدفتر بدلاً منها.';
   static const signupHint = 'صورة المتجر (اختياري)';
   static const signupHelp =
-      'PNG أو JPEG بحجم أقصى ٢ ميغابايت. يمكن إضافتها لاحقاً من المزيد.';
+      'التقط صورة بالكاميرا أو اختر من المعرض. الصور الكبيرة تُصغَّر تلقائياً، ويمكن إضافتها لاحقاً من المزيد.';
+  static const pickSheetTitle = 'مصدر صورة المتجر';
+  static const pickCamera = 'الكاميرا';
+  static const pickGallery = 'معرض الصور';
   static const rejected =
-      'الصورة غير مقبولة. استخدم PNG أو JPEG بحجم أقصى ٢ ميغابايت و٢٠٤٨ بكسل.';
+      'تعذّر استخدام هذه الصورة. جرّب صورة أخرى من الكاميرا أو المعرض.';
   static const tooLarge = 'حجم الصورة أكبر من الحد المسموح.';
   static const unavailable = 'تعذّر حفظ صورة المتجر. أعد المحاولة.';
   static const unauthorized = 'انتهت الجلسة. سجّل الدخول ثم أعد المحاولة.';

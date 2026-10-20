@@ -2,25 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Flutter Mobile (Android)",
+      "name": "Flutter",
       "type": "dart",
       "request": "launch",
       "cwd": "${workspaceFolder}/app",
-      "program": "${workspaceFolder}/app/lib/main.dart",
-      "deviceId": "emulator",
-      "preLaunchTask": "Prepare Android run",
+      "program": "lib/main.dart",
       "toolArgs": [
         "--dart-define-from-file=config/local.json"
       ]
     },
     {
-      "name": "Flutter Desktop (Windows)",
+      "name": "Flutter (Windows)",
       "type": "dart",
       "request": "launch",
       "cwd": "${workspaceFolder}/app",
-      "program": "${workspaceFolder}/app/lib/main.dart",
+      "program": "lib/main.dart",
       "deviceId": "windows",
-      "preLaunchTask": "Sync public Supabase config",
       "toolArgs": [
         "--dart-define-from-file=config/local.json"
       ]
@@ -30,8 +27,7 @@
       "type": "node-terminal",
       "request": "launch",
       "command": "npm run dev -- --open",
-      "cwd": "${workspaceFolder}/admin",
-      "preLaunchTask": "Sync public Supabase config"
+      "cwd": "${workspaceFolder}/admin"
     }
   ]
 }
