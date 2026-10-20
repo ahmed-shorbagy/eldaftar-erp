@@ -165,6 +165,7 @@ class NoteScript implements NotesGateway {
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   }) async => 'https://example.test/memory';
 
   @override
@@ -369,7 +370,12 @@ class LedgerScript
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
-  }) => notes.noteReadUrl(callerUserId: callerUserId, objectName: objectName);
+    required String bucket,
+  }) => notes.noteReadUrl(
+    callerUserId: callerUserId,
+    objectName: objectName,
+    bucket: bucket,
+  );
 
   @override
   Future<NoteStatusResult> noteStatus({

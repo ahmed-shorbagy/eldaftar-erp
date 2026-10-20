@@ -115,7 +115,10 @@ begin
     raise exception 'logo_bucket';
   end if;
   if to_regprocedure('public.post_invoice_appearance_v1(uuid,jsonb)') is null
-    or to_regprocedure('public.confirm_invoice_logo_v1(text)') is null
+    or to_regprocedure('public.confirm_invoice_logo_v2(text)') is null
+    or has_function_privilege('authenticated', 'public.confirm_invoice_logo_v1(text)', 'execute')
+    or has_function_privilege('authenticated',
+      'public.record_r2_media_object_v1(uuid,uuid,text,text,bigint,text,text)', 'execute')
     or to_regprocedure('public.post_invoice_presentation_v1(uuid,jsonb)') is null then
     raise exception 'appearance_functions_missing';
   end if;
@@ -179,6 +182,8 @@ declare
   v_copy jsonb;
   v_png bytea := decode('89504e470d0a1a0a0000000d494844520000000200000002080600000072b60d240000001a49444154789c63e1129163909393fbcf626363d3b07bd3ca930020e105b1e1ef98ad0000000049454e44ae426082', 'hex');
   v_sha text;
+  v_key text;
+  v_logo_copy jsonb;
   v_ops int;
   v_details int;
   v_commands int;
@@ -268,23 +273,30 @@ begin
   end if;
   reset role;
   v_sha := encode(extensions.digest(v_png, 'sha256'), 'hex');
+  v_key := 'invoice-logo/a1222222-2222-4222-8222-222222222222/' || v_sha || '.png';
   set local role authenticated;
   perform pg_temp.expect_code(
-    format('select public.confirm_invoice_logo_v1(%L)', replace(encode(v_png, 'base64'), E'\n', '')),
+    format('select public.confirm_invoice_logo_v2(%L)', v_key),
     'logo_not_uploaded'
   );
   reset role;
-  insert into storage.objects (bucket_id, name, owner, metadata)
-  values (
-    'eldafttar-private-invoice-logos',
-    'a1222222-2222-4222-8222-222222222222/' || v_sha || '.png',
+  perform public.record_r2_media_object_v1(
     'a1111111-1111-4111-8111-111111111111',
-    jsonb_build_object('mimetype', 'image/png', 'size', octet_length(v_png)::text)
+    'a1222222-2222-4222-8222-222222222222',
+    'invoice_logo',
+    v_key,
+    octet_length(v_png),
+    v_sha,
+    replace(encode(v_png, 'base64'), E'\n', '')
   );
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
   perform set_config('request.jwt.claims', '{"sub":"a1111111-1111-4111-8111-111111111111","role":"authenticated","is_anonymous":false}', true);
-  v_read := public.confirm_invoice_logo_v1(replace(encode(v_png, 'base64'), E'\n', ''));
+  v_read := public.confirm_invoice_logo_v2(v_key);
+  if (select storage from public.invoice_logo_assets where id = (v_read ->> 'asset_id')::uuid) is distinct from 'r2'
+    or (select content from public.invoice_logo_assets where id = (v_read ->> 'asset_id')::uuid) is not null then
+    raise exception 'logo_not_r2_backed';
+  end if;
   if (v_read ->> 'sha256') is distinct from v_sha
     or (v_read ->> 'confirmed') is distinct from 'true'
     or (v_read ->> 'replayed') is distinct from 'false' then
@@ -295,7 +307,7 @@ begin
       is distinct from (v_after ->> 'appearance')::bigint then
     raise exception 'logo_bumped_appearance';
   end if;
-  if (public.confirm_invoice_logo_v1(replace(encode(v_png, 'base64'), E'\n', '')) ->> 'replayed') is distinct from 'true'
+  if (public.confirm_invoice_logo_v2(v_key) ->> 'replayed') is distinct from 'true'
     or (select count(*) from public.invoice_logo_assets
         where shop_id = 'a1222222-2222-4222-8222-222222222222') is distinct from 1 then
     raise exception 'logo_replay';
@@ -358,6 +370,13 @@ begin
         where operation_id = 'a1333333-3333-4333-8333-333333333333') is distinct from 2
     or (select slogan from public.invoice_presentation_revisions where edition = 1) is distinct from 'ذهب أمين' then
     raise exception 'second_edition';
+  end if;
+  v_logo_copy := public.get_invoice_presentation_v1('a1333333-3333-4333-8333-333333333333', 2);
+  if (v_logo_copy ->> 'logo_state') is distinct from 'verified'
+    or v_logo_copy -> 'logo_bytes' is distinct from 'null'::jsonb
+    or (v_logo_copy ->> 'logo_object_key') is distinct from v_key
+    or (v_logo_copy ->> 'logo_sha256') is distinct from v_sha then
+    raise exception 'r2_logo_copy_%', v_logo_copy;
   end if;
   perform public.post_invoice_appearance_v1(
     'a1aaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -463,16 +482,18 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
 select set_config('request.jwt.claims', '{"sub":"a1111111-1111-4111-8111-111111111111","role":"authenticated","is_anonymous":false}', true);
 
+-- New logo bytes go to Cloudflare R2 only: Supabase Storage writes are closed
+-- for the owner as well as for other shops, and the registry is not writable
+-- by clients.
 do $storage$
 declare
   v_name text := 'a1222222-2222-4222-8222-222222222222/' || repeat('ab', 32) || '.png';
-  v_meta jsonb;
 begin
   begin
     insert into storage.objects (bucket_id, name, owner, metadata)
     values ('eldafttar-private-invoice-logos', v_name, auth.uid(), '{"mimetype":"image/png","size":"83"}'::jsonb);
-  exception when insufficient_privilege then
-    raise exception 'owner_insert_denied';
+    raise exception 'owner_storage_insert_succeeded';
+  exception when insufficient_privilege then null;
   end;
   begin
     insert into storage.objects (bucket_id, name, owner, metadata)
@@ -481,29 +502,22 @@ begin
   exception when insufficient_privilege then null;
   end;
   begin
-    update storage.objects set metadata = '{"mimetype":"image/png","size":"1"}'::jsonb
-    where bucket_id = 'eldafttar-private-invoice-logos' and name = v_name;
-  exception when insufficient_privilege then null;
-  end;
-  begin
-    select metadata into v_meta from storage.objects
-    where bucket_id = 'eldafttar-private-invoice-logos' and name = v_name;
-    if v_meta is not null and (v_meta ->> 'size') is distinct from '83' then
-      raise exception 'storage_update_changed_logo';
-    end if;
-  exception
-    when insufficient_privilege then null;
-  end;
-  begin
-    delete from storage.objects
-    where bucket_id = 'eldafttar-private-invoice-logos' and name = v_name;
+    insert into public.r2_media_objects (
+      object_key, shop_id, kind, mime, byte_size, sha256, width, height, uploaded_by, verified_at
+    ) values (
+      'invoice-logo/a1222222-2222-4222-8222-222222222222/' || repeat('ab', 32) || '.png',
+      'a1222222-2222-4222-8222-222222222222', 'invoice_logo', 'image/png', 83,
+      repeat('ab', 32), 2, 2, auth.uid(), now()
+    );
+    raise exception 'client_registry_insert_succeeded';
   exception when insufficient_privilege then null;
   end;
   reset role;
-  if (select metadata ->> 'size' from storage.objects
-      where bucket_id = 'eldafttar-private-invoice-logos' and name = v_name)
-      is distinct from '83' then
-    raise exception 'storage_delete_removed_logo';
+  if exists (
+    select 1 from storage.objects
+    where bucket_id = 'eldafttar-private-invoice-logos' and name = v_name
+  ) then
+    raise exception 'supabase_storage_logo_written';
   end if;
 end;
 $storage$;

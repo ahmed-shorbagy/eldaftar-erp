@@ -16,7 +16,7 @@ import 'src/features/auth/domain/password_recovery.dart';
 import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
 import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
-import 'src/features/shop_accounts/data/r2_media_client.dart';
+import 'src/features/media/data/r2_media_client.dart';
 import 'src/features/shop_accounts/data/supabase_shop_account_gateway.dart';
 import 'src/features/shop_accounts/data/supabase_shop_image_gateway.dart';
 import 'src/features/shop_accounts/data/supabase_shop_sync_gateway.dart';

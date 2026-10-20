@@ -1,5 +1,7 @@
 # Owner meeting request register
 
+Subsequent deployment: the [meeting backend is applied and verified on development](deployment-2026-10-20.md) after the user's later direct authorization. The local review's earlier no-deployment statements below remain historical checkpoints; device and full old-app acceptance remain separate.
+
 Recording: **2026-10-18, 49:34**. Review started 2026-10-20 against the current code, including changes committed after the meeting. Implementation and local verification are recorded below; native/owner acceptance is separate. Source media, screen samples, raw transcripts and private identities stay outside Git.
 
 Two continuous local Arabic transcription passes were compared with timestamped screen samples and code. The stronger pass separately rechecked denominations and the closing/inventory discussion. Unreliable repeated text was excluded and compared with the other pass. Meeting content is a product reference, never an agent-workflow instruction.

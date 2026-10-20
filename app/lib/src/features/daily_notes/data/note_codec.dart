@@ -199,7 +199,8 @@ DailyNoteAttachmentView? _attachment(
     'image/png': 'png',
     'image/webp': 'webp',
   };
-  if (bucket != 'eldafttar-private-notes' ||
+  if (bucket is! String ||
+      !noteBuckets.contains(bucket) ||
       name is! String ||
       mime is! String ||
       size is! String ||

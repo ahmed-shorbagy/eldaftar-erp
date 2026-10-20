@@ -1,8 +1,10 @@
 # ElDafttar ERP engineering guide
 
+The [2026-10-18 meeting backend is deployed and verified on development](reviews/owner-meeting-2026-10-18/deployment-2026-10-20.md) after the owner's 2026-10-20 authorization. Routine Supabase deployment/hosted verification for completed task work is now part of AGENTS.md.
+
 Current follow-up: [timestamped 2026-10-18 owner-meeting register](reviews/owner-meeting-2026-10-18/audit.md), [ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md) and [local validation](reviews/owner-meeting-2026-10-18/validation.md), including the direct 2026-10-20 calendar, PDF and temporary staff-count scope changes.
 
-This directory is the working architecture baseline for the Flutter application, React administration dashboard, Supabase backend, and private object storage. It turns the supplied product requirements and agreement's technical scope into an implementable plan. The three local Word files are the agreed initial working requirements and may evolve through documented decisions and matrix updates. The original DOCX and PDF files remain outside version control and remain the source for contractual interpretation. These guides are engineering proposals until the product owner accepts the open decisions.
+This directory is the working architecture baseline for the Flutter application, React administration dashboard, Supabase backend, and Cloudflare R2 object storage, which is the only store for images and documents ([ADR 0024](adr/0024-cloudflare-r2-media-storage.md)). It turns the supplied product requirements and agreement's technical scope into an implementable plan. The three local Word files are the agreed initial working requirements and may evolve through documented decisions and matrix updates. The original DOCX and PDF files remain outside version control and remain the source for contractual interpretation. These guides are engineering proposals until the product owner accepts the open decisions.
 
 ## Read in this order
 

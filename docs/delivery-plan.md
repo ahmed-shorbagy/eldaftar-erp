@@ -30,7 +30,7 @@ The user's completion request authorizes executable work through Milestone 3 and
 
 Working accounting rules and synthetic examples are prepared under [ADR 0009](adr/0009-milestone-3-accounting-working-rules.md). Arabic workspace navigation, Help resume, safe first-sale practice, explicit price components and the reviewed recovery client are implemented. The pricing migration is applied to development. Inventory/trader backend and client, private daily notes, bounded ledger catch-up, discrepancy correction, partial returns and atomic exchanges are being integrated and verified. [The current progress record](operations/milestones-0-3-progress-2026-10-04.md) distinguishes reviewed implementation from pending application and gates.
 
-The current daily-note scope uses private Supabase Storage, as the completion request specifies, rather than the earlier R2 proposal. No user-facing action is complete until its backend contract, critical tests and representative RTL light/dark review pass. Milestones 0–3 are still open; absent human signatures, separate environments and iOS hardware evidence must not be presented as completed acceptance.
+Strict media rule: all images and documents, including daily-note images, invoice logos, shop images and any later attachment or document, are stored in Cloudflare R2 through the `r2-media` Edge Function under [ADR 0024](adr/0024-cloudflare-r2-media-storage.md). This supersedes the earlier private Supabase Storage choice for notes; any milestone that adds a media kind must deliver its R2 kind, registry checks and tests. No user-facing action is complete until its backend contract, critical tests and representative RTL light/dark review pass. Milestones 0–3 are still open; absent human signatures, separate environments and iOS hardware evidence must not be presented as completed acceptance.
 
 ## Milestone 1 policy revision and bounded implementation queue — 2026-09-26
 
@@ -114,7 +114,7 @@ Acceptance: stock and scrap reconcile to confirmed movements; the combined Miles
 
 ## Milestone 4 — connected shop workflows
 
-Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, an owner-scoped pending-send queue, and WhatsApp dispatch evidence. Daily notes/private media follow the current private Supabase Storage contract. Tours, guides and practice entry points remain removed under ADR 0010. Searchable Help remains separately planned.
+Deliver repairs with custody and handover, customer/trader debts and reminders, CRM contacts/notes/requests, invoice snapshots and PDFs, an owner-scoped pending-send queue, and WhatsApp dispatch evidence. Daily notes and all private media follow the Cloudflare R2 contract in ADR 0024. Tours, guides and practice entry points remain removed under ADR 0010. Searchable Help remains separately planned.
 
 The first repair slice, REP-01/02/03, is implemented under [ADR 0012](adr/0012-repair-custody-and-fees.md). The owner subsequently authorized Supabase deployment; repair commands and indexes are deployed and hosted SQL/API/Realtime checks passed. [Deployment and remaining native/owner acceptance](reviews/repairs-2026-10-12/deployment.md); [historical independent local validation](reviews/repairs-2026-10-12/validation.md).
 

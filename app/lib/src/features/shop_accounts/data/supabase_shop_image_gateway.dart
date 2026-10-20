@@ -1,22 +1,22 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:cryptography/cryptography.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../invoice_appearance/domain/logo_bytes.dart';
+import '../../media/data/r2_media_client.dart';
 import '../domain/shop_image.dart';
-import 'r2_media_client.dart';
 
 /// Shop images live in Cloudflare R2. Save uploads the prepared JPEG to an
-/// owner-scoped, content-addressed R2 key through a presigned URL, then records
-/// only the key and verified metadata in Postgres (`record_shop_image_v1`).
-/// Reads presign a short-lived GET. Legacy rows still holding inline bytes
+/// owner-scoped, content-addressed R2 key through a presigned URL, has the
+/// r2-media function verify the stored object, then records only the key and
+/// verified metadata in Postgres (`record_shop_image_v1`). Reads presign a
+/// short-lived GET. Legacy rows still holding inline bytes
 /// (`storage = 'postgres'`) remain readable as a fallback.
 class SupabaseShopImageGateway implements ShopImageGateway {
   const SupabaseShopImageGateway(this._client, this._media);
 
-  static const _kind = 'shop_image';
+  static const _kind = R2MediaKind.shopImage;
 
   final SupabaseClient _client;
   final R2MediaClient _media;
@@ -54,7 +54,7 @@ class SupabaseShopImageGateway implements ShopImageGateway {
     } on LogoByteRejection {
       throw const ShopImageException(ShopImageFailure.rejected);
     }
-    final sha = await _sha256Hex(preparedBytes);
+    final sha = await R2MediaClient.sha256Hex(preparedBytes);
     try {
       final upload = await _media.presignUpload(
         kind: _kind,
@@ -62,6 +62,7 @@ class SupabaseShopImageGateway implements ShopImageGateway {
         mime: facts.mime,
       );
       await _media.putBytes(upload, preparedBytes);
+      await _media.confirm(kind: _kind, objectKey: upload.objectKey);
       final response = await _client
           .rpc(
             'record_shop_image_v1',
@@ -175,17 +176,13 @@ class SupabaseShopImageGateway implements ShopImageGateway {
     }
   }
 
-  static Future<String> _sha256Hex(Uint8List bytes) async {
-    final digest = await Sha256().hash(bytes);
-    return digest.bytes
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join();
-  }
-
   static ShopImageFailure _mapMedia(R2MediaException error) =>
       switch (error.code) {
         'unauthenticated' || 'forbidden' => ShopImageFailure.unauthorized,
-        'invalid_input' => ShopImageFailure.rejected,
+        'invalid_input' ||
+        'media_rejected' ||
+        'media_mismatch' => ShopImageFailure.rejected,
+        'transfer' || 'media_missing' => ShopImageFailure.unknownOutcome,
         _ => ShopImageFailure.unavailable,
       };
 

@@ -6,7 +6,7 @@ This is a preparation checklist, not evidence that production infrastructure exi
 
 1. Confirm scope, ADRs, migration review and synthetic staging acceptance. Record app/admin/backend versions and contract compatibility.
 2. Confirm automated tests, RLS role matrix, concurrent idempotency and financial reconciliation checks passed. Compare Arabic RTL light/dark screens with approved references.
-3. Verify production backup status and perform a recent staging restore. Check R2 object references and protected access with synthetic data.
+3. Verify production backup status and perform a recent staging restore. Check R2 object references and protected access with synthetic data. Confirm the `r2-media` function and its `R2_*` secrets are deployed, and that no new media is written to Supabase Storage or Postgres bytes ([ADR 0024](../adr/0024-cloudflare-r2-media-storage.md)).
 4. Check migration plan, lock duration, backfill, old-client overlap and rollback/compensation. Define a stop condition for projection drift or command failures.
 5. Prepare Arabic release notes, support guidance and pilot shops. Use owner-controlled store/cloud accounts; publish only with direct authorization.
 

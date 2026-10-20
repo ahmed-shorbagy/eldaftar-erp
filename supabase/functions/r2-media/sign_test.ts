@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { amzDateNow, encodePath, presign, rfc3986 } from "./sign.ts";
 
 // AWS-documented SigV4 presigned GET example. Proves the signing chain matches

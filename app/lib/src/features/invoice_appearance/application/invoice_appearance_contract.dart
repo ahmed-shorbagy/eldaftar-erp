@@ -7,8 +7,6 @@ import '../domain/appearance_rules.dart';
 const invoiceAppearanceKind = 'invoice_appearance';
 const invoicePresentationKind = 'invoice_presentation';
 
-const invoiceLogoBucket = 'eldafttar-private-invoice-logos';
-
 bool matchesInvoiceAppearanceEnvelope(
   String key,
   String kind,

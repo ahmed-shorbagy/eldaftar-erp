@@ -227,13 +227,22 @@ InvoicePresentationCopy parseInvoicePresentationCopy(
     throw const FormatException('invoice_appearance');
   }
   Uint8List? bytes;
+  String? logoKey;
+  final encoded = json['logo_bytes'];
+  final rawKey = json['logo_object_key'];
   if (logoState == 'verified') {
-    final encoded = json['logo_bytes'];
-    if (encoded is! String || encoded.isEmpty) {
+    if (encoded is String && encoded.isNotEmpty && rawKey == null) {
+      bytes = base64Decode(encoded);
+    } else if (encoded == null &&
+        rawKey is String &&
+        RegExp(
+          '^invoice-logo/${RegExp.escape(shopId)}/[0-9a-f]{64}[.](png|jpg)\$',
+        ).hasMatch(rawKey)) {
+      logoKey = rawKey;
+    } else {
       throw const FormatException('invoice_appearance');
     }
-    bytes = base64Decode(encoded);
-  } else if (json['logo_bytes'] != null) {
+  } else if (encoded != null || rawKey != null) {
     throw const FormatException('invoice_appearance');
   }
   final appearance = InvoiceAppearanceValue(
@@ -272,6 +281,7 @@ InvoicePresentationCopy parseInvoicePresentationCopy(
     payload: Map<String, Object?>.from(json['payload'] as Map),
     canWrite: _bool(json['can_write']),
     logoBytes: bytes,
+    logoObjectKey: logoKey,
   );
 }
 

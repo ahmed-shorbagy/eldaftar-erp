@@ -35,6 +35,7 @@ import '../../invoice_message/data/message_codec.dart';
 import '../../daily_notes/application/notes_gateway.dart';
 import '../../daily_notes/data/note_codec.dart';
 import '../../daily_notes/domain/daily_note_draft.dart';
+import '../../media/data/r2_media_client.dart';
 import '../application/ledger_activity.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
@@ -195,14 +196,31 @@ class HttpOpeningGateway
            : supabaseUrl,
        _publishableKey = publishableKey,
        _accessToken = accessToken,
-       _currentUserId = currentUserId;
+       _currentUserId = currentUserId,
+       _media = R2MediaClient(
+         client: client,
+         supabaseUrl: supabaseUrl,
+         publishableKey: publishableKey,
+         accessToken: accessToken,
+       );
 
   final http.Client _client;
   final String _supabaseUrl;
   final String _publishableKey;
   final String Function() _accessToken;
   final String? Function() _currentUserId;
+  final R2MediaClient _media;
   final Duration timeout;
+
+  void _requireCaller(String callerUserId) {
+    final owner = _currentUserId();
+    if (owner == null || owner.isEmpty || _accessToken().isEmpty) {
+      throw const _CallerRejected('unauthenticated');
+    }
+    if (owner != callerUserId) {
+      throw const _CallerRejected('session_expired');
+    }
+  }
 
   Future<Object?> _delegationRead(
     String user,
@@ -1714,45 +1732,59 @@ class HttpOpeningGateway
         code: 'attachment_rejected',
       );
     }
+    const unknown = NoteUploadResult(NoteUploadDisposition.unknown);
+    const rejected = NoteUploadResult(
+      NoteUploadDisposition.rejected,
+      code: 'attachment_rejected',
+    );
     try {
-      final response = await _storage(
-        callerUserId,
-        'POST',
-        'object/eldafttar-private-notes/${_encodePath(objectName)}',
-        headers: {'Content-Type': mimeType, 'x-upsert': 'false'},
-        body: bytes,
+      _requireCaller(callerUserId);
+      final upload = await _media.presignUpload(
+        kind: R2MediaKind.noteImage,
+        mime: mimeType,
+        objectName: objectName,
       );
-      if (!_callerStill(callerUserId)) {
-        return const NoteUploadResult(NoteUploadDisposition.unknown);
-      }
-      if (response.statusCode == 200) {
-        return const NoteUploadResult(NoteUploadDisposition.stored);
-      }
-      if (response.statusCode == 409) {
-        return const NoteUploadResult(NoteUploadDisposition.alreadyPresent);
-      }
-      if (response.statusCode >= 400 && response.statusCode < 500) {
-        return NoteUploadResult(
-          NoteUploadDisposition.rejected,
-          code: _errorCode(response.body) ?? 'attachment_rejected',
-        );
-      }
-      return const NoteUploadResult(NoteUploadDisposition.unknown);
+      if (!_callerStill(callerUserId)) return unknown;
+      if (upload.objectKey != '$_noteR2Prefix$objectName') return rejected;
+      await _media.putBytes(upload, bytes);
+      if (!_callerStill(callerUserId)) return unknown;
+      final confirmed = await _media.confirm(
+        kind: R2MediaKind.noteImage,
+        objectKey: upload.objectKey,
+      );
+      if (!_callerStill(callerUserId)) return unknown;
+      if (confirmed.byteSize != bytes.length) return rejected;
+      return NoteUploadResult(
+        confirmed.replayed
+            ? NoteUploadDisposition.alreadyPresent
+            : NoteUploadDisposition.stored,
+      );
     } on _CallerRejected catch (error) {
       return NoteUploadResult(NoteUploadDisposition.rejected, code: error.code);
+    } on R2MediaException catch (error) {
+      return switch (error.code) {
+        'unauthenticated' || 'forbidden' || 'shop_not_active' =>
+          NoteUploadResult(NoteUploadDisposition.rejected, code: error.code),
+        'invalid_input' || 'media_rejected' || 'media_mismatch' => rejected,
+        _ => unknown,
+      };
     } catch (_) {
-      return const NoteUploadResult(NoteUploadDisposition.unknown);
+      return unknown;
     }
   }
+
+  static const _noteR2Prefix = 'note-image/';
 
   @override
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   }) async {
-    if (!_noteObjectName(objectName)) {
+    if (!_noteObjectName(objectName) || !noteBuckets.contains(bucket)) {
       throw const NoteReadException('attachment_rejected');
     }
+    if (bucket == noteR2Bucket) return _r2NoteReadUrl(callerUserId, objectName);
     try {
       final response = await _storage(
         callerUserId,
@@ -1782,6 +1814,38 @@ class HttpOpeningGateway
       rethrow;
     } on _CallerRejected catch (error) {
       throw NoteReadException(error.code);
+    } catch (_) {
+      throw const NoteReadException();
+    }
+  }
+
+  Future<String> _r2NoteReadUrl(String callerUserId, String objectName) async {
+    try {
+      _requireCaller(callerUserId);
+      final url = await _media.presignRead(
+        kind: R2MediaKind.noteImage,
+        objectKey: '$_noteR2Prefix$objectName',
+      );
+      if (!_callerStill(callerUserId)) {
+        throw const NoteReadException('session_expired');
+      }
+      if (url.scheme != 'https' ||
+          url.userInfo.isNotEmpty ||
+          !url.path.endsWith('/$_noteR2Prefix$objectName') ||
+          url.toString().contains('service_role')) {
+        throw const NoteReadException();
+      }
+      return url.toString();
+    } on NoteReadException {
+      rethrow;
+    } on _CallerRejected catch (error) {
+      throw NoteReadException(error.code);
+    } on R2MediaException catch (error) {
+      throw NoteReadException(
+        const {'unauthenticated', 'forbidden'}.contains(error.code)
+            ? error.code
+            : null,
+      );
     } catch (_) {
       throw const NoteReadException();
     }
@@ -2621,36 +2685,57 @@ class HttpOpeningGateway
         code: 'logo_rejected',
       );
     }
+    const unknown = LogoUploadResult(LogoUploadDisposition.unknown);
     try {
-      final response = await _storage(
-        userId,
-        'POST',
-        'object/$invoiceLogoBucket/${_encodePath(objectName)}',
-        headers: {'Content-Type': mimeType, 'x-upsert': 'false'},
-        body: bytes,
+      _requireCaller(userId);
+      final upload = await _media.presignUpload(
+        kind: R2MediaKind.invoiceLogo,
+        mime: mimeType,
+        sha256: sha,
       );
-      if (!_callerStill(userId)) {
-        return const LogoUploadResult(LogoUploadDisposition.unknown);
-      }
-      if (response.statusCode == 200) {
-        return const LogoUploadResult(LogoUploadDisposition.stored);
-      }
-      if (response.statusCode == 409) {
-        return const LogoUploadResult(LogoUploadDisposition.alreadyPresent);
-      }
-      if (response.statusCode >= 400 && response.statusCode < 500) {
-        return LogoUploadResult(
+      if (!_callerStill(userId)) return unknown;
+      if (upload.objectKey != '$_logoR2Prefix$objectName') {
+        return const LogoUploadResult(
           LogoUploadDisposition.rejected,
-          code: _errorCode(response.body) ?? 'logo_rejected',
+          code: 'logo_rejected',
         );
       }
-      return const LogoUploadResult(LogoUploadDisposition.unknown);
+      await _media.putBytes(upload, bytes);
+      if (!_callerStill(userId)) return unknown;
+      final confirmed = await _media.confirm(
+        kind: R2MediaKind.invoiceLogo,
+        objectKey: upload.objectKey,
+      );
+      if (!_callerStill(userId)) return unknown;
+      if (confirmed.sha256 != sha) {
+        return const LogoUploadResult(
+          LogoUploadDisposition.rejected,
+          code: 'logo_mismatch',
+        );
+      }
+      return LogoUploadResult(
+        confirmed.replayed
+            ? LogoUploadDisposition.alreadyPresent
+            : LogoUploadDisposition.stored,
+      );
     } on _CallerRejected catch (error) {
       return LogoUploadResult(LogoUploadDisposition.rejected, code: error.code);
+    } on R2MediaException catch (error) {
+      final code = switch (error.code) {
+        'unauthenticated' || 'forbidden' || 'shop_not_active' => error.code,
+        'invalid_input' || 'media_rejected' => 'logo_rejected',
+        'media_mismatch' => 'logo_mismatch',
+        _ => null,
+      };
+      return code == null
+          ? unknown
+          : LogoUploadResult(LogoUploadDisposition.rejected, code: code);
     } catch (_) {
-      return const LogoUploadResult(LogoUploadDisposition.unknown);
+      return unknown;
     }
   }
+
+  static const _logoR2Prefix = 'invoice-logo/';
 
   @override
   Future<LogoConfirmation> confirmInvoiceLogo({
@@ -2658,12 +2743,43 @@ class HttpOpeningGateway
     required String shopId,
     required String base64Bytes,
     required String sha256,
-  }) => _appearanceRead(
-    userId,
-    'confirm_invoice_logo_v1',
-    {'p_bytes': base64Bytes},
-    (raw) => parseLogoConfirmation(raw, shopId: shopId, sha256: sha256),
-  );
+  }) {
+    final extension = _logoExtension(base64Bytes);
+    if (extension == null ||
+        !isUuid(shopId) ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(sha256)) {
+      return Future.error(const InvoiceAppearanceException('logo_rejected'));
+    }
+    return _appearanceRead(
+      userId,
+      'confirm_invoice_logo_v2',
+      {'p_object_key': '$_logoR2Prefix$shopId/$sha256.$extension'},
+      (raw) => parseLogoConfirmation(raw, shopId: shopId, sha256: sha256),
+    );
+  }
+
+  static String? _logoExtension(String base64Bytes) {
+    if (base64Bytes.length < 12) return null;
+    final List<int> head;
+    try {
+      head = base64Decode(base64Bytes.substring(0, 12));
+    } catch (_) {
+      return null;
+    }
+    const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    var isPng = head.length >= png.length;
+    for (var i = 0; isPng && i < png.length; i++) {
+      isPng = head[i] == png[i];
+    }
+    if (isPng) return 'png';
+    if (head.length >= 3 &&
+        head[0] == 0xff &&
+        head[1] == 0xd8 &&
+        head[2] == 0xff) {
+      return 'jpg';
+    }
+    return null;
+  }
 
   @override
   Future<InvoiceBrandSource> readBrandSource({
@@ -2728,17 +2844,43 @@ class HttpOpeningGateway
     required String shopId,
     required String operationId,
     required int edition,
-  }) => _appearanceRead(
-    userId,
-    'get_invoice_presentation_v1',
-    {'p_operation_id': operationId, 'p_edition': edition},
-    (raw) => parseInvoicePresentationCopy(
-      raw,
-      shopId: shopId,
-      operationId: operationId,
-      edition: edition,
-    ),
-  );
+  }) async {
+    final copy = await _appearanceRead(
+      userId,
+      'get_invoice_presentation_v1',
+      {'p_operation_id': operationId, 'p_edition': edition},
+      (raw) => parseInvoicePresentationCopy(
+        raw,
+        shopId: shopId,
+        operationId: operationId,
+        edition: edition,
+      ),
+    );
+    final key = copy.logoObjectKey;
+    if (copy.logoState != 'verified' || key == null) return copy;
+    final List<int> bytes;
+    try {
+      final url = await _media.presignRead(
+        kind: R2MediaKind.invoiceLogo,
+        objectKey: key,
+      );
+      bytes = await _media.getBytes(url);
+    } on R2MediaException catch (error) {
+      throw InvoiceAppearanceException(
+        const {'unauthenticated', 'forbidden'}.contains(error.code)
+            ? error.code
+            : 'unavailable',
+      );
+    }
+    if (!_callerStill(userId)) {
+      throw const InvoiceAppearanceException('session_expired');
+    }
+    final expected = copy.appearance.logoSha256;
+    if (expected == null || await R2MediaClient.sha256Hex(bytes) != expected) {
+      return copy.withLogo(logoState: 'unverified');
+    }
+    return copy.withLogo(logoState: 'verified', logoBytes: bytes);
+  }
 
   Future<AppearanceTransport> _appearanceStatus(
     String callerUserId,

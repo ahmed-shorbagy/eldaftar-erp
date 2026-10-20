@@ -1,5 +1,7 @@
 # ADR 0023: meeting corrections, calendar journal and temporary closing counts
 
+Subsequent status: the user authorized applying the reviewed Supabase changes and established routine deployment/verification for completed Supabase work on the existing development project. [Deployment and hosted verification](../reviews/owner-meeting-2026-10-18/deployment-2026-10-20.md) are complete. Earlier local-only delivery statements below describe the prior checkpoint.
+
 Status: directly authorized in the 2026-10-20 chat, implemented locally. Deployment and native owner acceptance are separate. [Timestamped request register](../reviews/owner-meeting-2026-10-18/audit.md), [validation](../reviews/owner-meeting-2026-10-18/validation.md).
 
 The local 2026-10-18 recording is a product reference. The user explicitly resolved three conflicts: PDF sharing replaces the later text-only WhatsApp action; the main journal changes automatically with the shop's server-derived calendar date; and temporary employee physical counts are permitted. These decisions supersede the conflicting parts of ADRs 0003, 0021 and 0022. Their historical records remain intact.

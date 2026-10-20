@@ -749,11 +749,12 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
           widget.businessDayId != day) {
         return;
       }
-      final objectName = detail.attachment?.objectName;
-      if (objectName == null) return;
+      final attachment = detail.attachment;
+      if (attachment == null) return;
       final url = await widget.gateway.noteReadUrl(
         callerUserId: user,
-        objectName: objectName,
+        objectName: attachment.objectName,
+        bucket: attachment.bucket,
       );
       if (!mounted ||
           generation != _readGeneration ||

@@ -208,13 +208,37 @@ begin
   end;
 
   v_path := 'b1818181-8181-4181-8181-818181818181/' || v_day::text || '/' || v_client::text || '.jpg';
-  insert into storage.objects (bucket_id, name, owner, metadata)
-  values (
-    'eldafttar-private-notes',
-    v_path,
+  begin
+    perform public.post_daily_note(
+      'c5858585-8585-4585-8585-858585858585',
+      jsonb_build_object(
+        'version', 1, 'kind', 'daily_note', 'business_day_id', v_day::text,
+        'text', '',
+        'attachment', jsonb_build_object(
+          'client_object_id', v_client::text,
+          'mime_type', 'image/jpeg', 'byte_size', '4', 'extension', 'jpg'
+        )
+      )
+    );
+    raise exception 'unverified_attachment_succeeded';
+  exception
+    when others then
+      if sqlerrm is distinct from 'attachment_missing' then
+        raise exception 'expected attachment_missing got %', sqlerrm;
+      end if;
+  end;
+  execute 'reset role';
+  perform public.record_r2_media_object_v1(
     '81818181-8181-4181-8181-818181818181',
-    jsonb_build_object('mimetype', 'image/jpeg', 'size', '4')
+    'b1818181-8181-4181-8181-818181818181',
+    'note_image',
+    'note-image/' || v_path,
+    4,
+    repeat('0', 64),
+    null
   );
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', '81818181-8181-4181-8181-818181818181', true);
   v_result := public.post_daily_note(
     'c5858585-8585-4585-8585-858585858585',
     jsonb_build_object(
@@ -237,27 +261,25 @@ begin
   if (select count(*) from public.journals where operation_id = v_image) <> 0 then
     raise exception 'image note created a journal';
   end if;
-  if (select object_name from public.daily_note_attachments where operation_id = v_image) is distinct from v_path then
-    raise exception 'attachment path was not the owner shop day path';
+  if (select object_name from public.daily_note_attachments where operation_id = v_image) is distinct from v_path
+    or (select bucket_id from public.daily_note_attachments where operation_id = v_image) is distinct from 'cloudflare-r2' then
+    raise exception 'attachment was not the owner shop day R2 path';
   end if;
   execute 'reset role';
-  insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
-  values (
-    'eldafttar-private-notes',
-    'b1818181-8181-4181-8181-818181818181/' || v_day::text
+  -- Registry rows written directly to model an object uploaded by someone
+  -- else and an object whose verified size differs from the note payload.
+  insert into public.r2_media_objects (
+    object_key, shop_id, kind, mime, byte_size, sha256, uploaded_by, verified_at
+  ) values (
+    'note-image/b1818181-8181-4181-8181-818181818181/' || v_day::text
       || '/d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1.jpg',
-    null,
-    null,
-    jsonb_build_object('mimetype', 'image/jpeg', 'size', '4')
-  );
-  insert into storage.objects (bucket_id, name, owner, owner_id, metadata)
-  values (
-    'eldafttar-private-notes',
-    'b1818181-8181-4181-8181-818181818181/' || v_day::text
+    'b1818181-8181-4181-8181-818181818181', 'note_image', 'image/jpeg', 4,
+    repeat('1', 64), '82828282-8282-4282-8282-828282828282', now()
+  ), (
+    'note-image/b1818181-8181-4181-8181-818181818181/' || v_day::text
       || '/d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2.jpg',
-    '99999999-9999-4999-8999-999999999999',
-    null,
-    jsonb_build_object('mimetype', 'image/jpeg', 'size', '4')
+    'b1818181-8181-4181-8181-818181818181', 'note_image', 'image/jpeg', 5,
+    repeat('2', 64), '81818181-8181-4181-8181-818181818181', now()
   );
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub', '81818181-8181-4181-8181-818181818181', true);
@@ -277,7 +299,7 @@ begin
   exception
     when others then
       if sqlerrm is distinct from 'attachment_rejected' then
-        raise exception 'expected attachment_rejected for null owner got %', sqlerrm;
+        raise exception 'expected attachment_rejected for another uploader got %', sqlerrm;
       end if;
   end;
   begin
@@ -296,7 +318,7 @@ begin
   exception
     when others then
       if sqlerrm is distinct from 'attachment_rejected' then
-        raise exception 'expected attachment_rejected for wrong owner got %', sqlerrm;
+        raise exception 'expected attachment_rejected for size mismatch got %', sqlerrm;
       end if;
   end;
   begin
@@ -350,14 +372,64 @@ begin
         raise exception 'object metadata accepted more than 5MiB';
       end if;
   end;
-  insert into storage.objects (bucket_id, name, owner, metadata)
-  values (
-    'eldafttar-private-notes',
-    'b1818181-8181-4181-8181-818181818181/' || v_day::text
-      || '/77777777-7777-4777-8777-777777777777.webp',
-    '81818181-8181-4181-8181-818181818181',
-    jsonb_build_object('mimetype', 'image/webp', 'size', '1')
-  );
+  execute 'reset role';
+  if public.record_r2_media_object_v1(
+      '81818181-8181-4181-8181-818181818181',
+      'b1818181-8181-4181-8181-818181818181',
+      'note_image',
+      'note-image/b1818181-8181-4181-8181-818181818181/' || v_day::text
+        || '/77777777-7777-4777-8777-777777777777.webp',
+      1, repeat('7', 64), null
+    ) ->> 'mime' is distinct from 'image/webp' then
+    raise exception 'webp note image was not registered';
+  end if;
+  begin
+    perform public.record_r2_media_object_v1(
+      '81818181-8181-4181-8181-818181818181',
+      'b1818181-8181-4181-8181-818181818181',
+      'note_image',
+      'note-image/b1818181-8181-4181-8181-818181818181/' || v_day::text
+        || '/78787878-7878-4878-8878-787878787878.jpg',
+      5242881, repeat('7', 64), null
+    );
+    raise exception 'oversize_registry_succeeded';
+  exception when others then
+    if sqlerrm is distinct from 'media_rejected' then
+      raise exception 'expected media_rejected for oversize got %', sqlerrm;
+    end if;
+  end;
+  begin
+    perform public.record_r2_media_object_v1(
+      '82828282-8282-4282-8282-828282828282',
+      'b1818181-8181-4181-8181-818181818181',
+      'note_image',
+      'note-image/b1818181-8181-4181-8181-818181818181/' || v_day::text
+        || '/79797979-7979-4979-8979-797979797979.jpg',
+      4, repeat('7', 64), null
+    );
+    raise exception 'cross_owner_registry_succeeded';
+  exception when others then
+    if sqlerrm is distinct from 'forbidden' then
+      raise exception 'expected forbidden for another owner got %', sqlerrm;
+    end if;
+  end;
+  begin
+    perform public.record_r2_media_object_v1(
+      '81818181-8181-4181-8181-818181818181',
+      'b1818181-8181-4181-8181-818181818181',
+      'note_image',
+      'note-image/b1818181-8181-4181-8181-818181818181/' || v_day::text
+        || '/77777777-7777-4777-8777-777777777777.webp',
+      2, repeat('7', 64), null
+    );
+    raise exception 'registry_overwrite_succeeded';
+  exception when others then
+    if sqlerrm is distinct from 'media_mismatch' then
+      raise exception 'expected media_mismatch got %', sqlerrm;
+    end if;
+  end;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub', '81818181-8181-4181-8181-818181818181', true);
 
   -- Denied inserts must fail at authorization, rather than an unrelated error.
   foreach v_bad_path in array array[
@@ -661,9 +733,12 @@ begin
         raise exception 'client deleted a private object';
       end if;
   end;
-  if (select count(*) from storage.objects
-      where bucket_id = 'eldafttar-private-notes' and name = v_path) <> 1 then
-    raise exception 'owner lost private object visibility';
+  if (select count(*) from public.daily_note_attachments
+      where bucket_id = 'cloudflare-r2' and object_name = v_path) <> 1 then
+    raise exception 'owner lost R2 attachment visibility';
+  end if;
+  if exists (select 1 from storage.objects where bucket_id = 'eldafttar-private-notes' and name = v_path) then
+    raise exception 'note image was written to Supabase Storage';
   end if;
 end;
 $test$;

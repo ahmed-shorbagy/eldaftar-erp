@@ -84,31 +84,47 @@ void main() {
   });
 
   test(
-    'upload does not upsert and a signed URL is requested for five minutes',
+    'note images upload to R2 and are verified before the note references them',
     () async {
       final requests = <http.Request>[];
+      final objectName = '$shop/$day/$objectId.jpg';
+      final key = 'note-image/$objectName';
+      var confirmReplayed = false;
       final client = MockClient((request) async {
         requests.add(request);
-        if (request.url.path.contains('/object/sign/')) {
-          return http.Response(
+        if (request.url.host == 'r2.example') {
+          return http.Response('', request.method == 'PUT' ? 200 : 404);
+        }
+        expect(request.url.path, '/functions/v1/r2-media');
+        final body = jsonDecode(request.body) as Map<String, Object?>;
+        expect(body['kind'], 'note_image');
+        return switch (body['op']) {
+          'upload' => http.Response(
             jsonEncode({
-              'signedURL':
-                  '/object/sign/eldafttar-private-notes/$shop/$day/$objectId.jpg?token=short',
+              'object_key': 'note-image/${body['object_name']}',
+              'url': 'https://r2.example/bucket/$key?X-Amz-Signature=s',
+              'headers': {'content-type': body['mime']},
             }),
             200,
-          );
-        }
-        if (request.method == 'POST' &&
-            request.url.path.contains('/storage/')) {
-          return http.Response(
-            '{}',
-            request.headers['x-upsert'] == 'false' ? 200 : 500,
-          );
-        }
-        return http.Response(jsonEncode({'status': 'absent'}), 200);
+          ),
+          'confirm' => http.Response(
+            jsonEncode({
+              'object_key': body['object_key'],
+              'sha256': 'a' * 64,
+              'byte_size': 4,
+              'replayed': confirmReplayed,
+            }),
+            200,
+          ),
+          _ => http.Response(
+            jsonEncode({
+              'url': 'https://r2.example/bucket/$key?X-Amz-Signature=r',
+            }),
+            200,
+          ),
+        };
       });
       final api = gateway(client);
-      final objectName = '$shop/$day/$objectId.jpg';
       final uploaded = await api.uploadNoteImage(
         callerUserId: 'owner-a',
         objectName: objectName,
@@ -116,18 +132,84 @@ void main() {
         bytes: const [1, 2, 3, 4],
       );
       expect(uploaded.disposition, NoteUploadDisposition.stored);
-      expect(requests.single.headers['x-upsert'], 'false');
-      expect(requests.single.url.path, contains(objectName));
+      expect(requests.map((r) => r.method), ['POST', 'PUT', 'POST']);
+      expect(jsonDecode(requests[0].body)['object_name'], objectName);
+      expect(requests[1].bodyBytes, [1, 2, 3, 4]);
+      expect(jsonDecode(requests[2].body), {
+        'kind': 'note_image',
+        'op': 'confirm',
+        'object_key': key,
+      });
+      expect(
+        requests.any((r) => r.url.path.contains('/storage/')),
+        isFalse,
+        reason: 'new note images must not touch Supabase Storage',
+      );
+      confirmReplayed = true;
+      final retried = await api.uploadNoteImage(
+        callerUserId: 'owner-a',
+        objectName: objectName,
+        mimeType: 'image/jpeg',
+        bytes: const [1, 2, 3, 4],
+      );
+      expect(retried.disposition, NoteUploadDisposition.alreadyPresent);
       final url = await api.noteReadUrl(
         callerUserId: 'owner-a',
         objectName: objectName,
+        bucket: noteR2Bucket,
       );
-      final sign = requests.last;
-      expect(jsonDecode(sign.body), {'expiresIn': 300});
-      expect(url, contains('token=short'));
+      expect(url, startsWith('https://r2.example/'));
+      expect(url, contains('/$key'));
       expect(url, isNot(contains('service_role')));
     },
   );
+
+  test(
+    'an R2 confirm refusal rejects the attachment instead of saving',
+    () async {
+      final client = MockClient((request) async {
+        if (request.url.host == 'r2.example') return http.Response('', 200);
+        final body = jsonDecode(request.body) as Map<String, Object?>;
+        if (body['op'] == 'upload') {
+          return http.Response(
+            jsonEncode({
+              'object_key': 'note-image/${body['object_name']}',
+              'url': 'https://r2.example/x',
+            }),
+            200,
+          );
+        }
+        return http.Response(jsonEncode({'code': 'media_rejected'}), 400);
+      });
+      final result = await gateway(client).uploadNoteImage(
+        callerUserId: 'owner-a',
+        objectName: '$shop/$day/$objectId.jpg',
+        mimeType: 'image/jpeg',
+        bytes: const [1, 2, 3, 4],
+      );
+      expect(result.disposition, NoteUploadDisposition.rejected);
+      expect(result.code, 'attachment_rejected');
+    },
+  );
+
+  test('an R2 read URL for another object is refused', () async {
+    final client = MockClient(
+      (request) async => http.Response(
+        jsonEncode({
+          'url': 'https://r2.example/bucket/note-image/$shop/$day/other.jpg',
+        }),
+        200,
+      ),
+    );
+    await expectLater(
+      gateway(client).noteReadUrl(
+        callerUserId: 'owner-a',
+        objectName: '$shop/$day/$objectId.jpg',
+        bucket: noteR2Bucket,
+      ),
+      throwsA(isA<NoteReadException>()),
+    );
+  });
 
   test('ledger page HTTP rejects both cursors before the request', () async {
     var calls = 0;
@@ -431,53 +513,59 @@ void main() {
     },
   );
 
-  test('a signed URL must match the configured origin and object path', () async {
-    final objectName = '$shop/$day/$objectId.jpg';
-    Future<HttpOpeningGateway> api(String signed) async {
-      return HttpOpeningGateway(
-        client: MockClient(
-          (request) async =>
-              http.Response(jsonEncode({'signedURL': signed}), 200),
-        ),
-        supabaseUrl: 'https://example.test/',
-        publishableKey: 'publishable-key',
-        accessToken: () => 'access-token',
-        currentUserId: () => 'owner-a',
-      );
-    }
+  test(
+    'a legacy signed URL must match the configured origin and object path',
+    () async {
+      final objectName = '$shop/$day/$objectId.jpg';
+      Future<HttpOpeningGateway> api(String signed) async {
+        return HttpOpeningGateway(
+          client: MockClient(
+            (request) async =>
+                http.Response(jsonEncode({'signedURL': signed}), 200),
+          ),
+          supabaseUrl: 'https://example.test/',
+          publishableKey: 'publishable-key',
+          accessToken: () => 'access-token',
+          currentUserId: () => 'owner-a',
+        );
+      }
 
-    await expectLater(
-      api(
-        'https://evil.example/storage/v1/object/sign/eldafttar-private-notes/$objectName?token=short',
-      ).then(
-        (gateway) => gateway.noteReadUrl(
-          callerUserId: 'owner-a',
-          objectName: objectName,
+      await expectLater(
+        api(
+          'https://evil.example/storage/v1/object/sign/eldafttar-private-notes/$objectName?token=short',
+        ).then(
+          (gateway) => gateway.noteReadUrl(
+            callerUserId: 'owner-a',
+            objectName: objectName,
+            bucket: noteLegacyBucket,
+          ),
         ),
-      ),
-      throwsA(isA<NoteReadException>()),
-    );
-    await expectLater(
-      api(
-        'https://example.test/storage/v1/object/sign/other-bucket/$objectName?token=short',
-      ).then(
-        (gateway) => gateway.noteReadUrl(
-          callerUserId: 'owner-a',
-          objectName: objectName,
+        throwsA(isA<NoteReadException>()),
+      );
+      await expectLater(
+        api(
+          'https://example.test/storage/v1/object/sign/other-bucket/$objectName?token=short',
+        ).then(
+          (gateway) => gateway.noteReadUrl(
+            callerUserId: 'owner-a',
+            objectName: objectName,
+            bucket: noteLegacyBucket,
+          ),
         ),
-      ),
-      throwsA(isA<NoteReadException>()),
-    );
-    final accepted = await api(
-      'https://example.test/storage/v1/object/sign/eldafttar-private-notes/$objectName?token=short',
-    );
-    final url = await accepted.noteReadUrl(
-      callerUserId: 'owner-a',
-      objectName: objectName,
-    );
-    expect(url, startsWith('https://example.test/'));
-    expect(url, contains('/eldafttar-private-notes/$objectName'));
-    expect(url, contains('token=short'));
-    expect(url, isNot(contains('evil')));
-  });
+        throwsA(isA<NoteReadException>()),
+      );
+      final accepted = await api(
+        'https://example.test/storage/v1/object/sign/eldafttar-private-notes/$objectName?token=short',
+      );
+      final url = await accepted.noteReadUrl(
+        callerUserId: 'owner-a',
+        objectName: objectName,
+        bucket: noteLegacyBucket,
+      );
+      expect(url, startsWith('https://example.test/'));
+      expect(url, contains('/eldafttar-private-notes/$objectName'));
+      expect(url, contains('token=short'));
+      expect(url, isNot(contains('evil')));
+    },
+  );
 }

@@ -1,5 +1,7 @@
 # Owner meeting implementation and local validation — 2026-10-20
 
+Subsequent status: the user later authorized hosted application and routine Supabase deployment. [Development deployment and hosted verification](deployment-2026-10-20.md) are complete. The local checkpoint below is preserved as the pre-deployment validation record; its no-deployment statements describe that earlier point.
+
 This validates the local changes traced by the [37-item register](audit.md) and [ADR 0023](../../adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md). Meeting audio, raw transcriptions, identities and video screen samples remain outside Git. Only synthetic test/capture data is included here. Historical validation records were preserved.
 
 ## Delivered behavior

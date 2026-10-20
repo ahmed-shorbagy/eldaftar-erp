@@ -107,6 +107,7 @@ class ScriptNotes implements NotesGateway {
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   }) => throw UnimplementedError();
 
   @override

@@ -148,6 +148,7 @@ class CaptureNotes implements OpeningGateway, NotesGateway, LedgerFeedGateway {
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   }) async => 'https://example.test/not-stored';
 
   @override
@@ -524,6 +525,7 @@ class _FormNotes implements NotesGateway {
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   }) async => 'https://example.test/not-stored';
 
   @override

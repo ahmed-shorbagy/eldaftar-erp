@@ -278,6 +278,7 @@ final class InvoicePresentationCopy {
     required this.payload,
     required this.canWrite,
     this.logoBytes,
+    this.logoObjectKey,
   });
 
   final String shopId;
@@ -287,6 +288,10 @@ final class InvoicePresentationCopy {
   final bool contentMatches;
   final InvoiceAppearanceValue appearance;
   final String logoState;
+
+  /// Cloudflare R2 key of a verified logo whose bytes the gateway still has to
+  /// download and check against [InvoiceAppearanceValue.logoSha256].
+  final String? logoObjectKey;
   final int renderVersion;
   final String actorId;
   final String createdAtUtc;
@@ -300,6 +305,32 @@ final class InvoicePresentationCopy {
   final Map<String, Object?> payload;
   final bool canWrite;
   final List<int>? logoBytes;
+
+  InvoicePresentationCopy withLogo({
+    required String logoState,
+    List<int>? logoBytes,
+  }) => InvoicePresentationCopy(
+    shopId: shopId,
+    operationId: operationId,
+    edition: edition,
+    contentSha256: contentSha256,
+    contentMatches: contentMatches,
+    appearance: appearance,
+    logoState: logoState,
+    renderVersion: renderVersion,
+    actorId: actorId,
+    createdAtUtc: createdAtUtc,
+    createdAtShop: createdAtShop,
+    shopName: shopName,
+    shopSequence: shopSequence,
+    kind: kind,
+    timeZone: timeZone,
+    occurredAtUtc: occurredAtUtc,
+    occurredAtShop: occurredAtShop,
+    payload: payload,
+    canWrite: canWrite,
+    logoBytes: logoBytes,
+  );
 
   Map<String, Object?> get documentSource => {
     'operation_id': operationId,

@@ -45,6 +45,12 @@ final class NoteStatusUnknown extends NoteStatusResult {
   const NoteStatusUnknown();
 }
 
+/// Attachments saved before the R2 move stay in the private Supabase bucket
+/// and remain readable; every new attachment is stored in Cloudflare R2.
+const noteLegacyBucket = 'eldafttar-private-notes';
+const noteR2Bucket = 'cloudflare-r2';
+const noteBuckets = {noteLegacyBucket, noteR2Bucket};
+
 enum NoteUploadDisposition { stored, alreadyPresent, rejected, unknown }
 
 final class NoteUploadResult {
@@ -155,6 +161,7 @@ abstract class NotesGateway {
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   });
 }
 

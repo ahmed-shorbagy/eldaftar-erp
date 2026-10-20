@@ -84,6 +84,7 @@ class FullActionReviewGateway extends ItemReviewGateway
   Future<String> noteReadUrl({
     required String callerUserId,
     required String objectName,
+    required String bucket,
   }) async => throw StateError('No visual note image');
 }
 

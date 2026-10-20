@@ -74,7 +74,7 @@ Create staging release notes in Arabic for user-facing changes. Pilot a financia
 
 ## Security, privacy and review
 
-Never commit .env.local, service-role keys, R2 credentials, raw contracts, customer lists, phone numbers or production exports. Keep private uploads in R2 and issue short-lived scoped URLs. Review access to log events, analytics and support tooling because they can leak sensitive data even when tables have RLS. Use least-privilege server secrets and rotate them if exposed. A support/admin override needs a separate auditable process.
+Never commit .env.local, service-role keys, R2 credentials, raw contracts, customer lists, phone numbers or production exports. Store every image and document only in Cloudflare R2 through the `r2-media` function, which issues short-lived scoped URLs and verifies objects before use ([ADR 0024](adr/0024-cloudflare-r2-media-storage.md)); reject reviews that add Supabase Storage writes or inline media bytes. Review access to log events, analytics and support tooling because they can leak sensitive data even when tables have RLS. Use least-privilege server secrets and rotate them if exposed. A support/admin override needs a separate auditable process.
 
 Review each change against the scope contract, dependency direction, transaction effects, RLS, idempotency, Arabic copy, RTL themes, and test evidence. Grok may implement a scoped task when authorized, but it does not commit or push. Codex reviews the diff and reruns the relevant routine validation gates before any commit. Neither agent publishes or deploys without direct authorization.
 

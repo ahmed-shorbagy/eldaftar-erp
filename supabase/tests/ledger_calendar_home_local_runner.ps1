@@ -68,11 +68,20 @@ try {
       if ((Scalar $Database $check) -ne 't') { throw "rollback failed: $($_.Name)" }
       Write-Host "MEETING_MIGRATION_ROLLBACK_PASSED $($_.Name)"
     }
+    if ($_.Name -eq '20261020132245_closing_delegation_foreign_key_indexes.sql') {
+      $rollback = (Get-Content -LiteralPath $_.FullName -Raw) -replace '(?s)\r?\ncommit;\s*$', "`nrollback;`n"
+      $rollbackPath = Join-Path $task 'staff-index-rollback.sql'
+      Set-Content -LiteralPath $rollbackPath -Value $rollback -Encoding utf8NoBOM
+      FileSql $rollbackPath
+      if ((Scalar $Database "select count(*) from pg_indexes where indexname in ('closing_staff_accounts_creator_idx','closing_count_tasks_day_idx','closing_count_tasks_assigner_idx','closing_count_tasks_submitter_idx','closing_count_tasks_close_operation_idx','closing_count_tasks_shop_staff_idx','closing_delegation_audit_shop_idx','closing_delegation_audit_actor_idx','closing_delegation_audit_staff_idx','closing_delegation_audit_task_idx','closing_delegation_audit_operation_idx','closing_staff_creation_owner_idx','closing_staff_creation_staff_idx','closing_delegation_commands_actor_idx')") -ne '0') { throw 'index rollback left indexes' }
+      Write-Host 'CLOSING_DELEGATION_INDEX_ROLLBACK_PASSED'
+    }
     FileSql $_.FullName
   }
   FileSql (Join-Path $PSScriptRoot 'ledger_calendar_home.sql')
   FileSql (Join-Path $PSScriptRoot 'staff_closing_delegation.sql')
   FileSql (Join-Path $PSScriptRoot 'invoice_appearance.sql')
+  FileSql (Join-Path $PSScriptRoot 'closing_delegation_index_coverage.sql')
   FileSql (Join-Path $PSScriptRoot 'meeting_close_race_seed.sql')
   $day = Scalar $Database "select id from public.business_days where shop_id='e2900000-0000-4000-8000-000000000001' and status='open'"
   $version = Scalar $Database "select day_version from public.business_days where id='$day'"
