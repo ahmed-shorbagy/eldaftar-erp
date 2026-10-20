@@ -15,8 +15,9 @@ const ledgerMetricIds = <String>[
   'sale_karat_24',
   'scrap_purchase_18',
   'scrap_purchase_21',
-  'scrap_purchase_22',
   'scrap_purchase_24',
+  'scrap_purchase_22',
+  'scrap_purchase_14',
 ];
 
 /// Six home slots; all other metrics remain in More. Gold totals never mix karats.
@@ -29,12 +30,16 @@ final class LedgerMetricLayout {
   final List<String> homeIds;
   final int normalizationKarat;
   final Set<int> hiddenScrapKarats;
+  List<String> get availableIds => [
+    for (final id in ledgerMetricIds)
+      if (!_hiddenScrapMetric(id, hiddenScrapKarats)) id,
+  ];
   List<String> get moreIds =>
-      ledgerMetricIds.where((id) => !homeIds.contains(id)).toList();
+      availableIds.where((id) => !homeIds.contains(id)).toList();
   bool get isValid =>
       homeIds.length == 6 &&
       homeIds.toSet().length == 6 &&
-      homeIds.every(ledgerMetricIds.contains) &&
+      homeIds.every(availableIds.contains) &&
       normalizationKarats.contains(normalizationKarat) &&
       hiddenScrapKarats.every(const {14, 22}.contains);
   LedgerMetricLayout copyWith({
@@ -42,12 +47,36 @@ final class LedgerMetricLayout {
     int? normalizationKarat,
     Set<int>? hiddenScrapKarats,
   }) => LedgerMetricLayout(
-    homeIds: List.unmodifiable(homeIds ?? this.homeIds),
+    homeIds: _sixVisibleMetrics(
+      homeIds ?? this.homeIds,
+      hiddenScrapKarats ?? this.hiddenScrapKarats,
+    ),
     normalizationKarat: normalizationKarat ?? this.normalizationKarat,
     hiddenScrapKarats: Set.unmodifiable(
       hiddenScrapKarats ?? this.hiddenScrapKarats,
     ),
   );
+}
+
+bool _hiddenScrapMetric(String id, Set<int> hidden) =>
+    id.startsWith('scrap_purchase_') &&
+    hidden.contains(int.tryParse(id.substring(15)));
+
+List<String> _sixVisibleMetrics(Iterable<String> preferred, Set<int> hidden) {
+  final result = <String>[];
+  for (final id in [
+    ...preferred,
+    ...ledgerDefaultHomeMetrics,
+    ...ledgerMetricIds,
+  ]) {
+    if (result.length == 6) break;
+    if (ledgerMetricIds.contains(id) &&
+        !_hiddenScrapMetric(id, hidden) &&
+        !result.contains(id)) {
+      result.add(id);
+    }
+  }
+  return List.unmodifiable(result);
 }
 
 LedgerMetricLayout migrateLedgerMetricLayout(Iterable<String>? saved) {
@@ -77,7 +106,11 @@ LedgerMetricLayout migrateLedgerMetricLayout(Iterable<String>? saved) {
   }
   final home = <String>[];
   void add(String id) {
-    if (home.length < 6 && !home.contains(id)) home.add(id);
+    if (home.length < 6 &&
+        !home.contains(id) &&
+        !_hiddenScrapMetric(id, hiddenScrap)) {
+      home.add(id);
+    }
   }
 
   for (final id in [
@@ -109,7 +142,9 @@ LedgerMetricLayout selectMetricForSlot(
   int slot,
   String id,
 ) {
-  if (slot < 0 || slot >= 6 || !ledgerMetricIds.contains(id)) return current;
+  if (slot < 0 || slot >= 6 || !current.availableIds.contains(id)) {
+    return current;
+  }
   final home = [...current.homeIds];
   final existing = home.indexOf(id);
   if (existing >= 0) home[existing] = home[slot];

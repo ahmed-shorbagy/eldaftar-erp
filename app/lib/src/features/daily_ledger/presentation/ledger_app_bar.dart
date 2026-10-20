@@ -17,6 +17,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.shopImageBytes,
     this.onChangeShop,
     this.compact = false,
+    this.collapsed = false,
     this.textScaler = TextScaler.noScaling,
   });
 
@@ -27,12 +28,22 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onChangeShop;
   final double topInset;
   final bool compact;
+  final bool collapsed;
   final TextScaler textScaler;
 
   static const double bodyHeight = 108;
 
   @override
   Size get preferredSize {
+    if (collapsed) {
+      return Size.fromHeight(
+        topInset +
+            (textScaler.scale(AppTokens.bodySize) * 1.2 + 16).clamp(
+              64,
+              double.infinity,
+            ),
+      );
+    }
     final textHeight =
         textScaler.scale(compact ? AppTokens.bodySize : AppTokens.titleSize) *
             2.3 +
@@ -86,25 +97,27 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
             compact ? 14 : 20,
             8,
             compact ? 10 : 16,
-            14,
+            collapsed ? 8 : 14,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _ShopMark(bytes: shopImageBytes, dark: dark, scheme: scheme),
-              const SizedBox(width: 12),
+              if (!collapsed) ...[
+                _ShopMark(bytes: shopImageBytes, dark: dark, scheme: scheme),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'أهلاً $shopName',
+                      collapsed ? shopName : 'أهلاً $shopName',
                       key: const Key('ledger-title'),
-                      maxLines: 2,
+                      maxLines: collapsed ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                       style:
-                          (compact
+                          (compact || collapsed
                                   ? theme.textTheme.titleMedium
                                   : theme.textTheme.titleLarge)
                               ?.copyWith(
@@ -112,27 +125,29 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                                 height: 1.15,
                               ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'الدفتر اليومي',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                    if (!collapsed) ...[
                       const SizedBox(height: 2),
                       Text(
-                        subtitle!,
+                        'الدفتر اليومي',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.2,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
+                      if (subtitle != null && subtitle!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -211,6 +226,10 @@ class _ShopMark extends StatelessWidget {
                     key: const Key('ledger-shop-image'),
                     fit: BoxFit.cover,
                     gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: BrandMark(size: 28),
+                    ),
                   ),
           ),
         ),

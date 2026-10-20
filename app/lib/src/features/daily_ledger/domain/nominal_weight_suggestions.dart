@@ -1,3 +1,7 @@
+import 'opening_issue.dart';
+import 'postgres_integer.dart';
+import 'quantities.dart';
+
 /// Editable nominal weights offered while entering a coin or bullion line.
 ///
 /// These are suggestions the owner can change. They are not measured stock
@@ -19,46 +23,114 @@ final class NominalWeightSuggestion {
   final bool fromCatalog;
 }
 
+/// One selected denomination. The weight is the exact total for all pieces.
+final class NominalSelection {
+  const NominalSelection._(this.suggestion, this.count, this.milligrams);
+
+  final NominalWeightSuggestion suggestion;
+  final PieceCount count;
+  final Milligrams milligrams;
+
+  static NominalSelection? tryCreate(
+    NominalWeightSuggestion suggestion,
+    String countText,
+  ) {
+    final count = PieceCount.parseWire(countText);
+    final unit = Milligrams.parseGrams(suggestion.grams);
+    if (count is! Accepted<PieceCount> ||
+        count.value.value == BigInt.zero ||
+        unit is! Accepted<Milligrams> ||
+        unit.value.value == BigInt.zero) {
+      return null;
+    }
+    final total = PostgresInteger.checkedMultiply(
+      unit.value.value,
+      count.value.value,
+    );
+    if (total == null) return null;
+    final weight = Milligrams.parseWire(total.toString());
+    return weight is Accepted<Milligrams>
+        ? NominalSelection._(suggestion, count.value, weight.value)
+        : null;
+  }
+}
+
 const builtinNominalWeightSuggestions = <NominalWeightSuggestion>[
   NominalWeightSuggestion(
-    label: 'سبيكة',
+    label: 'سبيكة ربع جرام',
     grams: '0.250',
     category: 'bullion',
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
-    label: 'عملة',
-    grams: '1.000',
-    category: 'coin',
+    label: 'سبيكة نصف جرام',
+    grams: '0.500',
+    category: 'bullion',
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
-    label: 'عملة نصف جرام',
-    grams: '0.500',
-    category: 'coin',
+    label: 'سبيكة جرام',
+    grams: '1.000',
+    category: 'bullion',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
+    label: 'سبيكة 2.5 جرام',
+    grams: '2.500',
+    category: 'bullion',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
+    label: 'سبيكة 5 جرام',
+    grams: '5.000',
+    category: 'bullion',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
+    label: 'سبيكة 10 جرام',
+    grams: '10.000',
+    category: 'bullion',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
+    label: 'سبيكة 20 جرام',
+    grams: '20.000',
+    category: 'bullion',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
+    label: 'سبيكة 25 جرام',
+    grams: '25.000',
+    category: 'bullion',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
+    label: 'سبيكة أونصة',
+    grams: '31.100',
+    category: 'bullion',
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
     label: 'ربع جنيه',
-    grams: '1.000',
+    grams: '2.000',
     category: 'coin',
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
     label: 'نصف جنيه',
-    grams: '2.500',
+    grams: '4.000',
     category: 'coin',
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
     label: 'جنيه',
-    grams: '10.000',
+    grams: '8.000',
     category: 'coin',
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
     label: 'خمسة جنيهات',
-    grams: '20.000',
+    grams: '40.000',
     category: 'coin',
     fromCatalog: false,
   ),

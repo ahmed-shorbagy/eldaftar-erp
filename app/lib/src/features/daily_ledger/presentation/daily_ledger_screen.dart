@@ -116,6 +116,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   PendingFinancialCommand? _financialPending;
   bool _pendingStatusUnknown = false;
   Timer? _syncTimer;
+  Timer? _midnightTimer;
+  LedgerJournalContext? _scheduledJournal;
+  bool _calendarBoundaryPassed = false;
+  final _formInvalidations = ValueNotifier<int>(0);
+  bool _headerCollapsed = false;
   bool _syncing = false;
   bool _syncQueued = false;
   bool _loadingOlder = false;
@@ -135,9 +140,48 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
 
   bool get _expired => widget.shop.entitlement == ShopEntitlement.expired;
 
+  bool get _currentCalendarDay {
+    final journal = _controller?.ledger?.journalContext;
+    return !_calendarBoundaryPassed &&
+        (journal == null ||
+            _financialDay?.businessDate == journal.businessDate);
+  }
+
+  bool _canStartEntry(String userId) =>
+      mounted &&
+      widget.userId == userId &&
+      !_expired &&
+      _controller?.readOnly == false &&
+      _financialDay?.isOpen == true &&
+      _currentCalendarDay;
+
+  void _onScroll() {
+    final collapsed = _scroll.hasClients &&
+        _scroll.offset > (_headerCollapsed ? 40 : 100);
+    if (collapsed != _headerCollapsed) {
+      setState(() => _headerCollapsed = collapsed);
+    }
+  }
+
+  void _scheduleCalendarBoundary() {
+    final journal = _controller?.ledger?.journalContext;
+    if (journal == null || identical(journal, _scheduledJournal)) return;
+    _scheduledJournal = journal;
+    _calendarBoundaryPassed = false;
+    _midnightTimer?.cancel();
+    _midnightTimer = Timer(journal.untilNextMidnight, () {
+      if (!mounted) return;
+      setState(() => _calendarBoundaryPassed = true);
+      _formInvalidations.value++;
+      _sync();
+    });
+    _formInvalidations.value++;
+  }
+
   @override
   void initState() {
     super.initState();
+    _scroll.addListener(_onScroll);
     WidgetsBinding.instance.addObserver(this);
     widget.syncTicks?.addListener(_onSyncTicks);
     _syncTimer = Timer.periodic(const Duration(minutes: 1), (_) => _sync());
@@ -207,6 +251,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
 
   void _onController() {
     if (!mounted) return;
+    _scheduleCalendarBoundary();
     _adoptFeed();
     if (!_caughtUp &&
         _controller?.phase == LedgerPhase.confirmed &&
@@ -246,6 +291,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     setState(() => _loadingOlder = true);
     try {
       await _activity.loadOlder(gateway: gateway, userId: userId);
+    } on CalendarLedgerChanged {
+      await _controller?.refresh();
     } catch (_) {
       if (mounted) {
         setState(
@@ -266,7 +313,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final canWrite =
         !_expired &&
         (_financialGateway == null || _financialDay?.isOpen == true) &&
-        day != null;
+        day != null &&
+        _currentCalendarDay;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => DailyNotesScreen(
@@ -274,6 +322,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           userId: userId,
           shopId: widget.shop.id,
           businessDayId: day?.id,
+          businessDate: _controller?.ledger?.journalContext?.businessDate,
+          writesStillAllowed: () => _canStartEntry(userId),
+          invalidations: _formInvalidations,
           canWrite: canWrite,
           drafts: const SecureNoteDraftStore(),
           files: ApplicationNoteImageFileStore(),
@@ -510,6 +561,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     if (gateway == null ||
         userId == null ||
         _financialDay?.isOpen != true ||
+        !_currentCalendarDay ||
         _financialPending != null) {
       return;
     }
@@ -527,6 +579,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         shopId: widget.shop.id,
         catalog: catalog,
         inventoryPage: widget.inventoryPage,
+        canRead: () => mounted && widget.userId == userId,
+        canWrite: () => _canStartEntry(userId),
+        syncTicks: Listenable.merge([widget.syncTicks, _formInvalidations]),
       );
     } else {
       saved = await Navigator.of(context).push<bool>(
@@ -537,6 +592,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
             statusGateway: widget.gateway!,
             userId: userId,
             shopId: widget.shop.id,
+            canRead: () => mounted && widget.userId == userId,
+            canWrite: () => _canStartEntry(userId),
+            syncTicks: Listenable.merge([widget.syncTicks, _formInvalidations]),
           ),
         ),
       );
@@ -844,6 +902,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         oldWidget.gateway != widget.gateway ||
         oldWidget.store != widget.store;
     if (identityChanged) {
+      _midnightTimer?.cancel();
+      _scheduledJournal = null;
+      _calendarBoundaryPassed = false;
+      _formInvalidations.value++;
       _financialDay = null;
       _financialPending = null;
       _financialError = null;
@@ -873,6 +935,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   void dispose() {
     widget.syncTicks?.removeListener(_onSyncTicks);
     _syncTimer?.cancel();
+    _midnightTimer?.cancel();
+    _formInvalidations.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _controller?.removeListener(_onController);
     _controller?.dispose();
@@ -885,7 +949,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final theme = Theme.of(context);
     final controller = _controller;
     final compact = MediaQuery.sizeOf(context).width < 400;
-    final businessDay = controller?.ledger?.businessDay?.businessDate;
+    final businessDay =
+        controller?.ledger?.journalContext?.businessDate ??
+        controller?.ledger?.businessDay?.businessDate;
     final daySubtitle = businessDay == null
         ? null
         : 'يوم العمل ${formatServerDate(businessDay)}';
@@ -897,6 +963,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         subtitle: daySubtitle,
         topInset: MediaQuery.paddingOf(context).top,
         compact: compact,
+        collapsed: _headerCollapsed,
         onToggleTheme: widget.onToggleTheme,
         onChangeShop: widget.onChangeShop,
       ),
@@ -920,6 +987,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               compact ? 28 : 36,
             ),
             children: [
+              if (!_currentCalendarDay && _financialDay?.isOpen == true)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'بدأ تاريخ جديد للمتجر. أغلق يوم العمل السابق صراحةً ثم افتح اليوم الجديد لإضافة العمليات. الأرصدة محفوظة.',
+                  ),
+                ),
               if (_financialGateway is LedgerDateGateway &&
                   controller?.ledger?.isConfirmed == true)
                 Align(
@@ -1076,11 +1150,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                   canReturn:
                       _financialGateway is LinkedReturnGateway &&
                       _financialDay?.isOpen == true &&
+                      _currentCalendarDay &&
                       !_expired &&
                       !controller.readOnly &&
                       _financialPending == null,
                   onSale:
                       _financialDay?.isOpen == true &&
+                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
@@ -1088,6 +1164,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onPurchase:
                       _financialDay?.isOpen == true &&
+                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
@@ -1095,6 +1172,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onExpense:
                       _financialDay?.isOpen == true &&
+                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
@@ -1102,6 +1180,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onCashTransfer:
                       _financialDay?.isOpen == true &&
+                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null &&
@@ -1110,6 +1189,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onScrapSale:
                       _financialDay?.isOpen == true &&
+                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
@@ -1117,6 +1197,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onScrapToStock:
                       _financialDay?.isOpen == true &&
+                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null &&

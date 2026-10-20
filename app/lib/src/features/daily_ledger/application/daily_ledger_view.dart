@@ -16,6 +16,7 @@ final class DailyLedgerView {
     this.daySummary,
     this.feedCursor,
     this.tradeChangeSequence,
+    this.journalContext,
   });
 
   final String state;
@@ -31,6 +32,7 @@ final class DailyLedgerView {
 
   /// Server sequence of the latest edit/delete; invalidates cached older pages.
   final String? tradeChangeSequence;
+  final LedgerJournalContext? journalContext;
 
   bool get isConfirmed => state == 'confirmed';
   bool get isUninitialized => state == 'uninitialized';
@@ -51,6 +53,25 @@ final class DailyLedgerView {
         ? parsedTotal.value.poundsText
         : null;
   }
+}
+
+/// Calendar journal identity and rollover timing are supplied by the server.
+/// An old open financial day can coexist with a new empty calendar journal.
+final class LedgerJournalContext {
+  const LedgerJournalContext({
+    required this.businessDate,
+    required this.dayIds,
+    required this.serverNow,
+    required this.nextMidnightAt,
+    required this.returnCount,
+    required this.noteCount,
+  });
+  final String businessDate;
+  final List<String> dayIds;
+  final DateTime serverNow, nextMidnightAt;
+  final int returnCount, noteCount;
+
+  Duration get untilNextMidnight => nextMidnightAt.difference(serverNow);
 }
 
 final class LedgerDaySummary {

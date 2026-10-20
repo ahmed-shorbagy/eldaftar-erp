@@ -130,7 +130,7 @@ Map<String, LedgerMetricSpec> ledgerMetricValues(
         Icons.sell_outlined,
         LedgerMetricTone.positive,
       ),
-    for (final karat in [18, 21, 22, 24])
+    for (final karat in [18, 21, 24, 22, 14])
       'scrap_purchase_$karat': LedgerMetricSpec(
         ledgerMetricLabel('scrap_purchase_$karat'),
         byKarat('purchase', karat, scrap: true),

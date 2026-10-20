@@ -96,17 +96,19 @@ DailyLedgerView parseDailyLedger(Object? json) {
     'feed',
   };
   final version = json['read_model_version'];
-  if (version is! int || (version != 1 && version != 2)) {
+  if (version is! int || (version != 1 && version != 2 && version != 3)) {
     throw const FormatException('version');
   }
-  final allowedFields = version == 2 ? {...fields, 'day_summary'} : fields;
+  final allowedFields = version >= 2
+      ? {...fields, 'day_summary', if (version == 3) 'journal_context'}
+      : fields;
   final keys = json.keys.toSet();
   final extra = keys.difference(allowedFields);
   // v2 confirmed reads may include feed_page and/or trade_change_sequence.
   const optionalV2 = {'feed_page', 'trade_change_sequence'};
   if (!keys.containsAll(allowedFields) ||
       extra.any((key) => !optionalV2.contains(key)) ||
-      (extra.isNotEmpty && version != 2)) {
+      (extra.isNotEmpty && version == 1)) {
     throw const FormatException('ledger');
   }
   final state = json['state'];
@@ -131,11 +133,11 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final cash = _cash(json['cash'], confirmed: confirmed);
   final stock = _stock(json['stock'], confirmed: confirmed);
   final scrap = _scrap(json['scrap'], confirmed: confirmed);
-  final feed = _feed(json['feed'], confirmed: confirmed);
-  final daySummary = version == 2
+  final feed = _feed(json['feed'], confirmed: confirmed, allowEmpty: version == 3);
+  final daySummary = version >= 2
       ? parseLedgerDaySummary(json['day_summary'])
       : null;
-  if (version == 2 && !confirmed) throw const FormatException('day_summary');
+  if (version >= 2 && !confirmed) throw const FormatException('day_summary');
   if (json.containsKey('feed_page') && !confirmed) {
     throw const FormatException('feed_page');
   }
@@ -170,11 +172,76 @@ DailyLedgerView parseDailyLedger(Object? json) {
     daySummary: daySummary,
     feedCursor: feedCursor,
     tradeChangeSequence: tradeChangeSequence as String?,
+    journalContext: version == 3
+        ? _journalContext(json['journal_context'])
+        : null,
   );
   if (confirmed && view.totalCashPounds == null) {
     throw const FormatException('cash_total');
   }
+  if (view.journalContext case final journal?) {
+    final summary = view.daySummary!;
+    if (journal.dayIds.isEmpty &&
+        (view.feed.isNotEmpty ||
+            summary.salePiastres != '0' ||
+            summary.purchasePiastres != '0' ||
+            summary.expensePiastres != '0' ||
+            summary.saleCount != 0 ||
+            summary.purchaseCount != 0 ||
+            summary.expenseCount != 0 ||
+            summary.goldByBucket.isNotEmpty ||
+            journal.returnCount != 0 ||
+            journal.noteCount != 0)) {
+      throw const FormatException('empty_calendar_day');
+    }
+  }
   return view;
+}
+
+LedgerJournalContext _journalContext(Object? value) {
+  const fields = {
+    'business_date',
+    'day_ids',
+    'server_now',
+    'next_midnight_at',
+    'return_count',
+    'note_count',
+  };
+  if (value is! Map ||
+      value.length != fields.length ||
+      value.keys.any((key) => !fields.contains(key)) ||
+      value['business_date'] is! String ||
+      !isCalendarDate(value['business_date'] as String) ||
+      value['day_ids'] is! List ||
+      value['server_now'] is! String ||
+      value['next_midnight_at'] is! String ||
+      value['return_count'] is! int ||
+      (value['return_count'] as int) < 0 ||
+      value['note_count'] is! int ||
+      (value['note_count'] as int) < 0) {
+    throw const FormatException('journal_context');
+  }
+  final ids = value['day_ids'] as List;
+  final now = DateTime.tryParse(value['server_now'] as String);
+  final next = DateTime.tryParse(value['next_midnight_at'] as String);
+  if (ids.any((id) => id is! String || !isUuid(id)) ||
+      ids.toSet().length != ids.length ||
+      now == null ||
+      next == null ||
+      !now.isUtc ||
+      !next.isUtc ||
+      !next.isAfter(now) ||
+      next.difference(now) > const Duration(hours: 36)) {
+    throw const FormatException('journal_context');
+  }
+  return LedgerJournalContext(
+    businessDate: value['business_date'] as String,
+    dayIds: List<String>.unmodifiable(ids),
+    serverNow: now,
+    nextMidnightAt: next,
+    returnCount: value['return_count'] as int,
+    noteCount: value['note_count'] as int,
+  );
 }
 
 LedgerDaySummary parseLedgerDaySummary(Object? value) {
@@ -438,10 +505,10 @@ LedgerScrapLine _scrapLine(Object? row) {
 }
 
 /// One ledger response holds at most 200 lines. That bound is not the history.
-List<LedgerFeedLine> _feed(Object? value, {required bool confirmed}) {
+List<LedgerFeedLine> _feed(Object? value, {required bool confirmed, bool allowEmpty = false}) {
   if (value is! List) throw const FormatException('feed');
   if (confirmed) {
-    if (value.isEmpty || value.length > 200) {
+    if ((!allowEmpty && value.isEmpty) || value.length > 200) {
       throw const FormatException('feed');
     }
   } else if (value.isNotEmpty) {

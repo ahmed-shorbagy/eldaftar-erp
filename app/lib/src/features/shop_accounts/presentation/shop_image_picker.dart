@@ -3,8 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../invoice_appearance/application/logo_codec.dart';
-import '../../invoice_appearance/domain/logo_bytes.dart';
+import '../application/shop_image_codec.dart';
 import 'shop_image_copy.dart';
 
 /// Arabic camera / gallery sheet using the standard [ImagePicker] package.
@@ -48,19 +47,20 @@ Future<Uint8List?> pickShopImageBytes(BuildContext context) async {
   );
   if (source == null || !context.mounted) return null;
 
+  // Do not pass maxWidth, maxHeight, or imageQuality. Those ask the picker to
+  // transcode during selection and fail for some gallery files (HEIC, WebP,
+  // and large camera originals). The chosen file is compressed afterwards.
   final picker = ImagePicker();
   final file = await picker.pickImage(
     source: source,
-    maxWidth: logoMaxDimension.toDouble(),
-    maxHeight: logoMaxDimension.toDouble(),
-    imageQuality: 88,
     requestFullMetadata: false,
   );
   if (file == null) return null;
-  final raw = await file.readAsBytes();
+  // Camera apps sometimes return the path before the file is fully written.
+  var raw = await file.readAsBytes();
   if (raw.isEmpty) {
-    throw const LogoByteRejection('logo_rejected');
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    raw = await file.readAsBytes();
   }
-  final prepared = await prepareLogo(raw);
-  return prepared.bytes;
+  return compressShopPhoto(raw);
 }

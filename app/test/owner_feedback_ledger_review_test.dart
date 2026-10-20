@@ -138,12 +138,14 @@ void main() {
         expect(find.byKey(const Key('ledger-quick-actions')), findsOneWidget);
         final suffix = '${dark ? 'dark' : 'light'}-${width.toInt()}';
         await saveReview(tester, key, 'top-$suffix');
-        for (final journal in ['sale', 'purchase', 'return']) {
+        for (final journal in ['sale', 'purchase']) {
           await tester.ensureVisible(
             find.byKey(Key('ledger-journal-$journal')),
           );
           await saveReview(tester, key, 'home-$journal-$suffix');
         }
+        await tester.ensureVisible(find.byKey(const Key('ledger-book-returns')));
+        await saveReview(tester,key,'home-returns-$suffix');
         await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
         await tester.pumpAndSettle();
         await tester.pumpAndSettle();

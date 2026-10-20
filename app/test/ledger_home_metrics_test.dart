@@ -4,11 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
-    'default layout has six figures and seven distinct karat choices in More',
+    'default layout has six figures and eight distinct karat choices in More',
     () {
       final layout = migrateLedgerMetricLayout(null);
       expect(layout.homeIds, ledgerDefaultHomeMetrics);
-      expect(layout.moreIds, hasLength(7));
+      expect(layout.moreIds, hasLength(8));
       expect(layout.homeIds, isNot(contains('total_gold')));
       expect(layout.isValid, isTrue);
       expect(layout.homeIds, isNot(contains('operations')));
@@ -38,7 +38,7 @@ void main() {
       ]);
       expect(layout.homeIds.length, 6);
       expect(layout.homeIds, isNot(contains('operations')));
-      expect(layout.moreIds, hasLength(7));
+      expect(layout.moreIds, hasLength(8));
       expect(layout.homeIds, isNot(contains('total_gold')));
     },
   );
@@ -90,6 +90,38 @@ void main() {
     expect(next.homeIds, isNot(contains('total_cash')));
     expect(next.homeIds.length, 6);
   });
+
+  test(
+    'optional 22k and 14k scrap figures come last and hide without losing six slots',
+    () {
+      final start = selectMetricForSlot(
+        migrateLedgerMetricLayout(null),
+        0,
+        'scrap_purchase_14',
+      );
+      expect(start.homeIds.first, 'scrap_purchase_14');
+      expect(start.availableIds.sublist(start.availableIds.length - 2), [
+        'scrap_purchase_22',
+        'scrap_purchase_14',
+      ]);
+      final hidden = start.copyWith(hiddenScrapKarats: {14, 22});
+      expect(hidden.isValid, isTrue);
+      expect(hidden.homeIds, hasLength(6));
+      expect(hidden.availableIds, isNot(contains('scrap_purchase_14')));
+      expect(hidden.moreIds, isNot(contains('scrap_purchase_22')));
+      expect(hidden.homeIds, isNot(contains('scrap_purchase_14')));
+      final restored = migrateLedgerMetricLayout(
+        encodeLedgerMetricLayout(hidden),
+      );
+      expect(restored.homeIds, hidden.homeIds);
+      expect(restored.hiddenScrapKarats, {14, 22});
+      expect(selectMetricForSlot(hidden, 0, 'scrap_purchase_22'), same(hidden));
+      expect(
+        hidden.copyWith(hiddenScrapKarats: {}).availableIds,
+        containsAll(['scrap_purchase_14', 'scrap_purchase_22']),
+      );
+    },
+  );
 
   test('shop-local twelve-hour time omits the calendar day', () {
     expect(

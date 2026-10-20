@@ -7,6 +7,7 @@ abstract final class ShopImageCopy {
   static const change = 'تغيير الصورة';
   static const clear = 'إزالة الصورة';
   static const save = 'حفظ الصورة';
+  static const preparing = 'جاري تجهيز الصورة…';
   static const saving = 'جاري الحفظ…';
   static const clearing = 'جاري الإزالة…';
   static const success = 'تم حفظ صورة المتجر.';
@@ -22,6 +23,8 @@ abstract final class ShopImageCopy {
       'تعذّر استخدام هذه الصورة. جرّب صورة أخرى من الكاميرا أو المعرض.';
   static const tooLarge = 'حجم الصورة أكبر من الحد المسموح.';
   static const unavailable = 'تعذّر حفظ صورة المتجر. أعد المحاولة.';
+  static const loadFailed =
+      'تعذّر تحميل صورة المتجر. اختر صورة جديدة لحفظها مجدداً.';
   static const unauthorized = 'انتهت الجلسة. سجّل الدخول ثم أعد المحاولة.';
 
   static String messageFor(ShopImageFailure failure) => switch (failure) {

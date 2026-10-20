@@ -98,8 +98,6 @@ void main() {
           '4200.25',
         );
         await _save(tester, 'payment-$suffix');
-        await nextTrade(tester);
-        await _save(tester, 'sale-details-$suffix');
         await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
@@ -197,15 +195,6 @@ void main() {
           find.byKey(const Key('trade-purchase-price')),
           '60000',
         );
-        await tester.ensureVisible(
-          find.byKey(const Key('trade-customer-disclosure')),
-        );
-        await tester.tap(find.byKey(const Key('trade-customer-disclosure')));
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const Key('trade-customer-name')),
-          'تاجر تجريبي',
-        );
         await tester.dragUntilVisible(
           find.byKey(const Key('trade-tender-amount-0')),
           find.byType(ListView),
@@ -216,8 +205,6 @@ void main() {
           '20000',
         );
         await _save(tester, 'payment-$suffix');
-        await nextTrade(tester);
-        await _save(tester, 'sale-details-$suffix');
         await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
@@ -252,7 +239,7 @@ void main() {
         );
         await _save(tester, 'scrap-sale-entry-$suffix');
         await beginTrade(tester);
-        await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.375');
+        await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.37');
         await nextTrade(tester);
         await tester.dragUntilVisible(
           find.byKey(const Key('trade-tender-amount-0')),
@@ -264,8 +251,6 @@ void main() {
           '125.25',
         );
         await _save(tester, 'payment-$suffix');
-        await nextTrade(tester);
-        await _save(tester, 'sale-details-$suffix');
         await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();

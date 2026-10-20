@@ -449,36 +449,33 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       }
       return;
     }
-    final sha = shop.imageSha256;
-    if (sha == null) {
-      if (_shopImageShopId == shop.id && _shopImageBytes == null) return;
-      setState(() {
-        _shopImageBytes = null;
-        _shopImageShopId = shop.id;
-        _shopImageSha = null;
-      });
-      return;
-    }
-    if (_shopImageShopId == shop.id &&
-        _shopImageSha == sha &&
+    final knownSha = shop.imageSha256;
+    // Cache hit only when the account list and local bytes agree.
+    if (knownSha != null &&
+        _shopImageShopId == shop.id &&
+        _shopImageSha == knownSha &&
         _shopImageBytes != null) {
       return;
     }
     try {
+      // Always ask the gateway. Do not clear local bytes just because the
+      // account list has not returned shop_image_sha256 yet — that wiped the
+      // header right after a successful save.
       final image = await gateway.readCurrent();
       if (!mounted || _selected?.id != shop.id) return;
       setState(() {
         _shopImageBytes = image?.bytes;
         _shopImageShopId = shop.id;
-        _shopImageSha = image?.sha256 ?? sha;
+        _shopImageSha = image?.sha256;
       });
     } catch (_) {
       if (!mounted || _selected?.id != shop.id) return;
-      // Keep BrandMark fallback without blocking the ledger.
+      // Keep a just-saved local preview; otherwise fall back to BrandMark.
+      if (_shopImageShopId == shop.id && _shopImageBytes != null) return;
       setState(() {
         _shopImageBytes = null;
         _shopImageShopId = shop.id;
-        _shopImageSha = sha;
+        _shopImageSha = knownSha;
       });
     }
   }
@@ -488,7 +485,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     setState(() {
       _shopImageBytes = bytes;
       _shopImageShopId = _selected?.id;
-      _shopImageSha = bytes == null ? null : _shopImageSha;
+      if (bytes == null) {
+        _shopImageSha = null;
+      }
       _ledgerGeneration++;
     });
     unawaited(_refresh());

@@ -141,10 +141,10 @@ void main() {
   );
 
   testWidgets(
-    'empty returns stay absent and populated returns can be hidden independently',
+    'empty returns show a count row and returns can be hidden independently',
     (tester) async {
       await host(tester);
-      expect(find.text('دفتر المرتجعات'), findsNothing);
+      expect(find.byKey(const Key('ledger-book-returns')), findsOneWidget);
       expect(find.text('باقي الحركات'), findsNothing);
       final view = await ReviewGateway().ledger(
         callerUserId: 'synthetic-owner',
@@ -200,7 +200,7 @@ void main() {
   ) async {
     final view = await ReviewGateway().ledger(callerUserId: 'synthetic-owner');
     await host(tester, view: view);
-    for (final type in ['sale', 'purchase', 'return']) {
+    for (final type in ['sale', 'purchase']) {
       expect(find.byKey(Key('ledger-journal-$type')), findsOneWidget);
     }
     final sales = find.byKey(const Key('ledger-journal-sale'));

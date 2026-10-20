@@ -18,6 +18,9 @@ class DailyNotesScreen extends StatefulWidget {
     required this.files,
     required this.images,
     this.businessDayId,
+    this.businessDate,
+    this.writesStillAllowed,
+    this.invalidations,
     this.canWrite = true,
     this.newKey,
   });
@@ -26,6 +29,9 @@ class DailyNotesScreen extends StatefulWidget {
   final String userId;
   final String shopId;
   final String? businessDayId;
+  final String? businessDate;
+  final bool Function()? writesStillAllowed;
+  final Listenable? invalidations;
   final bool canWrite;
   final NoteDraftStore drafts;
   final NoteImageFileStore files;
@@ -61,10 +67,13 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
   String? _previewFor;
   int _readGeneration = 0;
   int _screenGeneration = 0;
+  bool _choosingImageSource = false;
+  BuildContext? _imageDialogContext;
 
   @override
   void initState() {
     super.initState();
+    widget.invalidations?.addListener(_invalidate);
     _restore();
     _load();
   }
@@ -72,10 +81,17 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
   @override
   void didUpdateWidget(DailyNotesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.invalidations != widget.invalidations) {
+      oldWidget.invalidations?.removeListener(_invalidate);
+      widget.invalidations?.addListener(_invalidate);
+    }
     final ownerChanged =
         oldWidget.userId != widget.userId || oldWidget.shopId != widget.shopId;
-    final dayChanged = oldWidget.businessDayId != widget.businessDayId;
+    final dayChanged =
+        oldWidget.businessDayId != widget.businessDayId ||
+        oldWidget.businessDate != widget.businessDate;
     if (!ownerChanged && !dayChanged) return;
+    _dismissImageDialog();
     _screenGeneration += 1;
     final keepPending = !ownerChanged && _pendingUncertain && _pending != null;
     setState(() {
@@ -107,11 +123,20 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
 
   @override
   void dispose() {
+    widget.invalidations?.removeListener(_invalidate);
+    _dismissImageDialog();
     _text.dispose();
     _search.dispose();
     _textFocus.dispose();
     _saveFocus.dispose();
     super.dispose();
+  }
+
+  bool get _canWrite =>
+      widget.canWrite && (widget.writesStillAllowed?.call() ?? true);
+
+  void _invalidate() {
+    if (mounted) setState(() {});
   }
 
   bool _sameScreen(int generation, String userId, String shopId) =>
@@ -216,6 +241,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     final user = widget.userId;
     final shop = widget.shopId;
     final day = widget.businessDayId;
+    final date = widget.businessDate;
     final query = _query();
     if (mounted) {
       setState(() {
@@ -224,18 +250,32 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       });
     }
     try {
-      final page = await widget.gateway.listNotes(
-        callerUserId: user,
-        shopId: shop,
-        dayId: day,
-        beforeSequence: before,
-        query: query,
-        limit: 30,
-      );
+      final gateway = widget.gateway;
+      if (date != null && gateway is! CalendarNotesGateway) {
+        throw const NoteReadException('unavailable');
+      }
+      final page = date != null
+          ? await (gateway as CalendarNotesGateway).listNotesForDate(
+              callerUserId: user,
+              shopId: shop,
+              businessDate: date,
+              beforeSequence: before,
+              query: query,
+              limit: 30,
+            )
+          : await gateway.listNotes(
+              callerUserId: user,
+              shopId: shop,
+              dayId: day,
+              beforeSequence: before,
+              query: query,
+              limit: 30,
+            );
       if (!mounted || generation != _readGeneration) return;
       if (widget.userId != user ||
           widget.shopId != shop ||
-          widget.businessDayId != day) {
+          widget.businessDayId != day ||
+          widget.businessDate != date) {
         return;
       }
       if (page.shopId != shop) return;
@@ -355,13 +395,58 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
 
   Future<void> _pick() async {
     if (_busy ||
+        _choosingImageSource ||
         _restoring ||
         _restoreFailed ||
-        !widget.canWrite ||
+        !_canWrite ||
         _pendingUncertain) {
       return;
     }
-    await _runAction(_pickUnlocked);
+    var camera = false;
+    final images = widget.images;
+    final generation = _screenGeneration;
+    final user = widget.userId;
+    final shop = widget.shopId;
+    if (images is CameraNoteImageSource &&
+        (images as CameraNoteImageSource).canCapture) {
+      _choosingImageSource = true;
+      bool? source;
+      try {
+        source = await showModalBottomSheet<bool>(
+          context: context,
+          showDragHandle: true,
+          builder: (sheet) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  key: const Key('daily-note-camera'),
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('التقاط صورة بالكاميرا'),
+                  onTap: () => Navigator.pop(sheet, true),
+                ),
+                ListTile(
+                  key: const Key('daily-note-gallery'),
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('اختيار صورة'),
+                  onTap: () => Navigator.pop(sheet, false),
+                ),
+              ],
+            ),
+          ),
+        );
+      } finally {
+        _choosingImageSource = false;
+      }
+      if (source == null ||
+          !_sameScreen(generation, user, shop) ||
+          !_canWrite ||
+          _pendingUncertain) {
+        return;
+      }
+      camera = source;
+    }
+    await _runAction(() => _pickUnlocked(camera: camera));
   }
 
   Future<void> _runAction(Future<void> Function() action) async {
@@ -382,7 +467,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     }
   }
 
-  Future<void> _pickUnlocked() async {
+  Future<void> _pickUnlocked({bool camera = false}) async {
     final generation = _screenGeneration;
     final user = widget.userId;
     final shop = widget.shopId;
@@ -404,8 +489,11 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       }
       knownAbsent = status is NoteStatusAbsent;
     }
-    final selected = await widget.images.pickImage();
+    final selected = camera && widget.images is CameraNoteImageSource
+        ? await (widget.images as CameraNoteImageSource).captureImage()
+        : await widget.images.pickImage();
     if (!_sameScreen(generation, user, shop) ||
+        !_canWrite ||
         selected == null ||
         _pendingUncertain) {
       return;
@@ -489,7 +577,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
   }
 
   Future<void> _save() async {
-    if (_busy || _restoring || _restoreFailed || !widget.canWrite) return;
+    if (_busy || _restoring || _restoreFailed || !_canWrite) return;
     await _runAction(_saveUnlocked);
   }
 
@@ -522,7 +610,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       }
       knownAbsent = status is NoteStatusAbsent;
     }
-    if (!_sameScreen(generation, user, shop)) return;
+    if (!_sameScreen(generation, user, shop) || !_canWrite) return;
     final day = widget.businessDayId;
     if (day == null) {
       setState(() => _error = noteFailureCopy('day_closed'));
@@ -680,8 +768,67 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       });
     } on NoteReadException catch (error) {
       if (!mounted || generation != _readGeneration) return;
+      if (const {
+        'forbidden',
+        'unauthenticated',
+        'session_expired',
+        'shop_unavailable',
+      }.contains(error.code)) {
+        _dismissImageDialog();
+        _previewUrl = null;
+        _previewFor = null;
+      }
       setState(() => _error = noteFailureCopy(error.code));
     }
+  }
+
+  void _dismissImageDialog() {
+    final surface = _imageDialogContext;
+    _imageDialogContext = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (surface != null &&
+          surface.mounted &&
+          ModalRoute.of(surface)?.isCurrent == true) {
+        Navigator.of(surface).pop();
+      }
+    });
+  }
+
+  Future<void> _openImageDialog() async {
+    final url = _previewUrl;
+    if (url == null || _imageDialogContext != null) return;
+    await showDialog<void>(
+      context: context,
+      useSafeArea: false,
+      builder: (surface) {
+        _imageDialogContext = surface;
+        return Dialog.fullscreen(
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('صورة الملاحظة'),
+              leading: IconButton(
+                tooltip: 'إغلاق الصورة',
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(surface),
+              ),
+            ),
+            body: Center(
+              child: InteractiveViewer(
+                key: const Key('daily-note-image-zoom'),
+                minScale: .5,
+                maxScale: 5,
+                child: Image.network(
+                  url,
+                  errorBuilder: (_, _, _) =>
+                      const Text('تعذرت معاينة الصورة. أغلقها وحدّث المعاينة.'),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    _imageDialogContext = null;
   }
 
   @override
@@ -691,7 +838,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     final editingLocked =
         _busy || _restoring || _restoreFailed || _pendingUncertain;
     final canSave =
-        widget.canWrite &&
+        _canWrite &&
         !_busy &&
         !_restoring &&
         !_restoreFailed &&
@@ -707,7 +854,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
             const LinearProgressIndicator(key: Key('daily-note-restoring')),
             const SizedBox(height: 12),
           ],
-          if (!widget.canWrite)
+          if (!_canWrite)
             Text(
               widget.businessDayId == null
                   ? noteFailureCopy('day_closed')
@@ -717,7 +864,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
             key: const Key('daily-note-text'),
             controller: _text,
             focusNode: _textFocus,
-            enabled: widget.canWrite && !editingLocked,
+            enabled: _canWrite && !editingLocked,
             style: _pendingUncertain
                 ? theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurface,
@@ -733,7 +880,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             key: const Key('daily-note-attach'),
-            onPressed: widget.canWrite && !editingLocked ? _pick : null,
+            onPressed: _canWrite && !editingLocked ? _pick : null,
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
             ),
@@ -816,11 +963,29 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
               ),
           if (_previewUrl != null && _previewFor != null) ...[
             const SizedBox(height: 8),
-            Image.network(
-              _previewUrl!,
-              key: Key('daily-note-preview-$_previewFor'),
-              height: 160,
-              errorBuilder: (_, _, _) => const Text('تعذرت معاينة الصورة'),
+            Semantics(
+              label: 'تكبير صورة الملاحظة',
+              button: true,
+              child: InkWell(
+                key: const Key('daily-note-open-image'),
+                onTap: _openImageDialog,
+                child: Stack(
+                  alignment: AlignmentDirectional.bottomEnd,
+                  children: [
+                    Image.network(
+                      _previewUrl!,
+                      key: Key('daily-note-preview-$_previewFor'),
+                      height: 160,
+                      errorBuilder: (_, _, _) =>
+                          const Text('تعذرت معاينة الصورة'),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.zoom_in),
+                    ),
+                  ],
+                ),
+              ),
             ),
             TextButton(
               key: const Key('daily-note-refresh-preview'),

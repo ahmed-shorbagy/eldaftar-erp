@@ -27,3 +27,16 @@ enable_confirmations = false
 [functions.owner-register]
 # Registration precedes a user session; the handler validates the public API key.
 verify_jwt = false
+
+[functions.closing-staff-create]
+# The handler verifies the bearer with Auth and uses that bearer for owner RPCs.
+# This supports publishable-key deployments without trusting client role claims.
+verify_jwt = false
+
+[functions.r2-media]
+# Presigned-URL broker for Cloudflare R2. The handler verifies the bearer and
+# resolves the owner's shop through RLS before signing a short-lived URL. R2
+# credentials come from function secrets (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+# R2_SECRET_ACCESS_KEY, R2_BUCKET; optional R2_ENDPOINT_HOST, R2_REGION) and
+# never leave the function. No service-role key reaches any client.
+verify_jwt = false

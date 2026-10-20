@@ -89,7 +89,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
 
   static const _labels = [
     'الدفتر اليومي',
-    'المخزون',
+    'الجرد الفوري',
     'العملاء',
     'التقارير',
     'المزيد',
@@ -210,7 +210,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     ),
     1 =>
       widget.inventoryBuilder?.call(context) ??
-          _page('المخزون', [
+          _page('الجرد الفوري', [
             const Text(
               'واجهة المخزون غير متاحة في هذا الاتصال. افتح الدفتر لمراجعة الأرصدة المؤكدة.',
             ),
@@ -313,19 +313,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           title: Text('مظهر الفاتورة'),
           subtitle: Text('مظهر الفاتورة غير متاح في هذا الاتصال.'),
           leading: ExcludeSemantics(child: Icon(Icons.receipt_long_outlined)),
-        ),
-      if (widget.messageBuilder != null)
-        _link(
-          'نص رسالة الفاتورة',
-          Icons.message_outlined,
-          _openMessage,
-          key: const Key('workspace-invoice-message'),
-        )
-      else
-        const ListTile(
-          enabled: false,
-          title: Text('نص رسالة الفاتورة'),
-          subtitle: Text('نص الرسالة غير متاح في هذا الاتصال.'),
         ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(

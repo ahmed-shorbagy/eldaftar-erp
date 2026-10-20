@@ -148,6 +148,7 @@ class HttpOpeningGateway
         LedgerDateGateway,
         LedgerTradeChangeGateway,
         FinancialGateway,
+        ClosingObservationGateway,
         InvoiceDispatchGateway,
         PurchaseSettlementGateway,
         CashTransferGateway,
@@ -158,6 +159,7 @@ class HttpOpeningGateway
         ExchangeGateway,
         InventoryGateway,
         NotesGateway,
+        CalendarNotesGateway,
         LedgerFeedGateway,
         RepairGateway,
         DebtGateway,
@@ -290,7 +292,10 @@ class HttpOpeningGateway
   Future<DailyLedgerView> ledger({required String callerUserId}) async {
     http.Response response;
     try {
-      response = await _post(callerUserId, 'get_daily_ledger_v2', {});
+      response = await _post(callerUserId, 'get_daily_ledger_home_v1', {});
+      if (_rpcMissing(response)) {
+        response = await _post(callerUserId, 'get_daily_ledger_v2', {});
+      }
       if (_rpcMissing(response)) {
         response = await _post(callerUserId, 'get_daily_ledger', {});
       }
@@ -340,7 +345,11 @@ class HttpOpeningGateway
       'purchase' ||
       'expense' ||
       'scrap_sale' => 'post_daily_ledger_trade',
-      'close_day' => 'close_daily_ledger_day',
+      'close_day' =>
+        command.body['p_counts'] is Map &&
+                (command.body['p_counts'] as Map)['version'] == 2
+            ? 'close_daily_ledger_day_v2'
+            : 'close_daily_ledger_day',
       'open_day' => 'open_daily_ledger_day',
       'purchase_settlement' => 'settle_purchase_cash_payable',
       'cash_transfer' => 'post_daily_ledger_cash_transfer',
@@ -557,12 +566,18 @@ class HttpOpeningGateway
     required String idempotencyKey,
     required FinancialDayState expected,
     required Map<String, Object?> counted,
-  }) => _financialCommand(callerUserId, 'close_daily_ledger_day', {
-    'p_idempotency_key': idempotencyKey,
-    'p_day_id': expected.dayId,
-    'p_expected_version': expected.dayVersion,
-    'p_counts': counted,
-  });
+  }) => _financialCommand(
+    callerUserId,
+    counted['version'] == 2
+        ? 'close_daily_ledger_day_v2'
+        : 'close_daily_ledger_day',
+    {
+      'p_idempotency_key': idempotencyKey,
+      'p_day_id': expected.dayId,
+      'p_expected_version': expected.dayVersion,
+      'p_counts': counted,
+    },
+  );
 
   @override
   Future<FinancialCommandResult> openDay({
@@ -1431,6 +1446,53 @@ class HttpOpeningGateway
       throw NoteReadException(error.code);
     } on FormatException {
       throw const NoteReadException();
+    } catch (_) {
+      throw const NoteReadException();
+    }
+  }
+
+  @override
+  Future<DailyNotePage> listNotesForDate({
+    required String callerUserId,
+    required String shopId,
+    required String businessDate,
+    String? beforeSequence,
+    String? query,
+    int limit = 30,
+  }) async {
+    final trimmed = query?.trim();
+    if (limit < 1 ||
+        limit > 50 ||
+        !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(businessDate) ||
+        (trimmed != null && trimmed.runes.length > noteSearchMaxChars)) {
+      throw const NoteReadException('invalid_input');
+    }
+    try {
+      final response = await _post(callerUserId, 'list_daily_notes_date_v1', {
+        'p_business_date': businessDate,
+        'p_before_sequence': beforeSequence,
+        'p_limit': limit,
+        'p_query': trimmed == null || trimmed.isEmpty ? null : trimmed,
+      });
+      if (!_callerStill(callerUserId)) {
+        throw const NoteReadException('session_expired');
+      }
+      if (response.statusCode >= 400) {
+        throw NoteReadException(_errorCode(response.body));
+      }
+      final body = jsonDecode(response.body);
+      if (body is! Map<String, dynamic> ||
+          body['business_date'] != businessDate ||
+          body.length != 2) {
+        throw const FormatException('notes_date');
+      }
+      return parseDailyNotePage(body['page'], expectedShopId: shopId);
+    } on _OwnerChanged {
+      throw const NoteReadException('session_expired');
+    } on _CallerRejected catch (error) {
+      throw NoteReadException(error.code);
+    } on NoteReadException {
+      rethrow;
     } catch (_) {
       throw const NoteReadException();
     }

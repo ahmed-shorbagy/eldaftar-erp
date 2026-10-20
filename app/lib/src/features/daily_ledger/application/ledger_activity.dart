@@ -1,5 +1,6 @@
 import '../domain/postgres_integer.dart';
 import 'daily_ledger_view.dart';
+import 'ledger_date_gateway.dart';
 
 final class LedgerActivityState {
   const LedgerActivityState({
@@ -304,6 +305,7 @@ class LedgerActivityController {
   int _generation = 0;
   int? _busyGeneration;
   String? _tradeChangeSequence;
+  String? _calendarDate;
 
   bool get busy => _busyGeneration == _generation;
 
@@ -311,6 +313,7 @@ class LedgerActivityController {
     _generation += 1;
     state = LedgerActivityState.empty;
     _tradeChangeSequence = null;
+    _calendarDate = null;
   }
 
   bool _still(int generation, String userId, String shopId, String dayId) =>
@@ -329,6 +332,17 @@ class LedgerActivityController {
     final cursor = ledger.feedCursor;
     final revision = ledger.tradeChangeSequence;
     final sameIdentity = state.userId == userId && state.shopId == shopId;
+    final calendar = ledger.journalContext?.businessDate;
+    final identity = calendar == null ? day.id : 'date:$calendar';
+    if (calendar != null &&
+        sameIdentity &&
+        state.dayId == identity &&
+        cursor != null &&
+        cursor.serverSequence != state.serverSequence) {
+      // A calendar head is a complete new snapshot. Restart older pagination
+      // rather than merge around an unfetched gap or retain a removed row.
+      reset();
+    }
     if (sameIdentity &&
         revision != null &&
         _tradeChangeSequence != null &&
@@ -346,7 +360,7 @@ class LedgerActivityController {
       current: state,
       userId: userId,
       shopId: shopId,
-      dayId: day.id,
+      dayId: identity,
       incoming: ledger.feed,
       serverSequence: cursor?.serverSequence ?? state.highestSequence ?? '0',
       direction: cursor?.direction ?? 'desc',
@@ -354,6 +368,7 @@ class LedgerActivityController {
       nextCursor: cursor?.nextBeforeSequence,
       fromSummary: true,
     );
+    _calendarDate = calendar;
   }
 
   Future<void> loadOlder({
@@ -366,22 +381,43 @@ class LedgerActivityController {
     final capturedShop = state.shopId;
     final capturedDay = state.dayId;
     final cursor = state.olderCursor;
+    final calendar = _calendarDate;
     _busyGeneration = generation;
     try {
-      final page = await gateway.operationPage(
-        callerUserId: userId,
-        shopId: capturedShop,
-        dayId: capturedDay,
-        beforeSequence: cursor,
-        afterSequence: null,
-        limit: 100,
-      );
+      final LedgerOperationPage page;
+      if (calendar != null) {
+        if (gateway is! LedgerDateGateway) {
+          throw const FormatException('calendar_gateway');
+        }
+        final snapshot = await (gateway as LedgerDateGateway).readLedgerDate(
+          userId: userId,
+          shopId: capturedShop,
+          businessDate: calendar,
+          beforeSequence: cursor,
+        );
+        if (snapshot.businessDate != calendar) {
+          throw const FormatException('calendar_date');
+        }
+        page = snapshot.page;
+      } else {
+        page = await gateway.operationPage(
+          callerUserId: userId,
+          shopId: capturedShop,
+          dayId: capturedDay,
+          beforeSequence: cursor,
+          afterSequence: null,
+          limit: 100,
+        );
+      }
       if (!_still(generation, capturedUser, capturedShop, capturedDay)) {
         return;
       }
       if (page.shopId != capturedShop ||
           (page.dayId != null && page.dayId != capturedDay)) {
         return;
+      }
+      if (calendar != null && page.serverSequence != state.serverSequence) {
+        throw const CalendarLedgerChanged();
       }
       state = mergeLedgerPage(
         current: state,
@@ -410,7 +446,12 @@ class LedgerActivityController {
     required String userId,
     int maxPages = 20,
   }) async {
-    if (busy || state.userId.isEmpty || state.dayId.isEmpty) return 0;
+    if (busy ||
+        state.userId.isEmpty ||
+        state.dayId.isEmpty ||
+        _calendarDate != null) {
+      return 0;
+    }
     final generation = _generation;
     final capturedUser = state.userId;
     final capturedShop = state.shopId;
@@ -470,4 +511,8 @@ class LedgerActivityController {
     final added = state.lines.length - before;
     return added < 0 ? 0 : added;
   }
+}
+
+final class CalendarLedgerChanged implements Exception {
+  const CalendarLedgerChanged();
 }

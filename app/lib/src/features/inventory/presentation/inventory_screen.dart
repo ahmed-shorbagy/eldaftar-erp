@@ -474,7 +474,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     final totals = _totals == null ? null : _sum(_totals);
     return InventoryPage(
-      title: 'المخزون',
+      title: 'الجرد الفوري',
       children: [
         if (_loading) const LinearProgressIndicator(),
         if (_productsMissing || _coinsMissing)

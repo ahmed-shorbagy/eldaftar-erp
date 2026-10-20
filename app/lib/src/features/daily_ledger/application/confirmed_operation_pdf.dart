@@ -8,6 +8,17 @@ import '../domain/quantities.dart';
 import '../../../theme/app_tokens.dart';
 
 /// A stable customer copy of one confirmed server operation. No client draft is used.
+bool validConfirmedInvoiceFacts(Map<String, Object?> operation,
+    {required String operationId, required String shopId}) {
+  final utc = operation['occurred_at'];
+  final local = operation['occurred_at_shop'] ?? operation['occurred_at_cairo'];
+  return operation['operation_id'] == operationId && operation['shop_id'] == shopId &&
+      operation['trade_change'] == null && const ['sale','purchase'].contains(operation['kind']) &&
+      operation['shop_sequence'] is String &&
+      utc is String && DateTime.tryParse(utc)?.isUtc == true &&
+      local is String && DateTime.tryParse(local) != null && operation['payload'] is Map;
+}
+
 Future<Uint8List> buildConfirmedOperationPdf(
   Map<String, Object?> operation,
 ) async {

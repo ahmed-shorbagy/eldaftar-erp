@@ -16,6 +16,7 @@ import 'src/features/auth/domain/password_recovery.dart';
 import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
 import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
+import 'src/features/shop_accounts/data/r2_media_client.dart';
 import 'src/features/shop_accounts/data/supabase_shop_account_gateway.dart';
 import 'src/features/shop_accounts/data/supabase_shop_image_gateway.dart';
 import 'src/features/shop_accounts/data/supabase_shop_sync_gateway.dart';
@@ -44,6 +45,15 @@ Future<void> main() async {
           currentUserId: () => Supabase.instance.client.auth.currentUser?.id,
         )
       : null;
+  final r2Media = supabaseStatus == SupabaseStartupStatus.ready
+      ? R2MediaClient(
+          client: http.Client(),
+          supabaseUrl: config.trimmedUrl,
+          publishableKey: config.trimmedPublishableKey,
+          accessToken: () =>
+              Supabase.instance.client.auth.currentSession?.accessToken ?? '',
+        )
+      : null;
   final reminders = openingGateway == null
       ? null
       : DebtReminderCoordinator(
@@ -69,8 +79,9 @@ Future<void> main() async {
       shopAccountGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopAccountGateway(Supabase.instance.client)
           : null,
-      shopImageGateway: supabaseStatus == SupabaseStartupStatus.ready
-          ? SupabaseShopImageGateway(Supabase.instance.client)
+      shopImageGateway:
+          supabaseStatus == SupabaseStartupStatus.ready && r2Media != null
+          ? SupabaseShopImageGateway(Supabase.instance.client, r2Media)
           : null,
       syncGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopSyncGateway(Supabase.instance.client)

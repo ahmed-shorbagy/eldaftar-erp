@@ -61,14 +61,16 @@ class _ShopImageScreenState extends State<ShopImageScreen> {
       setState(() {
         _loading = false;
         _statusError = true;
-        _status = ShopImageCopy.messageFor(error.failure);
+        _status = error.failure == ShopImageFailure.unauthorized
+            ? ShopImageCopy.unauthorized
+            : ShopImageCopy.loadFailed;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
         _statusError = true;
-        _status = ShopImageCopy.unavailable;
+        _status = ShopImageCopy.loadFailed;
       });
     }
   }
@@ -96,12 +98,14 @@ class _ShopImageScreenState extends State<ShopImageScreen> {
         _status = ShopImageCopy.success;
       });
       widget.onChanged?.call(_bytes);
-    } on LogoByteRejection {
+    } on LogoByteRejection catch (error) {
       if (!mounted) return;
       setState(() {
         _busy = false;
         _statusError = true;
-        _status = ShopImageCopy.rejected;
+        _status = error.code == 'image_too_large'
+            ? ShopImageCopy.tooLarge
+            : ShopImageCopy.rejected;
       });
     } on ShopImageException catch (error) {
       if (!mounted) return;

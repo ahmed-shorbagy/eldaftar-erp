@@ -92,6 +92,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _confirmFocus = FocusNode();
   Uint8List? _shopImageBytes;
   String? _shopImageAlert;
+  bool _pickingShopImage = false;
 
   @override
   void initState() {
@@ -466,20 +467,37 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _pickShopImage() async {
-    if (_locked || widget.shopImageGateway == null) return;
+    if (_locked || _pickingShopImage || widget.shopImageGateway == null) {
+      return;
+    }
+    setState(() {
+      _pickingShopImage = true;
+      _shopImageAlert = null;
+    });
     try {
       final bytes = await pickShopImageBytes(context);
-      if (!mounted || bytes == null) return;
-      setState(() {
-        _shopImageBytes = bytes;
-        _shopImageAlert = null;
-      });
-    } on LogoByteRejection {
       if (!mounted) return;
-      setState(() => _shopImageAlert = ShopImageCopy.rejected);
+      setState(() {
+        _pickingShopImage = false;
+        if (bytes != null) {
+          _shopImageBytes = bytes;
+          _shopImageAlert = null;
+        }
+      });
+    } on LogoByteRejection catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _pickingShopImage = false;
+        _shopImageAlert = error.code == 'image_too_large'
+            ? ShopImageCopy.tooLarge
+            : ShopImageCopy.rejected;
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _shopImageAlert = ShopImageCopy.rejected);
+      setState(() {
+        _pickingShopImage = false;
+        _shopImageAlert = ShopImageCopy.rejected;
+      });
     }
   }
 
@@ -1241,10 +1259,14 @@ class _AuthScreenState extends State<AuthScreen> {
                   children: [
                     OutlinedButton.icon(
                       key: const Key('signup-shop-image'),
-                      onPressed: _locked ? null : _pickShopImage,
+                      onPressed: _locked || _pickingShopImage
+                          ? null
+                          : _pickShopImage,
                       icon: const Icon(Icons.image_outlined),
                       label: Text(
-                        _shopImageBytes == null
+                        _pickingShopImage
+                            ? ShopImageCopy.preparing
+                            : _shopImageBytes == null
                             ? ShopImageCopy.pick
                             : ShopImageCopy.change,
                       ),

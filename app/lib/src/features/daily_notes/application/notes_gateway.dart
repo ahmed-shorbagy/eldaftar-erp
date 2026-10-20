@@ -162,6 +162,24 @@ abstract class NoteImageSource {
   Future<SelectedNoteImage?> pickImage();
 }
 
+/// Reads one shop calendar date across reopened financial sessions.
+abstract interface class CalendarNotesGateway {
+  Future<DailyNotePage> listNotesForDate({
+    required String callerUserId,
+    required String shopId,
+    required String businessDate,
+    String? beforeSequence,
+    String? query,
+    int limit = 30,
+  });
+}
+
+/// Optional camera capability; desktop/file-only adapters remain usable.
+abstract interface class CameraNoteImageSource {
+  bool get canCapture;
+  Future<SelectedNoteImage?> captureImage();
+}
+
 final class SelectedNoteImage {
   const SelectedNoteImage({
     required this.name,

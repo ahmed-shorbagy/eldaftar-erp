@@ -416,7 +416,7 @@ void main() {
     expect(ledger.isUninitialized, isTrue);
     expect(paths, [
       '/rest/v1/rpc/get_opening_status',
-      '/rest/v1/rpc/get_daily_ledger_v2',
+      '/rest/v1/rpc/get_daily_ledger_home_v1',
     ]);
   });
 
@@ -426,7 +426,8 @@ void main() {
       final paths = <String>[];
       final client = MockClient((request) async {
         paths.add(request.url.path);
-        if (request.url.path.endsWith('get_daily_ledger_v2')) {
+        if (request.url.path.endsWith('get_daily_ledger_home_v1') ||
+            request.url.path.endsWith('get_daily_ledger_v2')) {
           return http.Response(jsonEncode({'code': 'PGRST202'}), 404);
         }
         return http.Response.bytes(
@@ -438,6 +439,7 @@ void main() {
       final ledger = await gateway(client).ledger(callerUserId: 'owner-a');
       expect(ledger.isConfirmed, isTrue);
       expect(paths, [
+        '/rest/v1/rpc/get_daily_ledger_home_v1',
         '/rest/v1/rpc/get_daily_ledger_v2',
         '/rest/v1/rpc/get_daily_ledger',
       ]);

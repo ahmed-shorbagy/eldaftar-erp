@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:eldafttar/src/features/daily_ledger/presentation/ledger_journal_table.dart';
 import 'dart:ui' as ui;
 
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
@@ -176,7 +177,7 @@ void main() {
           if (scale == 1) {
             final table = find.descendant(
               of: journal,
-              matching: find.byType(Table),
+              matching: find.byType(LedgerOperationTable),
             );
             expect(
               tester.getSize(table).width,

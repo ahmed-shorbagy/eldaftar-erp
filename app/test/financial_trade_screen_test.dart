@@ -133,6 +133,11 @@ Future<void> beginTrade(WidgetTester tester) async {
   final screen = tester.widget<FinancialTradeScreen>(
     find.byType(FinancialTradeScreen),
   );
+  if (screen.kind == FinancialKind.scrapSale) {
+    expect(find.byKey(const Key('trade-select-كسر')), findsNothing);
+    expect(find.byKey(const Key('trade-grams-0')), findsOneWidget);
+    return;
+  }
   final item = find.byKey(
     Key(
       screen.kind == FinancialKind.scrapSale
@@ -264,15 +269,7 @@ void main() {
       find.byKey(const Key('trade-purchase-price')),
       '60000',
     );
-    await tester.ensureVisible(
-      find.byKey(const Key('trade-customer-disclosure')),
-    );
-    await tester.tap(find.byKey(const Key('trade-customer-disclosure')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('trade-customer-name')),
-      'تاجر تجريبي',
-    );
+    expect(find.byKey(const Key('trade-customer-disclosure')), findsNothing);
     await tester.dragUntilVisible(
       find.byKey(const Key('trade-tender-amount-0')),
       find.byType(ListView),
@@ -294,7 +291,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
-    expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
+    expect(find.textContaining('يزيد مخزون خاتم عيار 18'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.payloads.single['purchase_obligation_piastres'], '4000000');
@@ -308,7 +305,7 @@ void main() {
     await pumpTrade(tester, gateway, FinancialKind.scrapSale);
     await beginTrade(tester);
     expect(find.byKey(const Key('trade-count-0')), findsNothing);
-    await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.375');
+    await tester.enterText(find.byKey(const Key('trade-grams-0')), '0.37');
     await nextTrade(tester);
     await tester.dragUntilVisible(
       find.byKey(const Key('trade-tender-amount-0')),
@@ -333,8 +330,8 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('ينقص الكسر'), findsOneWidget);
-    expect(find.text('0.38 جرام'), findsOneWidget);
+    expect(find.textContaining('ينقص كسر عيار 18'), findsOneWidget);
+    expect(find.text('0.37 جرام'), findsOneWidget);
     expect(gateway.payloads, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();

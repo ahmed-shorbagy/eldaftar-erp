@@ -45,6 +45,9 @@ final class FinancialDayState {
   bool get isClosed => state == 'closed';
 }
 
+/// Capability for version-two named stock observations with nullable weights.
+abstract interface class ClosingObservationGateway {}
+
 abstract class FinancialGateway {
   Future<FinancialCommandResult> retryPending({
     required String callerUserId,

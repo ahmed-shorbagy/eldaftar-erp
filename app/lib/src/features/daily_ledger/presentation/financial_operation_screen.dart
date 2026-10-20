@@ -2,19 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
-import 'package:printing/printing.dart';
 import '../../invoice_message/application/message_gateway.dart';
-import '../../invoice_message/application/message_handoff.dart';
 import '../../invoice_message/data/url_message_launcher.dart';
-import '../../invoice_message/presentation/message_handoff_dialog.dart';
 import '../../invoice_message/domain/message_template.dart';
 
 import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
 import '../../invoice_appearance/presentation/invoice_copy_panel.dart';
-import '../application/confirmed_operation_pdf.dart';
+import 'invoice_pdf_share_dialog.dart';
 import '../application/financial_gateway.dart';
 import '../application/daily_ledger_view.dart';
-import '../application/idempotency_key.dart';
 import '../application/opening_gateway.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
@@ -62,9 +58,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   InvoiceDispatchState? _dispatch;
   bool _dispatchLoading = false;
   bool _dispatchBusy = false;
-  bool _handoffStarted = false;
   String? _dispatchMessage;
-  String? _confirmationKey;
 
   String get _copyKind {
     final loaded = _operation?['kind'];
@@ -164,7 +158,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
       if (!mounted) return;
       setState(() {
         _dispatch = state;
-        if (state.ownerConfirmed) _confirmationKey = null;
       });
     } catch (_) {
       if (mounted) {
@@ -175,123 +168,23 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
     }
   }
 
-  Future<void> _openWhatsapp() async {
-    final gateway = widget.gateway;
+  Future<void> _sharePdf() async {
     final shop = widget.shopId ?? _operation?['shop_id'];
-    if (_dispatchBusy ||
-        gateway is! InvoiceMessageGateway ||
-        shop is! String ||
-        widget.canRead?.call() == false) {
-      setState(
-        () => _dispatchMessage =
-            'تعذر تجهيز النص الحالي في هذا الاتصال. لم يتم تأكيد الإرسال.',
-      );
-      return;
-    }
+    if (_dispatchBusy || shop is! String || _operation == null) return;
     setState(() => _dispatchBusy = true);
-    final opened = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => MessageHandoffDialog(
-        handoff: MessageHandoff(
-          gateway as InvoiceMessageGateway,
-          widget.messageLauncher,
-          canRead: () =>
-              mounted && !_accessLost && widget.canRead?.call() != false,
-        ),
-        user: widget.userId,
-        shop: shop,
-        operation: widget.line.operationId,
+    try {
+      final confirmed = await showInvoicePdfShareDialog(
+        context: context,
+        gateway: widget.gateway,
+        userId: widget.userId,
+        shopId: shop,
+        operationId: widget.line.operationId,
         canRead: () =>
             mounted && !_accessLost && widget.canRead?.call() != false,
+        canWrite: () => mounted && widget.canWrite?.call() != false,
         invalidations: widget.syncTicks,
-      ),
-    );
-    if (!mounted) return;
-    setState(() {
-      _dispatchBusy = false;
-      if (opened == true) _handoffStarted = true;
-      _dispatchMessage = opened == true
-          ? 'فُتح رابط واتساب. أكد الإرسال هنا بعد إرسال الرسالة فعلاً.'
-          : 'لم يتم تأكيد إرسال الرسالة.';
-    });
-  }
-
-  Future<void> _sharePdf() async {
-    final operation = _operation;
-    if (operation == null || _dispatchBusy) return;
-    setState(() {
-      _dispatchBusy = true;
-      _dispatchMessage = 'جارٍ تجهيز مستند العملية...';
-    });
-    try {
-      final bytes = await buildConfirmedOperationPdf(operation);
-      final shared = await Printing.sharePdf(
-        bytes: bytes,
-        filename: 'eldaftar-operation-${operation['shop_sequence']}.pdf',
       );
-      if (!mounted) return;
-      setState(() {
-        _handoffStarted = shared;
-        _dispatchMessage = shared
-            ? 'فُتحت مشاركة المستند. أكد الإرسال بعد إرساله في واتساب فعلاً.'
-            : 'لم تُفتح مشاركة المستند. لم يتم تأكيد الإرسال.';
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _dispatchMessage = 'تعذر تجهيز المستند. لم يتم تأكيد الإرسال.',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _dispatchBusy = false);
-    }
-  }
-
-  Future<void> _confirmWhatsappSend() async {
-    final gateway = widget.gateway;
-    if (gateway is! InvoiceDispatchGateway ||
-        _dispatchBusy ||
-        !_handoffStarted) {
-      return;
-    }
-    final key = _confirmationKey ?? newIdempotencyKey();
-    setState(() {
-      _dispatchBusy = true;
-      _confirmationKey = key;
-      _dispatchMessage = 'جارٍ تأكيد إرسال الفاتورة...';
-    });
-    try {
-      final result = await (gateway as InvoiceDispatchGateway)
-          .confirmWhatsappSend(
-            callerUserId: widget.userId,
-            operationId: widget.line.operationId,
-            idempotencyKey: key,
-          );
-      if (!mounted) return;
-      if (result is FinancialCommitted) {
-        await _loadDispatch();
-        if (mounted && _dispatch?.ownerConfirmed == true) {
-          setState(() => _dispatchMessage = 'أكد المالك الإرسال عبر واتساب');
-        }
-      } else if (result is FinancialRejected) {
-        setState(() {
-          _dispatchMessage = 'لم يُحفظ تأكيد الإرسال. تحقق وحاول مجدداً.';
-          _confirmationKey = null;
-        });
-      } else {
-        setState(
-          () => _dispatchMessage =
-              'لم نتأكد من حفظ التأكيد. أعد المحاولة دون تغيير البيانات.',
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _dispatchMessage =
-              'لم نتأكد من حفظ التأكيد. أعد المحاولة دون تغيير البيانات.',
-        );
-      }
+      if (confirmed == true && mounted) await _loadDispatch();
     } finally {
       if (mounted) setState(() => _dispatchBusy = false);
     }
@@ -801,26 +694,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         else ...[
                           const Text('لم يؤكد الإرسال'),
                           const SizedBox(height: 8),
-                          FilledButton.icon(
-                            onPressed:
-                                _dispatchLoading ||
-                                    _dispatchBusy ||
-                                    _dispatch == null
-                                ? null
-                                : _openWhatsapp,
-                            icon: const Icon(Icons.open_in_new),
-                            label: const Text('فتح رسالة واتساب'),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed:
-                                _dispatchBusy ||
-                                    !_handoffStarted ||
-                                    _dispatch == null
-                                ? null
-                                : _confirmWhatsappSend,
-                            icon: const Icon(Icons.check),
-                            label: const Text('تأكيد الإرسال بعد إرساله'),
-                          ),
                         ],
                         if (_dispatchMessage != null)
                           Text(

@@ -1,5 +1,7 @@
 # ElDafttar ERP engineering guide
 
+Current follow-up: [timestamped 2026-10-18 owner-meeting register](reviews/owner-meeting-2026-10-18/audit.md), including existing behavior, remaining work and the direct 2026-10-20 scope clarifications.
+
 This directory is the working architecture baseline for the Flutter application, React administration dashboard, Supabase backend, and private object storage. It turns the supplied product requirements and agreement's technical scope into an implementable plan. The three local Word files are the agreed initial working requirements and may evolve through documented decisions and matrix updates. The original DOCX and PDF files remain outside version control and remain the source for contractual interpretation. These guides are engineering proposals until the product owner accepts the open decisions.
 
 ## Read in this order

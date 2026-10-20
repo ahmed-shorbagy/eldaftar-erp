@@ -251,7 +251,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
             isExpanded: true,
             decoration: InputDecoration(labelText: 'الخانة ${slot + 1}'),
             items: [
-              for (final metric in ledgerMetricIds)
+              for (final metric in _metricLayout.availableIds)
                 DropdownMenuItem(
                   value: metric,
                   child: Text(ledgerMetricLabel(metric)),
@@ -272,7 +272,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
         ],
         const SizedBox(height: 16),
         Text(
-          'عيارات الكسر في إدخال العمليات الجديدة',
+          'عيارات الكسر في الملخص وإدخال العمليات الجديدة',
           style: theme.textTheme.titleSmall,
         ),
         for (final karat in [14, 22])
@@ -505,13 +505,40 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
               if (section == 'activity') ...[
                 const SizedBox(height: 12),
                 _JournalPreview(
-                  showReturns: _showReturns,
                   rows: widget.activityLines ?? view.feed,
                   onViewAll: _showHistory,
                   onOperation: widget.onOperation,
                   onSale: widget.onSale,
                   onPurchase: widget.onPurchase,
                   loadItems: widget.loadItems,
+                ),
+                if (_showReturns)
+                  _CompactBookRow(
+                    label: 'دفتر المرتجعات',
+                    book: 'returns',
+                    count:
+                        view.journalContext?.returnCount ??
+                        (view.feedCursor?.hasMore == true
+                            ? null
+                            : view.feed.where((line) => line.isReturn).length),
+                    alert: true,
+                    onTap: () => _showHistory('return'),
+                  ),
+                _CompactBookRow(
+                  label: 'المصروفات',
+                  book: 'expenses',
+                  count: view.daySummary?.expenseCount,
+                  onTap: () => _showHistory('expense'),
+                ),
+                _CompactBookRow(
+                  label: 'الملاحظات',
+                  book: 'notes',
+                  count:
+                      view.journalContext?.noteCount ??
+                      (view.feedCursor?.hasMore == true
+                          ? null
+                          : view.feed.where((line) => line.isDailyNote).length),
+                  onTap: widget.onDailyNotes,
                 ),
               ],
             ],
@@ -529,11 +556,68 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   }
 }
 
+class _CompactBookRow extends StatelessWidget {
+  const _CompactBookRow({
+    required this.label,
+    required this.book,
+    required this.count,
+    this.alert = false,
+    this.onTap,
+  });
+  final String label, book;
+  final int? count;
+  final bool alert;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final attention = alert && count != null && count! > 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: scheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          key: Key('ledger-book-$book'),
+          title: Text(label),
+          leading: Semantics(
+            label: count == null ? 'العدد غير متاح' : '$count',
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: attention
+                    ? scheme.errorContainer
+                    : scheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                count?.toString() ?? '—',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: attention
+                      ? scheme.onErrorContainer
+                      : scheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ),
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
 /// Separate, bounded journals keep the owner's books visible on home.
 class _JournalPreview extends StatefulWidget {
   const _JournalPreview({
     required this.rows,
-    required this.showReturns,
     required this.onViewAll,
     this.onOperation,
     this.onSale,
@@ -541,7 +625,6 @@ class _JournalPreview extends StatefulWidget {
     this.loadItems,
   });
   final List<LedgerFeedLine> rows;
-  final bool showReturns;
   final void Function([String filter]) onViewAll;
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onSale;
@@ -572,13 +655,6 @@ class _JournalPreviewState extends State<_JournalPreview> {
         ordered.where((e) => e.kind == 'purchase').toList(),
         widget.onPurchase,
       ),
-      if (widget.showReturns && ordered.any((e) => e.isReturn))
-        (
-          'return',
-          'دفتر المرتجعات',
-          ordered.where((e) => e.isReturn).toList(),
-          null,
-        ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -925,8 +1001,8 @@ class _ActivitySectionState extends State<_ActivitySection> {
       ('all', 'الكل'),
       ('sale', 'دفتر البيع'),
       ('purchase', 'دفتر الشراء'),
-      if (widget.showReturns && rows.any((e) => e.isReturn))
-        ('return', 'دفتر المرتجعات'),
+      if (widget.showReturns) ('return', 'دفتر المرتجعات'),
+      ('expense', 'المصروفات'),
       ('other', 'الحركات الأخرى'),
     ];
     final selected = filters.any((e) => e.$1 == _filter) ? _filter : 'all';
@@ -936,6 +1012,7 @@ class _ActivitySectionState extends State<_ActivitySection> {
             'sale' => line.kind == 'sale',
             'purchase' => line.kind == 'purchase',
             'return' => line.isReturn,
+            'expense' => line.kind == 'expense',
             'other' =>
               line.kind != 'sale' && line.kind != 'purchase' && !line.isReturn,
             _ => true,

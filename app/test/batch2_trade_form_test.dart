@@ -52,16 +52,16 @@ void main() {
     );
     await reviewTrade(tester);
     expect(find.text('4,200.25'), findsWidgets);
-    expect(find.textContaining('وزن الذهب: 1.26 جرام'), findsOneWidget);
+    expect(find.textContaining('1.26 جرام'), findsWidgets);
     expect(
-      find.textContaining('ينقص المخزون بمقدار 1.26 جرام'),
+      find.textContaining('ينقص مخزون'),
       findsOneWidget,
     );
     expect(gateway.keys, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('trade-success')), findsOneWidget);
-    expect(find.textContaining('وزن الذهب: 1.26 جرام'), findsOneWidget);
+    expect(find.textContaining('1.26 جرام'), findsWidgets);
     expect(find.byKey(const Key('trade-send-invoice')), findsNothing);
     expect(gateway.keys, hasLength(1));
     expect(gateway.pendingExistedAtPost, isTrue);
@@ -111,7 +111,7 @@ void main() {
     });
   }
 
-  testWidgets('purchase customer stays optional for partial and zero payment', (
+  testWidgets('purchase omits customer entry for partial and zero payment', (
     tester,
   ) async {
     final partial = Batch2TradeGateway();
@@ -122,43 +122,20 @@ void main() {
       kind: FinancialKind.purchase,
     );
     expect(find.byKey(const Key('trade-seller-name')), findsNothing);
-    await revealTrade(
-      tester,
-      find.byKey(const Key('trade-customer-disclosure')),
-    );
-    expect(find.byKey(const Key('trade-customer-disclosure')), findsOneWidget);
+    expect(find.byKey(const Key('trade-customer-disclosure')), findsNothing);
     await chooseTradeItem(tester, 'خاتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '10.000');
     await enterTradeField(tester, const Key('trade-purchase-price'), '60000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '20000');
-    await revealTrade(
-      tester,
-      find.byKey(const Key('trade-customer-disclosure')),
-    );
-    await tester.tap(find.byKey(const Key('trade-customer-disclosure')));
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('trade-customer-disclosure')),
-        matching: find.byKey(const Key('trade-customer-name')),
-      ),
-      findsOneWidget,
-    );
-    await enterTradeField(
-      tester,
-      const Key('trade-customer-name'),
-      'تاجر تجريبي',
-    );
     await reviewTrade(tester);
     expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
     expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
-    expect(find.textContaining('يزيد الذهب بمقدار 10.00 جرام'), findsOneWidget);
-    expect(find.textContaining('العميل: تاجر تجريبي'), findsWidgets);
+    expect(find.textContaining('يزيد مخزون خاتم'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(partial.payloads.single['purchase_obligation_piastres'], '4000000');
     expect(partial.payloads.single['total_piastres'], '6000000');
-    expect(partial.payloads.single['customer_name'], 'تاجر تجريبي');
+    expect(partial.payloads.single['customer_name'], '');
 
     final unpaid = Batch2TradeGateway();
     await pumpTradeScreen(
@@ -182,135 +159,33 @@ void main() {
     expect(unpaid.payloads.single['total_piastres'], '150000');
   });
 
-  testWidgets('coin and bullion presets are editable and shop values win', (
-    tester,
-  ) async {
-    final plain = Batch2TradeGateway();
-    await pumpTradeScreen(
-      tester,
-      gateway: plain,
-      statusGateway: plain,
-      kind: FinancialKind.sale,
-    );
-    await chooseTradeItem(tester, 'سبائك');
-    expect(find.text('سبيكة · 0.25'), findsOneWidget);
-    expect(find.text('أوزان مقترحة — الوزن قابل للتعديل.'), findsOneWidget);
-    await revealTrade(tester, find.byKey(const Key('trade-nominal-0-سبيكة')));
-    await tester.tap(find.byKey(const Key('trade-nominal-0-سبيكة')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
-          .controller
-          ?.text,
-      '0.25',
-    );
-    await enterTradeField(tester, const Key('trade-grams-0'), '0.255');
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
-          .controller!
-          .text,
-      '0.25',
-    );
-    await enterTradeField(tester, const Key('trade-grams-0'), '0.26');
-    await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
-    await reviewTrade(tester);
-    expect(find.textContaining('بمقدار 0.26 جرام'), findsOneWidget);
-    expect(plain.payloads, isEmpty);
-    await revealTrade(tester, find.byKey(const Key('trade-confirm')));
-    await tester.tap(find.byKey(const Key('trade-confirm')));
-    await tester.pumpAndSettle();
-    final postedItem = (plain.payloads.single['items'] as List).single as Map;
-    expect(postedItem['item_name'], 'سبيكة');
-    expect(postedItem['milligrams'], '260');
-
-    final catalog = Batch2Catalog(
-      coinPage: ReadPage.ready([
-        tradeCoin(
-          id: 'coin-1',
-          label: 'جنيه',
-          nominalMilligrams: BigInt.from(8500),
-        ),
-        tradeCoin(
-          id: 'coin-old',
-          label: 'عملة قديمة',
-          nominalMilligrams: BigInt.from(1000),
-          active: false,
-        ),
-      ], 'coins-2'),
-      denomPage: ReadPage.ready([
-        tradeDenom(
-          id: 'bar-1',
-          label: 'سبيكة',
-          nominalMilligrams: BigInt.from(5000),
-        ),
-      ], 'bars-2'),
-    );
-    catalog.laterCoins = {
-      'coins-2': ReadPage.ready([
-        tradeCoin(
-          id: 'coin-2',
-          label: 'جنيه كبير',
-          nominalMilligrams: BigInt.from(15500),
-        ),
-      ], null),
-    };
-    catalog.laterDenoms = {
-      'bars-2': ReadPage.ready([
-        tradeDenom(
-          id: 'bar-2',
-          label: 'سبيكة كبيرة',
-          nominalMilligrams: BigInt.from(12500),
-        ),
-      ], null),
-    };
-    final shop = Batch2TradeGateway();
-    await pumpTradeScreen(
-      tester,
-      gateway: shop,
-      statusGateway: shop,
-      kind: FinancialKind.purchase,
-      catalog: catalog,
-    );
-    await chooseTradeItem(tester, 'جنيهات');
-    expect(find.text('جنيه · 8.50'), findsOneWidget);
-    expect(find.text('جنيه · 10.00'), findsNothing);
-    expect(find.textContaining('عملة قديمة'), findsNothing);
-    expect(find.textContaining('جنيه كبير'), findsNothing);
-    await revealTrade(tester, find.byKey(const Key('trade-nominal-0-جنيه')));
-    await tester.tap(find.byKey(const Key('trade-nominal-0-جنيه')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
-          .controller
-          ?.text,
-      '8.500',
-    );
-    await revealTrade(tester, find.byKey(const Key('trade-nominal-more-0')));
-    await tester.tap(find.byKey(const Key('trade-nominal-more-0')));
-    await tester.pumpAndSettle();
-    expect(find.text('جنيه كبير · 15.50'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('trade-nominal-0-جنيه كبير')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
-          .controller
-          ?.text,
-      '15.500',
-    );
-    await enterTradeField(tester, const Key('trade-grams-0'), '15.125');
-    await chooseTradeItem(tester, 'سبائك');
-    expect(find.text('سبيكة · 5.00'), findsOneWidget);
-    expect(find.text('سبيكة · 0.25'), findsNothing);
-    await revealTrade(tester, find.byKey(const Key('trade-nominal-more-0')));
-    await tester.tap(find.byKey(const Key('trade-nominal-more-0')));
-    await tester.pumpAndSettle();
-    expect(find.text('سبيكة كبيرة · 12.50'), findsOneWidget);
-    expect(catalog.coinCursors, contains('coins-2'));
-    expect(catalog.denomCursors, contains('bars-2'));
+  testWidgets('multi-denomination picker uses active shop overrides and paginated additions', (tester) async {
+    final catalog = Batch2Catalog(coinPage: ReadPage.ready([
+      tradeCoin(id:'coin-1',label:'جنيه',nominalMilligrams:BigInt.from(8500)),
+      tradeCoin(id:'coin-old',label:'عملة قديمة',nominalMilligrams:BigInt.from(1000),active:false),
+    ],'coins-2'));
+    catalog.laterCoins={'coins-2':ReadPage.ready([tradeCoin(id:'coin-2',label:'جنيه كبير',nominalMilligrams:BigInt.from(15500))],null)};
+    final shop=Batch2TradeGateway();
+    await pumpTradeScreen(tester,gateway:shop,statusGateway:shop,kind:FinancialKind.purchase,catalog:catalog);
+    await chooseTradeItem(tester,'جنيهات');
+    expect(find.text('عملة قديمة'),findsNothing);
+    expect(find.text('8.500 جرام للقطعة'),findsOneWidget);
+    final pound=find.ancestor(of:find.text('جنيه'),matching:find.byType(CheckboxListTile));
+    await tester.ensureVisible(pound); await tester.tap(pound); await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('nominal-count-2')),'2');
+    await tester.tap(find.byKey(const Key('nominal-apply')));await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byKey(const Key('trade-grams-0'))).controller!.text,'17.00');
+    await revealTrade(tester,find.byKey(const Key('trade-nominal-more-0')));
+    await tester.tap(find.byKey(const Key('trade-nominal-more-0')));await tester.pumpAndSettle();
+    await revealTrade(tester,find.byKey(const Key('trade-nominals-0')));
+    await tester.tap(find.byKey(const Key('trade-nominals-0')));await tester.pumpAndSettle();
+    final large=find.ancestor(of:find.text('جنيه كبير'),matching:find.byType(CheckboxListTile));
+    await tester.ensureVisible(large);await tester.tap(large);await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('nominal-apply')));await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byKey(const Key('trade-grams-0'))).controller!.text,'15.50');
+    expect(catalog.coinCursors,contains('coins-2'));
+    await enterTradeField(tester,const Key('trade-grams-0'),'15.25');
+    expect(tester.widget<TextField>(find.byKey(const Key('trade-grams-0'))).controller!.text,'15.25');
   });
 
   testWidgets('other opens a text-only predefined grid without inventory', (
@@ -472,7 +347,7 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-send-invoice')));
     await tester.pumpAndSettle();
     expect(
-      find.text('تعذر تحميل بيانات الفاتورة. حاول مرة أخرى.'),
+      find.text('تعذر تحميل الفاتورة المؤكدة.'),
       findsOneWidget,
     );
     expect(find.text('إرسال عبر واتساب'), findsNothing);
@@ -498,7 +373,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-send-invoice')));
     await tester.pumpAndSettle();
-    expect(find.text('إرسال عبر واتساب'), findsOneWidget);
+    expect(find.text('مشاركة فاتورة PDF'), findsOneWidget);
     expect(find.textContaining('\u20663:04\u2069 م'), findsOneWidget);
     expect(find.textContaining('أكتوبر'), findsNothing);
     expect(find.textContaining('رقم العملية: 42'), findsOneWidget);
@@ -575,24 +450,18 @@ void main() {
       statusGateway: scrap,
       kind: FinancialKind.scrapSale,
     );
-    expect(find.byKey(const Key('trade-next')), findsOneWidget);
-    expect(find.byKey(const Key('trade-line-price-0')), findsNothing);
-    await chooseTradeItem(tester, 'كسر');
-    await tester.tap(find.byKey(const Key('trade-next')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('trade-select-كسر')), findsNothing);
     expect(find.byKey(const Key('trade-line-price-0')), findsOneWidget);
-    await enterTradeField(tester, const Key('trade-grams-0'), '0.375');
+    await enterTradeField(tester, const Key('trade-grams-0'), '0.37');
     await tester.tap(find.byKey(const Key('trade-next')));
     await tester.pumpAndSettle();
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '125.25');
-    await tester.tap(find.byKey(const Key('trade-next')));
-    await tester.pumpAndSettle();
     await reviewTrade(tester);
     expect(
-      find.textContaining('ينقص الكسر بمقدار 0.38 جرام (375 ملليجرام)'),
+      find.textContaining('ينقص الكسر كسر عيار 18'),
       findsOneWidget,
     );
-    expect(find.textContaining('وزن الذهب: 0.38 جرام'), findsOneWidget);
+    expect(find.textContaining('0.37 جرام'), findsWidgets);
   });
 
   testWidgets('exchange keeps the stepped sale form', (tester) async {

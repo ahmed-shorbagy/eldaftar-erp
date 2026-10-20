@@ -490,6 +490,7 @@ Map<String, Object?> confirmedSaleOperation({
   String? occurredAtCairo = '2026-10-12T15:04:05',
 }) => {
   'operation_id': operationId,
+  'shop_id': 'shop-1',
   'kind': 'sale',
   'shop_sequence': '42',
   'actor_display_name': 'المالك',
