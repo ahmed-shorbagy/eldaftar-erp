@@ -5,6 +5,9 @@ import '../../debts/application/debt_reminder_device.dart';
 import '../../debts/application/debt_native_gateway.dart';
 import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
+import '../../closing_delegation/application/closing_delegation_gateway.dart';
+import '../../closing_delegation/presentation/closing_staff_screen.dart';
+import '../../closing_delegation/presentation/staff_count_portal.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -579,6 +582,20 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   @override
   Widget build(BuildContext context) {
     final selected = _selected;
+    final actor = widget.currentUserId?.call();
+    final staffGateway = widget.openingGateway;
+    if (_accounts?.isEmpty == true &&
+        !_accessLost &&
+        actor != null &&
+        staffGateway is ClosingDelegationGateway) {
+      return StaffCountPortal(
+        key: ValueKey('staff:$actor'),
+        gateway: staffGateway as ClosingDelegationGateway,
+        userId: actor,
+        onSignOut: _signOut,
+        onToggleTheme: widget.onToggleTheme,
+      );
+    }
     if (selected != null && selected.entitlement != ShopEntitlement.pending) {
       final opening = widget.openingGateway;
       final userId = widget.currentUserId?.call();
@@ -596,6 +613,30 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         syncTicks: _ticks,
         shopImageBytes: _shopImageShopId == selected.id
             ? _shopImageBytes
+            : null,
+        closingStaffBuilder:
+            opening is ClosingDelegationGateway &&
+                opening is FinancialGateway &&
+                userId != null
+            ? (context) => ClosingStaffScreen(
+                gateway: opening as ClosingDelegationGateway,
+                dayGateway: opening as FinancialGateway,
+                statusGateway: opening as OpeningGateway,
+                userId: userId,
+                shopId: selected.id,
+                canRead: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    !_accessLost,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    !_accessLost &&
+                    _selected?.entitlement == ShopEntitlement.active,
+                invalidations: _ticks,
+              )
             : null,
         onSignOut: _signOut,
         onToggleTheme: widget.onToggleTheme,

@@ -26,6 +26,8 @@ const _png =
     '89504e470d0a1a0a0000000d494844520000000200000002080600000072b60d240000001a49444154789c63e1129163909393fbcf626363d3b07bd3ca930020e105b1e1ef98ad0000000049454e44ae426082';
 const _jpeg = 'ffd8ffc0000b080001000101011100ffda0008010100003f0000ffd9';
 
+Map<String, Object?> meetingInvoiceSource() => _source();
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -68,109 +70,102 @@ void main() {
     expect(cleared.logoAssetId, isNull);
   });
 
-  test(
-    'logo inspection rejects hostile bytes and keeps a real image',
-    () async {
-      final png = _hex(_png);
-      final jpeg = _hex(_jpeg);
-      expect(inspectLogoBytes(png).width, 2);
-      expect(inspectLogoBytes(jpeg).mime, 'image/jpeg');
-      expect(
-        () => inspectLogoBytes(Uint8List(0)),
-        throwsA(
-          isA<LogoByteRejection>().having(
-            (error) => error.code,
-            'code',
-            'image_too_large',
-          ),
+  test('logo inspection rejects hostile bytes and keeps a real image', () async {
+    final png = _hex(_png);
+    final jpeg = _hex(_jpeg);
+    expect(inspectLogoBytes(png).width, 2);
+    expect(inspectLogoBytes(jpeg).mime, 'image/jpeg');
+    expect(
+      () => inspectLogoBytes(Uint8List(0)),
+      throwsA(
+        isA<LogoByteRejection>().having(
+          (error) => error.code,
+          'code',
+          'image_too_large',
         ),
-      );
-      expect(
-        () => inspectLogoBytes(Uint8List(logoMaxBytes + 1)),
-        throwsA(
-          isA<LogoByteRejection>().having(
-            (error) => error.code,
-            'code',
-            'image_too_large',
-          ),
+      ),
+    );
+    expect(
+      () => inspectLogoBytes(Uint8List(logoMaxBytes + 1)),
+      throwsA(
+        isA<LogoByteRejection>().having(
+          (error) => error.code,
+          'code',
+          'image_too_large',
         ),
-      );
-      expect(
-        () => inspectLogoBytes(Uint8List.fromList([0x47, 0x49, 0x46, 0x38])),
-        throwsA(
-          isA<LogoByteRejection>().having(
-            (error) => error.code,
-            'code',
-            'logo_rejected',
-          ),
+      ),
+    );
+    expect(
+      () => inspectLogoBytes(Uint8List.fromList([0x47, 0x49, 0x46, 0x38])),
+      throwsA(
+        isA<LogoByteRejection>().having(
+          (error) => error.code,
+          'code',
+          'logo_rejected',
         ),
-      );
-      expect(
-        () => inspectLogoSource(Uint8List.fromList('<html>'.codeUnits)),
-        throwsA(isA<LogoByteRejection>()),
-      );
-      final wide = Uint8List.fromList(png);
-      wide[16] = 0;
-      wide[17] = 0;
-      wide[18] = 0x08;
-      wide[19] = 0x01;
-      // Source inspection allows oversized phone photos; stored bytes stay ≤2048.
-      expect(inspectLogoSource(wide).width, 2049);
-      expect(() => inspectLogoBytes(wide), throwsA(isA<LogoByteRejection>()));
-      final textChunk = _pngWithChunk(png, 'tEXt', [0x41, 0, 0x62]);
-      expect(inspectLogoSource(textChunk).mime, 'image/png');
-      expect(
-        () => inspectLogoBytes(textChunk),
-        throwsA(isA<LogoByteRejection>()),
-      );
-      final animation = _pngWithChunk(png, 'acTL', [0, 0, 0, 2, 0, 0, 0, 0]);
-      expect(
-        () => inspectLogoSource(animation),
-        throwsA(isA<LogoByteRejection>()),
-      );
-      final picture = img.Image(width: 2, height: 2);
-      img.fill(picture, color: img.ColorRgba8(1, 2, 3, 255));
-      final encodedJpeg = Uint8List.fromList(
-        img.encodeJpg(picture, quality: 90),
-      );
-      final exif = Uint8List.fromList([
-        0xFF,
-        0xD8,
-        0xFF,
-        0xE1,
-        0x00,
-        0x08,
-        0x45,
-        0x78,
-        0x69,
-        0x66,
-        0x00,
-        0x00,
-        ...encodedJpeg.sublist(2),
-      ]);
-      expect(inspectLogoSource(exif).mime, 'image/jpeg');
-      expect(() => inspectLogoBytes(exif), throwsA(isA<LogoByteRejection>()));
+      ),
+    );
+    expect(
+      () => inspectLogoSource(Uint8List.fromList('<html>'.codeUnits)),
+      throwsA(isA<LogoByteRejection>()),
+    );
+    final wide = Uint8List.fromList(png);
+    wide[16] = 0;
+    wide[17] = 0;
+    wide[18] = 0x08;
+    wide[19] = 0x01;
+    // Source inspection allows oversized phone photos; stored bytes stay ≤2048.
+    expect(inspectLogoSource(wide).width, 2049);
+    expect(() => inspectLogoBytes(wide), throwsA(isA<LogoByteRejection>()));
+    final textChunk = _pngWithChunk(png, 'tEXt', [0x41, 0, 0x62]);
+    expect(inspectLogoSource(textChunk).mime, 'image/png');
+    expect(
+      () => inspectLogoBytes(textChunk),
+      throwsA(isA<LogoByteRejection>()),
+    );
+    final animation = _pngWithChunk(png, 'acTL', [0, 0, 0, 2, 0, 0, 0, 0]);
+    expect(
+      () => inspectLogoSource(animation),
+      throwsA(isA<LogoByteRejection>()),
+    );
+    final picture = img.Image(width: 2, height: 2);
+    img.fill(picture, color: img.ColorRgba8(1, 2, 3, 255));
+    final encodedJpeg = Uint8List.fromList(img.encodeJpg(picture, quality: 90));
+    final exif = Uint8List.fromList([
+      0xFF,
+      0xD8,
+      0xFF,
+      0xE1,
+      0x00,
+      0x08,
+      0x45,
+      0x78,
+      0x69,
+      0x66,
+      0x00,
+      0x00,
+      ...encodedJpeg.sublist(2),
+    ]);
+    expect(inspectLogoSource(exif).mime, 'image/jpeg');
+    expect(() => inspectLogoBytes(exif), throwsA(isA<LogoByteRejection>()));
 
-      final prepared = await prepareLogo(textChunk);
-      expect(inspectLogoBytes(prepared.bytes).mime, 'image/png');
-      expect(prepared.sha256, hasLength(64));
-      expect(() => inspectLogoBytes(prepared.bytes), returnsNormally);
-      final preparedJpeg = await prepareLogo(exif);
-      expect(inspectLogoBytes(preparedJpeg.bytes).mime, 'image/jpeg');
+    final prepared = await prepareLogo(textChunk);
+    expect(inspectLogoBytes(prepared.bytes).mime, 'image/png');
+    expect(prepared.sha256, hasLength(64));
+    expect(() => inspectLogoBytes(prepared.bytes), returnsNormally);
+    final preparedJpeg = await prepareLogo(exif);
+    expect(inspectLogoBytes(preparedJpeg.bytes).mime, 'image/jpeg');
 
-      // Phone camera sizes exceed 2048; prepare downscales instead of rejecting.
-      final camera = img.Image(width: 3000, height: 2000);
-      img.fill(camera, color: img.ColorRgba8(40, 80, 120, 255));
-      final cameraJpeg = Uint8List.fromList(
-        img.encodeJpg(camera, quality: 90),
-      );
-      final preparedCamera = await prepareLogo(cameraJpeg);
-      final cameraFacts = inspectLogoBytes(preparedCamera.bytes);
-      expect(cameraFacts.mime, 'image/jpeg');
-      expect(cameraFacts.width, lessThanOrEqualTo(logoMaxDimension));
-      expect(cameraFacts.height, lessThanOrEqualTo(logoMaxDimension));
-    },
-  );
+    // Phone camera sizes exceed 2048; prepare downscales instead of rejecting.
+    final camera = img.Image(width: 3000, height: 2000);
+    img.fill(camera, color: img.ColorRgba8(40, 80, 120, 255));
+    final cameraJpeg = Uint8List.fromList(img.encodeJpg(camera, quality: 90));
+    final preparedCamera = await prepareLogo(cameraJpeg);
+    final cameraFacts = inspectLogoBytes(preparedCamera.bytes);
+    expect(cameraFacts.mime, 'image/jpeg');
+    expect(cameraFacts.width, lessThanOrEqualTo(logoMaxDimension));
+    expect(cameraFacts.height, lessThanOrEqualTo(logoMaxDimension));
+  });
 
   test(
     'branded document keeps source fields and rejects a broken line',
@@ -230,7 +225,7 @@ void main() {
               appearanceRevision: 1,
               template: template,
               accent: accent,
-              renderVersion: 1,
+              renderVersion: template == InvoiceTemplate.dark ? 2 : 1,
               copyCreatedAtUtc: '2026-10-17T10:00:00.000000Z',
               copyCreatedAtShop: '2026-10-17T12:00:00',
             ),

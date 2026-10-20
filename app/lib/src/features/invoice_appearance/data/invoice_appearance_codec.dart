@@ -190,8 +190,10 @@ InvoicePresentationList parseInvoicePresentationList(
             appearanceRevision: _revision(item['appearance_revision']),
             template: _template(item['template']).wire,
             accent: _accent(item['accent']).wire,
-            renderVersion: item['render_version'] == 1
-                ? 1
+            renderVersion:
+                const [1, 2].contains(item['render_version']) &&
+                    item['render_version'] is int
+                ? item['render_version'] as int
                 : throw const FormatException('invoice_appearance'),
             createdAtUtc: _text(item['created_at']),
             createdAtShop: _text(item['created_at_shop']),
@@ -215,7 +217,8 @@ InvoicePresentationCopy parseInvoicePresentationCopy(
       json['operation_id'] != operationId ||
       _revision(json['edition']) != edition ||
       json['payload'] is! Map ||
-      json['render_version'] != 1) {
+      !const [1, 2].contains(json['render_version']) ||
+      json['render_version'] is! int) {
     throw const FormatException('invoice_appearance');
   }
   final logoState = json['logo_state'];
@@ -256,7 +259,7 @@ InvoicePresentationCopy parseInvoicePresentationCopy(
     contentMatches: _bool(json['content_matches']),
     appearance: appearance,
     logoState: logoState,
-    renderVersion: 1,
+    renderVersion: json['render_version'] as int,
     actorId: _text(json['actor_user_id']),
     createdAtUtc: _text(json['created_at']),
     createdAtShop: _text(json['created_at_shop']),

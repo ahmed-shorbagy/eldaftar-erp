@@ -1,5 +1,9 @@
 # Architecture and product decisions
 
+## Current meeting decisions — 2026-10-20
+
+The user directly confirmed three overrides in [ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md): PDF sharing replaces text-only WhatsApp (D35); the home journal follows the server shop date while financial closing remains explicit (D08); temporary staff physical counts are permitted without general membership or financial permissions (D28 / ADR 0003). New PDF editions add white and dark/gold renderer v2 while preserving renderer-v1 history (D12/D34). [Timestamped scope](reviews/owner-meeting-2026-10-18/audit.md) and [local validation](reviews/owner-meeting-2026-10-18/validation.md) govern these changes. Earlier decision entries remain historical evidence. Hosted application is not authorized by this review.
+
 ## Current owner-feedback override — 2026-10-06
 
 [ADR 0010](adr/0010-owner-feedback-registration-and-ledger.md) revises the Egypt-only location portion of D25, removes tours/guides/practice entry points and restores separate daily books with full metric customization. [ADR 0011](adr/0011-required-location-subscription-sync.md) then requires a location on **new** registrations (Egypt catalog or non-empty `CC:label`), hashed subscription codes, and RLS-safe shop sync; historical empty `CC:` / `EG:text` profiles remain replayable. Existing owner-only authorization and financial accounting decisions remain in force. The [current review](reviews/owner-feedback-batch1-2026-10-11/validation.md) records local checks and links the subsequent owner-authorized development deployment; older evidence remains historical.

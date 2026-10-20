@@ -7,6 +7,7 @@ import '../features/daily_ledger/application/pending_opening_store.dart';
 import '../features/daily_ledger/presentation/daily_ledger_screen.dart';
 import '../features/daily_ledger/presentation/ledger_more_balances.dart';
 import '../features/onboarding/application/onboarding_store.dart';
+import '../features/invoice_appearance/data/logo_upload_store.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../theme/app_tokens.dart';
 
@@ -32,6 +33,7 @@ class ShopWorkspace extends StatefulWidget {
     this.appearanceBuilder,
     this.messageBuilder,
     this.shopImageBuilder,
+    this.closingStaffBuilder,
     this.shopImageBytes,
     this.syncTicks,
   });
@@ -54,6 +56,7 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? appearanceBuilder;
   final WidgetBuilder? messageBuilder;
   final WidgetBuilder? shopImageBuilder;
+  final WidgetBuilder? closingStaffBuilder;
   final Uint8List? shopImageBytes;
   final Listenable? syncTicks;
 
@@ -68,6 +71,23 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   Route<void>? _appearanceRoute;
   Route<void>? _messageRoute;
   Route<void>? _shopImageRoute;
+  Route<void>? _closingStaffRoute;
+  Future<LogoUploadRecord?>? _logoDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _readLogoDraft();
+  }
+
+  void _readLogoDraft() {
+    final user = widget.userId;
+    _logoDraft = user == null || widget.appearanceBuilder == null
+        ? null
+        : const FileLogoUploadStore()
+              .read(user, widget.shop.id)
+              .catchError((Object _) => null);
+  }
 
   @override
   void dispose() {
@@ -76,6 +96,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     _detach(_appearanceRoute);
     _detach(_messageRoute);
     _detach(_shopImageRoute);
+    _detach(_closingStaffRoute);
     super.dispose();
   }
 
@@ -147,17 +168,26 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     (route) => _repairRoute = route,
   );
 
+  Future<void> _openClosingStaff() => _pushSingleton(
+    widget.closingStaffBuilder,
+    () => _closingStaffRoute,
+    (route) => _closingStaffRoute = route,
+  );
+
   Future<void> _openDebts() => _pushSingleton(
     widget.debtBuilder,
     () => _debtRoute,
     (route) => _debtRoute = route,
   );
 
-  Future<void> _openAppearance() => _pushSingleton(
-    widget.appearanceBuilder,
-    () => _appearanceRoute,
-    (route) => _appearanceRoute = route,
-  );
+  Future<void> _openAppearance() async {
+    await _pushSingleton(
+      widget.appearanceBuilder,
+      () => _appearanceRoute,
+      (route) => _appearanceRoute = route,
+    );
+    if (mounted) setState(_readLogoDraft);
+  }
 
   Future<void> _openMessage() => _pushSingleton(
     widget.messageBuilder,
@@ -300,11 +330,23 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           leading: ExcludeSemantics(child: Icon(Icons.storefront_outlined)),
         ),
       if (widget.appearanceBuilder != null)
-        _link(
-          'مظهر الفاتورة',
-          Icons.receipt_long_outlined,
-          _openAppearance,
-          key: const Key('workspace-invoice-appearance'),
+        FutureBuilder<LogoUploadRecord?>(
+          future: _logoDraft,
+          builder: (context, snapshot) => Card(
+            child: ListTile(
+              key: const Key('workspace-invoice-appearance'),
+              minVerticalPadding: 16,
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('مظهر الفاتورة'),
+              subtitle: snapshot.data?.fromRegistration == true
+                  ? const Text(
+                      'مسودة شعار التسجيل بانتظار الرفع والمراجعة والحفظ.',
+                    )
+                  : null,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _openAppearance,
+            ),
+          ),
         )
       else
         const ListTile(
@@ -313,6 +355,13 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           title: Text('مظهر الفاتورة'),
           subtitle: Text('مظهر الفاتورة غير متاح في هذا الاتصال.'),
           leading: ExcludeSemantics(child: Icon(Icons.receipt_long_outlined)),
+        ),
+      if (widget.closingStaffBuilder != null)
+        _link(
+          'فريق عد التقفيل',
+          Icons.fact_check_outlined,
+          _openClosingStaff,
+          key: const Key('workspace-closing-staff'),
         ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       _link(

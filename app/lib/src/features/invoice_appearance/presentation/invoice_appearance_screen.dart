@@ -194,6 +194,15 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
         message = upload!.phase == LogoUploadPhase.confirmPending
             ? 'رُفع الملف ولم يؤكد الخادم الشعار بعد.'
             : 'رفع الشعار لم يكتمل. لم يُحفظ.';
+      } else if (upload?.fromRegistration == true &&
+          upload?.phase == LogoUploadPhase.confirmed &&
+          upload?.assetId != snapshot.value.logoAssetId) {
+        if (!keepDraft) {
+          _logoAssetId = upload!.assetId;
+          _logoSha256 = upload.sha256;
+          _dirty = true;
+        }
+        message = 'شعار التسجيل مؤكد. راجع المظهر واحفظه ليظهر في الفواتير.';
       } else if (upload?.phase == LogoUploadPhase.failed) {
         phase = _AppearancePhase.uploadFailure;
         message = upload?.message ?? 'تعذر حفظ الشعار.';
@@ -329,7 +338,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       canWrite: widget.canWrite(),
     );
     if (!_alive || generation != _generation) return;
-    _applyOutcome(outcome);
+    await _applyOutcome(outcome);
   }
 
   Future<void> _retry() async {
@@ -348,11 +357,21 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       canWrite: widget.canWrite(),
     );
     if (!_alive || generation != _generation) return;
-    _applyOutcome(outcome);
+    await _applyOutcome(outcome);
   }
 
-  void _applyOutcome(InvoiceCommandOutcome outcome) {
+  Future<void> _applyOutcome(InvoiceCommandOutcome outcome) async {
     if (outcome.receipt != null && outcome.error == null) {
+      try {
+        final logo = await widget.logoStore.read(widget.userId, widget.shopId);
+        if (logo?.assetId == _logoAssetId &&
+            logo?.phase == LogoUploadPhase.confirmed) {
+          await widget.logoStore.clear(widget.userId, widget.shopId);
+        }
+      } catch (_) {
+        // The server receipt remains authoritative if local draft cleanup fails.
+      }
+      if (!_alive) return;
       _command = null;
       _savedRevision = outcome.receipt!.revision ?? _savedRevision;
       _expectedRevision = _savedRevision;
@@ -415,8 +434,33 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
     final picker = widget.pickLogo;
     final selected = picker == null ? await _platformPick() : await picker();
     if (selected == null || !_alive) return;
+    await _uploadLogo(selected);
+  }
+
+  Future<void> _resumeLogo() async {
+    if (_busy || !widget.canWrite()) return;
+    final bytes = await widget.logoStore.readBytes(
+      widget.userId,
+      widget.shopId,
+    );
+    if (!_alive) return;
+    if (bytes == null) {
+      setState(
+        () => _message =
+            'مسودة الشعار غير متاحة على هذا الجهاز. اختر الصورة من جديد.',
+      );
+      return;
+    }
+    await _uploadLogo(bytes);
+  }
+
+  Future<void> _uploadLogo(Uint8List selected) async {
+    if (_busy || !_alive || !widget.canWrite()) return;
     final generation = ++_logoGeneration;
+    setState(() => _busy = true);
     try {
+      final prior = await widget.logoStore.read(widget.userId, widget.shopId);
+      if (!_alive || generation != _logoGeneration) return;
       final prepared = await prepareLogo(selected);
       if (!_alive || generation != _logoGeneration) return;
       final record = LogoUploadRecord(
@@ -424,6 +468,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
         sha256: prepared.sha256,
         mime: prepared.facts.mime,
         objectName: prepared.objectName(widget.shopId),
+        fromRegistration: prior?.fromRegistration == true,
       );
       await widget.logoStore.save(
         widget.userId,
@@ -459,6 +504,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
             mime: prepared.facts.mime,
             objectName: record.objectName,
             message: 'تعذر حفظ الشعار.',
+            fromRegistration: record.fromRegistration,
           ),
           prepared.bytes,
         );
@@ -476,6 +522,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
           sha256: prepared.sha256,
           mime: prepared.facts.mime,
           objectName: record.objectName,
+          fromRegistration: record.fromRegistration,
         ),
         prepared.bytes,
       );
@@ -504,6 +551,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
           mime: confirmed.mime,
           objectName: record.objectName,
           assetId: confirmed.assetId,
+          fromRegistration: record.fromRegistration,
         ),
         prepared.bytes,
       );
@@ -531,6 +579,16 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
             ? 'رُفع الملف ولم يؤكد الخادم الشعار بعد.'
             : 'تعذر حفظ الشعار.';
       });
+    } catch (_) {
+      if (_alive && generation == _logoGeneration) {
+        setState(() {
+          _phase = _AppearancePhase.uploadPending;
+          _message =
+              'لم نتأكد من رفع الشعار. أعد المحاولة من المسودة المحفوظة.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -581,7 +639,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       appearanceRevision: _savedRevision,
       template: _template,
       accent: _accent,
-      renderVersion: 1,
+      renderVersion: 2,
       lines: const [
         BrandedInvoiceLine(
           category: 'worked_jewelry',
@@ -697,23 +755,25 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                     onChanged: (_) => setState(_markDirty),
                   ),
                   const SizedBox(height: 8),
-                  SegmentedButton<InvoiceTemplate>(
-                    selected: {_template},
-                    onSelectionChanged: readOnly
-                        ? null
-                        : (value) => setState(() {
-                            _template = value.first;
-                            _markDirty();
-                          }),
-                    segments: const [
-                      ButtonSegment(
-                        value: InvoiceTemplate.header,
-                        label: Text('رأس ملون'),
-                      ),
-                      ButtonSegment(
-                        value: InvoiceTemplate.compact,
-                        label: Text('موجز'),
-                      ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final template in InvoiceTemplate.values)
+                        ChoiceChip(
+                          key: Key('appearance-template-${template.wire}'),
+                          label: Text(_templateLabel(template)),
+                          selected: _template == template,
+                          onSelected: readOnly
+                              ? null
+                              : (_) => setState(() {
+                                  _template = template;
+                                  if (template == InvoiceTemplate.dark) {
+                                    _accent = InvoiceAccent.gold;
+                                  }
+                                  _markDirty();
+                                }),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -725,7 +785,8 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                           key: Key('appearance-accent-${accent.wire}'),
                           label: Text(_accentLabel(accent)),
                           selected: _accent == accent,
-                          onSelected: readOnly
+                          onSelected:
+                              readOnly || _template == InvoiceTemplate.dark
                               ? null
                               : (_) => setState(() {
                                   _accent = accent;
@@ -790,7 +851,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                           ? _retry
                           : _phase == _AppearancePhase.uploadPending ||
                                 _phase == _AppearancePhase.uploadFailure
-                          ? _pickLogo
+                          ? _resumeLogo
                           : () => _load(keepDraft: true),
                       child: const Text('إعادة المحاولة'),
                     ),
@@ -843,8 +904,11 @@ String _phaseLabel(_AppearancePhase phase) => switch (phase) {
   _AppearancePhase.accessLoss => 'انقطع الوصول',
 };
 
-String _templateLabel(InvoiceTemplate template) =>
-    template == InvoiceTemplate.header ? 'رأس ملون' : 'موجز';
+String _templateLabel(InvoiceTemplate template) => switch (template) {
+  InvoiceTemplate.header => 'فاتح مفصل',
+  InvoiceTemplate.compact => 'فاتح موجز',
+  InvoiceTemplate.dark => 'داكن وذهبي',
+};
 
 String _accentLabel(InvoiceAccent accent) => switch (accent) {
   InvoiceAccent.brown => 'بني',

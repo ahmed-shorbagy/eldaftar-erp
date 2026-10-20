@@ -32,6 +32,7 @@ begin
       or (v_row ->> 'category') not in ('worked_jewelry','bullion','coin')
       or jsonb_typeof(v_row -> 'category') is distinct from 'string'
       or jsonb_typeof(v_row -> 'karat') is distinct from 'number'
+      or (v_row ->> 'karat') not in ('14','18','21','22','24')
       or not exists (select 1 from jsonb_array_elements(p_book -> 'stock') as book(value)
         where book.value -> 'category' = v_row -> 'category' and book.value -> 'karat' = v_row -> 'karat')
       or jsonb_typeof(v_row -> 'count') is distinct from 'string'

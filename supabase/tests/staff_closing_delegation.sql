@@ -33,7 +33,7 @@ set local role service_role;
 select public.complete_closing_staff_creation_v1('c1900000-0000-4000-8000-000000000001','a4100000-0000-4000-8000-000000000001');
 select public.complete_closing_staff_creation_v1('c1900000-0000-4000-8000-000000000001','a4100000-0000-4000-8000-000000000001');
 reset role;
-create temporary table staff_test_ids(user_id uuid,staff_id uuid,day_id uuid,task_id uuid,second_task uuid);
+create temporary table staff_test_ids(user_id uuid,staff_id uuid,day_id uuid,task_id uuid,second_task uuid,revoked_task uuid,expired_task uuid);
 insert into staff_test_ids(user_id,staff_id,day_id)
 select staff.user_id,staff.id,day.id from public.closing_staff_accounts staff
 join public.business_days day on day.shop_id=staff.shop_id and day.status='open';
@@ -45,8 +45,45 @@ begin
   v_first := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000002','assign',v_id,v_day,1);
   v_again := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000002','assign',v_id,v_day,1);
   if v_first->>'ok'<>'true' or v_again->>'replayed'<>'true' or v_first->>'task_id'<>v_again->>'task_id' then raise exception 'assignment replay'; end if;
+  update staff_test_ids set revoked_task=(v_first->>'task_id')::uuid;
+  v_first := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000100','assign',v_id,v_day,1);
   update staff_test_ids set task_id=(v_first->>'task_id')::uuid;
 end; $assignment$;
+reset role;
+update public.closing_count_tasks set assigned_at=clock_timestamp()-interval '5 hours',expires_at=clock_timestamp()-interval '1 hour'
+where id=(select task_id from staff_test_ids);
+set local role authenticated;
+select set_config('request.jwt.claim.sub',(select user_id::text from staff_test_ids),true);
+do $revoked_expired$ declare v_task uuid; begin
+  if (public.get_my_closing_task_v1())->>'state'<>'unassigned' then raise exception 'expired form remained available'; end if;
+  for v_task in select revoked_task from staff_test_ids union all select task_id from staff_test_ids loop
+    begin perform public.submit_closing_count_v1(gen_random_uuid(),v_task,
+      '{"stock":[{"item_name":"خاتم","category":"worked_jewelry","karat":21,"count":"5","milligrams":null}],"scrap":[{"karat":21,"milligrams":"1000"}]}'::jsonb);
+      raise exception 'revoked or expired count accepted';
+    exception when others then if sqlerrm<>'task_unavailable' then raise; end if; end;
+  end loop;
+end; $revoked_expired$;
+select set_config('request.jwt.claim.sub','c1900000-0000-4000-8000-000000000001',true);
+do $fresh$ declare v_result jsonb; begin
+  v_result := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000103','assign',(select staff_id from staff_test_ids),(select day_id from staff_test_ids),1);
+  update staff_test_ids set expired_task=task_id,task_id=(v_result->>'task_id')::uuid;
+end; $fresh$;
+reset role;
+update public.business_days set day_version=day_version+1 where id=(select day_id from staff_test_ids);
+set local role authenticated;
+select set_config('request.jwt.claim.sub',(select user_id::text from staff_test_ids),true);
+do $stale$ begin
+  if (public.get_my_closing_task_v1())->>'state'<>'unassigned' then raise exception 'stale day count form exposed'; end if;
+  begin perform public.submit_closing_count_v1('a4100000-0000-4000-8000-000000000104',(select task_id from staff_test_ids),
+    '{"stock":[{"item_name":"خاتم","category":"worked_jewelry","karat":21,"count":"5","milligrams":null}],"scrap":[{"karat":21,"milligrams":"1000"}]}'::jsonb);
+    raise exception 'stale day submitted';
+  exception when others then if sqlerrm<>'stale_day' then raise; end if; end;
+end; $stale$;
+select set_config('request.jwt.claim.sub','c1900000-0000-4000-8000-000000000001',true);
+do $reassign$ declare v_result jsonb; begin
+  v_result := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000105','assign',(select staff_id from staff_test_ids),(select day_id from staff_test_ids),2);
+  update staff_test_ids set task_id=(v_result->>'task_id')::uuid;
+end; $reassign$;
 select set_config('request.jwt.claim.sub',(select user_id::text from staff_test_ids),true);
 do $staff_boundary$ declare v_task jsonb; v_result jsonb; v_replay jsonb; v_id uuid;
 begin
@@ -59,7 +96,7 @@ begin
   exception when others then if sqlerrm not in ('forbidden','shop_unavailable') then raise; end if; end;
   begin perform public.list_closing_staff_v1(); raise exception 'staff read staff directory';
   exception when others then if sqlerrm not in ('forbidden','shop_unavailable') then raise; end if; end;
-  begin perform 1 from public.financial_operations; raise exception 'staff direct financial read';
+  begin if exists(select 1 from public.financial_operations) then raise exception 'staff direct financial read'; end if;
   exception when insufficient_privilege then null; end;
   begin perform public.close_daily_ledger_day_v2('a4100000-0000-4000-8000-000000000009',(select day_id from staff_test_ids),1,'{}'::jsonb);
     raise exception 'staff closed financial day';
@@ -89,7 +126,7 @@ begin
   v_result := public.close_daily_ledger_from_staff_v1('a4100000-0000-4000-8000-000000000011',(select task_id from staff_test_ids),
     '{"cash":"100000","instant_transfer":"0","wallet":"0","card":"0"}'::jsonb);
   if v_result->>'reason'<>'count_mismatch' or (public.get_daily_ledger_day_state())->>'state'<>'open' then raise exception 'owner discrepant count closed day'; end if;
-  v_next := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000012','assign',(select staff_id from staff_test_ids),(select day_id from staff_test_ids),1);
+  v_next := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000012','assign',(select staff_id from staff_test_ids),(select day_id from staff_test_ids),2);
   update staff_test_ids set second_task=(v_next->>'task_id')::uuid;
 end; $owner_review$;
 select set_config('request.jwt.claim.sub',(select user_id::text from staff_test_ids),true);

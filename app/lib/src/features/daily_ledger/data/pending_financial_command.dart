@@ -73,6 +73,7 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       'purchase',
       'expense',
       'close_day',
+      'staff_close',
       'open_day',
       'purchase_settlement',
       'cash_transfer',
@@ -152,6 +153,13 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       });
 
   bool _matchesEnvelope(String key, String kind, Map<String, Object?> body) {
+    if (kind == 'staff_close') {
+      return body.length == 3 &&
+          body['p_key'] == key &&
+          body['p_task_id'] is String &&
+          isUuid(body['p_task_id'] as String) &&
+          body['p_cash'] is Map;
+    }
     if (kind == tradeChangeKind) {
       return matchesTradeChangeEnvelope(key, kind, body);
     }

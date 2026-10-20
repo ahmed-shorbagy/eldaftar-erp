@@ -18,6 +18,7 @@ import '../application/inventory_gateway.dart';
 import '../domain/inventory_models.dart';
 import 'inventory_copy.dart';
 import 'inventory_forms.dart';
+import 'inventory_lots_table.dart';
 import 'inventory_widgets.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -619,26 +620,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
         if (_denomsMissing)
           const Text('كتالوج الفئات غير متاح. يمكن الحفظ دون وزن اسمي.'),
         const SizedBox(height: 8),
-        for (final lot in _lots)
-          Card(
-            child: ListTile(
-              key: Key('lot-row-${lot.id}'),
-              minVerticalPadding: 12,
-              title: Text(
-                '${lot.legacyAggregate ? 'رصيد سابق مجمّع — ' : ''}${lot.displayName}',
-              ),
-              subtitle: Text(
-                '${inventoryCategoryLabel(lot.category)} عيار ${lot.karat}\n'
-                '${stockClassLabel(lot.stockClass)}: ${gramsOf(lot.remainingMilligrams)} جرام'
-                '${lot.remainingCount == null ? '' : ' — ${lot.remainingCount} قطعة'}'
-                '${lotIdentityCopy(lot).isEmpty ? '' : '\n${lotIdentityCopy(lot)}'}',
-              ),
-              onTap: () => _open(
-                LotHistoryPage(
-                  gateway: widget.gateway,
-                  userId: widget.userId,
-                  lot: lot,
-                ),
+        if (_lots.isNotEmpty)
+          InventoryLotsTable(
+            lots: _lots,
+            onOpen: (lot) => _open(
+              LotHistoryPage(
+                gateway: widget.gateway,
+                userId: widget.userId,
+                lot: lot,
               ),
             ),
           ),

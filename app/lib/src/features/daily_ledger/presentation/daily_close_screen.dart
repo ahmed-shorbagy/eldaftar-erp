@@ -1,6 +1,6 @@
 import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../theme/gram_input.dart';
 
 import '../application/financial_gateway.dart';
 import '../application/idempotency_key.dart';
@@ -286,7 +286,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   key: ValueKey('close-count-${row.id}'),
                   readOnly: _busy || _unknown || _review != null,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: const [GramInputFormatter(decimalPlaces: 0)],
                   textDirection: TextDirection.ltr,
                   decoration: ledgerFieldDecoration(context, label: 'العدد'),
                 ),

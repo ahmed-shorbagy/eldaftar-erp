@@ -815,7 +815,7 @@ final captureFontsAvailable =
       r'C:\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
     ).existsSync();
 final managedCapture = RegExp(
-  r'^(uninitialized-(top|lower)|review-(top|lower)|confirmed-(top|lower|movement)|pending-activation|expired-empty|expired-confirmed-(top|lower)|inflight-pending|review-bigint-top)-(light|dark)-(320|1440)\.png$',
+  r'^(uninitialized-(top|lower)|review-(top|lower)|confirmed-(top|lower|cash)|pending-activation|expired-empty|expired-confirmed-(top|lower)|inflight-pending|review-bigint-top)-(light|dark)-(320|1440)\.png$',
 );
 
 void main() {

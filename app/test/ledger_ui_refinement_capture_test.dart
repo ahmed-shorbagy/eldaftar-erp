@@ -203,7 +203,6 @@ void main() {
             'ledger-new-scrap-sale',
             'ledger-new-cash-transfer',
             'ledger-new-scrap-to-stock',
-            'ledger-new-return',
             'ledger-daily-notes',
           ]) {
             expect(find.byKey(Key(id)), findsOneWidget);

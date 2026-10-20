@@ -1,5 +1,7 @@
 # Requirements tracking matrix
 
+Current 2026-10-20 meeting corrections and the narrow staff-count exception are tracked in the [37-item register](reviews/owner-meeting-2026-10-18/audit.md), [ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md) and [validation](reviews/owner-meeting-2026-10-18/validation.md). They supersede conflicting historical rows below without widening employee financial/data access.
+
 ## Use
 
 This matrix is the long-lived work register derived from the local source documents. Source codes are defined in product-scope.md. Do not promote an item to verified without implementation, policy tests and acceptance evidence. Milestone numbers refer to delivery-plan.md. The current Milestones 0–3 continuation is recorded in [the 2026-10-04 progress report](operations/milestones-0-3-progress-2026-10-04.md); older linked validation remains historical evidence. Record a decision ID where product behavior remains open. The product owner confirmed a greenfield launch and the three local Word files as the initial baseline; track later additions through decisions and this matrix.

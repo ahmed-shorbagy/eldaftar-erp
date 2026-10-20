@@ -105,7 +105,8 @@ final class BrandedInvoiceDocument {
         source['time_zone'] is! String ||
         edition < 1 ||
         appearanceRevision < 0 ||
-        renderVersion != 1 ||
+        !const [1, 2].contains(renderVersion) ||
+        (renderVersion == 1 && template == InvoiceTemplate.dark) ||
         !RegExp(r'^[0-9a-f]{64}$').hasMatch(contentSha256)) {
       throw const FormatException('branded_invoice');
     }

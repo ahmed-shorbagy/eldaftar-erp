@@ -150,6 +150,23 @@ do $observation_audit$ declare v_audit jsonb; begin
 end; $observation_audit$;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','c1900000-0000-4000-8000-000000000002',true);
+-- A local calendar midnight may be 23 or 25 hours after the prior midnight.
+do $dst$ begin
+  if (timestamp '2026-04-25 00:00' at time zone 'Africa/Cairo') - (timestamp '2026-04-24 00:00' at time zone 'Africa/Cairo') <> interval '23 hours'
+    or (timestamp '2026-10-30 00:00' at time zone 'Africa/Cairo') - (timestamp '2026-10-29 00:00' at time zone 'Africa/Cairo') <> interval '25 hours'
+    then raise exception 'Cairo daylight saving boundary'; end if;
+end; $dst$;
+reset role;
+update public.shops set time_zone='Asia/Riyadh' where id='c2900000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $changed_zone$ declare v_home jsonb; v_date date; begin
+  v_home := public.get_daily_ledger_home_v1();
+  v_date := (now() at time zone 'Asia/Riyadh')::date;
+  if v_home #>> '{journal_context,business_date}' <> v_date::text
+    or (v_home #>> '{journal_context,next_midnight_at}')::timestamptz <> ((v_date+1)::timestamp at time zone 'Asia/Riyadh')
+    then raise exception 'changed shop timezone ignored'; end if;
+end; $changed_zone$;
+
 do $isolation$ declare v_page jsonb; begin
   v_page := public.list_daily_notes_date_v1(null,null,30,null);
   if v_page #> '{page,items}' <> '[]'::jsonb or v_page #>> '{page,shop_id}' <> 'c2900000-0000-4000-8000-000000000002' then

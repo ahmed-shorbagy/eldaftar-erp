@@ -553,4 +553,41 @@ begin
 end;
 $expired_read$;
 
+-- Render-v2 editions and their legacy copies coexist without dispatching or
+-- mutating the financial source. This block uses the synthetic owner above.
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+select set_config('request.jwt.claims', '{"sub":"a1111111-1111-4111-8111-111111111111","role":"authenticated","is_anonymous":false}', true);
+do $render_v2$
+declare
+  v_source jsonb := public.get_invoice_brand_source_v1('a1333333-3333-4333-8333-333333333333');
+  v_payload jsonb;
+  v_result jsonb;
+  v_before jsonb := public.get_daily_ledger_operation('a1333333-3333-4333-8333-333333333333');
+begin
+  v_payload := jsonb_build_object('version',1,'kind','invoice_presentation',
+    'operation_id','a1333333-3333-4333-8333-333333333333',
+    'expected_content_sha256',v_source->>'content_sha256',
+    'expected_appearance_revision','3','expected_latest_edition','2');
+  v_result := public.post_invoice_presentation_v2('a1eeeeee-eeee-4eee-8eee-eeeeeeeeeeee',v_payload);
+  if v_result->>'render_version' <> '2' or v_result->>'edition' <> '3'
+    or v_result->>'dispatch_effect' <> 'false' then raise exception 'white_render_v2'; end if;
+  if public.post_invoice_presentation_v2('a1eeeeee-eeee-4eee-8eee-eeeeeeeeeeee',v_payload)->>'replayed' <> 'true'
+    then raise exception 'render_v2_replay'; end if;
+  perform public.post_invoice_appearance_v1('a1ffffff-ffff-4fff-8fff-ffffffffffff',
+    '{"version":1,"kind":"invoice_appearance","expected_revision":"3","template":"dark","accent":"gold","slogan":null,"address":null,"logo_asset_id":null}'::jsonb);
+  v_payload := v_payload || '{"expected_appearance_revision":"4","expected_latest_edition":"3"}'::jsonb;
+  begin
+    perform public.post_invoice_presentation_v1('a1000000-0000-4000-8000-000000000099',v_payload);
+    raise exception 'legacy_accepted_dark';
+  exception when others then
+    if sqlerrm <> 'unsupported_render_version' then raise; end if;
+  end;
+  v_result := public.post_invoice_presentation_v2('a1000000-0000-4000-8000-000000000098',v_payload);
+  if v_result->>'render_version' <> '2' or v_result->>'template' <> 'dark'
+    or public.get_invoice_presentation_v1('a1333333-3333-4333-8333-333333333333',1)->>'render_version' <> '1'
+    or public.get_invoice_presentation_v1('a1333333-3333-4333-8333-333333333333',3)->>'template' <> 'header'
+    or public.get_daily_ledger_operation('a1333333-3333-4333-8333-333333333333') is distinct from v_before
+    then raise exception 'dark_or_legacy_or_financial_mutation'; end if;
+end;
+$render_v2$;
 rollback;

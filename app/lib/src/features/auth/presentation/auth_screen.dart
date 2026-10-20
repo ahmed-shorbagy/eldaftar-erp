@@ -34,6 +34,8 @@ class AuthScreen extends StatefulWidget {
     required this.onSessionSettled,
     this.onboardingStore,
     this.shopImageGateway,
+    this.saveRegistrationInvoiceLogo,
+    this.pickShopImage,
     this.onForgotPassword,
     this.recoveryNotice,
     this.recoveryNoticeIsError = false,
@@ -45,6 +47,8 @@ class AuthScreen extends StatefulWidget {
   final VoidCallback onSessionSettled;
   final OnboardingStore? onboardingStore;
   final ShopImageGateway? shopImageGateway;
+  final Future<void> Function(Uint8List)? saveRegistrationInvoiceLogo;
+  final Future<Uint8List?> Function()? pickShopImage;
   final VoidCallback? onForgotPassword;
   final String? recoveryNotice;
   final bool recoveryNoticeIsError;
@@ -93,6 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Uint8List? _shopImageBytes;
   String? _shopImageAlert;
   bool _pickingShopImage = false;
+  bool _useImageForInvoices = false;
 
   @override
   void initState() {
@@ -475,7 +480,9 @@ class _AuthScreenState extends State<AuthScreen> {
       _shopImageAlert = null;
     });
     try {
-      final bytes = await pickShopImageBytes(context);
+      final picker = widget.pickShopImage;
+      final selection = picker == null ? pickShopImageBytes(context) : picker();
+      final bytes = await selection;
       if (!mounted) return;
       setState(() {
         _pickingShopImage = false;
@@ -518,6 +525,21 @@ class _AuthScreenState extends State<AuthScreen> {
           await imageGateway.setImage(image);
         } on ShopImageException {
           // Account exists; image can be added later from More.
+        }
+      }
+      if (image != null && _useImageForInvoices) {
+        try {
+          await widget.saveRegistrationInvoiceLogo?.call(image);
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'تم إنشاء الحساب، وتعذر حفظ مسودة الشعار. أضفه من المزيد ← مظهر الفاتورة.',
+                ),
+              ),
+            );
+          }
         }
       }
       _unknown = false;
@@ -1279,6 +1301,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             : () => setState(() {
                                 _shopImageBytes = null;
                                 _shopImageAlert = null;
+                                _useImageForInvoices = false;
                               }),
                         child: const Text(ShopImageCopy.clear),
                       ),
@@ -1287,6 +1310,21 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ],
           ),
+          if (_shopImageBytes != null &&
+              widget.saveRegistrationInvoiceLogo != null)
+            CheckboxListTile(
+              key: const Key('signup-invoice-logo'),
+              contentPadding: EdgeInsets.zero,
+              value: _useImageForInvoices,
+              onChanged: _locked
+                  ? null
+                  : (value) =>
+                        setState(() => _useImageForInvoices = value ?? false),
+              title: const Text('اختيار الصورة أيضاً كشعار للفواتير'),
+              subtitle: const Text(
+                'تُحفظ كمسودة. أكمل رفعها وراجع مظهر الفاتورة من المزيد بعد تفعيل المتجر.',
+              ),
+            ),
           if (_shopImageAlert != null) ...[
             const SizedBox(height: 8),
             Text(

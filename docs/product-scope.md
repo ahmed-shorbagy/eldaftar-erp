@@ -1,5 +1,9 @@
 # Product scope and acceptance map
 
+## Current recording scope — 2026-10-20
+
+[ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md) and the [37-item meeting register](reviews/owner-meeting-2026-10-18/audit.md) supersede conflicting earlier scope below. One owner still controls one shop. Temporary staff accounts may only submit an assigned physical closing count; the owner reviews, enters cash and confirms the financial close. No general shop membership, staff ledger/customer/invoice access or arbitrary permissions are introduced. The main journal follows the server shop date automatically, with explicit financial closing/opening. PDF replaces text-only invoice sharing, with white or dark/gold new editions and optional reviewed logo drafts. Purchase customer entry is removed; historical details remain. Tours/guides stay removed. [Local validation](reviews/owner-meeting-2026-10-18/validation.md) distinguishes implementation from hosted/device acceptance.
+
 ## Current owner feedback — 2026-10-06
 
 [ADR 0010](adr/0010-owner-feedback-registration-and-ledger.md) expands registration to 22 supported Arab-region countries and makes the region optional manual text. Signup retains separate email and phone, automatic country dial codes, short name/shop labels and three registration steps. Login accepts either supported phone or email with password. One owner enters one shop directly when access is active. Tours, guide cards and practice entry points are removed. Dark is the fresh-install default; theme choice persists. The daily ledger shows customizable top figures and separate sales, purchases and optional returns books with floating quick actions. Customer names are optional in both sales and purchases. Currency suffixes are absent. [Current validation](reviews/owner-feedback-2026-10-06/validation.md) distinguishes local implementation from deployment.

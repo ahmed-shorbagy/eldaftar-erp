@@ -67,7 +67,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('مظهر الفاتورة غير متاح في هذا الاتصال.'), findsOneWidget);
 
-    final gateway = _ScreenGateway();
+    final gateway = AppearanceTestGateway();
     await tester.pumpWidget(
       _host(
         ShopWorkspace(
@@ -77,7 +77,7 @@ void main() {
           onToggleTheme: (_) async {},
           appearanceBuilder: (_) => InvoiceAppearanceScreen(
             gateway: gateway,
-            store: _Locker(),
+            store: AppearanceTestLocker(),
             userId: _user,
             shopId: _shop,
             canRead: () => true,
@@ -324,9 +324,9 @@ void main() {
 }
 
 _Harness _harness(String state) {
-  final gateway = _ScreenGateway();
+  final gateway = AppearanceTestGateway();
   final logos = MemoryLogoUploadStore();
-  final locker = _Locker();
+  final locker = AppearanceTestLocker();
   var read = true;
   var write = true;
   if (state == 'loading') {
@@ -384,11 +384,11 @@ _Harness _harness(String state) {
 class _Harness {
   _Harness(this.screen, this.gateway);
   final InvoiceAppearanceScreen screen;
-  final _ScreenGateway gateway;
+  final AppearanceTestGateway gateway;
   void finish() {
     final pending = gateway.pending;
     if (pending != null && !pending.isCompleted) {
-      pending.complete(_ScreenGateway.snapshot);
+      pending.complete(AppearanceTestGateway.snapshot);
     }
   }
 }
@@ -454,7 +454,7 @@ Map<String, Object?> _operationJson() => {
   },
 };
 
-final class _Locker implements FinancialCommandLocker {
+final class AppearanceTestLocker implements FinancialCommandLocker {
   PendingFinancialCommand? command;
   @override
   Future<void> clear(String userId, String shopId, String key) async {
@@ -475,7 +475,7 @@ final class _Locker implements FinancialCommandLocker {
   }
 }
 
-final class _ScreenGateway implements InvoiceAppearanceGateway {
+class AppearanceTestGateway implements InvoiceAppearanceGateway {
   static const snapshot = InvoiceAppearanceSnapshot(
     shopId: _shop,
     value: InvoiceAppearanceValue.defaults,

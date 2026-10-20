@@ -16,6 +16,7 @@ final class LogoUploadRecord {
     required this.objectName,
     this.assetId,
     this.message,
+    this.fromRegistration = false,
   });
 
   final LogoUploadPhase phase;
@@ -24,6 +25,7 @@ final class LogoUploadRecord {
   final String objectName;
   final String? assetId;
   final String? message;
+  final bool fromRegistration;
 
   Map<String, Object?> toJson() => {
     'phase': phase.name,
@@ -32,6 +34,7 @@ final class LogoUploadRecord {
     'objectName': objectName,
     'assetId': assetId,
     'message': message,
+    'fromRegistration': fromRegistration,
   };
 
   static LogoUploadRecord? parse(Object? raw) {
@@ -52,6 +55,7 @@ final class LogoUploadRecord {
       objectName: raw['objectName'] as String,
       assetId: raw['assetId'] as String?,
       message: raw['message'] as String?,
+      fromRegistration: raw['fromRegistration'] == true,
     );
   }
 }

@@ -1,5 +1,6 @@
 import '../../debts/application/debt_reminder_coordinator.dart';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -10,6 +11,8 @@ import '../../../theme/brand_mark.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
 import '../../onboarding/application/onboarding_store.dart';
+import '../../invoice_appearance/application/logo_codec.dart';
+import '../../invoice_appearance/data/logo_upload_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/domain/shop_sync.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
@@ -56,6 +59,34 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  Future<void> _saveRegistrationLogo(Uint8List bytes) async {
+    final user = widget.currentUserId?.call();
+    if (user == null) throw StateError('session');
+    final shops = await widget.shopAccountGateway!.listMyShopAccounts();
+    if (widget.currentUserId?.call() != user || shops.length != 1) {
+      throw StateError('session');
+    }
+    final logo = await prepareLogo(bytes);
+    if (widget.currentUserId?.call() != user) throw StateError('session');
+    const store = FileLogoUploadStore();
+    final existing = await store.read(user, shops.single.id);
+    if (widget.currentUserId?.call() != user) throw StateError('session');
+    // Registration retries must never replace a later deliberate logo choice.
+    if (existing != null) return;
+    await store.save(
+      user,
+      shops.single.id,
+      LogoUploadRecord(
+        phase: LogoUploadPhase.uploadPending,
+        sha256: logo.sha256,
+        mime: logo.facts.mime,
+        objectName: logo.objectName(shops.single.id),
+        fromRegistration: true,
+      ),
+      logo.bytes,
+    );
+  }
+
   StreamSubscription<AuthStatus>? _subscription;
   StreamSubscription<bool>? _recoverySub;
   AuthStatus _status = AuthStatus.signedOut;
@@ -209,6 +240,10 @@ class _AuthGateState extends State<AuthGate> {
       onSessionSettled: _syncStatus,
       onboardingStore: widget.onboardingStore,
       shopImageGateway: widget.shopImageGateway,
+      saveRegistrationInvoiceLogo:
+          widget.currentUserId == null || widget.shopAccountGateway == null
+          ? null
+          : _saveRegistrationLogo,
       onForgotPassword: recovery == null
           ? null
           : () {

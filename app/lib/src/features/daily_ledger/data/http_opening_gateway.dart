@@ -2,6 +2,8 @@ import '../../debts/application/debt_native_gateway.dart';
 import '../../debts/application/debt_native_contract.dart';
 import '../../debts/data/debt_native_codec.dart';
 import 'dart:convert';
+import '../../closing_delegation/application/closing_delegation_gateway.dart';
+import '../../closing_delegation/data/closing_delegation_codec.dart';
 import '../../customers/application/customer_contract.dart';
 import '../../customers/application/customer_gateway.dart';
 import '../../customers/domain/customer_contact.dart';
@@ -148,6 +150,7 @@ class HttpOpeningGateway
         LedgerDateGateway,
         LedgerTradeChangeGateway,
         FinancialGateway,
+        ClosingDelegationGateway,
         ClosingObservationGateway,
         InvoiceDispatchGateway,
         PurchaseSettlementGateway,
@@ -200,6 +203,171 @@ class HttpOpeningGateway
   final String Function() _accessToken;
   final String? Function() _currentUserId;
   final Duration timeout;
+
+  Future<Object?> _delegationRead(
+    String user,
+    String rpc,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      final response = await _post(user, rpc, body);
+      if (response.statusCode >= 400) {
+        throw DelegationReadException(
+          _errorCode(response.body) ?? 'unavailable',
+        );
+      }
+      return jsonDecode(response.body);
+    } on _CallerRejected catch (error) {
+      throw DelegationReadException(error.code);
+    } on _OwnerChanged {
+      throw const DelegationReadException('session_expired');
+    } on DelegationReadException {
+      rethrow;
+    } catch (_) {
+      throw const DelegationReadException('unavailable');
+    }
+  }
+
+  Future<DelegationResult> _delegationCommand(
+    String user,
+    String rpc,
+    Map<String, Object?> body, {
+    bool edge = false,
+  }) async {
+    try {
+      final http.Response response;
+      if (edge) {
+        final token = _callerToken(user);
+        response = await _client
+            .post(
+              Uri.parse('$_supabaseUrl/functions/v1/$rpc'),
+              headers: {
+                'apikey': _publishableKey,
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(body),
+            )
+            .timeout(timeout);
+        _sameOwner(user, token);
+      } else {
+        response = await _post(user, rpc, body);
+      }
+      if (response.statusCode >= 500) return const DelegationUnknown();
+      if (response.statusCode >= 400) {
+        return DelegationRejected(_errorCode(response.body) ?? 'unavailable');
+      }
+      final result = jsonDecode(response.body);
+      if (result is! Map ||
+          result['ok'] != true ||
+          result['replayed'] is! bool ||
+          !((result['staff_id'] is String &&
+                  isUuid(result['staff_id'] as String)) ||
+              (result['task_id'] is String &&
+                  isUuid(result['task_id'] as String)))) {
+        return const DelegationUnknown();
+      }
+      return const DelegationCommitted();
+    } on _CallerRejected catch (error) {
+      return DelegationRejected(error.code);
+    } catch (_) {
+      return const DelegationUnknown();
+    }
+  }
+
+  @override
+  Future<ClosingStaffDirectory> closingStaff({
+    required String userId,
+    required String shopId,
+  }) async => parseClosingStaffDirectory(
+    await _delegationRead(userId, 'list_closing_staff_v1', {}),
+    shopId: shopId,
+  );
+  @override
+  Future<StaffCountAssignment> myClosingAssignment({
+    required String userId,
+  }) async => parseStaffCountAssignment(
+    await _delegationRead(userId, 'get_my_closing_task_v1', {}),
+  );
+  @override
+  Future<DelegationResult> createClosingStaff({
+    required String userId,
+    required String key,
+    required String name,
+    required String phone,
+    required String password,
+  }) => _delegationCommand(userId, 'closing-staff-create', {
+    'idempotency_key': key,
+    'name': name,
+    'phone': phone,
+    'password': password,
+  }, edge: true);
+  Future<DelegationStatus> _delegationStatus(
+    String user,
+    String key,
+    String rpc,
+  ) async {
+    try {
+      final response = await _delegationRead(user, rpc, {'p_key': key});
+      if (response is! Map) return DelegationStatus.unknown;
+      return switch (response['status']) {
+        'confirmed' => DelegationStatus.confirmed,
+        'absent' => DelegationStatus.absent,
+        'prepared' => DelegationStatus.prepared,
+        _ => DelegationStatus.unknown,
+      };
+    } catch (_) {
+      return DelegationStatus.unknown;
+    }
+  }
+
+  @override
+  Future<DelegationStatus> closingStaffCreationStatus({
+    required String userId,
+    required String key,
+  }) => _delegationStatus(userId, key, 'get_closing_staff_creation_status_v1');
+  @override
+  Future<DelegationStatus> closingDelegationStatus({
+    required String userId,
+    required String key,
+  }) => _delegationStatus(userId, key, 'get_closing_delegation_status_v1');
+  @override
+  Future<DelegationResult> changeClosingAssignment({
+    required String userId,
+    required String key,
+    required String action,
+    required String target,
+    String? dayId,
+    String? dayVersion,
+  }) => _delegationCommand(userId, 'mutate_closing_delegation_v1', {
+    'p_key': key,
+    'p_action': action,
+    'p_target': target,
+    'p_day_id': dayId,
+    'p_day_version': dayVersion,
+  });
+  @override
+  Future<DelegationResult> submitClosingCount({
+    required String userId,
+    required String key,
+    required String taskId,
+    required Map<String, Object?> observations,
+  }) => _delegationCommand(userId, 'submit_closing_count_v1', {
+    'p_key': key,
+    'p_task_id': taskId,
+    'p_observations': observations,
+  });
+  @override
+  Future<FinancialCommandResult> closeFromStaffCount({
+    required String userId,
+    required String key,
+    required String taskId,
+    required Map<String, Object?> cash,
+  }) => _financialCommand(userId, 'close_daily_ledger_from_staff_v1', {
+    'p_key': key,
+    'p_task_id': taskId,
+    'p_cash': cash,
+  });
 
   @override
   Future<ConfirmResult> confirm({
@@ -350,6 +518,7 @@ class HttpOpeningGateway
                 (command.body['p_counts'] as Map)['version'] == 2
             ? 'close_daily_ledger_day_v2'
             : 'close_daily_ledger_day',
+      'staff_close' => 'close_daily_ledger_from_staff_v1',
       'open_day' => 'open_daily_ledger_day',
       'purchase_settlement' => 'settle_purchase_cash_payable',
       'cash_transfer' => 'post_daily_ledger_cash_transfer',
@@ -2518,7 +2687,7 @@ class HttpOpeningGateway
   }) => _appearanceCommand(
     userId,
     shopId,
-    'post_invoice_presentation_v1',
+    'post_invoice_presentation_v2',
     invoicePresentationKind,
     body,
   );

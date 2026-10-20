@@ -8,12 +8,15 @@ import '../../daily_ledger/domain/quantities.dart';
 import '../domain/appearance_rules.dart';
 import '../domain/branded_invoice_document.dart';
 
-/// Renders one branded copy. Paper stays light. A missing required logo throws.
+/// Frozen render-v1 editions keep their palette. New editions support white
+/// paper and an explicit dark/gold template. A required missing logo throws.
 Future<Uint8List> buildBrandedInvoicePdf(
   BrandedInvoiceDocument document, {
   Uint8List? logoBytes,
 }) async {
-  if (document.renderVersion != 1) {
+  if (!const [1, 2].contains(document.renderVersion) ||
+      (document.renderVersion == 1 &&
+          document.template == InvoiceTemplate.dark)) {
     throw const FormatException('branded_invoice');
   }
   if (document.logoRequired && (logoBytes == null || logoBytes.isEmpty)) {
@@ -21,26 +24,48 @@ Future<Uint8List> buildBrandedInvoicePdf(
   }
   final fontData = await rootBundle.load('assets/fonts/Cairo.ttf');
   final font = pw.Font.ttf(fontData);
+  final dark = document.template == InvoiceTemplate.dark;
   final accent = PdfColor.fromInt(
-    InvoiceDocumentPalette.accent(document.accent),
+    dark
+        ? InvoiceDocumentPalette.darkGold
+        : InvoiceDocumentPalette.accent(document.accent),
   );
-  final ink = PdfColor.fromInt(InvoiceDocumentPalette.ink);
-  final paper = PdfColor.fromInt(InvoiceDocumentPalette.paper);
+  final ink = PdfColor.fromInt(
+    dark ? InvoiceDocumentPalette.darkInk : InvoiceDocumentPalette.ink,
+  );
+  final paper = PdfColor.fromInt(
+    document.renderVersion == 1
+        ? InvoiceDocumentPalette.paper
+        : dark
+        ? InvoiceDocumentPalette.darkPaper
+        : InvoiceDocumentPalette.whitePaper,
+  );
+  final fontTheme = pw.ThemeData.withFont(base: font, bold: font);
   final logo = !document.logoRequired || logoBytes == null
       ? null
       : pw.MemoryImage(logoBytes);
   final pdf = pw.Document();
   pdf.addPage(
     pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      theme: pw.ThemeData.withFont(base: font, bold: font),
-      textDirection: pw.TextDirection.rtl,
-      margin: const pw.EdgeInsets.all(36),
+      pageTheme: pw.PageTheme(
+        pageFormat: PdfPageFormat.a4,
+        theme: document.renderVersion == 1
+            ? fontTheme
+            : fontTheme.copyWith(defaultTextStyle: pw.TextStyle(color: ink)),
+        textDirection: pw.TextDirection.rtl,
+        margin: const pw.EdgeInsets.all(36),
+        buildBackground: document.renderVersion == 1
+            ? null
+            : (_) => pw.FullPage(
+                ignoreMargins: true,
+                child: pw.Container(color: paper),
+              ),
+      ),
       header: (context) => context.pageNumber == 1
           ? pw.SizedBox()
           : _row('تتمة النسخة', 'إصدار ${document.edition}', ink, accent),
       build: (_) => [
-        if (document.template == InvoiceTemplate.header)
+        if (document.template != InvoiceTemplate.compact)
           pw.Container(
             width: double.infinity,
             padding: const pw.EdgeInsets.all(18),

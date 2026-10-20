@@ -254,7 +254,7 @@ void main() {
         await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
-        expect(find.textContaining('ينقص الكسر'), findsOneWidget);
+        expect(find.textContaining('ينقص كسر عيار'), findsOneWidget);
         await _save(tester, 'scrap-sale-review-$suffix');
       });
     }

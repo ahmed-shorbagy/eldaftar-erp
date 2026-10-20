@@ -12,7 +12,7 @@ import 'package:eldafttar/src/features/invoice_message/domain/synthetic_message.
 import 'customer_widget_test.dart' show customerHost, size;
 import 'invoice_message_test.dart';
 import 'invoice_message_http_test.dart' show profileJson;
-import 'invoice_message_widget_test.dart' show tapMessage, showMessageControl;
+import 'invoice_message_widget_test.dart' show tapMessage;
 
 void main() {
   testWidgets(
@@ -47,6 +47,8 @@ void main() {
               };
             case 'get_invoice_message_source_v1':
               result = source;
+            case 'get_invoice_brand_source_v1':
+              return http.Response('{"code":"PGRST202"}', 404);
             case 'get_invoice_presentations_v1':
               result = {
                 'version': 1,
@@ -85,6 +87,7 @@ void main() {
             canRead: () => true,
             canWrite: () => true,
             messageLauncher: launcher,
+            pdfShare: (bytes, name) async => true,
             line: const LedgerFeedLine(
               kind: 'sale',
               labelAr: 'بيع',
@@ -97,21 +100,14 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      final confirm = find.widgetWithText(
-        OutlinedButton,
-        'تأكيد الإرسال بعد إرساله',
-      );
-      await showMessageControl(t, confirm);
-      expect(t.widget<OutlinedButton>(confirm).onPressed, isNull);
-      await tapMessage(t, find.text('فتح رسالة واتساب'));
-      expect(
-        find.byKey(const Key('message-operation-preview')),
-        findsOneWidget,
-      );
+      expect(find.text('فتح رسالة واتساب'), findsNothing);
+      expect(find.text('تأكيد الإرسال بعد إرساله'), findsNothing);
+      await tapMessage(t, find.text('مشاركة مستند PDF'));
+      expect(find.text('مشاركة فاتورة PDF'), findsOneWidget);
       expect(confirmed, isFalse);
       expect(launcher.uris, isEmpty);
-      await tapMessage(t, find.byKey(const Key('message-open')));
-      expect(launcher.uris.length, 1);
+      await tapMessage(t, find.byKey(const Key('invoice-pdf-share')));
+      await tapMessage(t, find.byKey(const Key('invoice-pdf-legacy-share')));
       expect(confirmed, isFalse);
       expect(
         calls.where(
@@ -119,10 +115,12 @@ void main() {
         ),
         isEmpty,
       );
-      await tapMessage(t, find.text('العودة للمستند'));
-      await tapMessage(t, confirm);
+      await tapMessage(t, find.byKey(const Key('invoice-pdf-confirm')));
       expect(confirmed, isTrue);
-      expect(find.text('أكد المالك الإرسال عبر واتساب'), findsWidgets);
+      expect(
+        find.text('أكد المالك إرسال الفاتورة عبر واتساب.'),
+        findsOneWidget,
+      );
       final body =
           jsonDecode(
                 calls

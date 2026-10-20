@@ -142,6 +142,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   String? _productCursor;
   bool _productsFailed = false;
   bool _productsLoading = false;
+  int _productGeneration = 0;
   final _pending = const PendingFinancialCommands();
   Map<String, Object?>? _frozenBody;
   final _guideScroll = ScrollController();
@@ -1455,10 +1456,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   Future<void> _loadProducts({required bool reset}) async {
     final gateway = widget.catalog;
-    if (gateway == null || _productsLoading || widget.canRead?.call() == false) {
+    if (gateway == null ||
+        (_productsLoading && !reset) ||
+        widget.canRead?.call() == false) {
       return;
     }
-    final generation = _catalogGeneration;
+    final generation = ++_productGeneration;
     setState(() => _productsLoading = true);
     try {
       final page = await gateway.products(
@@ -1466,7 +1469,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         cursor: reset ? null : _productCursor,
       );
       if (!mounted ||
-          generation != _catalogGeneration ||
+          generation != _productGeneration ||
           widget.canRead?.call() == false) {
         return;
       }
@@ -1480,11 +1483,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         }
       });
     } catch (_) {
-      if (mounted && generation == _catalogGeneration) {
+      if (mounted && generation == _productGeneration) {
         setState(() => _productsFailed = true);
       }
     } finally {
-      if (mounted && generation == _catalogGeneration) {
+      if (mounted && generation == _productGeneration) {
         setState(() => _productsLoading = false);
       }
     }
@@ -1710,7 +1713,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         operationId: operationId,
       );
       if (!mounted) return;
-      if (!validConfirmedInvoiceFacts(operation, operationId: operationId, shopId: widget.shopId)) {
+      if (!validConfirmedInvoiceFacts(
+        operation,
+        operationId: operationId,
+        shopId: widget.shopId,
+      )) {
         throw const FormatException('invoice');
       }
       await showInvoicePdfShareDialog(

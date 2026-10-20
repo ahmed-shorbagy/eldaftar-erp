@@ -53,10 +53,7 @@ void main() {
     await reviewTrade(tester);
     expect(find.text('4,200.25'), findsWidgets);
     expect(find.textContaining('1.26 جرام'), findsWidgets);
-    expect(
-      find.textContaining('ينقص مخزون'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('ينقص مخزون'), findsOneWidget);
     expect(gateway.keys, isEmpty);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
@@ -159,34 +156,94 @@ void main() {
     expect(unpaid.payloads.single['total_piastres'], '150000');
   });
 
-  testWidgets('multi-denomination picker uses active shop overrides and paginated additions', (tester) async {
-    final catalog = Batch2Catalog(coinPage: ReadPage.ready([
-      tradeCoin(id:'coin-1',label:'جنيه',nominalMilligrams:BigInt.from(8500)),
-      tradeCoin(id:'coin-old',label:'عملة قديمة',nominalMilligrams:BigInt.from(1000),active:false),
-    ],'coins-2'));
-    catalog.laterCoins={'coins-2':ReadPage.ready([tradeCoin(id:'coin-2',label:'جنيه كبير',nominalMilligrams:BigInt.from(15500))],null)};
-    final shop=Batch2TradeGateway();
-    await pumpTradeScreen(tester,gateway:shop,statusGateway:shop,kind:FinancialKind.purchase,catalog:catalog);
-    await chooseTradeItem(tester,'جنيهات');
-    expect(find.text('عملة قديمة'),findsNothing);
-    expect(find.text('8.500 جرام للقطعة'),findsOneWidget);
-    final pound=find.ancestor(of:find.text('جنيه'),matching:find.byType(CheckboxListTile));
-    await tester.ensureVisible(pound); await tester.tap(pound); await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('nominal-count-2')),'2');
-    await tester.tap(find.byKey(const Key('nominal-apply')));await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byKey(const Key('trade-grams-0'))).controller!.text,'17.00');
-    await revealTrade(tester,find.byKey(const Key('trade-nominal-more-0')));
-    await tester.tap(find.byKey(const Key('trade-nominal-more-0')));await tester.pumpAndSettle();
-    await revealTrade(tester,find.byKey(const Key('trade-nominals-0')));
-    await tester.tap(find.byKey(const Key('trade-nominals-0')));await tester.pumpAndSettle();
-    final large=find.ancestor(of:find.text('جنيه كبير'),matching:find.byType(CheckboxListTile));
-    await tester.ensureVisible(large);await tester.tap(large);await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('nominal-apply')));await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byKey(const Key('trade-grams-0'))).controller!.text,'15.50');
-    expect(catalog.coinCursors,contains('coins-2'));
-    await enterTradeField(tester,const Key('trade-grams-0'),'15.25');
-    expect(tester.widget<TextField>(find.byKey(const Key('trade-grams-0'))).controller!.text,'15.25');
-  });
+  testWidgets(
+    'multi-denomination picker uses active shop overrides and paginated additions',
+    (tester) async {
+      final catalog = Batch2Catalog(
+        coinPage: ReadPage.ready([
+          tradeCoin(
+            id: 'coin-1',
+            label: 'جنيه',
+            nominalMilligrams: BigInt.from(8500),
+          ),
+          tradeCoin(
+            id: 'coin-old',
+            label: 'عملة قديمة',
+            nominalMilligrams: BigInt.from(1000),
+            active: false,
+          ),
+        ], 'coins-2'),
+      );
+      catalog.laterCoins = {
+        'coins-2': ReadPage.ready([
+          tradeCoin(
+            id: 'coin-2',
+            label: 'جنيه كبير',
+            nominalMilligrams: BigInt.from(15500),
+          ),
+        ], null),
+      };
+      final shop = Batch2TradeGateway();
+      await pumpTradeScreen(
+        tester,
+        gateway: shop,
+        statusGateway: shop,
+        kind: FinancialKind.purchase,
+        catalog: catalog,
+      );
+      await chooseTradeItem(tester, 'جنيهات');
+      expect(find.text('عملة قديمة'), findsNothing);
+      expect(find.text('8.500 جرام للقطعة'), findsOneWidget);
+      final pound = find.ancestor(
+        of: find.text('جنيه'),
+        matching: find.byType(CheckboxListTile),
+      );
+      await tester.ensureVisible(pound);
+      await tester.tap(pound);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('nominal-count-2')), '2');
+      await tester.tap(find.byKey(const Key('nominal-apply')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+            .controller!
+            .text,
+        '17',
+      );
+      await revealTrade(tester, find.byKey(const Key('trade-nominal-more-0')));
+      await tester.tap(find.byKey(const Key('trade-nominal-more-0')));
+      await tester.pumpAndSettle();
+      await revealTrade(tester, find.byKey(const Key('trade-nominals-0')));
+      await tester.tap(find.byKey(const Key('trade-nominals-0')));
+      await tester.pumpAndSettle();
+      final large = find.ancestor(
+        of: find.text('جنيه كبير'),
+        matching: find.byType(CheckboxListTile),
+      );
+      await tester.ensureVisible(large);
+      await tester.tap(large);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('nominal-apply')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+            .controller!
+            .text,
+        '15.5',
+      );
+      expect(catalog.coinCursors, contains('coins-2'));
+      await enterTradeField(tester, const Key('trade-grams-0'), '15.25');
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+            .controller!
+            .text,
+        '15.25',
+      );
+    },
+  );
 
   testWidgets('other opens a text-only predefined grid without inventory', (
     tester,
@@ -346,10 +403,7 @@ void main() {
     expect(find.byKey(const Key('trade-invoice-manual')), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-send-invoice')));
     await tester.pumpAndSettle();
-    expect(
-      find.text('تعذر تحميل الفاتورة المؤكدة.'),
-      findsOneWidget,
-    );
+    expect(find.text('تعذر تحميل الفاتورة المؤكدة.'), findsOneWidget);
     expect(find.text('إرسال عبر واتساب'), findsNothing);
     expect(missingTime.operationIds, [tradeOperationId]);
 
@@ -457,10 +511,7 @@ void main() {
     await tester.pumpAndSettle();
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '125.25');
     await reviewTrade(tester);
-    expect(
-      find.textContaining('ينقص الكسر كسر عيار 18'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('ينقص كسر عيار 18'), findsOneWidget);
     expect(find.textContaining('0.37 جرام'), findsWidgets);
   });
 

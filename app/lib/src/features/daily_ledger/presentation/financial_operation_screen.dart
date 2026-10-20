@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
@@ -33,6 +34,7 @@ class FinancialOperationScreen extends StatefulWidget {
     this.canRead,
     this.canWrite,
     this.messageLauncher = const UrlMessageLauncher(),
+    this.pdfShare,
   });
 
   final FinancialGateway gateway;
@@ -43,6 +45,7 @@ class FinancialOperationScreen extends StatefulWidget {
   final bool Function()? canRead;
   final bool Function()? canWrite;
   final MessageLauncher messageLauncher;
+  final Future<bool> Function(Uint8List bytes, String filename)? pdfShare;
 
   @override
   State<FinancialOperationScreen> createState() =>
@@ -183,6 +186,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
             mounted && !_accessLost && widget.canRead?.call() != false,
         canWrite: () => mounted && widget.canWrite?.call() != false,
         invalidations: widget.syncTicks,
+        share: widget.pdfShare,
       );
       if (confirmed == true && mounted) await _loadDispatch();
     } finally {

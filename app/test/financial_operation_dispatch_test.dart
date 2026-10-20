@@ -118,14 +118,9 @@ void main() {
     expect(find.text('لا توجد ملاحظات'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('لم يؤكد الإرسال'), 200);
     expect(find.text('لم يؤكد الإرسال'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('تأكيد الإرسال بعد إرساله'), 200);
-    final confirm = tester.widget<OutlinedButton>(
-      find.ancestor(
-        of: find.text('تأكيد الإرسال بعد إرساله'),
-        matching: find.byType(OutlinedButton),
-      ),
-    );
-    expect(confirm.onPressed, isNull);
+    expect(find.text('تأكيد الإرسال بعد إرساله'), findsNothing);
+    expect(find.text('فتح رسالة واتساب'), findsNothing);
+    expect(find.text('مشاركة مستند PDF'), findsOneWidget);
     for (final width in [320.0, 1440.0]) {
       for (final dark in [false, true]) {
         tester.view.physicalSize = Size(width, 820);

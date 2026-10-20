@@ -143,7 +143,7 @@ void main() {
         encodeLedgerMetricLayout(layout),
       );
       expect(restored.homeIds, layout.homeIds);
-      expect(restored.moreIds, hasLength(8));
+      expect(restored.moreIds, hasLength(6));
       expect(restored.normalizationKarat, 18);
       expect(restored.hiddenScrapKarats, {14, 22});
       final swapped = selectMetricForSlot(restored, 0, 'sale');

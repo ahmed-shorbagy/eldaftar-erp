@@ -9,6 +9,13 @@ import '../application/financial_gateway.dart';
 import '../application/idempotency_key.dart';
 import '../application/ledger_activity.dart';
 import 'opening_copy.dart';
+import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
+import '../../invoice_appearance/application/invoice_appearance_flow.dart';
+import '../../invoice_appearance/application/invoice_appearance_contract.dart';
+import '../../invoice_appearance/application/branded_invoice_pdf.dart';
+import '../../invoice_appearance/domain/branded_invoice_document.dart';
+import '../application/pending_financial_command.dart';
+import '../data/pending_financial_command.dart';
 
 /// Explicit PDF handoff. Opening the native sheet never confirms delivery.
 Future<bool?> showInvoicePdfShareDialog({
@@ -61,6 +68,9 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
   Map<String, Object?>? _operation;
   bool _busy = false, _opened = false, _confirmed = false;
   String? _message, _confirmationKey;
+  PendingFinancialCommand? _presentationPending;
+  final _copies = const PendingFinancialCommands();
+  bool _legacyFallback = false;
   int _generation = 0;
 
   @override
@@ -94,7 +104,11 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
     );
     if (!mounted ||
         !widget.canRead() ||
-        !validConfirmedInvoiceFacts(value, operationId: widget.operationId, shopId: widget.shopId)) {
+        !validConfirmedInvoiceFacts(
+          value,
+          operationId: widget.operationId,
+          shopId: widget.shopId,
+        )) {
       throw StateError('stale');
     }
     return value;
@@ -106,11 +120,21 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
     final generation = ++_generation;
     try {
       final value = await _read();
-      if (!mounted || generation != _generation) return;
+      final pending = widget.gateway is InvoiceAppearanceGateway
+          ? await _copies.read(widget.userId, widget.shopId)
+          : null;
+      if (!mounted || generation != _generation || !widget.canRead()) return;
       setState(() {
         _operation = value;
         _opened = false;
         _message = null;
+        final payload = pending?.body['p_payload'];
+        _presentationPending =
+            pending?.kind == invoicePresentationKind &&
+                payload is Map &&
+                payload['operation_id'] == widget.operationId
+            ? pending
+            : null;
       });
     } catch (_) {
       if (mounted) {
@@ -124,7 +148,163 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
     }
   }
 
-  Future<void> _share() async {
+  Future<Uint8List?> _brandedBytes() async {
+    final gateway = widget.gateway;
+    if (gateway is! InvoiceAppearanceGateway) {
+      return buildConfirmedOperationPdf(_operation!);
+    }
+    final appearance = gateway as InvoiceAppearanceGateway;
+    try {
+      if (!widget.canRead() ||
+          appearance.appearanceSession(widget.userId) == null) {
+        return null;
+      }
+      final source = await appearance.readBrandSource(
+        userId: widget.userId,
+        shopId: widget.shopId,
+        operationId: widget.operationId,
+      );
+      if (!mounted ||
+          !widget.canRead() ||
+          source.shopId != widget.shopId ||
+          source.operationId != widget.operationId) {
+        return null;
+      }
+      var edition = source.latestEdition;
+      if (edition == 0) {
+        if (!widget.canWrite() || !source.canWrite) {
+          throw const FormatException('readonly_copy');
+        }
+        final payload = presentationCommandPayload(
+          operationId: widget.operationId,
+          contentSha256: source.contentSha256,
+          expectedAppearanceRevision: source.appearance.revision,
+          expectedLatestEdition: 0,
+        );
+        final outcome = await InvoiceAppearanceFlow(appearance, _copies)
+            .submitPresentation(
+              widget.userId,
+              widget.shopId,
+              newIdempotencyKey(),
+              payload,
+              canWrite: widget.canWrite(),
+            );
+        if (!mounted || !widget.canRead()) return null;
+        if (outcome.pending != null) {
+          final other = outcome.pending!, body = other.body['p_payload'];
+          if (other.kind != invoicePresentationKind ||
+              body is! Map ||
+              body['operation_id'] != widget.operationId) {
+            throw const FormatException('other_pending');
+          }
+          setState(() {
+            _presentationPending = other;
+            _message =
+                'طلب إصدار الفاتورة بانتظار التأكيد. تحقق من الطلب نفسه قبل المشاركة.';
+          });
+          return null;
+        }
+        final receipt = outcome.receipt;
+        if (receipt == null ||
+            outcome.error != null ||
+            receipt.operationId != widget.operationId ||
+            receipt.contentSha256 != source.contentSha256 ||
+            receipt.edition == null) {
+          throw const FormatException('copy_not_confirmed');
+        }
+        edition = receipt.edition!;
+      }
+      final copy = await appearance.readPresentation(
+        userId: widget.userId,
+        shopId: widget.shopId,
+        operationId: widget.operationId,
+        edition: edition,
+      );
+      if (!mounted ||
+          !widget.canRead() ||
+          appearance.appearanceSession(widget.userId) == null ||
+          copy.shopId != widget.shopId ||
+          copy.operationId != widget.operationId ||
+          copy.edition != edition ||
+          copy.contentSha256 != source.contentSha256 ||
+          !copy.contentMatches ||
+          copy.logoState == 'unverified') {
+        throw const FormatException('copy_stale');
+      }
+      final document = BrandedInvoiceDocument.fromConfirmed(
+        source: copy.documentSource,
+        edition: copy.edition,
+        contentSha256: copy.contentSha256,
+        appearanceRevision: copy.appearance.revision,
+        template: copy.appearance.template,
+        accent: copy.appearance.accent,
+        renderVersion: copy.renderVersion,
+        copyCreatedAtUtc: copy.createdAtUtc,
+        copyCreatedAtShop: copy.createdAtShop,
+        slogan: copy.appearance.slogan,
+        address: copy.appearance.address,
+        logoAssetId: copy.appearance.logoAssetId,
+        logoSha256: copy.appearance.logoSha256,
+        logoRequired: copy.appearance.logoAssetId != null,
+      );
+      return buildBrandedInvoicePdf(
+        document,
+        logoBytes: copy.logoBytes == null
+            ? null
+            : Uint8List.fromList(copy.logoBytes!),
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _legacyFallback = true;
+          _message =
+              'تعذر تجهيز النسخة بمظهر المتجر. أعد المحاولة أو اختر المستند الأصلي صراحةً.';
+        });
+      }
+      return null;
+    }
+  }
+
+  Future<void> _checkPresentation() async {
+    final pending = _presentationPending, gateway = widget.gateway;
+    if (_busy ||
+        pending == null ||
+        gateway is! InvoiceAppearanceGateway ||
+        !widget.canRead()) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final outcome =
+          await InvoiceAppearanceFlow(
+            gateway as InvoiceAppearanceGateway,
+            _copies,
+          ).reconcile(
+            widget.userId,
+            widget.shopId,
+            pending,
+            retry: true,
+            canWrite: widget.canWrite(),
+          );
+      if (!mounted || !widget.canRead()) return;
+      setState(() {
+        _presentationPending = outcome.pending;
+        _message = outcome.receipt != null
+            ? 'تأكد إصدار الفاتورة. يمكنك مشاركتها الآن.'
+            : outcome.pending != null
+            ? 'الإصدار بانتظار التأكيد؛ احتفظنا بالطلب الأصلي.'
+            : 'لم يكتمل إصدار النسخة. حدّث الفاتورة وحاول مجدداً.';
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _message = 'تعذر تأكيد إصدار النسخة. أعد التحقق.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _share({bool legacy = false}) async {
     final operation = _operation;
     if (_busy || operation == null || !widget.canRead()) return;
     setState(() => _busy = true);
@@ -141,7 +321,10 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
         });
         return;
       }
-      final bytes = await buildConfirmedOperationPdf(fresh);
+      final bytes = legacy
+          ? await buildConfirmedOperationPdf(fresh)
+          : await _brandedBytes();
+      if (bytes == null) return;
       final checked = await _read();
       if (!mounted ||
           generation != _generation ||
@@ -234,8 +417,10 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
               children: [
                 if (_busy) const LinearProgressIndicator(),
                 if (_operation != null && widget.canRead()) ...[
-            Text('رقم العملية: ${_operation!['shop_sequence']}'),
-            Text('وقت العملية: ${formatShopTwelveHourTime(displayedShopTime(occurredAtUtc: _operation!['occurred_at'] as String, occurredAtShop: (_operation!['occurred_at_shop'] ?? _operation!['occurred_at_cairo']) as String))}'),
+                  Text('رقم العملية: ${_operation!['shop_sequence']}'),
+                  Text(
+                    'وقت العملية: ${formatShopTwelveHourTime(displayedShopTime(occurredAtUtc: _operation!['occurred_at'] as String, occurredAtShop: (_operation!['occurred_at_shop'] ?? _operation!['occurred_at_cairo']) as String))}',
+                  ),
                   Text(
                     name is String && name.isNotEmpty
                         ? 'العميل: $name'
@@ -252,10 +437,23 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
                   ),
                   FilledButton.icon(
                     key: const Key('invoice-pdf-share'),
-                    onPressed: _busy ? null : _share,
+                    onPressed: _busy || _presentationPending != null
+                        ? null
+                        : _share,
                     icon: const Icon(Icons.picture_as_pdf_outlined),
                     label: const Text('مشاركة PDF'),
                   ),
+                  if (_presentationPending != null)
+                    OutlinedButton(
+                      onPressed: _busy ? null : _checkPresentation,
+                      child: const Text('التحقق وإكمال إصدار النسخة'),
+                    ),
+                  if (_legacyFallback)
+                    OutlinedButton(
+                      key: const Key('invoice-pdf-legacy-share'),
+                      onPressed: _busy ? null : () => _share(legacy: true),
+                      child: const Text('مشاركة المستند الأصلي'),
+                    ),
                   if (_opened &&
                       !_confirmed &&
                       widget.gateway is InvoiceDispatchGateway)

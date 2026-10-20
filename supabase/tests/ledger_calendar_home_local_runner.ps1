@@ -55,10 +55,64 @@ try {
       if ((Scalar $Database "select to_regprocedure('public.get_daily_ledger_home_v1()') is null and to_regprocedure('public.list_daily_notes_date_v1(date,text,integer,text)') is null") -ne 't') { throw 'rollback left functions' }
       Write-Host 'CALENDAR_MIGRATION_ROLLBACK_PASSED'
     }
+    if ($_.Name -in @('20261020094919_closing_count_observations.sql','20261020100258_temporary_staff_closing_tasks.sql','20261020121826_invoice_document_render_v2.sql')) {
+      $rollback = (Get-Content -LiteralPath $_.FullName -Raw) -replace '(?s)\r?\ncommit;\s*$', "`nrollback;`n"
+      $rollbackPath = Join-Path $task 'meeting-migration-rollback.sql'
+      Set-Content -LiteralPath $rollbackPath -Value $rollback -Encoding utf8NoBOM
+      FileSql $rollbackPath
+      $check = switch ($_.Name) {
+        '20261020094919_closing_count_observations.sql' { "select to_regprocedure('public.close_daily_ledger_day_v2(uuid,uuid,bigint,jsonb)') is null" }
+        '20261020100258_temporary_staff_closing_tasks.sql' { "select to_regclass('public.closing_staff_accounts') is null and to_regprocedure('public.get_my_closing_task_v1()') is null" }
+        default { "select to_regprocedure('public.post_invoice_presentation_v2(uuid,jsonb)') is null and pg_get_constraintdef(oid) not like '%dark%' from pg_constraint where conrelid='public.invoice_appearance_revisions'::regclass and conname='invoice_appearance_revisions_template_check'" }
+      }
+      if ((Scalar $Database $check) -ne 't') { throw "rollback failed: $($_.Name)" }
+      Write-Host "MEETING_MIGRATION_ROLLBACK_PASSED $($_.Name)"
+    }
     FileSql $_.FullName
   }
   FileSql (Join-Path $PSScriptRoot 'ledger_calendar_home.sql')
   FileSql (Join-Path $PSScriptRoot 'staff_closing_delegation.sql')
+  FileSql (Join-Path $PSScriptRoot 'invoice_appearance.sql')
+  FileSql (Join-Path $PSScriptRoot 'meeting_close_race_seed.sql')
+  $day = Scalar $Database "select id from public.business_days where shop_id='e2900000-0000-4000-8000-000000000001' and status='open'"
+  $version = Scalar $Database "select day_version from public.business_days where id='$day'"
+  $raceSql = @"
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','e1900000-0000-4000-8000-000000000001',true);
+select public.close_daily_ledger_day_v2('e3900000-0000-4000-8000-000000000002','$day',$version,
+  '{"version":2,"cash":{"cash":"10000","instant_transfer":"0","wallet":"0","card":"0"},"stock":[],"scrap":[]}'::jsonb);
+commit;
+"@
+  $racePath = Join-Path $task 'close-race.sql'
+  Set-Content -LiteralPath $racePath -Value $raceSql -Encoding utf8NoBOM
+  $processes = @()
+  foreach ($index in 1..2) {
+    $info = [System.Diagnostics.ProcessStartInfo]::new($psql)
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    foreach ($argument in @('-h','127.0.0.1','-p',"$port",'-U','postgres','-d',$Database,'-X','-t','-A','-v','ON_ERROR_STOP=1','-f',$racePath)) { $info.ArgumentList.Add($argument) }
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $info
+    if (-not $process.Start()) { throw 'race client did not start' }
+    $processes += @{ Process=$process; Output=$process.StandardOutput.ReadToEndAsync(); Error=$process.StandardError.ReadToEndAsync() }
+  }
+  $raceOutput = ''
+  foreach ($entry in $processes) {
+    if (-not $entry.Process.WaitForExit(30000)) { throw 'race timed out' }
+    $output = $entry.Output.GetAwaiter().GetResult()
+    $errors = $entry.Error.GetAwaiter().GetResult()
+    if ($entry.Process.ExitCode -ne 0) { throw "race client failed: $errors" }
+    $raceOutput += $output
+    $entry.Process.Dispose()
+  }
+  if ($raceOutput -notmatch '"replayed": true' -or $raceOutput -notmatch '"replayed": false' -or
+    (Scalar $Database "select count(*) from public.financial_operations where shop_id='e2900000-0000-4000-8000-000000000001' and kind='close_day'") -ne '1' -or
+    (Scalar $Database "select count(*) from public.financial_audit_events where shop_id='e2900000-0000-4000-8000-000000000001' and action='business_day_closed'") -ne '1') { throw 'duplicate or missing concurrent close' }
+  Write-Host 'MEETING_CONCURRENT_CLOSE_PASSED'
+
   Write-Host 'CALENDAR_HOME_SQL_PASSED'
 } finally {
   & $pgctl -D $data -m fast -w stop

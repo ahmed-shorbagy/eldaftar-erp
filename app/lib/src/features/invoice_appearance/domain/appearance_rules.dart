@@ -1,7 +1,8 @@
 /// Owner-controlled invoice appearance. No widgets, HTTP, files, or PDF.
 enum InvoiceTemplate {
   header('header'),
-  compact('compact');
+  compact('compact'),
+  dark('dark');
 
   const InvoiceTemplate(this.wire);
   final String wire;
@@ -33,6 +34,10 @@ enum InvoiceAccent {
 /// Document colors belong to the branded copy, not the app theme.
 abstract final class InvoiceDocumentPalette {
   static const int paper = 0xFFFFFBF5;
+  static const int whitePaper = 0xFFFFFFFF;
+  static const int darkPaper = 0xFF0C0D0D;
+  static const int darkInk = 0xFFEFEFEF;
+  static const int darkGold = 0xFFD4AF37;
   static const int ink = 0xFF1C1915;
   static const int brown = 0xFF6F4E1B;
   static const int gold = 0xFF94681F;

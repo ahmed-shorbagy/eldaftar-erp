@@ -75,12 +75,13 @@ create function public.begin_closing_staff_creation_v1(p_key uuid,p_name text,p_
 returns jsonb language plpgsql volatile security definer set search_path = '' as $fn$
 declare v_shop uuid; v_request private.closing_staff_creation_requests%rowtype;
 begin
+  perform private.closing_actor_v1();
   v_shop := private.opening_require_reader_shop();
   perform 1 from public.shops where id=v_shop for update;
   if not private.can_write_shop(v_shop) then raise exception 'shop_not_active'; end if;
   if p_key is null or p_name is null or length(btrim(p_name)) not between 1 and 120
-    or p_name ~ '[[:cntrl:]]' or p_phone !~ '^201[0125][0-9]{8}$'
-    or p_password_proof !~ '^[0-9a-f]{64}$' then raise exception 'invalid_input'; end if;
+    or p_name ~ '[[:cntrl:]]' or p_phone is null or p_phone !~ '^[1-9][0-9]{6,14}$'
+    or p_password_proof is null or p_password_proof !~ '^[0-9a-f]{64}$' then raise exception 'invalid_input'; end if;
   select * into v_request from private.closing_staff_creation_requests where shop_id=v_shop and key=p_key;
   if found then
     if v_request.owner_user_id <> auth.uid() or v_request.display_name <> btrim(p_name)
@@ -131,6 +132,7 @@ create function public.get_closing_staff_creation_status_v1(p_key uuid)
 returns jsonb language plpgsql stable security definer set search_path = '' as $fn$
 declare v_shop uuid; v_staff uuid;
 begin
+  perform private.closing_actor_v1();
   v_shop := private.opening_require_reader_shop();
   select staff_id into v_staff from private.closing_staff_creation_requests
   where shop_id=v_shop and key=p_key and owner_user_id=auth.uid();
@@ -141,6 +143,7 @@ create function public.list_closing_staff_v1()
 returns jsonb language plpgsql stable security definer set search_path = '' as $fn$
 declare v_shop uuid; v_staff jsonb; v_tasks jsonb;
 begin
+  perform private.closing_actor_v1();
   v_shop := private.opening_require_reader_shop();
   select coalesce(jsonb_agg(jsonb_build_object('id',id,'name',display_name,'phone',phone,'active',active) order by created_at,id),'[]'::jsonb)
   into v_staff from public.closing_staff_accounts where shop_id=v_shop;
@@ -178,8 +181,9 @@ returns jsonb language plpgsql volatile security definer set search_path = '' as
 declare v_shop uuid; v_payload jsonb; v_prior private.closing_delegation_commands%rowtype;
   v_result jsonb; v_staff uuid; v_task uuid; v_at timestamptz; v_day public.business_days%rowtype;
 begin
+  perform private.closing_actor_v1();
   v_shop := private.opening_require_reader_shop();
-  if p_key is null or p_target is null or p_action not in ('assign','disable','revoke') then raise exception 'invalid_input'; end if;
+  if p_key is null or p_target is null or p_action is null or p_action not in ('assign','disable','revoke') then raise exception 'invalid_input'; end if;
   perform 1 from public.shops where id=v_shop for update;
   v_payload := jsonb_build_object('action',p_action,'target',p_target,'day_id',p_day_id,'day_version',p_day_version);
   select * into v_prior from private.closing_delegation_commands where shop_id=v_shop and key=p_key;
@@ -263,10 +267,12 @@ begin
   if jsonb_typeof(p_observations) is distinct from 'object' or (select count(*) from jsonb_object_keys(p_observations))<>2
     or not p_observations ?& array['stock','scrap'] or jsonb_typeof(p_observations->'stock') is distinct from 'array'
     or jsonb_typeof(p_observations->'scrap') is distinct from 'array' then raise exception 'invalid_input'; end if;
+  if jsonb_array_length(p_observations->'stock')>200 then raise exception 'invalid_input'; end if;
   if jsonb_array_length(p_observations->'scrap')<>jsonb_array_length(p_book->'scrap') then raise exception 'invalid_input'; end if;
   for v_row in select value from jsonb_array_elements(p_observations->'scrap') loop
     if jsonb_typeof(v_row) is distinct from 'object' or (select count(*) from jsonb_object_keys(v_row))<>2
       or not v_row ?& array['karat','milligrams'] or jsonb_typeof(v_row->'karat') is distinct from 'number'
+      or (v_row->>'karat') not in ('14','18','21','22','24')
       or not exists(select 1 from jsonb_array_elements(p_book->'scrap') item where item->'karat'=v_row->'karat')
       or jsonb_typeof(v_row->'milligrams') is distinct from 'string'
       or (v_row->>'milligrams') !~ '^(0|[1-9][0-9]{0,18})$' or (v_row->>'milligrams')::numeric>9223372036854775807 then raise exception 'invalid_input'; end if;
@@ -318,6 +324,7 @@ create function public.close_daily_ledger_from_staff_v1(p_key uuid,p_task_id uui
 returns jsonb language plpgsql volatile security definer set search_path = '' as $fn$
 declare v_shop uuid; v_task public.closing_count_tasks%rowtype; v_counts jsonb; v_result jsonb;
 begin
+  perform private.closing_actor_v1();
   v_shop := private.opening_require_reader_shop();
   perform 1 from public.shops where id=v_shop for update;
   select * into v_task from public.closing_count_tasks where shop_id=v_shop and id=p_task_id and state in ('submitted','closed') for update;
