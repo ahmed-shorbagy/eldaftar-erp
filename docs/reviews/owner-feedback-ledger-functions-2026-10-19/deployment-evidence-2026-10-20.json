@@ -1,0 +1,922 @@
+{
+  "project_ref": "xchapwvmvoefriqcxtvn",
+  "checked_on": "2026-10-20",
+  "implementation_commit": "5076c4f",
+  "authorization": "User explicitly authorized deployment of all task changes to connected Supabase.",
+  "prior_migrations_unchanged": 42,
+  "prior_data_tables_unchanged": 69,
+  "protected_tables": [
+    {
+      "table": "sessions",
+      "schema": "auth",
+      "fingerprint": "16|8796f93f7970d851b137e3d75b5c55488b45428a922a4808446a78488da9d4f9",
+      "after": "16|8796f93f7970d851b137e3d75b5c55488b45428a922a4808446a78488da9d4f9"
+    },
+    {
+      "table": "users",
+      "schema": "auth",
+      "fingerprint": "12|c60bc01daea30aa8529822db56ce02fc3d241969c729ffcbc15865b7309b9552",
+      "after": "12|c60bc01daea30aa8529822db56ce02fc3d241969c729ffcbc15865b7309b9552"
+    },
+    {
+      "table": "bullion_denominations",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "business_days",
+      "schema": "public",
+      "fingerprint": "4|9ecefa2b7168689aa0db5937384fe64a3330108621b0461fad54becee763d9dd",
+      "after": "4|9ecefa2b7168689aa0db5937384fe64a3330108621b0461fad54becee763d9dd"
+    },
+    {
+      "table": "coin_types",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "customer_command_requests",
+      "schema": "public",
+      "fingerprint": "29|747650caa526ddb9215bb648d95c274490c13c1fb5d683b120de0f1b610d11fc",
+      "after": "29|747650caa526ddb9215bb648d95c274490c13c1fb5d683b120de0f1b610d11fc"
+    },
+    {
+      "table": "customer_events",
+      "schema": "public",
+      "fingerprint": "29|d782b4bf6fc4a34e1e296bdbe2de7ff9ae8fbf93ab2d10c4a04385e416885f9a",
+      "after": "29|d782b4bf6fc4a34e1e296bdbe2de7ff9ae8fbf93ab2d10c4a04385e416885f9a"
+    },
+    {
+      "table": "customer_notes",
+      "schema": "public",
+      "fingerprint": "2|28ddbe8c6d73e0c9251fcd48b23ce4dccb2053cb350cfccd3629be1bea42806c",
+      "after": "2|28ddbe8c6d73e0c9251fcd48b23ce4dccb2053cb350cfccd3629be1bea42806c"
+    },
+    {
+      "table": "customer_number_declarations",
+      "schema": "public",
+      "fingerprint": "2|c89a7388a050763e4ca4f870b9f7109780f382c78942a0d1b9388bd7753179f7",
+      "after": "2|c89a7388a050763e4ca4f870b9f7109780f382c78942a0d1b9388bd7753179f7"
+    },
+    {
+      "table": "customer_number_events",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "customer_operation_links",
+      "schema": "public",
+      "fingerprint": "5|6d3fdaf045b56ffe17bf40e4606415d6011442013662798c9c848171ff197130",
+      "after": "5|6d3fdaf045b56ffe17bf40e4606415d6011442013662798c9c848171ff197130"
+    },
+    {
+      "table": "customer_phones",
+      "schema": "public",
+      "fingerprint": "2|8e57c4c58659cb64a77d15717c7d90f28fcf2adc152932968acc9e071d23880d",
+      "after": "2|8e57c4c58659cb64a77d15717c7d90f28fcf2adc152932968acc9e071d23880d"
+    },
+    {
+      "table": "customers",
+      "schema": "public",
+      "fingerprint": "6|86b14fda1d90eca307cf3da6c2793cc0eb792b6c1e45a1df1cc28987d878a391",
+      "after": "6|86b14fda1d90eca307cf3da6c2793cc0eb792b6c1e45a1df1cc28987d878a391"
+    },
+    {
+      "table": "daily_note_attachments",
+      "schema": "public",
+      "fingerprint": "2|75891abcdf94b05ac015e1e8b36ab0ad140b27ee5ca2baf7fa4b726d4fdb34b0",
+      "after": "2|75891abcdf94b05ac015e1e8b36ab0ad140b27ee5ca2baf7fa4b726d4fdb34b0"
+    },
+    {
+      "table": "debt_command_requests",
+      "schema": "public",
+      "fingerprint": "16|ec81492da8d0164931d868ce7ecb92cc7deb6c737d884cae5dee3a214f51e9d8",
+      "after": "16|ec81492da8d0164931d868ce7ecb92cc7deb6c737d884cae5dee3a214f51e9d8"
+    },
+    {
+      "table": "debt_due_dates",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "debt_due_events",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "debt_due_requests",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "debt_events",
+      "schema": "public",
+      "fingerprint": "16|b5284b20308609199270d243c71adf0c6243a1db1b1cd0b33d0f365727c5f815",
+      "after": "16|b5284b20308609199270d243c71adf0c6243a1db1b1cd0b33d0f365727c5f815"
+    },
+    {
+      "table": "debt_native_events",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "debt_native_intents",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "debt_native_requests",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "debt_settlement_references",
+      "schema": "public",
+      "fingerprint": "8|80227bf50dda42755782f463ffe737c1fcf49ffca7cc80453740ddd718addfad",
+      "after": "8|80227bf50dda42755782f463ffe737c1fcf49ffca7cc80453740ddd718addfad"
+    },
+    {
+      "table": "debt_source_archives",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "egypt_governorates",
+      "schema": "public",
+      "fingerprint": "27|ee3bcf351827299741fb3d9609f3eecb73a2f6989bb8d444043d967598bee06a",
+      "after": "27|ee3bcf351827299741fb3d9609f3eecb73a2f6989bb8d444043d967598bee06a"
+    },
+    {
+      "table": "financial_audit_events",
+      "schema": "public",
+      "fingerprint": "55|38eb11b93d9310a2da2dbdcd55d6e08f4378ce3f0e76a31a79cfc09013819088",
+      "after": "55|38eb11b93d9310a2da2dbdcd55d6e08f4378ce3f0e76a31a79cfc09013819088"
+    },
+    {
+      "table": "financial_command_requests",
+      "schema": "public",
+      "fingerprint": "55|ba9e27e2ea679a8f5c076a3d3e4b3bc88204955cbd27a39f4cb89a1f0925bd9f",
+      "after": "55|ba9e27e2ea679a8f5c076a3d3e4b3bc88204955cbd27a39f4cb89a1f0925bd9f"
+    },
+    {
+      "table": "financial_operation_details",
+      "schema": "public",
+      "fingerprint": "52|31b3b89941587490021d0e8975171c4e2dba5dc8f518eaa64fbd0bae0ece2163",
+      "after": "52|31b3b89941587490021d0e8975171c4e2dba5dc8f518eaa64fbd0bae0ece2163"
+    },
+    {
+      "table": "financial_operations",
+      "schema": "public",
+      "fingerprint": "55|ae62e7091e74483a4d06f8d3d64e3fb4eac2280f95fefe2547a9c12743493e55",
+      "after": "55|ae62e7091e74483a4d06f8d3d64e3fb4eac2280f95fefe2547a9c12743493e55"
+    },
+    {
+      "table": "financial_outbox",
+      "schema": "public",
+      "fingerprint": "55|09ec911f62b861c953e90b1df437eb1fbe52372c1ca934340760c677bc1279eb",
+      "after": "55|09ec911f62b861c953e90b1df437eb1fbe52372c1ca934340760c677bc1279eb"
+    },
+    {
+      "table": "gold_obligations",
+      "schema": "public",
+      "fingerprint": "1|eb7839468cffef14616f6dd68678d0e8f1ab746d5c141592e761afc97aa36280",
+      "after": "1|eb7839468cffef14616f6dd68678d0e8f1ab746d5c141592e761afc97aa36280"
+    },
+    {
+      "table": "identity_audit_events",
+      "schema": "public",
+      "fingerprint": "11|9c7828ce8b72881e45307b42e253cb2e463edfa11e0ee3b11f64a47b2973c0a4",
+      "after": "11|9c7828ce8b72881e45307b42e253cb2e463edfa11e0ee3b11f64a47b2973c0a4"
+    },
+    {
+      "table": "inventory_catalog_events",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "inventory_catalog_requests",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "inventory_command_envelopes",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "inventory_explicit_plans",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "inventory_lot_movements",
+      "schema": "public",
+      "fingerprint": "49|b11382c6acf91380f7014af6ca1b9d1585f8e9bd015dd93b863bb79de3efdfa1",
+      "after": "49|b11382c6acf91380f7014af6ca1b9d1585f8e9bd015dd93b863bb79de3efdfa1"
+    },
+    {
+      "table": "inventory_lot_sync",
+      "schema": "public",
+      "fingerprint": "55|733797e80b62afb2eb7b71c8917852f08d4da70fa39ad536c811714ac8a745a4",
+      "after": "55|733797e80b62afb2eb7b71c8917852f08d4da70fa39ad536c811714ac8a745a4"
+    },
+    {
+      "table": "inventory_lots",
+      "schema": "public",
+      "fingerprint": "26|1780a65447b3214dc2f264fff324d707e0e567bdd7224b46370f0ce95f7fca02",
+      "after": "26|1780a65447b3214dc2f264fff324d707e0e567bdd7224b46370f0ce95f7fca02"
+    },
+    {
+      "table": "inventory_products",
+      "schema": "public",
+      "fingerprint": "25|d118ba0c7f5e7e0bc5803f854b26ded0d9d7060cb6ddaae065f75a3a496fda3c",
+      "after": "25|d118ba0c7f5e7e0bc5803f854b26ded0d9d7060cb6ddaae065f75a3a496fda3c"
+    },
+    {
+      "table": "inventory_receipts",
+      "schema": "public",
+      "fingerprint": "1|9d0e566905379d072944ae2057289b974edffbaeff985e8f040237fd8122d5f3",
+      "after": "1|9d0e566905379d072944ae2057289b974edffbaeff985e8f040237fd8122d5f3"
+    },
+    {
+      "table": "invoice_appearance_audits",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_appearance_requests",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_appearance_revisions",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_dispatch_confirmations",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_logo_assets",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_message_audits",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_message_requests",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_message_revisions",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_presentation_requests",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "invoice_presentation_revisions",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "journal_postings",
+      "schema": "public",
+      "fingerprint": "311|0bd8539b09f738832a037f7d6e6021ced19369bdb74d1bf5ca6331f066bf8332",
+      "after": "311|0bd8539b09f738832a037f7d6e6021ced19369bdb74d1bf5ca6331f066bf8332"
+    },
+    {
+      "table": "journals",
+      "schema": "public",
+      "fingerprint": "148|ca65fcaca6767107a7ca293f5d6130fae9479433ae128740ef0d7fbee887fba3",
+      "after": "148|ca65fcaca6767107a7ca293f5d6130fae9479433ae128740ef0d7fbee887fba3"
+    },
+    {
+      "table": "ledger_accounts",
+      "schema": "public",
+      "fingerprint": "61|f16ed318e9b6d1779f763b6e0565d2676883567010f0b47e49e22d30cacc8075",
+      "after": "61|f16ed318e9b6d1779f763b6e0565d2676883567010f0b47e49e22d30cacc8075"
+    },
+    {
+      "table": "platform_admins",
+      "schema": "public",
+      "fingerprint": "1|62da0fcd1d79d2876d801f99a55bb31faa2099da7b3c6529ebba48b5bda97cd5",
+      "after": "1|62da0fcd1d79d2876d801f99a55bb31faa2099da7b3c6529ebba48b5bda97cd5"
+    },
+    {
+      "table": "purchase_cash_payables",
+      "schema": "public",
+      "fingerprint": "5|693b6b95618ff20f729b38e660900cb1c777e16c8d6419b5fe43bfd275ef4b8c",
+      "after": "5|693b6b95618ff20f729b38e660900cb1c777e16c8d6419b5fe43bfd275ef4b8c"
+    },
+    {
+      "table": "receipt_quantity_allocations",
+      "schema": "public",
+      "fingerprint": "1|5f39cd32e402f2080b27e00000eb975e9d8e99429a98457af901b6fbb5c74e1c",
+      "after": "1|5f39cd32e402f2080b27e00000eb975e9d8e99429a98457af901b6fbb5c74e1c"
+    },
+    {
+      "table": "repair_command_requests",
+      "schema": "public",
+      "fingerprint": "23|b95ab0b93d07373bfdaa4370f2a687730baa32dca5d0984de16e6bafbdd66e87",
+      "after": "23|b95ab0b93d07373bfdaa4370f2a687730baa32dca5d0984de16e6bafbdd66e87"
+    },
+    {
+      "table": "repair_custody_events",
+      "schema": "public",
+      "fingerprint": "12|d534f1b07604ac1edaa16f0afbb38f930cce1d87858b5f3cb279ce7e0f844b13",
+      "after": "12|d534f1b07604ac1edaa16f0afbb38f930cce1d87858b5f3cb279ce7e0f844b13"
+    },
+    {
+      "table": "repair_events",
+      "schema": "public",
+      "fingerprint": "23|b9ae5b2d2f27017c2c0f6228ef49e7c56d6297511dd3fddfe80f16ee97e3c526",
+      "after": "23|b9ae5b2d2f27017c2c0f6228ef49e7c56d6297511dd3fddfe80f16ee97e3c526"
+    },
+    {
+      "table": "repairs",
+      "schema": "public",
+      "fingerprint": "6|7ebba30e2d67605524d579da613f03cb0829f9f5e44d22aaba48961ff7c1534c",
+      "after": "6|7ebba30e2d67605524d579da613f03cb0829f9f5e44d22aaba48961ff7c1534c"
+    },
+    {
+      "table": "shop_debts",
+      "schema": "public",
+      "fingerprint": "6|c2f8677f315ab7d71b454ca3d9abfa9696b64e6dc68c8d8d7e5f2788ac2e2f62",
+      "after": "6|c2f8677f315ab7d71b454ca3d9abfa9696b64e6dc68c8d8d7e5f2788ac2e2f62"
+    },
+    {
+      "table": "shop_entitlements",
+      "schema": "public",
+      "fingerprint": "5|7b27a933c21218bc29da679490622839b90a8ad93b3a735b32a0f168dc4d38b7",
+      "after": "5|7b27a933c21218bc29da679490622839b90a8ad93b3a735b32a0f168dc4d38b7"
+    },
+    {
+      "table": "shop_memberships",
+      "schema": "public",
+      "fingerprint": "11|0aa1500d9a4dd3039a4163da021d1302e0fbee9955286de6b52b903e70f73e01",
+      "after": "11|0aa1500d9a4dd3039a4163da021d1302e0fbee9955286de6b52b903e70f73e01"
+    },
+    {
+      "table": "shop_sync_signals",
+      "schema": "public",
+      "fingerprint": "11|871daacd04db95a238d3bc0e332b58ebedba2f2e9c38c4d4602baaba475e09a9",
+      "after": "11|871daacd04db95a238d3bc0e332b58ebedba2f2e9c38c4d4602baaba475e09a9"
+    },
+    {
+      "table": "shops",
+      "schema": "public",
+      "fingerprint": "11|bd0615ce39ed89023018004d4e89f9287396ff93367ed4349e28b3b08731fa14",
+      "after": "11|bd0615ce39ed89023018004d4e89f9287396ff93367ed4349e28b3b08731fa14"
+    },
+    {
+      "table": "traders",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "after": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "buckets",
+      "schema": "storage",
+      "fingerprint": "2|7fc5dfa24b89552b237d4f2afb0df1fdc599b94b3e576417d7dcc0711157d4fb",
+      "after": "2|7fc5dfa24b89552b237d4f2afb0df1fdc599b94b3e576417d7dcc0711157d4fb"
+    },
+    {
+      "table": "objects",
+      "schema": "storage",
+      "fingerprint": "2|9bbcbd7df16183e630b8eb6047df6d11dba3caf28feffb8794a5e146579cefa1",
+      "after": "2|9bbcbd7df16183e630b8eb6047df6d11dba3caf28feffb8794a5e146579cefa1"
+    }
+  ],
+  "new_tables": [
+    {
+      "table": "ledger_trade_change_audits",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "table": "ledger_trade_changes",
+      "schema": "public",
+      "fingerprint": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "deployed_migrations": [
+    {
+      "local_source": "20261019184500_ledger_date_read.sql",
+      "source_sha256": "ee2b7856de50a032db72e46f7677dfd3ab5506c6c3c708647d50397345be7019",
+      "name": "ledger_date_read",
+      "version": "20261020061540",
+      "statement_count": 1,
+      "normalized_sha256": "a733b0536edc6074ad9c4d68c842bf018a3c8085b87050cc020791462a4272a0"
+    },
+    {
+      "local_source": "20261019230000_ledger_trade_edit_delete.sql",
+      "source_sha256": "e722eff018c241e2c84688f5da0f976c289a1587087948f4072cad34f3337bf0",
+      "name": "ledger_trade_edit_delete",
+      "version": "20261020061546",
+      "statement_count": 1,
+      "normalized_sha256": "4d749d7ff190de4770115502c8a883b240f35ad0bac01d12d19bdf899edbf92c"
+    },
+    {
+      "local_source": "20261019233000_ledger_trade_cache_revision.sql",
+      "source_sha256": "c5b617279b5f8ed3f642aea6a5f80f611919e97e9dff2221d31df162618d6368",
+      "name": "ledger_trade_cache_revision",
+      "version": "20261020061552",
+      "statement_count": 1,
+      "normalized_sha256": "4d232c3250e1ca57f0252bc61d242493fbfd07b0650193ceccb6536e98aa4e0d"
+    }
+  ],
+  "functions_unchanged": 336,
+  "function_changes": {
+    "added": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_shop uuid, p_operation uuid",
+        "name": "ledger_trade_hidden",
+        "schema": "private",
+        "sha256": "442bb35280bff2fb751997efced87868d506dda3fa47521c3cb69904c939c226"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "",
+        "name": "ledger_trade_reject_inactive_source",
+        "schema": "private",
+        "sha256": "72fe7cedaf81400906775635d1b920cb5d5c559973babcce22519a6a1eb6d03b"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_shop uuid, p_effects jsonb",
+        "name": "trade_change_assert_affordable",
+        "schema": "private",
+        "sha256": "c89bca43262b02618b427d899f2fb8af239978e6615872a1bdfd68a8588acc80"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_payload jsonb, p_expected_kind text",
+        "name": "trade_change_assert_draft",
+        "schema": "private",
+        "sha256": "207491da2b1b5819c61feef545b73bbd0c7dcad4f93a0a493706b47300beeb9d"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_shop uuid",
+        "name": "trade_change_assert_final",
+        "schema": "private",
+        "sha256": "b94e4ef85a1ea7a74047184b20dfb279aa7cac6a920636ad4d905ad9a57307a7"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_shop uuid, p_operation uuid, p_kind text",
+        "name": "trade_change_assert_followups",
+        "schema": "private",
+        "sha256": "9f8dde6e2d07c4f97b52839fec55f79535dced85788ac7355bb133db2e059206"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_action text, p_operation uuid, p_replacement jsonb, p_day uuid, p_day_version bigint, p_source_sha text, p_token text",
+        "name": "trade_change_command_payload",
+        "schema": "private",
+        "sha256": "a043f51451e84929c1f60e0a356b2abf568b7f681c4f6810170814d5501babf3"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_kind text, p_source jsonb, p_action text, p_replacement jsonb",
+        "name": "trade_change_effects",
+        "schema": "private",
+        "sha256": "08a8ff16935ab153ae715b52110e2796a3d902c5950002e5d9b7d697f789e1b1"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_source jsonb, p_operation uuid",
+        "name": "trade_change_reversal_payload",
+        "schema": "private",
+        "sha256": "ac43ab08b3613334581e31103184a8d70cfd5e0f64c5722b42a386e46e5f74bf"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_shop uuid, p_operation uuid, p_action text, p_source_sha text, p_replacement_sha text, p_day uuid, p_day_version bigint, p_effects jsonb",
+        "name": "trade_change_token",
+        "schema": "private",
+        "sha256": "08ec54e72c1ac8eb5fe40a66f8dbf1b795eed5204738b076217aeac70b37a46f"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_payload jsonb",
+        "name": "trade_line_amounts",
+        "schema": "private",
+        "sha256": "ad0759cbcad0a603b1901a17806f5f5df6ecfa192d74a3017692154818e2a0b7"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_payload jsonb, p_method text",
+        "name": "trade_method_amount",
+        "schema": "private",
+        "sha256": "08355170d59379b0653d2134120f3c54fc2e83b468f068b8af59a2cd9ee2285a"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_payload jsonb",
+        "name": "trade_payload_sha256",
+        "schema": "private",
+        "sha256": "542bc6eb6607ef75f1b7eb8a051db858a887f191e0075e3e66565b5aaa86c47a"
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "args": "p_payload jsonb",
+        "name": "trade_payment_array",
+        "schema": "private",
+        "sha256": "88c23403eb64cbd394397d4d4c1ded777b12c39b763b020b4bf772a36db50a05"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "args": "p_operation_id uuid",
+        "name": "get_daily_ledger_operation_before_trade_change",
+        "schema": "public",
+        "sha256": "a5efd23f54a72bd9a613b56854e4d513729fc8a3e77f6e9509d57239a973dcf7"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "args": "",
+        "name": "get_daily_ledger_v2_before_trade_cache",
+        "schema": "public",
+        "sha256": "f694033438392590cb7c4403603b0e7c85fa0f424a3aad89772447656ea2b4c4"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "args": "",
+        "name": "get_daily_ledger_v2_before_trade_change",
+        "schema": "public",
+        "sha256": "ad58855ab650aee31a51d9cbc454a585a41b0551f132e607481f3f9cad3f08d1"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "args": "p_operation_id uuid",
+        "name": "get_invoice_brand_source_v1_before_trade_change",
+        "schema": "public",
+        "sha256": "03a410ee5b4b8530204ed22d29efbf216757aba025a5cc61a3a0c3cc5c0a1ae4"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "args": "p_operation_id uuid",
+        "name": "get_invoice_dispatch_state_before_trade_change",
+        "schema": "public",
+        "sha256": "8c7fbd287e4c2ac00e0932d2bd0f36e43b4fc284cfdd08e4f1aa2d6c5640598d"
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "args": "p_operation_id uuid",
+        "name": "get_invoice_message_source_v1_before_trade_change",
+        "schema": "public",
+        "sha256": "7312c1ba0f9a74c962f21892cefa1e562af87240fc5e8fa4aabb921a4892cee7"
+      },
+      {
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "args": "p_business_date date, p_before_sequence text, p_limit integer",
+        "name": "get_ledger_date_v1",
+        "schema": "public",
+        "sha256": "813811300df6ce003834007416699c56fa04299ee1148c3554ec279d2a9f9557"
+      },
+      {
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "args": "p_idempotency_key uuid, p_operation_id uuid, p_action text, p_replacement jsonb, p_expected_day_id uuid, p_expected_day_version bigint, p_source_sha256 text, p_review_token text",
+        "name": "post_ledger_trade_change_v1",
+        "schema": "public",
+        "sha256": "47fcd9d0ea2ad77cd8749fcf24dd517b405d727e19d7f46c177fc01a9ccf1526"
+      },
+      {
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "args": "p_operation_id uuid, p_action text, p_replacement jsonb",
+        "name": "review_ledger_trade_change_v1",
+        "schema": "public",
+        "sha256": "cd43ed5fc6316679d36812a7f399437dbe9103908a06762862687458a769a47a"
+      }
+    ],
+    "changed": [
+      {
+        "before": {
+          "acl": "{postgres=X/postgres}",
+          "args": "p_shop uuid, p_customer uuid",
+          "name": "customer_statistics_activity",
+          "schema": "private",
+          "sha256": "f9dca8a2d9c0cd21291d635f6ec5ca119c6d1d2547026f54d62b4073aa50f23c"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres}",
+          "args": "p_shop uuid, p_customer uuid",
+          "name": "customer_statistics_activity",
+          "schema": "private",
+          "sha256": "70ae55b29ae73844b2fb6d25d6ea8f0b0d76044007ac20b68f29a24c6a9fbf71"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres}",
+          "args": "p_shop uuid, p_key uuid, p_payload jsonb, p_day uuid, p_actor uuid, p_at timestamp with time zone, p_bump boolean, p_allow_zero boolean",
+          "name": "post_linked_return_core",
+          "schema": "private",
+          "sha256": "7e80439db13d5ef3251a0cd8527c99e62521c0bab4012aef268e9e2572672f9d"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres}",
+          "args": "p_shop uuid, p_key uuid, p_payload jsonb, p_day uuid, p_actor uuid, p_at timestamp with time zone, p_bump boolean, p_allow_zero boolean",
+          "name": "post_linked_return_core",
+          "schema": "private",
+          "sha256": "250bbb1cbc6097ba8687daad3748879f55e8376862c49aebf82c3c0d37d98073"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_daily_ledger_operation",
+          "schema": "public",
+          "sha256": "c0da836789d4417e040b66162e4d533e191dce94786d5908cbb13ba985a1d204"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_daily_ledger_operation",
+          "schema": "public",
+          "sha256": "35e91d50ae473833f52549bd70ce8ed1b98de0ab114a42f98d4eee313fb64b15"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "",
+          "name": "get_daily_ledger_v2",
+          "schema": "public",
+          "sha256": "e0d3af6c505b18dddfadd835b5ab252ef8fb6ceb8116eb5768f0a348fa9ac516"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "",
+          "name": "get_daily_ledger_v2",
+          "schema": "public",
+          "sha256": "1066583d5404714ae4b7c744fea49960b772e9b57c63bff0d7ba9b65131db792"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_invoice_brand_source_v1",
+          "schema": "public",
+          "sha256": "29b5635938f6cd22929c10b67dc28ba9795f62c5ff281985ce0e312417e14724"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_invoice_brand_source_v1",
+          "schema": "public",
+          "sha256": "8f5fc29cb0268f3edce6a7d7d921202417ae1ddbb201c11aa71ee1c036935915"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_invoice_dispatch_state",
+          "schema": "public",
+          "sha256": "2797c0511a074f63f21fa3ba9986b85ca91b16b9a4f0da6eb0692fff21a14f8c"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_invoice_dispatch_state",
+          "schema": "public",
+          "sha256": "e5974d35cea8117c909a7d348841be4b186cfc49404122f8c440e936d25d5125"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_invoice_message_source_v1",
+          "schema": "public",
+          "sha256": "8e2c41918725f0ca27d4178c828903d426502a7108da5eb460db1d6dd38e5c05"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_operation_id uuid",
+          "name": "get_invoice_message_source_v1",
+          "schema": "public",
+          "sha256": "8d020becb01fff0528820077a16771edd716032f941032b3f2a25a3a8884cb20"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "",
+          "name": "get_ledger_compensation_summary_v1",
+          "schema": "public",
+          "sha256": "9c0ce0eb5edc2187ecad204cc4ad6e60ae18ed80618f52e52292ca0cce3d9241"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "",
+          "name": "get_ledger_compensation_summary_v1",
+          "schema": "public",
+          "sha256": "006af4da85b21eea7cf8cbf6c7e0c01375d8c1798420dba02f17c726e8c6ed13"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_day_id uuid, p_before_sequence text, p_after_sequence text, p_limit integer",
+          "name": "get_ledger_operation_page",
+          "schema": "public",
+          "sha256": "e360ed202ace560cd78a585a874fb0ab9ffa9504d5b2cca14469d1d41a609842"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_day_id uuid, p_before_sequence text, p_after_sequence text, p_limit integer",
+          "name": "get_ledger_operation_page",
+          "schema": "public",
+          "sha256": "50a3ed579d1634766d7b8f89b7a6268b1ba02b6cbd22340381dcdfd2e3e50e8a"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_before_sequence bigint",
+          "name": "get_pending_invoice_sends",
+          "schema": "public",
+          "sha256": "1a4e08ef9fd7820aa5ae2b7c97364f895b49867b26a3f629f8cecd018b05fe5f"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_before_sequence bigint",
+          "name": "get_pending_invoice_sends",
+          "schema": "public",
+          "sha256": "0f6c234635914ca8de46800d294c988cad10adef36f1041024a6fd6a343b2cfe"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_idempotency_key uuid, p_original_operation_id uuid, p_note text",
+          "name": "post_daily_ledger_return",
+          "schema": "public",
+          "sha256": "310566eac77a2292652204d9e9c060314d31646ff5a0c376f8be89cf9acfc00c"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "args": "p_idempotency_key uuid, p_original_operation_id uuid, p_note text",
+          "name": "post_daily_ledger_return",
+          "schema": "public",
+          "sha256": "310566eac77a2292652204d9e9c060314d31646ff5a0c376f8be89cf9acfc00c"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_idempotency_key uuid, p_payload jsonb",
+          "name": "post_exchange_v1",
+          "schema": "public",
+          "sha256": "bae718d63a15a39aaa9de60ec1ffd0f9153722b7bbbf9cac82004a08581edc4b"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "args": "p_idempotency_key uuid, p_payload jsonb",
+          "name": "post_exchange_v1",
+          "schema": "public",
+          "sha256": "bae718d63a15a39aaa9de60ec1ffd0f9153722b7bbbf9cac82004a08581edc4b"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+          "args": "p_idempotency_key uuid, p_payload jsonb",
+          "name": "post_linked_return_v1",
+          "schema": "public",
+          "sha256": "1aa05dc1b5e96afd89b30f0a8e7425cfa187c2139929665c9f0ada15cad1054e"
+        },
+        "after": {
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "args": "p_idempotency_key uuid, p_payload jsonb",
+          "name": "post_linked_return_v1",
+          "schema": "public",
+          "sha256": "1aa05dc1b5e96afd89b30f0a8e7425cfa187c2139929665c9f0ada15cad1054e"
+        }
+      }
+    ]
+  },
+  "security_before": [
+    {
+      "name": "rls_enabled_no_policy",
+      "count": 7,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "count": 112,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    }
+  ],
+  "security_after": [
+    {
+      "name": "rls_enabled_no_policy",
+      "count": 7,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "count": 112,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    }
+  ],
+  "performance_before": [
+    {
+      "name": "unindexed_foreign_keys",
+      "count": 12,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+    },
+    {
+      "name": "no_primary_key",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key"
+    },
+    {
+      "name": "unused_index",
+      "count": 33,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+    }
+  ],
+  "performance_after": [
+    {
+      "name": "unindexed_foreign_keys",
+      "count": 12,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+    },
+    {
+      "name": "no_primary_key",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key"
+    },
+    {
+      "name": "unused_index",
+      "count": 37,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+    }
+  ],
+  "hosted_gate": "HOSTED_LEDGER_AUTHORIZATION_GATES_PASSED",
+  "checks": {
+    "both_new_tables_rls": true,
+    "owner_select_policies_per_table": 1,
+    "new_rpcs_authenticated_execute": true,
+    "new_rpcs_anon_execute": false,
+    "new_rpcs_empty_search_path": true,
+    "private_helpers_exposed": 0,
+    "date_hidden_predicates": 3,
+    "feed_hidden_predicates": 2
+  },
+  "limits": [
+    "No hosted synthetic fixture or financial transaction was created.",
+    "Actual signed-in native client behavior and device acceptance were not tested in this deployment.",
+    "Flutter application release/distribution is separate from Supabase backend deployment."
+  ]
+}
