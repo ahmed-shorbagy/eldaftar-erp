@@ -11,6 +11,7 @@ import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
 import 'features/onboarding/application/onboarding_store.dart';
 import 'features/shop_accounts/domain/shop_account_gateway.dart';
+import 'features/shop_accounts/domain/shop_image.dart';
 import 'features/shop_accounts/domain/shop_sync.dart';
 import 'shell/shell_copy.dart';
 import 'theme/app_theme.dart';
@@ -30,6 +31,7 @@ class ElDafttarApp extends StatelessWidget {
     this.currentUserId,
     this.recoveryGateway,
     this.syncGateway,
+    this.shopImageGateway,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -43,6 +45,7 @@ class ElDafttarApp extends StatelessWidget {
   final String? Function()? currentUserId;
   final PasswordRecoveryGateway? recoveryGateway;
   final ShopSyncGateway? syncGateway;
+  final ShopImageGateway? shopImageGateway;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +78,7 @@ class ElDafttarApp extends StatelessWidget {
             currentUserId: currentUserId,
             recoveryGateway: recoveryGateway,
             syncGateway: syncGateway,
+            shopImageGateway: shopImageGateway,
             onToggleTheme: themeController.toggle,
           ),
         );

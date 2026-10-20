@@ -13,6 +13,7 @@ import '../../onboarding/application/onboarding_store.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/domain/shop_sync.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
+import '../../shop_accounts/domain/shop_image.dart';
 import '../domain/auth_gateway.dart';
 import '../domain/password_recovery.dart';
 import 'auth_copy.dart';
@@ -34,6 +35,7 @@ class AuthGate extends StatefulWidget {
     this.currentUserId,
     this.recoveryGateway,
     this.syncGateway,
+    this.shopImageGateway,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -47,6 +49,7 @@ class AuthGate extends StatefulWidget {
   final OnboardingStore? onboardingStore;
   final String? Function()? currentUserId;
   final ShopSyncGateway? syncGateway;
+  final ShopImageGateway? shopImageGateway;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -186,6 +189,7 @@ class _AuthGateState extends State<AuthGate> {
         onboardingStore: widget.onboardingStore,
         currentUserId: widget.currentUserId,
         syncGateway: widget.syncGateway,
+        shopImageGateway: widget.shopImageGateway,
         onSignOut: () async {
           await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);
@@ -204,6 +208,7 @@ class _AuthGateState extends State<AuthGate> {
       onHold: _setHold,
       onSessionSettled: _syncStatus,
       onboardingStore: widget.onboardingStore,
+      shopImageGateway: widget.shopImageGateway,
       onForgotPassword: recovery == null
           ? null
           : () {

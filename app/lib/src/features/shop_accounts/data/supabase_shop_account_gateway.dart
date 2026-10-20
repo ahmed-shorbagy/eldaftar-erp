@@ -96,6 +96,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
     final role = value['member_role'];
     final status = value['entitlement_status'];
     final expires = value['subscription_expires_at'];
+    final imageSha = value['shop_image_sha256'];
     if (id is! String ||
         !_uuid.hasMatch(id) ||
         name is! String ||
@@ -104,7 +105,10 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
         role != 'owner' ||
         status is! String ||
         !const ['pending', 'active', 'expired'].contains(status) ||
-        (expires != null && expires is! String)) {
+        (expires != null && expires is! String) ||
+        (imageSha != null &&
+            (imageSha is! String ||
+                !RegExp(r'^[0-9a-f]{64}$').hasMatch(imageSha)))) {
       throw const ShopAccountException(ShopAccountFailure.invalidResponse);
     }
     final expiresAt = expires == null ? null : DateTime.tryParse(expires);
@@ -117,6 +121,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
       role: role,
       entitlement: ShopEntitlement.values.byName(status),
       expiresAt: expiresAt,
+      imageSha256: imageSha as String?,
     );
   }
 

@@ -22,10 +22,18 @@ class BrandMark extends StatelessWidget {
 
 /// Large opening mark: the ledger symbol, the name, then the tagline.
 class BrandHero extends StatelessWidget {
-  const BrandHero({super.key, this.markSize = 112, this.compact = false});
+  const BrandHero({
+    super.key,
+    this.markSize = 112,
+    this.compact = false,
+    this.onPhoto = false,
+  });
 
   final double markSize;
   final bool compact;
+
+  /// Title sits on the jewelry hero, so secondary text stays full-strength.
+  final bool onPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +69,15 @@ class BrandHero extends StatelessWidget {
         ],
       );
     }
+    final onDarkPhoto = onPhoto && theme.brightness == Brightness.dark;
+    final photoShadow = onDarkPhoto
+        ? <Shadow>[
+            Shadow(
+              color: scheme.surface.withValues(alpha: 0.9),
+              blurRadius: 18,
+            ),
+          ]
+        : null;
     return Column(
       children: [
         BrandMark(size: markSize),
@@ -71,6 +88,7 @@ class BrandHero extends StatelessWidget {
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w700,
             height: 1.2,
+            shadows: photoShadow,
           ),
         ),
         const SizedBox(height: 4),
@@ -78,8 +96,9 @@ class BrandHero extends StatelessWidget {
           ShellCopy.brandTagline,
           textAlign: TextAlign.center,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
+            color: onDarkPhoto ? scheme.onSurface : scheme.onSurfaceVariant,
             height: 1.4,
+            shadows: photoShadow,
           ),
         ),
       ],

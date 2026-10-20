@@ -102,9 +102,11 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final allowedFields = version == 2 ? {...fields, 'day_summary'} : fields;
   final keys = json.keys.toSet();
   final extra = keys.difference(allowedFields);
+  // v2 confirmed reads may include feed_page and/or trade_change_sequence.
+  const optionalV2 = {'feed_page', 'trade_change_sequence'};
   if (!keys.containsAll(allowedFields) ||
-      extra.any((key) => key != 'feed_page') ||
-      (extra.contains('feed_page') && version != 2)) {
+      extra.any((key) => !optionalV2.contains(key)) ||
+      (extra.isNotEmpty && version != 2)) {
     throw const FormatException('ledger');
   }
   final state = json['state'];
@@ -136,6 +138,9 @@ DailyLedgerView parseDailyLedger(Object? json) {
   if (version == 2 && !confirmed) throw const FormatException('day_summary');
   if (json.containsKey('feed_page') && !confirmed) {
     throw const FormatException('feed_page');
+  }
+  if (json.containsKey('trade_change_sequence') && !confirmed) {
+    throw const FormatException('trade_change_sequence');
   }
   final feedCursor = json.containsKey('feed_page')
       ? _feedCursor(json['feed_page'])

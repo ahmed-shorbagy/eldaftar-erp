@@ -17,6 +17,7 @@ import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
 import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
 import 'src/features/shop_accounts/data/supabase_shop_account_gateway.dart';
+import 'src/features/shop_accounts/data/supabase_shop_image_gateway.dart';
 import 'src/features/shop_accounts/data/supabase_shop_sync_gateway.dart';
 import 'src/theme/theme_controller.dart';
 import 'src/theme/theme_preference_store.dart';
@@ -67,6 +68,9 @@ Future<void> main() async {
       themeController: themeController,
       shopAccountGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopAccountGateway(Supabase.instance.client)
+          : null,
+      shopImageGateway: supabaseStatus == SupabaseStartupStatus.ready
+          ? SupabaseShopImageGateway(Supabase.instance.client)
           : null,
       syncGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopSyncGateway(Supabase.instance.client)

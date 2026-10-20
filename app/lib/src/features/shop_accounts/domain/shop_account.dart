@@ -7,6 +7,7 @@ class ShopAccount {
     required this.role,
     required this.entitlement,
     this.expiresAt,
+    this.imageSha256,
   });
 
   final String id;
@@ -14,6 +15,24 @@ class ShopAccount {
   final String role;
   final ShopEntitlement entitlement;
   final DateTime? expiresAt;
+
+  /// Present when the owner saved a shop image for the ledger header.
+  final String? imageSha256;
+
+  ShopAccount copyWith({
+    String? name,
+    ShopEntitlement? entitlement,
+    DateTime? expiresAt,
+    String? imageSha256,
+    bool clearImage = false,
+  }) => ShopAccount(
+    id: id,
+    name: name ?? this.name,
+    role: role,
+    entitlement: entitlement ?? this.entitlement,
+    expiresAt: expiresAt ?? this.expiresAt,
+    imageSha256: clearImage ? null : (imageSha256 ?? this.imageSha256),
+  );
 
   bool get needsActivation =>
       entitlement == ShopEntitlement.pending ||

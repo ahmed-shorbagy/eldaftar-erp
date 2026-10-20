@@ -5,6 +5,7 @@ import '../../debts/application/debt_reminder_device.dart';
 import '../../debts/application/debt_native_gateway.dart';
 import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -33,7 +34,9 @@ import '../application/shop_sync_coordinator.dart';
 import '../application/shop_sync_ticks.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_account_gateway.dart';
+import '../domain/shop_image.dart';
 import '../domain/shop_sync.dart';
+import 'shop_image_screen.dart';
 import 'subscription_activation.dart';
 
 class ShopAccountsGate extends StatefulWidget {
@@ -48,6 +51,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.currentUserId,
     this.onboardingStore,
     this.syncGateway,
+    this.shopImageGateway,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -59,6 +63,7 @@ class ShopAccountsGate extends StatefulWidget {
   final String? Function()? currentUserId;
   final OnboardingStore? onboardingStore;
   final ShopSyncGateway? syncGateway;
+  final ShopImageGateway? shopImageGateway;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -90,6 +95,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   bool _refreshQueued = false;
   StreamSubscription<ReminderDeviceReport>? _reminderEvents;
   bool _tapOpening = false;
+  Uint8List? _shopImageBytes;
+  String? _shopImageShopId;
+  String? _shopImageSha;
 
   @override
   void initState() {
@@ -231,12 +239,16 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         ),
       );
       unawaited(_ensureSync());
+      unawaited(_ensureShopImage());
       _maybePromptActivation();
     } on ShopAccountException catch (error) {
       if (!isCurrent()) return;
       setState(() {
         _selected = null;
         _accounts = null;
+        _shopImageBytes = null;
+        _shopImageShopId = null;
+        _shopImageSha = null;
         if (error.failure == ShopAccountFailure.unauthorized) {
           _markAccessLost();
         } else {
@@ -253,6 +265,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       setState(() {
         _selected = null;
         _accounts = null;
+        _shopImageBytes = null;
+        _shopImageShopId = null;
+        _shopImageSha = null;
         _error = 'تعذر تحميل المتاجر. تحقق من الاتصال وحاول مجددًا.';
       });
     } finally {
@@ -421,6 +436,64 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     }
   }
 
+  Future<void> _ensureShopImage() async {
+    final shop = _selected;
+    final gateway = widget.shopImageGateway;
+    if (shop == null || gateway == null) {
+      if (_shopImageBytes != null || _shopImageShopId != null) {
+        setState(() {
+          _shopImageBytes = null;
+          _shopImageShopId = null;
+          _shopImageSha = null;
+        });
+      }
+      return;
+    }
+    final sha = shop.imageSha256;
+    if (sha == null) {
+      if (_shopImageShopId == shop.id && _shopImageBytes == null) return;
+      setState(() {
+        _shopImageBytes = null;
+        _shopImageShopId = shop.id;
+        _shopImageSha = null;
+      });
+      return;
+    }
+    if (_shopImageShopId == shop.id &&
+        _shopImageSha == sha &&
+        _shopImageBytes != null) {
+      return;
+    }
+    try {
+      final image = await gateway.readCurrent();
+      if (!mounted || _selected?.id != shop.id) return;
+      setState(() {
+        _shopImageBytes = image?.bytes;
+        _shopImageShopId = shop.id;
+        _shopImageSha = image?.sha256 ?? sha;
+      });
+    } catch (_) {
+      if (!mounted || _selected?.id != shop.id) return;
+      // Keep BrandMark fallback without blocking the ledger.
+      setState(() {
+        _shopImageBytes = null;
+        _shopImageShopId = shop.id;
+        _shopImageSha = sha;
+      });
+    }
+  }
+
+  void _onShopImageChanged(Uint8List? bytes) {
+    if (!mounted) return;
+    setState(() {
+      _shopImageBytes = bytes;
+      _shopImageShopId = _selected?.id;
+      _shopImageSha = bytes == null ? null : _shopImageSha;
+      _ledgerGeneration++;
+    });
+    unawaited(_refresh());
+  }
+
   void _dismissResolvedActivation() {
     if (mounted && !(_selected?.needsActivation ?? true)) {
       _closeActivationDialog();
@@ -522,12 +595,25 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         userId: userId,
         refreshGeneration: _ledgerGeneration,
         syncTicks: _ticks,
+        shopImageBytes: _shopImageShopId == selected.id
+            ? _shopImageBytes
+            : null,
         onSignOut: _signOut,
         onToggleTheme: widget.onToggleTheme,
         onActivateSubscription: selected.needsActivation
             ? _openActivation
             : null,
         onboardingStore: widget.onboardingStore,
+        shopImageBuilder: widget.shopImageGateway == null
+            ? null
+            : (context) => ShopImageScreen(
+                shop: selected,
+                gateway: widget.shopImageGateway!,
+                initialBytes: _shopImageShopId == selected.id
+                    ? _shopImageBytes
+                    : null,
+                onChanged: _onShopImageChanged,
+              ),
         inventoryBuilder: inventory == null || userId == null
             ? null
             : (context) => InventoryScreen(

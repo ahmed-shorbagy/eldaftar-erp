@@ -271,6 +271,35 @@ void main() {
     expect(() => parseDailyLedger(body), throwsFormatException);
   });
 
+  test('confirmed v2 ledger accepts trade_change_sequence from the server', () {
+    final body = confirmedBody();
+    body['read_model_version'] = 2;
+    body['day_summary'] = {
+      'sale_piastres': '0',
+      'purchase_piastres': '0',
+      'expense_piastres': '0',
+      'sale_count': 0,
+      'purchase_count': 0,
+      'expense_count': 0,
+      'gold_by_bucket': <Object?>[],
+    };
+    body['trade_change_sequence'] = '0';
+    expect(parseDailyLedger(body).tradeChangeSequence, '0');
+    body['trade_change_sequence'] = '12';
+    expect(parseDailyLedger(body).tradeChangeSequence, '12');
+    body['feed_page'] = {
+      'limit': 20,
+      'has_more': false,
+      'direction': 'desc',
+      'next_before_sequence': null,
+      'server_sequence': '3',
+      'snapshot_sequence': '3',
+    };
+    expect(parseDailyLedger(body).tradeChangeSequence, '12');
+    body['trade_change_sequence'] = 'not-an-integer';
+    expect(() => parseDailyLedger(body), throwsFormatException);
+  });
+
   test('settlement feed and note marker follow the server shape', () {
     final body = confirmedBody();
     body['read_model_version'] = 2;

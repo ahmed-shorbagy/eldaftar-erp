@@ -3,6 +3,7 @@ import '../../debts/application/debt_native_contract.dart';
 import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -71,6 +72,7 @@ class DailyLedgerScreen extends StatefulWidget {
     this.onOpenCustomers,
     this.onOpenInvoiceAppearance,
     this.onOpenInvoiceMessage,
+    this.shopImageBytes,
   });
 
   final ShopAccount shop;
@@ -91,6 +93,7 @@ class DailyLedgerScreen extends StatefulWidget {
   final Future<void> Function()? onOpenCustomers;
   final Future<void> Function()? onOpenInvoiceAppearance;
   final Future<void> Function()? onOpenInvoiceMessage;
+  final Uint8List? shopImageBytes;
 
   @override
   State<DailyLedgerScreen> createState() => _DailyLedgerScreenState();
@@ -890,6 +893,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       appBar: LedgerAppBar(
         textScaler: MediaQuery.textScalerOf(context),
         shopName: widget.shop.name,
+        shopImageBytes: widget.shopImageBytes,
         subtitle: daySubtitle,
         topInset: MediaQuery.paddingOf(context).top,
         compact: compact,

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phone_form_field/phone_form_field.dart';
@@ -7,7 +8,11 @@ import 'package:phone_form_field/phone_form_field.dart';
 import '../../../shell/shell_copy.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
+import '../../invoice_appearance/application/logo_codec.dart';
+import '../../invoice_appearance/domain/logo_bytes.dart';
 import '../../onboarding/application/onboarding_store.dart';
+import '../../shop_accounts/domain/shop_image.dart';
+import '../../shop_accounts/presentation/shop_image_copy.dart';
 import '../domain/registration_country.dart';
 import '../domain/auth_gateway.dart';
 import 'auth_copy.dart';
@@ -29,6 +34,7 @@ class AuthScreen extends StatefulWidget {
     required this.onHold,
     required this.onSessionSettled,
     this.onboardingStore,
+    this.shopImageGateway,
     this.onForgotPassword,
     this.recoveryNotice,
     this.recoveryNoticeIsError = false,
@@ -39,6 +45,7 @@ class AuthScreen extends StatefulWidget {
   final ValueChanged<bool> onHold;
   final VoidCallback onSessionSettled;
   final OnboardingStore? onboardingStore;
+  final ShopImageGateway? shopImageGateway;
   final VoidCallback? onForgotPassword;
   final String? recoveryNotice;
   final bool recoveryNoticeIsError;
@@ -84,6 +91,8 @@ class _AuthScreenState extends State<AuthScreen> {
   int _governorateLoad = 0;
   final _confirmPassword = TextEditingController();
   final _confirmFocus = FocusNode();
+  Uint8List? _shopImageBytes;
+  String? _shopImageAlert;
 
   @override
   void initState() {
@@ -214,17 +223,6 @@ class _AuthScreenState extends State<AuthScreen> {
       return selected;
     }
     return _region.text.trim();
-  }
-
-  double _authLead(BuildContext context) {
-    if (_signingUp) return AppTokens.spaceMd;
-    final media = MediaQuery.of(context);
-    if (media.viewInsets.bottom > 80) return AppTokens.spaceSm;
-    if (media.textScaler.scale(1) >= 1.25 || media.size.height < 720) {
-      return AppTokens.spaceSm;
-    }
-    if (media.size.height < 900) return AppTokens.spaceMd;
-    return AppTokens.spaceLg;
   }
 
   void _refreshContacts() {
@@ -468,6 +466,34 @@ class _AuthScreenState extends State<AuthScreen> {
     return draft;
   }
 
+  Future<void> _pickShopImage() async {
+    if (_locked || widget.shopImageGateway == null) return;
+    final selected = await openFile(
+      acceptedTypeGroups: [
+        const XTypeGroup(
+          label: 'images',
+          extensions: ['png', 'jpg', 'jpeg'],
+          mimeTypes: ['image/png', 'image/jpeg'],
+        ),
+      ],
+    );
+    if (selected == null || !mounted) return;
+    try {
+      final prepared = await prepareLogo(await selected.readAsBytes());
+      if (!mounted) return;
+      setState(() {
+        _shopImageBytes = prepared.bytes;
+        _shopImageAlert = null;
+      });
+    } on LogoByteRejection {
+      if (!mounted) return;
+      setState(() => _shopImageAlert = ShopImageCopy.rejected);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _shopImageAlert = ShopImageCopy.rejected);
+    }
+  }
+
   Future<void> _sendRegistration(OwnerRegistration registration) async {
     setState(() {
       _busy = true;
@@ -478,6 +504,15 @@ class _AuthScreenState extends State<AuthScreen> {
     widget.onHold(true);
     try {
       await widget.gateway.registerOwner(registration);
+      final image = _shopImageBytes;
+      final imageGateway = widget.shopImageGateway;
+      if (image != null && imageGateway != null) {
+        try {
+          await imageGateway.setImage(image);
+        } on ShopImageException {
+          // Account exists; image can be added later from More.
+        }
+      }
       _unknown = false;
       TextInput.finishAutofillContext();
     } on RegistrationException catch (error) {
@@ -524,27 +559,21 @@ class _AuthScreenState extends State<AuthScreen> {
           key: const Key('auth-capture-boundary'),
           child: Scaffold(
             backgroundColor: scheme.surface,
-            body: Stack(
-              fit: StackFit.expand,
-              children: [
-                const _AuthAtmosphere(),
-                SafeArea(
-                  child: Form(
-                    key: _formKey,
-                    autovalidateMode: _validated
-                        ? AutovalidateMode.onUserInteraction
-                        : AutovalidateMode.disabled,
-                    child: AutofillGroup(
-                      child: FocusTraversalGroup(
-                        policy: OrderedTraversalPolicy(),
-                        child: _signingUp
-                            ? _signupShell(theme)
-                            : _loginShell(theme),
-                      ),
-                    ),
+            body: SafeArea(
+              child: Form(
+                key: _formKey,
+                autovalidateMode: _validated
+                    ? AutovalidateMode.onUserInteraction
+                    : AutovalidateMode.disabled,
+                child: AutofillGroup(
+                  child: FocusTraversalGroup(
+                    policy: OrderedTraversalPolicy(),
+                    child: _signingUp
+                        ? _signupShell(theme)
+                        : _loginShell(theme),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -661,6 +690,7 @@ class _AuthScreenState extends State<AuthScreen> {
         child: SingleChildScrollView(
           key: const Key('auth-scroll'),
           controller: _scroll,
+          clipBehavior: Clip.none,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(
             _compactLogin ? 16 : 20,
@@ -671,22 +701,29 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _header(theme),
-              SizedBox(height: _compactLogin ? 0 : AppTokens.spaceSm),
-              BrandHero(
-                markSize: _compactLogin ? AppTokens.minControlSize : 56,
+              _AuthPhotoBand(
                 compact: _compactLogin,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _header(theme),
+                    SizedBox(height: _compactLogin ? 0 : AppTokens.spaceSm),
+                    BrandHero(
+                      markSize: _compactLogin ? AppTokens.minControlSize : 56,
+                      compact: _compactLogin,
+                      onPhoto: !_compactLogin,
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: _authLead(context)),
               _panel(theme, [
                 _headline(theme),
-                SizedBox(height: _compactLogin ? 8 : 20),
+                SizedBox(height: _compactLogin ? 8 : 14),
                 if (widget.recoveryNotice != null) ...[
                   _recoveryNotice(theme),
                   const SizedBox(height: 12),
                 ],
                 ..._signInFields(theme),
-                if (widget.onForgotPassword != null) _forgotPassword(),
                 if (_fieldAlert != null)
                   Semantics(
                     key: const Key('auth-field-alert'),
@@ -697,7 +734,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 _status(theme.colorScheme),
                 const SizedBox(height: 8),
                 _submit(),
-                SizedBox(height: _compactLogin ? 8 : 16),
+                SizedBox(height: _compactLogin ? 6 : 10),
                 Row(
                   children: [
                     const Expanded(child: Divider()),
@@ -708,7 +745,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     const Expanded(child: Divider()),
                   ],
                 ),
-                SizedBox(height: _compactLogin ? 8 : 16),
+                SizedBox(height: _compactLogin ? 6 : 10),
                 OutlinedButton.icon(
                   key: const Key('show-signup'),
                   onPressed: _busy
@@ -726,14 +763,33 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _signupShell(ThemeData theme) {
+    final media = MediaQuery.of(context);
+    final roomForPhoto =
+        media.size.height - media.viewInsets.bottom >= 700 &&
+        media.textScaler.scale(1) < 1.25;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: _header(theme),
+        _AuthPhotoBand(
+          compact: true,
+          enabled: roomForPhoto,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _header(theme),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: BrandHero(
+                    markSize: AppTokens.minControlSize,
+                    compact: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        BrandHero(markSize: AppTokens.minControlSize, compact: true),
         Expanded(
           child: Align(
             alignment: Alignment.topCenter,
@@ -741,50 +797,41 @@ class _AuthScreenState extends State<AuthScreen> {
               key: const Key('auth-measure'),
               constraints: const BoxConstraints(maxWidth: _measure),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                padding: EdgeInsets.fromLTRB(16, roomForPhoto ? 0 : 8, 16, 12),
                 child: DecoratedBox(
                   key: const Key('auth-signup-panel'),
                   decoration: _panelDecoration(theme.colorScheme),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-                    child: LayoutBuilder(
-                      builder: (context, panel) {
-                        return SingleChildScrollView(
-                          key: const Key('auth-scroll'),
-                          controller: _scroll,
-                          keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: panel.maxHeight,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    child: SingleChildScrollView(
+                      key: const Key('auth-scroll'),
+                      controller: _scroll,
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _headline(theme),
+                          const SizedBox(height: 12),
+                          _signupProgress(theme),
+                          if (widget.recoveryNotice != null) ...[
+                            const SizedBox(height: 12),
+                            _recoveryNotice(theme),
+                          ],
+                          const SizedBox(height: 12),
+                          ..._signUpFields(theme),
+                          if (_fieldAlert != null)
+                            Semantics(
+                              key: const Key('auth-field-alert'),
+                              liveRegion: true,
+                              label: _fieldAlert,
+                              child: const SizedBox.shrink(),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _headline(theme),
-                                const SizedBox(height: 12),
-                                _signupProgress(theme),
-                                if (widget.recoveryNotice != null) ...[
-                                  const SizedBox(height: 12),
-                                  _recoveryNotice(theme),
-                                ],
-                                const SizedBox(height: 12),
-                                ..._signUpFields(theme),
-                                if (_fieldAlert != null)
-                                  Semantics(
-                                    key: const Key('auth-field-alert'),
-                                    liveRegion: true,
-                                    label: _fieldAlert,
-                                    child: const SizedBox.shrink(),
-                                  ),
-                                _status(theme.colorScheme),
-                                const SizedBox(height: 8),
-                                _submit(),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                          _status(theme.colorScheme),
+                          const SizedBox(height: 8),
+                          _submit(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -823,31 +870,31 @@ class _AuthScreenState extends State<AuthScreen> {
     ],
   );
 
-  BoxDecoration _panelDecoration(ColorScheme scheme) => BoxDecoration(
-    color: scheme.surfaceContainerLow.withValues(
-      alpha: scheme.brightness == Brightness.dark ? 0.84 : 0.9,
-    ),
-    borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: scheme.outlineVariant),
-    boxShadow: [
-      BoxShadow(
-        color: scheme.shadow.withValues(alpha: 0.18),
-        blurRadius: 28,
-        offset: const Offset(0, 12),
+  BoxDecoration _panelDecoration(ColorScheme scheme) {
+    final dark = scheme.brightness == Brightness.dark;
+    return BoxDecoration(
+      color: (dark ? scheme.surfaceContainerLow : scheme.surface).withValues(
+        alpha: dark ? 0.97 : 0.96,
       ),
-    ],
-  );
+      borderRadius: BorderRadius.circular(AppTokens.cardRadius),
+      border: Border.all(
+        color: scheme.outlineVariant.withValues(alpha: dark ? 1 : 0.8),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: scheme.shadow.withValues(alpha: dark ? 0.46 : 0.12),
+          blurRadius: 32,
+          offset: const Offset(0, 16),
+        ),
+      ],
+    );
+  }
 
   Widget _panel(ThemeData theme, List<Widget> children) {
     return DecoratedBox(
       decoration: _panelDecoration(theme.colorScheme),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          18,
-          _compactLogin ? 12 : 20,
-          18,
-          _compactLogin ? 12 : 18,
-        ),
+        padding: EdgeInsets.fromLTRB(16, _compactLogin ? 12 : 16, 16, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: children,
@@ -868,25 +915,20 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Text(
             title,
             textAlign: TextAlign.start,
-            style:
-                (_compactLogin
-                        ? theme.textTheme.titleLarge
-                        : theme.textTheme.headlineSmall)
-                    ?.copyWith(fontWeight: FontWeight.w700, height: 1.25),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
           ),
         ),
-        SizedBox(height: _compactLogin ? 2 : 6),
+        const SizedBox(height: 2),
         Text(
           body,
           textAlign: TextAlign.start,
-          style:
-              (_compactLogin
-                      ? theme.textTheme.bodyMedium
-                      : theme.textTheme.bodyLarge)
-                  ?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: _compactLogin ? 1.3 : 1.5,
-                  ),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -918,6 +960,7 @@ class _AuthScreenState extends State<AuthScreen> {
         key: const Key('sign-in-password'),
         autofillHints: const [AutofillHints.password],
         onDone: _submitSignIn,
+        trailing: widget.onForgotPassword == null ? null : _forgotPassword(),
       ),
     ];
   }
@@ -1031,6 +1074,7 @@ class _AuthScreenState extends State<AuthScreen> {
               validator: (_) => _locationError(),
             ),
           ),
+        if (widget.shopImageGateway != null) _signupShopImage(theme),
       ];
     }
     return [
@@ -1152,6 +1196,96 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       ),
     ];
+  }
+
+  Widget _signupShopImage(ThemeData theme) {
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(bottom: _compactLogin ? 8 : 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            ShopImageCopy.signupHint,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            ShopImageCopy.signupHelp,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                child: SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: _shopImageBytes == null
+                      ? Icon(
+                          Icons.storefront_outlined,
+                          color: scheme.onSurfaceVariant,
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.memory(
+                            _shopImageBytes!,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const Key('signup-shop-image'),
+                      onPressed: _locked ? null : _pickShopImage,
+                      icon: const Icon(Icons.image_outlined),
+                      label: Text(
+                        _shopImageBytes == null
+                            ? ShopImageCopy.pick
+                            : ShopImageCopy.change,
+                      ),
+                    ),
+                    if (_shopImageBytes != null)
+                      TextButton(
+                        key: const Key('signup-shop-image-clear'),
+                        onPressed: _locked
+                            ? null
+                            : () => setState(() {
+                                _shopImageBytes = null;
+                                _shopImageAlert = null;
+                              }),
+                        child: const Text(ShopImageCopy.clear),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (_shopImageAlert != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _shopImageAlert!,
+              style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _egyptGovernorateField(ThemeData theme) {
@@ -1357,20 +1491,14 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _forgotPassword() {
     return _order(
       7,
-      SizedBox(
-        width: double.infinity,
-        child: TextButton(
-          key: const Key('forgot-password'),
-          style: TextButton.styleFrom(
-            minimumSize: const Size(48, _control),
-            alignment: AlignmentDirectional.centerStart,
-          ),
-          onPressed: _busy ? null : widget.onForgotPassword,
-          child: const Text(
-            RecoveryCopy.forgotPassword,
-            textAlign: TextAlign.start,
-          ),
+      TextButton(
+        key: const Key('forgot-password'),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, _control),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
         ),
+        onPressed: _busy ? null : widget.onForgotPassword,
+        child: const Text(RecoveryCopy.forgotPassword),
       ),
     );
   }
@@ -1610,12 +1738,14 @@ class _AuthScreenState extends State<AuthScreen> {
     required Key key,
     required List<String> autofillHints,
     required VoidCallback onDone,
+    Widget? trailing,
   }) {
     final theme = _authTheme(Theme.of(context));
     return _labeled(
       order: order,
       label: AuthCopy.passwordLabel,
       theme: theme,
+      trailing: trailing,
       field: TextFormField(
         key: key,
         controller: _password,
@@ -1671,16 +1801,26 @@ class _AuthScreenState extends State<AuthScreen> {
     required String label,
     required ThemeData theme,
     required Widget field,
+    Widget? trailing,
   }) {
+    final caption = ExcludeSemantics(child: _label(_authTheme(theme), label));
     return _order(
       order,
       Padding(
-        padding: EdgeInsets.only(bottom: _compactLogin ? 8 : 16),
+        padding: EdgeInsets.only(bottom: _compactLogin ? 8 : 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ExcludeSemantics(child: _label(_authTheme(theme), label)),
-            const SizedBox(height: 8),
+            if (trailing == null) ...[
+              caption,
+              const SizedBox(height: 6),
+            ] else
+              Row(
+                children: [
+                  Expanded(child: caption),
+                  trailing,
+                ],
+              ),
             Semantics(label: label, child: field),
           ],
         ),
@@ -1700,48 +1840,141 @@ class _FieldCheck {
   final String? invalid;
 }
 
-/// Full-bleed jewelry/workshop photo visible around the readable form card.
-class _AuthAtmosphere extends StatelessWidget {
-  const _AuthAtmosphere();
+/// Brand header with the jewelry photo placed so the rings fill the space
+/// between the tagline and the card that follows this widget.
+///
+/// The photo is decorative and spills past the band on every side; masks fade
+/// each edge into [ColorScheme.surface] so no image border is visible.
+class _AuthPhotoBand extends StatelessWidget {
+  const _AuthPhotoBand({
+    required this.child,
+    this.compact = false,
+    this.enabled = true,
+  });
+
+  final Widget child;
+  final bool compact;
+  final bool enabled;
 
   static const _asset = 'assets/brand/auth-jewelry.png';
+  static const double _aspect = 1536 / 1024;
+
+  /// Vertical span of the rings within the source photo.
+  static const double _ringsTop = 0.49;
+  static const double _ringsBottom = 0.8;
+
+  /// How far the following card overlaps the bottom of the rings.
+  static const double _overlap = 18;
+  static const double _clearance = 6;
 
   @override
   Widget build(BuildContext context) {
+    if (!enabled) return child;
     final scheme = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return ExcludeSemantics(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              _asset,
-              fit: BoxFit.cover,
-              alignment: const Alignment(0, 0.2),
-              color: dark
-                  ? scheme.surface.withValues(alpha: 0.18)
-                  : scheme.surface.withValues(alpha: 0.04),
-              colorBlendMode: BlendMode.darken,
-            ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  scheme.surface.withValues(alpha: dark ? 0.70 : 0.12),
-                  scheme.surface.withValues(alpha: dark ? 0.62 : 0.04),
-                  scheme.surface.withValues(alpha: dark ? 0.38 : 0.22),
-                  scheme.surface.withValues(alpha: dark ? 0.62 : 0.48),
-                ],
-                stops: const [0, 0.22, 0.62, 1],
+    final dark = scheme.brightness == Brightness.dark;
+    final screen = MediaQuery.sizeOf(context).width;
+    final imageWidth = compact
+        ? min(screen * 1.1, 720.0)
+        : min(screen * 1.4, 1100.0);
+    final imageHeight = imageWidth / _aspect;
+    final gap =
+        (_ringsBottom - _ringsTop) * imageHeight - _overlap + _clearance;
+    final photoWidth = min(screen, imageWidth);
+    final fadeSides = screen > imageWidth;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: (constraints.maxWidth - photoWidth) / 2,
+              width: photoWidth,
+              height: imageHeight,
+              bottom: -(_overlap + (1 - _ringsBottom) * imageHeight),
+              child: IgnorePointer(
+                child: ExcludeSemantics(
+                  child: _fade(
+                    vertical: true,
+                    child: _fade(
+                      vertical: false,
+                      enabled: fadeSides,
+                      child: ClipRect(
+                        child: OverflowBox(
+                          maxWidth: imageWidth,
+                          maxHeight: imageHeight,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.asset(
+                                _asset,
+                                width: imageWidth,
+                                height: imageHeight,
+                                fit: BoxFit.cover,
+                                filterQuality: FilterQuality.medium,
+                              ),
+                              if (dark)
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        scheme.surface.withValues(alpha: 0.7),
+                                        scheme.surface.withValues(alpha: 0.5),
+                                        scheme.surface.withValues(alpha: 0.12),
+                                        scheme.surface.withValues(alpha: 0.4),
+                                      ],
+                                      stops: const [0, 0.42, 0.62, 1],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+            Padding(
+              padding: EdgeInsets.only(bottom: gap),
+              child: child,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _fade({
+    required bool vertical,
+    required Widget child,
+    bool enabled = true,
+  }) {
+    if (!enabled) return child;
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => LinearGradient(
+        begin: vertical ? Alignment.topCenter : Alignment.centerLeft,
+        end: vertical ? Alignment.bottomCenter : Alignment.centerRight,
+        // Alpha mask only: opaque keeps the photo, transparent shows the page.
+        colors: const [
+          Color(0x00FFFFFF),
+          Color(0x40FFFFFF),
+          Color(0xB3FFFFFF),
+          Color(0xFFFFFFFF),
+          Color(0xFFFFFFFF),
+          Color(0xB3FFFFFF),
+          Color(0x40FFFFFF),
+          Color(0x00FFFFFF),
         ],
-      ),
+        stops: vertical
+            ? const [0, 0.08, 0.16, 0.26, 0.68, 0.8, 0.9, 1]
+            : const [0, 0.1, 0.22, 0.34, 0.66, 0.78, 0.9, 1],
+      ).createShader(bounds),
+      child: child,
     );
   }
 }

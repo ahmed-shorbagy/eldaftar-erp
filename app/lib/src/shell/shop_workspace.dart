@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../features/daily_ledger/application/opening_gateway.dart';
@@ -29,6 +31,8 @@ class ShopWorkspace extends StatefulWidget {
     this.customerBuilder,
     this.appearanceBuilder,
     this.messageBuilder,
+    this.shopImageBuilder,
+    this.shopImageBytes,
     this.syncTicks,
   });
 
@@ -49,6 +53,8 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? customerBuilder;
   final WidgetBuilder? appearanceBuilder;
   final WidgetBuilder? messageBuilder;
+  final WidgetBuilder? shopImageBuilder;
+  final Uint8List? shopImageBytes;
   final Listenable? syncTicks;
 
   @override
@@ -61,6 +67,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   Route<void>? _debtRoute;
   Route<void>? _appearanceRoute;
   Route<void>? _messageRoute;
+  Route<void>? _shopImageRoute;
 
   @override
   void dispose() {
@@ -68,6 +75,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     _detach(_debtRoute);
     _detach(_appearanceRoute);
     _detach(_messageRoute);
+    _detach(_shopImageRoute);
     super.dispose();
   }
 
@@ -157,6 +165,12 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     (route) => _messageRoute = route,
   );
 
+  Future<void> _openShopImage() => _pushSingleton(
+    widget.shopImageBuilder,
+    () => _shopImageRoute,
+    (route) => _shopImageRoute = route,
+  );
+
   Future<void> _pushSingleton(
     WidgetBuilder? builder,
     Route<void>? Function() current,
@@ -180,6 +194,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       userId: widget.userId,
       refreshGeneration: widget.refreshGeneration,
       syncTicks: widget.syncTicks,
+      shopImageBytes: widget.shopImageBytes,
       onToggleTheme: widget.onToggleTheme,
       onChangeShop: widget.onChangeShop,
       onActivateSubscription: widget.onActivateSubscription,
@@ -268,6 +283,21 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           leading: ExcludeSemantics(
             child: Icon(Icons.account_balance_wallet_outlined),
           ),
+        ),
+      if (widget.shopImageBuilder != null)
+        _link(
+          'صورة المتجر',
+          Icons.storefront_outlined,
+          _openShopImage,
+          key: const Key('workspace-shop-image'),
+        )
+      else
+        const ListTile(
+          key: Key('workspace-shop-image-unavailable'),
+          enabled: false,
+          title: Text('صورة المتجر'),
+          subtitle: Text('صورة المتجر غير متاحة في هذا الاتصال.'),
+          leading: ExcludeSemantics(child: Icon(Icons.storefront_outlined)),
         ),
       if (widget.appearanceBuilder != null)
         _link(

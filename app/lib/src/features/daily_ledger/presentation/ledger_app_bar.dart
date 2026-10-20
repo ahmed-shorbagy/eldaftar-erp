@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../shell/shell_copy.dart';
@@ -12,6 +14,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onToggleTheme,
     required this.topInset,
     this.subtitle,
+    this.shopImageBytes,
     this.onChangeShop,
     this.compact = false,
     this.textScaler = TextScaler.noScaling,
@@ -19,6 +22,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final String shopName;
   final String? subtitle;
+  final Uint8List? shopImageBytes;
   final Future<void> Function(Brightness) onToggleTheme;
   final VoidCallback? onChangeShop;
   final double topInset;
@@ -87,26 +91,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: dark ? 0.4 : 0.75),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: scheme.primary.withValues(alpha: 0.35),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.12),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: BrandMark(size: 28),
-                ),
-              ),
+              _ShopMark(bytes: shopImageBytes, dark: dark, scheme: scheme),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -182,6 +167,57 @@ BoxDecoration _pillDecoration(ColorScheme scheme) => BoxDecoration(
   borderRadius: BorderRadius.circular(999),
   border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.65)),
 );
+
+class _ShopMark extends StatelessWidget {
+  const _ShopMark({
+    required this.bytes,
+    required this.dark,
+    required this.scheme,
+  });
+
+  final Uint8List? bytes;
+  final bool dark;
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'صورة المتجر',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surface.withValues(alpha: dark ? 0.4 : 0.75),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.primary.withValues(alpha: 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: bytes == null
+                ? const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: BrandMark(size: 28),
+                  )
+                : Image.memory(
+                    bytes!,
+                    key: const Key('ledger-shop-image'),
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _PillIconButton extends StatelessWidget {
   const _PillIconButton({

@@ -32,7 +32,7 @@ ThemeData authFormTheme(ThemeData theme) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: scheme.surface.withValues(alpha: 0.88),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       floatingLabelBehavior: FloatingLabelBehavior.never,
       errorMaxLines: 8,
       helperMaxLines: 4,
