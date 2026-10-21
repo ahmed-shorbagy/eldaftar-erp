@@ -1,10 +1,10 @@
 # ElDafttar UI theme contract
 
-## Current meeting corrections — 2026-10-20
+## Current meeting corrections — 2026-10-21
 
 [ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md) and the [37-item register](reviews/owner-meeting-2026-10-18/audit.md) supersede conflicting historical directions below. Preserve the existing app theme tokens; document colors do not change Flutter/React themes.
 
-The six home figures remain fixed in number. Scrap purchases include 14k; optional 14k/22k visibility applies to home choices and More. The main journal follows the server shop date while balances and explicit financial closing remain intact. Returns, expenses and notes are one compact title/count row each, including zero. Complete server counters are independent of pagination; place badges on the leading/right side away from the floating action. Collapse the scrolling header above 100 logical pixels, expand below 40, and keep theme controls reachable at enlarged text.
+The six home figures remain fixed in number. Scrap purchases include 14k; optional 14k/22k visibility applies to home choices and More. Under the October 21 owner override, the main journal and daily figures stay on the server's open financial day until explicit owner close, including across midnight. When none is open, the home journal uses the shop calendar date. Balances remain intact. Returns, expenses and notes are one compact title/count row each, including zero. Complete server counters are independent of pagination; place badges on the leading/right side away from the floating action. Collapse the scrolling header above 100 logical pixels, expand below 40, and keep theme controls reachable at enlarged text.
 
 New sale, purchase and scrap weight input allows two decimals; historical exact milligrams remain unchanged. Other is a text grid of active shop products with pagination. Add Another Item immediately opens categories. Coin suggestions are eighth 1g, quarter 2g, half 4g, pound 8g and five pounds 40g; bullion offers 0.25/0.5/1/2.5/5/10/20/25/31.1g. Shop overrides/additions remain authoritative nominal suggestions. The selection sheet uses multi-select pill chips for denominations; each selected chip shows a × quantity badge, with −/×N/+ steppers, a live suggested total and editable measured weight after apply. Purchase omits customer entry; scrap sale starts at weight/karat. Review/success name stock/scrap effects by karat.
 

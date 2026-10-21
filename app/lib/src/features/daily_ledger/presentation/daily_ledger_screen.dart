@@ -116,7 +116,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   Timer? _syncTimer;
   Timer? _midnightTimer;
   LedgerJournalContext? _scheduledJournal;
-  bool _calendarBoundaryPassed = false;
   final _formInvalidations = ValueNotifier<int>(0);
   bool _headerCollapsed = false;
   bool _syncing = false;
@@ -186,11 +185,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final journal = _controller?.ledger?.journalContext;
     if (journal == null || identical(journal, _scheduledJournal)) return;
     _scheduledJournal = journal;
-    _calendarBoundaryPassed = false;
     _midnightTimer?.cancel();
     _midnightTimer = Timer(journal.untilNextMidnight, () {
       if (!mounted) return;
-      setState(() => _calendarBoundaryPassed = true);
       _formInvalidations.value++;
       _sync();
     });
@@ -902,7 +899,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     if (identityChanged) {
       _midnightTimer?.cancel();
       _scheduledJournal = null;
-      _calendarBoundaryPassed = false;
       _formInvalidations.value++;
       _financialDay = null;
       _financialPending = null;

@@ -58,10 +58,18 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
         scrap = <Map<String, Object?>>[],
         names = <String>{};
     for (final row in _rows) {
-      final name = row.name.text.trim(),
-          count = PieceCount.parseWire(row.count.text.trim());
-      final weight = row.grams.text.trim(),
-          grams = weight.isEmpty ? null : Milligrams.parseGrams(weight);
+      final name = row.name.text.trim();
+      final countText = canonicalNumericEntry(row.count.text, decimalPlaces: 0);
+      final count = countText == null || countText.isEmpty
+          ? null
+          : PieceCount.parseWire(countText);
+      final weight = row.grams.text.trim();
+      final weightText = canonicalNumericEntry(weight, decimalPlaces: 3);
+      final grams = weight.isEmpty
+          ? null
+          : weightText == null || weightText.isEmpty
+          ? const Rejected<Milligrams>(OpeningIssueCode.invalidInput)
+          : Milligrams.parseGrams(weightText);
       final identity = '${row.bucket.category}:${row.bucket.karat}:$name';
       if (name.isEmpty ||
           name.runes.length > 120 ||
@@ -86,7 +94,13 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
       });
     }
     for (final entry in _scrap.entries) {
-      final grams = Milligrams.parseGrams(entry.value.text.trim());
+      final scrapText = canonicalNumericEntry(
+        entry.value.text,
+        decimalPlaces: 3,
+      );
+      final grams = scrapText == null || scrapText.isEmpty
+          ? const Rejected<Milligrams>(OpeningIssueCode.invalidInput)
+          : Milligrams.parseGrams(scrapText);
       if (grams is! Accepted<Milligrams>) {
         setState(() => _error = 'أدخل وزن الكسر لكل عيار؛ هذا الوزن مطلوب.');
         return;
@@ -138,6 +152,8 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
                     enabled: widget.enabled,
                     keyboardType: TextInputType.number,
                     textDirection: TextDirection.ltr,
+                    autocorrect: false,
+                    enableSuggestions: false,
                     inputFormatters: const [
                       GramInputFormatter(decimalPlaces: 0),
                     ],
@@ -151,6 +167,11 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
                       decimal: true,
                     ),
                     textDirection: TextDirection.ltr,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    inputFormatters: const [
+                      GramInputFormatter(decimalPlaces: 3),
+                    ],
                     decoration: ledgerFieldDecoration(
                       context,
                       label: 'الوزن (اختياري)',
@@ -191,16 +212,29 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
       for (final entry in _scrap.entries)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: TextField(
-            key: Key('staff-scrap-${entry.key}'),
-            controller: entry.value,
-            enabled: widget.enabled,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textDirection: TextDirection.ltr,
-            decoration: ledgerFieldDecoration(
-              context,
-              label: 'وزن كسر عيار ${entry.key} بالجرام (مطلوب)',
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('عيار ${entry.key}'),
+              const SizedBox(height: 4),
+              TextField(
+                key: Key('staff-scrap-${entry.key}'),
+                controller: entry.value,
+                enabled: widget.enabled,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textDirection: TextDirection.ltr,
+                autocorrect: false,
+                enableSuggestions: false,
+                inputFormatters: const [GramInputFormatter(decimalPlaces: 3)],
+                decoration: ledgerFieldDecoration(
+                  context,
+                  label: 'الوزن بالجرام',
+                  helper: 'مطلوب',
+                ),
+              ),
+            ],
           ),
         ),
       if (_error != null)

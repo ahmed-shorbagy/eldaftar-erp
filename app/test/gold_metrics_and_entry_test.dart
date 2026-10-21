@@ -128,6 +128,11 @@ void main() {
       expect(gramEntryValue('1e4', decimalPlaces: 2), isNull);
       expect(gramEntryValue('-1.20', decimalPlaces: 2), isNull);
       expect(gramEntryValue('1.831', decimalPlaces: 3), '1.831');
+      expect(canonicalNumericEntry('١٫٥٠٠', decimalPlaces: 3), '1.500');
+      expect(canonicalNumericEntry('٢', decimalPlaces: 0), '2');
+      expect(canonicalNumericEntry('2.', decimalPlaces: 0), '2');
+      expect(canonicalNumericEntry('  ', decimalPlaces: 3), '');
+      expect(canonicalNumericEntry('1.831', decimalPlaces: 2), isNull);
     },
   );
 

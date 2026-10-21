@@ -151,6 +151,11 @@ void main() {
         300,
         scrollable: find.byType(Scrollable).first,
       );
+      await Scrollable.ensureVisible(
+        t.element(find.byKey(const Key('ledger-date-older'))),
+        alignment: 0.5,
+      );
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('ledger-date-older')));
       await t.pumpAndSettle();
       expect(gateway.dates.last, '2026-10-18');

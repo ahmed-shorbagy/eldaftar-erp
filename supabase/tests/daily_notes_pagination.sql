@@ -4,7 +4,8 @@ begin;
 do $guard$
 begin
   if inet_server_addr() is distinct from '127.0.0.1'::inet
-    or current_database() not in ('eldafttar_notes_test', 'eldafttar_complete_test') then
+    or (current_database() not in ('eldafttar_notes_test', 'eldafttar_complete_test')
+      and current_database() !~ '^eldaftar_owner_meeting_[a-z0-9_]+$') then
     raise exception 'refusing notes test outside a named local disposable test database';
   end if;
 end;
@@ -100,6 +101,7 @@ declare
   v_financial_before jsonb;
   v_bad_path text;
   v_bad_limit integer;
+  v_affected_rows bigint;
   v_path text;
   v_client uuid := 'c4c4c4c4-c4c4-44c4-84c4-c4c4c4c4c4c4';
 begin
@@ -457,7 +459,10 @@ begin
   begin
     update storage.objects set metadata = '{"mimetype":"image/jpeg","size":"3"}'::jsonb
     where name = v_path;
-    raise exception 'storage_update_succeeded';
+    -- Hosted Storage may grant UPDATE while RLS filters every row. Both
+    -- permission denial and zero affected rows enforce the read-only fallback.
+    get diagnostics v_affected_rows = row_count;
+    if v_affected_rows <> 0 then raise exception 'storage_update_succeeded'; end if;
   exception when insufficient_privilege then null;
   end;
   if (public.get_daily_ledger_v2() - 'feed' - 'feed_page')
@@ -725,7 +730,8 @@ begin
   end;
   begin
     delete from storage.objects where bucket_id = 'eldafttar-private-notes';
-    raise exception 'storage_delete_succeeded';
+    get diagnostics v_affected_rows = row_count;
+    if v_affected_rows <> 0 then raise exception 'storage_delete_succeeded'; end if;
   exception
     when insufficient_privilege then null;
     when others then

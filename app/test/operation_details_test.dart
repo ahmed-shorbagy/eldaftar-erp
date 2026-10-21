@@ -1,6 +1,5 @@
 import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
-import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/financial_operation_screen.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';

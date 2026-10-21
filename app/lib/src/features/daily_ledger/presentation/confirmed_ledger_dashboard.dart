@@ -532,17 +532,21 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                 ),
                 Row(
                   children: [
-                    TextButton.icon(
-                      key: const Key('ledger-more-metrics'),
-                      onPressed: _showAllMetrics,
-                      icon: const Icon(Icons.grid_view_rounded, size: 18),
-                      label: const Text('عرض المزيد'),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          key: const Key('ledger-more-metrics'),
+                          onPressed: _showAllMetrics,
+                          icon: const Icon(Icons.grid_view_rounded, size: 18),
+                          label: const Text('عرض المزيد'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                        ),
                       ),
                     ),
-                    const Spacer(),
                     IconButton(
                       key: const Key('ledger-customize'),
                       tooltip: 'إعدادات الملخص',

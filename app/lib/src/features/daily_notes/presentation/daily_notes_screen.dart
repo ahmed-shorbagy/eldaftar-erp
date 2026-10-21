@@ -530,10 +530,17 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       }
       camera = source;
     }
-    await _runAction(() => _pickUnlocked(camera: camera));
+    await _runAction(
+      () => _pickUnlocked(camera: camera),
+      failureCopy: DailyNoteCopy.imageSourceFailed,
+    );
   }
 
-  Future<void> _runAction(Future<void> Function() action) async {
+  Future<void> _runAction(
+    Future<void> Function() action, {
+    bool freezeRecorded = false,
+    required String failureCopy,
+  }) async {
     final generation = _screenGeneration;
     final user = widget.userId;
     final shop = widget.shopId;
@@ -542,8 +549,8 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       await action();
     } catch (_) {
       if (!_sameScreen(generation, user, shop)) return;
-      if (_recorded != null) _freezeDraft(_recorded!, user);
-      setState(() => _error = DailyNoteCopy.frozen);
+      if (freezeRecorded && _recorded != null) _freezeDraft(_recorded!, user);
+      setState(() => _error = failureCopy);
     } finally {
       if (_sameScreen(generation, user, shop)) {
         setState(() => _busy = false);
@@ -662,7 +669,11 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
 
   Future<void> _save() async {
     if (_busy || _restoring || _restoreFailed || !_canWrite) return;
-    await _runAction(_saveUnlocked);
+    await _runAction(
+      _saveUnlocked,
+      freezeRecorded: true,
+      failureCopy: DailyNoteCopy.frozen,
+    );
   }
 
   Future<void> _saveUnlocked() async {

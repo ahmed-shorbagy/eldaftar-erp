@@ -1,4 +1,7 @@
 import 'package:eldafttar/src/features/daily_ledger/domain/nominal_weight_suggestions.dart';
+import 'package:eldafttar/src/features/daily_ledger/presentation/trade_nominal_picker.dart';
+import 'package:eldafttar/src/theme/app_theme.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -93,6 +96,49 @@ void main() {
         NominalSelection.tryCreate(coins.first, '9223372036854775807'),
         isNull,
       );
+    },
+  );
+
+  testWidgets(
+    'quantity steppers keep Arabic labels and localized digits as exact integers',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          theme: AppTheme.light(),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Scaffold(
+              body: SizedBox(
+                height: 720,
+                child: TradeNominalPicker(
+                  category: 'coin',
+                  suggestions: nominalSuggestionsFor(category: 'coin'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('nominal-select-3')));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('إنقاص العدد'), findsOneWidget);
+      expect(find.byTooltip('زيادة العدد'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('nominal-count-3')), '٢');
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('nominal-count-3')))
+            .controller!
+            .text,
+        '2',
+      );
+      expect(find.textContaining('16'), findsWidgets);
     },
   );
 }

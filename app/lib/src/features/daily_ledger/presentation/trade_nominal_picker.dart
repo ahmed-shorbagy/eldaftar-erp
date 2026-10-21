@@ -85,12 +85,11 @@ class _TradeNominalPickerState extends State<TradeNominalPicker> {
   }
 
   void _setCount(int index, String raw) {
-    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    final digits = canonicalNumericEntry(raw, decimalPlaces: 0);
+    if (digits == null) return;
     setState(() {
-      _counts[index].text = digits.isEmpty ? '' : digits;
-      _counts[index].selection = TextSelection.collapsed(
-        offset: _counts[index].text.length,
-      );
+      _counts[index].text = digits;
+      _counts[index].selection = TextSelection.collapsed(offset: digits.length);
       _error = null;
     });
   }
@@ -444,6 +443,7 @@ class _SelectedQuantityRow extends StatelessWidget {
                 _QtyButton(
                   key: Key('nominal-count-$index-minus'),
                   icon: Icons.remove_rounded,
+                  tooltip: 'إنقاص العدد',
                   onPressed: onMinus,
                 ),
                 const SizedBox(width: 8),
@@ -485,6 +485,7 @@ class _SelectedQuantityRow extends StatelessWidget {
                 _QtyButton(
                   key: Key('nominal-count-$index-plus'),
                   icon: Icons.add_rounded,
+                  tooltip: 'زيادة العدد',
                   onPressed: onPlus,
                 ),
                 const SizedBox(width: 12),
@@ -512,24 +513,30 @@ class _SelectedQuantityRow extends StatelessWidget {
 }
 
 class _QtyButton extends StatelessWidget {
-  const _QtyButton({super.key, required this.icon, required this.onPressed});
+  const _QtyButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    required this.tooltip,
+  });
 
   final IconData icon;
   final VoidCallback onPressed;
+  final String tooltip;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.primaryContainer,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onPressed,
-        child: SizedBox.square(
-          dimension: AppTokens.minControlSize,
-          child: Icon(icon, color: scheme.primary),
+    return SizedBox.square(
+      dimension: AppTokens.minControlSize,
+      child: IconButton.filledTonal(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: scheme.primaryContainer,
+          foregroundColor: scheme.primary,
         ),
+        icon: Icon(icon),
       ),
     );
   }

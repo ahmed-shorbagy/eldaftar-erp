@@ -304,6 +304,55 @@ void main() {
     },
   );
   testWidgets(
+    'staff count accepts Arabic-indic grams and keeps milligrams exact',
+    (t) async {
+      final g = DelegateFake();
+      await t.pumpWidget(
+        delegateHost(
+          StaffCountPortal(
+            gateway: g,
+            userId: 'staff-1',
+            onSignOut: () async {},
+            onToggleTheme: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.enterText(find.byKey(const Key('staff-item-name-0')), 'خاتم');
+      await t.enterText(find.byKey(const Key('staff-item-count-0')), '٥');
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('staff-item-count-0')))
+            .controller!
+            .text,
+        '5',
+      );
+      await t.enterText(find.byKey(const Key('staff-item-weight-0')), '١٫٥٠٠');
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('staff-item-weight-0')))
+            .controller!
+            .text,
+        '1.500',
+      );
+      await t.enterText(find.byKey(const Key('staff-scrap-21')), '٢');
+      final scrapField = t.widget<TextField>(
+        find.byKey(const Key('staff-scrap-21')),
+      );
+      expect(scrapField.decoration!.labelText, 'الوزن بالجرام');
+      expect(scrapField.decoration!.helperText, 'مطلوب');
+      await delegateTap(t, find.byKey(const Key('staff-count-review')));
+      expect(g.keys, isEmpty);
+      expect(find.textContaining('لم يُوزن'), findsNothing);
+      await delegateTap(t, find.byKey(const Key('staff-count-submit')));
+      expect(g.keys, hasLength(1));
+      expect((g.bodies.single['stock'] as List).single['count'], '5');
+      expect((g.bodies.single['stock'] as List).single['milligrams'], '1500');
+      expect((g.bodies.single['scrap'] as List).single['milligrams'], '2000');
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
     'server-derived expiry removes the count form before any submission',
     (t) async {
       final g = DelegateFake();

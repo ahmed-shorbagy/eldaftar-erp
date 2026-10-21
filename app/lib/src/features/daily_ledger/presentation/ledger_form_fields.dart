@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 
 /// Decimal money and weight keyboard (number pad with decimal separator).
 const TextInputType ledgerDecimalKeyboard = TextInputType.numberWithOptions(
@@ -101,7 +102,8 @@ TextField ledgerGramsField({
     textInputAction: textInputAction,
     autocorrect: false,
     enableSuggestions: false,
-    inputFormatters: inputFormatters,
+    inputFormatters:
+        inputFormatters ?? const [GramInputFormatter(decimalPlaces: 3)],
     decoration: ledgerFieldDecoration(context, label: label, helper: helper),
     onChanged: onChanged,
     onSubmitted: onSubmitted,
@@ -132,7 +134,8 @@ TextField ledgerCountField({
     textInputAction: textInputAction,
     autocorrect: false,
     enableSuggestions: false,
-    inputFormatters: inputFormatters,
+    inputFormatters:
+        inputFormatters ?? const [GramInputFormatter(decimalPlaces: 0)],
     decoration: ledgerFieldDecoration(context, label: label, helper: helper),
     onChanged: onChanged,
     onSubmitted: onSubmitted,

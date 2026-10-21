@@ -19,8 +19,16 @@ if (-not (Test-Path -LiteralPath (Join-Path $data 'PG_VERSION'))) {
   & (Join-Path $server 'initdb.exe') -D $data -U postgres -A trust -E UTF8 --locale=C --lc-messages=C
   if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
 }
-& $pgctl -D $data -l (Join-Path $task 'postgres.log') -o "-p $port -h 127.0.0.1" -w start
-if ($LASTEXITCODE -ne 0) { throw 'local cluster failed to start' }
+# Keep postgres from inheriting the caller's captured output pipe on Windows.
+# Otherwise a redirected/automated invocation can wait here until postgres exits.
+$startStdout = Join-Path $task 'pg-start.stdout'
+$startStderr = Join-Path $task 'pg-start.stderr'
+$startArguments = @('-D',"`"$data`"",'-l',"`"$(Join-Path $task 'postgres.log')`"",'-o',"`"-p $port -h 127.0.0.1`"",'-w','start')
+$startProcess = Start-Process -FilePath $pgctl -ArgumentList $startArguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $startStdout -RedirectStandardError $startStderr
+if (-not $startProcess.WaitForExit(30000)) { throw 'local cluster startup timed out' }
+if ($startProcess.ExitCode -ne 0) { throw "local cluster failed to start: $(Get-Content -LiteralPath $startStderr -Raw)" }
+Get-Content -LiteralPath $startStdout | Write-Host
+$startProcess.Dispose()
 try {
   function Scalar([string]$db, [string]$sql) {
     $value = & $psql -h 127.0.0.1 -p $port -U postgres -d $db -X -t -A -v ON_ERROR_STOP=1 -c $sql
@@ -79,6 +87,11 @@ try {
     FileSql $_.FullName
   }
   FileSql (Join-Path $PSScriptRoot 'ledger_calendar_home.sql')
+  FileSql (Join-Path $PSScriptRoot 'ledger_date_read.sql')
+  FileSql (Join-Path $PSScriptRoot 'daily_notes_pagination.sql')
+  FileSql (Join-Path $PSScriptRoot 'invoice_price_components.sql')
+  FileSql (Join-Path $PSScriptRoot 'daily_ledger_trades.sql')
+  FileSql (Join-Path $PSScriptRoot 'ledger_trade_change.sql')
   FileSql (Join-Path $PSScriptRoot 'staff_closing_delegation.sql')
   FileSql (Join-Path $PSScriptRoot 'invoice_appearance.sql')
   FileSql (Join-Path $PSScriptRoot 'closing_delegation_index_coverage.sql')

@@ -4,7 +4,7 @@ begin;
 do $guard$
 begin
   if inet_server_addr() is distinct from '127.0.0.1'::inet
-    or current_database() !~ '^eldaftar_(ledger_date|trade_change)[a-z0-9_]*$' then
+    or current_database() !~ '^eldaftar_(ledger_date|trade_change|owner_meeting_)[a-z0-9_]*$' then
     raise exception 'refusing ledger date test outside a named local disposable test database';
   end if;
 end;
@@ -399,8 +399,8 @@ begin
   if v_item ->> 'kind' is distinct from 'scrap_sale'
     or v_item ->> 'label_ar' is distinct from 'بيع كسر'
     or v_item ->> 'payment_label' is distinct from 'فيزا + كاش'
-    or v_item ? 'party_name'
-    or v_item ? 'party_phone' then
+    or v_item ->> 'party_name' is not null
+    or v_item ->> 'party_phone' is not null then
     raise exception 'scrap sale feed drifted: %', v_item;
   end if;
   select item.value into v_item

@@ -21,6 +21,17 @@ String? gramEntryValue(String input, {required int decimalPlaces}) {
   return text;
 }
 
+/// ASCII digits for parsing. Blank stays empty; a trailing decimal point is dropped.
+String? canonicalNumericEntry(String input, {required int decimalPlaces}) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) return '';
+  var text = gramEntryValue(trimmed, decimalPlaces: decimalPlaces);
+  if (text == null) return null;
+  if (text.isEmpty || text == '.') return '';
+  if (text.endsWith('.')) text = text.substring(0, text.length - 1);
+  return text;
+}
+
 /// Entry precision only. Persisted milligrams and historical invoices stay exact.
 class GramInputFormatter extends TextInputFormatter {
   const GramInputFormatter({this.decimalPlaces = 3});

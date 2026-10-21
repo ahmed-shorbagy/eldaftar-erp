@@ -319,10 +319,6 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                       label: const Text('تعديل التحويل'),
                     ),
                   ],
-                  if (_message != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_message!, style: theme.textTheme.bodyMedium),
-                  ],
                 ],
               ),
             ),
@@ -337,33 +333,46 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
               constraints: const BoxConstraints(maxWidth: 752),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: Key(
-                      _unknown
-                          ? 'transfer-check'
-                          : amount == null
-                          ? 'transfer-review'
-                          : 'transfer-confirm',
-                    ),
-                    onPressed: _busy
-                        ? null
-                        : _unknown
-                        ? _reconcile
-                        : amount == null
-                        ? _startReview
-                        : _submit,
-                    child: Text(
-                      _busy
-                          ? 'جارٍ المعالجة...'
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_message != null) ...[
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _message!,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    FilledButton(
+                      key: Key(
+                        _unknown
+                            ? 'transfer-check'
+                            : amount == null
+                            ? 'transfer-review'
+                            : 'transfer-confirm',
+                      ),
+                      onPressed: _busy
+                          ? null
                           : _unknown
-                          ? 'التحقق من الحالة'
+                          ? _reconcile
                           : amount == null
-                          ? 'مراجعة التأثير'
-                          : 'تأكيد التحويل',
+                          ? _startReview
+                          : _submit,
+                      child: Text(
+                        _busy
+                            ? 'جارٍ المعالجة...'
+                            : _unknown
+                            ? 'التحقق من الحالة'
+                            : amount == null
+                            ? 'مراجعة التأثير'
+                            : 'تأكيد التحويل',
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

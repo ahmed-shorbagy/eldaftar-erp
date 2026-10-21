@@ -227,7 +227,11 @@ void main() {
       textScale: 2,
     );
     expect(find.text('1,000,000.55'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('ledger-cash-methods')));
+    await Scrollable.ensureVisible(
+      tester.element(find.byKey(const Key('ledger-cash-methods'))),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('ledger-cash-methods')));
     await tester.pumpAndSettle();
     expect(

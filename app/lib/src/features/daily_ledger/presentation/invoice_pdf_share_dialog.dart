@@ -26,6 +26,10 @@ import '../data/pending_financial_command.dart';
 typedef InvoiceShare = Future<bool> Function(Uint8List bytes, String filename);
 typedef InvoiceRasterizer = Future<Uint8List> Function(Uint8List pdf);
 
+/// Native share is a handoff. Dismissed or unavailable never means sent.
+bool invoiceShareHandoffOpened(ShareResultStatus status) =>
+    status == ShareResultStatus.success;
+
 /// Explicit invoice handoff. Opening the native sheet never confirms delivery.
 Future<bool?> showInvoicePdfShareDialog({
   required BuildContext context,
@@ -381,13 +385,16 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
           : await Printing.sharePdf(bytes: bytes, filename: filename);
       if (!mounted || epoch != _accessEpoch || !widget.canRead()) return;
       setState(() {
-        _opened = opened || _opened;
-        _say(
-          opened
-              ? 'اختر العميل في واتساب وأرسل، ثم أكّد الإرسال هنا.'
-              : 'لم تُفتح المشاركة. لم يُرسل شيء.',
-          error: !opened,
-        );
+        if (opened) {
+          _opened = true;
+          _say('اختر العميل في واتساب وأرسل، ثم أكّد الإرسال هنا.');
+        } else if (_opened) {
+          _say(
+            'أُلغيت المشاركة الأخيرة. إذا أرسلت النسخة السابقة، أكّد الإرسال هنا.',
+          );
+        } else {
+          _say('لم يتأكد اكتمال المشاركة. لم يُسجّل إرسال.', error: true);
+        }
       });
     } catch (_) {
       if (mounted) {
@@ -422,9 +429,11 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
               : box.localToGlobal(Offset.zero) & box.size,
         ),
       );
-      return result.status != ShareResultStatus.dismissed;
+      return invoiceShareHandoffOpened(result.status);
     } on UnimplementedError {
-      return Printing.sharePdf(bytes: bytes, filename: filename);
+      // The printing adapter declares PDF content. Sending PNG bytes through
+      // it can give recipients the wrong media type; keep the PDF action separate.
+      return false;
     }
   }
 

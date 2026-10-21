@@ -12,6 +12,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class _NamedCloseGateway extends FakeFinancialGateway
+    implements ClosingObservationGateway {}
+
 class FakeFinancialGateway implements FinancialGateway, OpeningGateway {
   @override
   Future<FinancialCommandResult> retryPending({
@@ -216,6 +219,107 @@ void main() {
     expect(gateway.closeCounts, hasLength(1));
     expect((gateway.closeCounts.single['cash'] as Map)['cash'], '100');
   });
+
+  testWidgets(
+    'named close rejects duplicate types and preserves rows after removal',
+    (tester) async {
+      tester.view.physicalSize = const Size(700, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final gateway = _NamedCloseGateway();
+      const day = FinancialDayState(
+        state: 'open',
+        dayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        businessDate: '2026-09-28',
+        dayVersion: 2,
+        counts: {
+          'cash': {
+            'cash': '100',
+            'instant_transfer': '0',
+            'wallet': '0',
+            'card': '0',
+          },
+          'stock': [
+            {
+              'category': 'worked_jewelry',
+              'karat': 21,
+              'count': '2',
+              'milligrams': '2000',
+            },
+          ],
+          'scrap': [
+            {'karat': 21, 'milligrams': '0'},
+          ],
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          theme: AppTheme.light(),
+          home: Directionality(
+            textDirection: TextDirection.rtl,
+            child: DailyCloseScreen(
+              gateway: gateway,
+              statusGateway: gateway,
+              userId: 'owner-close',
+              shopId: 'shop-close',
+              day: day,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final method in ['cash', 'instant_transfer', 'wallet', 'card']) {
+        await tester.enterText(
+          find.byKey(Key('close-cash-$method')),
+          method == 'cash' ? '1.00' : '0',
+        );
+      }
+      await tester.enterText(find.byKey(const Key('close-scrap-21')), '٠');
+      await tester.tap(find.byKey(const Key('close-name-0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('خاتم').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('close-count-0')), '1');
+      await tester.tap(find.text('إضافة نوع من هذا العيار'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('close-name-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('خاتم').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('close-count-1')), '1');
+      await tester.tap(find.byKey(const Key('close-review')));
+      await tester.pump();
+      expect(find.textContaining('نوعاً مختلفاً'), findsOneWidget);
+      expect(find.textContaining('يوجد فرق'), findsNothing);
+      expect(find.byKey(const Key('close-confirm')), findsNothing);
+      expect(gateway.closeCounts, isEmpty);
+      await tester.tap(find.byKey(const Key('close-name-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('حلق').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('close-count-1')), '2');
+      await tester.tap(find.text('حذف الصف').first);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('close-name-0')), findsNothing);
+      expect(
+        tester
+            .widget<DropdownButtonFormField<String>>(
+              find.byKey(const Key('close-name-1')),
+            )
+            .initialValue,
+        'حلق',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('close-count-1')))
+            .controller!
+            .text,
+        '2',
+      );
+    },
+  );
   testWidgets('sale reviews exact cash and gold before one server post', (
     tester,
   ) async {

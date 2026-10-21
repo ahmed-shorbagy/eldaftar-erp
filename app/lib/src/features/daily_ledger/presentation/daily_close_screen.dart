@@ -17,10 +17,10 @@ import 'opening_copy.dart';
 import 'ledger_correction_screen.dart';
 
 class _StockObservationEntry {
-  _StockObservationEntry(this.category, this.karat);
+  _StockObservationEntry(this.category, this.karat, this.id);
   final String category;
   final int karat;
-  final Object id = Object();
+  final int id;
   String? name;
   final count = TextEditingController();
   final grams = TextEditingController();
@@ -55,6 +55,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
   final _stock = <String, List<TextEditingController>>{};
   final _scrap = <int, TextEditingController>{};
   final _observations = <_StockObservationEntry>[];
+  int _nextObservationId = 0;
   List<CatalogProduct> _products = const [];
   bool get _namedCounts => widget.gateway is ClosingObservationGateway;
   Map<String, Object?>? _review;
@@ -84,6 +85,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
           _StockObservationEntry(
             item['category'] as String,
             item['karat'] as int,
+            _nextObservationId++,
           ),
         );
       }
@@ -142,18 +144,36 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     }
     final stock = <Map<String, Object?>>[];
     if (_namedCounts) {
+      final names = <String>{};
       for (final row in _observations) {
-        final count = PieceCount.parseWire(row.count.text.trim());
+        final countText = canonicalNumericEntry(
+          row.count.text,
+          decimalPlaces: 0,
+        );
+        final count = countText == null || countText.isEmpty
+            ? null
+            : PieceCount.parseWire(countText);
         final weightText = row.grams.text.trim();
+        final normalizedWeight = canonicalNumericEntry(
+          weightText,
+          decimalPlaces: 3,
+        );
         final grams = weightText.isEmpty
             ? null
-            : Milligrams.parseGrams(weightText);
+            : normalizedWeight == null || normalizedWeight.isEmpty
+            ? const Rejected<Milligrams>(OpeningIssueCode.invalidInput)
+            : Milligrams.parseGrams(normalizedWeight);
+        final identity = '${row.category}:${row.karat}:${row.name}';
         if (row.name == null ||
             count is! Accepted<PieceCount> ||
-            (grams != null && grams is! Accepted<Milligrams>)) {
+            !names.add(identity) ||
+            (grams != null && grams is! Accepted<Milligrams>) ||
+            (grams is Accepted<Milligrams> &&
+                (count.value.value == BigInt.zero) !=
+                    (grams.value.value == BigInt.zero))) {
           setState(
             () => _error =
-                'اختر النوع وأدخل عدداً صحيحاً لكل صف. الوزن اختياري للمخزون فقط.',
+                'اختر نوعاً مختلفاً وعدداً صحيحاً لكل صف. الوزن اختياري للمخزون فقط.',
           );
           return;
         }
@@ -169,8 +189,20 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
       for (final row in expected['stock'] as List) {
         final item = row as Map;
         final fields = _stock['${item['category']}:${item['karat']}']!;
-        final grams = Milligrams.parseGrams(fields[0].text.trim());
-        final count = PieceCount.parseWire(fields[1].text.trim());
+        final gramsText = canonicalNumericEntry(
+          fields[0].text,
+          decimalPlaces: 3,
+        );
+        final countText = canonicalNumericEntry(
+          fields[1].text,
+          decimalPlaces: 0,
+        );
+        final grams = gramsText == null || gramsText.isEmpty
+            ? null
+            : Milligrams.parseGrams(gramsText);
+        final count = countText == null || countText.isEmpty
+            ? null
+            : PieceCount.parseWire(countText);
         if (grams is! Accepted<Milligrams> || count is! Accepted<PieceCount>) {
           setState(() => _error = 'أدخل الوزن والعدد الفعليين لكل صنف.');
           return;
@@ -186,7 +218,13 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     final scrap = <Map<String, Object?>>[];
     for (final row in expected['scrap'] as List) {
       final item = row as Map;
-      final grams = Milligrams.parseGrams(_scrap[item['karat']]!.text.trim());
+      final scrapText = canonicalNumericEntry(
+        _scrap[item['karat']]!.text,
+        decimalPlaces: 3,
+      );
+      final grams = scrapText == null || scrapText.isEmpty
+          ? null
+          : Milligrams.parseGrams(scrapText);
       if (grams is! Accepted<Milligrams>) {
         setState(() => _error = 'أدخل وزن الكسر الفعلي لكل عيار.');
         return;
@@ -235,13 +273,14 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
             row.category == bucket['category'] && row.karat == bucket['karat'],
       ))
         Padding(
+          key: ValueKey(row.id),
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               LedgerCountFields(
                 type: DropdownButtonFormField<String>(
-                  key: ObjectKey(row),
+                  key: Key('close-name-${row.id}'),
                   initialValue: row.name,
                   isExpanded: true,
                   decoration: ledgerFieldDecoration(context, label: 'النوع'),
@@ -289,20 +328,25 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                 ),
                 count: TextField(
                   controller: row.count,
-                  key: ValueKey('close-count-${row.id}'),
+                  key: Key('close-count-${row.id}'),
                   readOnly: _busy || _unknown || _review != null,
                   keyboardType: TextInputType.number,
+                  autocorrect: false,
+                  enableSuggestions: false,
                   inputFormatters: const [GramInputFormatter(decimalPlaces: 0)],
                   textDirection: TextDirection.ltr,
                   decoration: ledgerFieldDecoration(context, label: 'العدد'),
                 ),
                 weight: TextField(
                   controller: row.grams,
-                  key: ValueKey('close-weight-${row.id}'),
+                  key: Key('close-weight-${row.id}'),
                   readOnly: _busy || _unknown || _review != null,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  inputFormatters: const [GramInputFormatter(decimalPlaces: 3)],
                   textDirection: TextDirection.ltr,
                   decoration: ledgerFieldDecoration(
                     context,
@@ -342,6 +386,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   _StockObservationEntry(
                     bucket['category'] as String,
                     bucket['karat'] as int,
+                    _nextObservationId++,
                   ),
                 ),
               ),
@@ -521,6 +566,8 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       inputFormatters: const [CashInputFormatter()],
                       readOnly: _review != null,
                       textDirection: TextDirection.ltr,
+                      autocorrect: false,
+                      enableSuggestions: false,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -548,9 +595,14 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                                 _stock['${row['category']}:${row['karat']}']![0],
                             readOnly: _review != null,
                             textDirection: TextDirection.ltr,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
+                            inputFormatters: const [
+                              GramInputFormatter(decimalPlaces: 3),
+                            ],
                             decoration: ledgerFieldDecoration(
                               context,
                               label: 'الوزن بالجرام',
@@ -561,7 +613,12 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                                 _stock['${row['category']}:${row['karat']}']![1],
                             readOnly: _review != null,
                             textDirection: TextDirection.ltr,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             keyboardType: TextInputType.number,
+                            inputFormatters: const [
+                              GramInputFormatter(decimalPlaces: 0),
+                            ],
                             decoration: ledgerFieldDecoration(
                               context,
                               label: 'العدد',
@@ -578,12 +635,18 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       Text('عيار ${(row as Map)['karat']}'),
                       const SizedBox(height: 8),
                       TextField(
+                        key: Key('close-scrap-${row['karat']}'),
                         controller: _scrap[row['karat']],
                         readOnly: _review != null,
                         textDirection: TextDirection.ltr,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        inputFormatters: const [
+                          GramInputFormatter(decimalPlaces: 3),
+                        ],
                         decoration: ledgerFieldDecoration(
                           context,
                           label: 'الوزن بالجرام',

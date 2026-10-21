@@ -1,3 +1,4 @@
+import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/invoice_pdf_share_dialog.dart';
 import 'package:eldafttar/src/features/invoice_appearance/application/invoice_appearance_contract.dart';
 import 'package:eldafttar/src/features/invoice_appearance/application/invoice_appearance_gateway.dart';
@@ -9,12 +10,39 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'financial_trade_screen_test.dart' show FakeFinancialGateway;
 import 'invoice_appearance_test.dart' show meetingInvoiceSource;
 import 'meeting_ui_completion_test.dart' show completionUser, completionShop;
 
 const brandOperation = 'a1333333-3333-4333-8333-333333333333';
+
+class DispatchShareGateway extends BrandShareGateway
+    implements InvoiceDispatchGateway {
+  var confirms = 0;
+  @override
+  Future<PendingInvoicePage> pendingInvoiceSends({
+    required String callerUserId,
+    int? beforeSequence,
+  }) async => const PendingInvoicePage(<PendingInvoice>[], null);
+
+  @override
+  Future<InvoiceDispatchState> dispatchState({
+    required String callerUserId,
+    required String operationId,
+  }) async => const InvoiceDispatchState(ownerConfirmed: false);
+
+  @override
+  Future<FinancialCommandResult> confirmWhatsappSend({
+    required String callerUserId,
+    required String operationId,
+    required String idempotencyKey,
+  }) async {
+    confirms++;
+    return const FinancialCommitted('sent', replayed: false);
+  }
+}
 
 class BrandShareGateway extends FakeFinancialGateway
     implements InvoiceAppearanceGateway {
@@ -232,6 +260,54 @@ void main() {
       expect(find.byKey(const Key('invoice-pdf-share')), findsOneWidget);
       await t.pumpWidget(const SizedBox());
       tick.dispose();
+    },
+  );
+
+  test('native share unavailable or dismissed is not a handoff', () {
+    expect(invoiceShareHandoffOpened(ShareResultStatus.success), isTrue);
+    expect(invoiceShareHandoffOpened(ShareResultStatus.dismissed), isFalse);
+    expect(invoiceShareHandoffOpened(ShareResultStatus.unavailable), isFalse);
+  });
+
+  testWidgets(
+    'cancelled share is not an owner send; a later cancel keeps a prior handoff',
+    (t) async {
+      final gateway = DispatchShareGateway();
+      final opened = <bool>[false, true, false];
+      await t.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark(),
+          home: Scaffold(
+            body: InvoicePdfShareDialog(
+              gateway: gateway,
+              userId: completionUser,
+              shopId: completionShop,
+              operationId: brandOperation,
+              canRead: () => true,
+              canWrite: () => true,
+              rasterize: (pdf) async =>
+                  Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]),
+              share: (bytes, name) async => opened.removeAt(0),
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('invoice-pdf-confirm')), findsNothing);
+      expect(find.textContaining('لم يتأكد اكتمال المشاركة'), findsOneWidget);
+      expect(find.textContaining('أكد المالك إرسال'), findsNothing);
+      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('invoice-pdf-confirm')), findsOneWidget);
+      expect(find.textContaining('اختر العميل في واتساب'), findsOneWidget);
+      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('invoice-pdf-confirm')), findsOneWidget);
+      expect(find.textContaining('لم يتأكد اكتمال المشاركة'), findsNothing);
+      expect(find.textContaining('إذا أرسلت النسخة السابقة'), findsOneWidget);
+      expect(gateway.confirms, 0);
     },
   );
 

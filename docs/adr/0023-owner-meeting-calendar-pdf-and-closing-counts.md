@@ -1,5 +1,7 @@
 # ADR 0023: meeting corrections, calendar journal and temporary closing counts
 
+Current October 21 status: the open-financial-day override below supersedes the original automatic calendar-journal decision. Branded handoff now offers a tall PNG image and A4 PDF from the same edition, with cream/gold or dark/gold output and explicit verified shop-image logo opt-in. [Current validation](../reviews/stabilization-2026-10-21/validation.md), [development reconciliation](../reviews/stabilization-2026-10-21/development-reconciliation.md), [device/owner acceptance](../reviews/stabilization-2026-10-21/acceptance.md). The original dated rationale and deployment checkpoints remain historical.
+
 Subsequent status: the user authorized applying the reviewed Supabase changes and established routine deployment/verification for completed Supabase work on the existing development project. [Deployment and hosted verification](../reviews/owner-meeting-2026-10-18/deployment-2026-10-20.md) are complete. Earlier local-only delivery statements below describe the prior checkpoint.
 
 Status: directly authorized in the 2026-10-20 chat, implemented locally. Deployment and native owner acceptance are separate. [Timestamped request register](../reviews/owner-meeting-2026-10-18/audit.md), [validation](../reviews/owner-meeting-2026-10-18/validation.md).

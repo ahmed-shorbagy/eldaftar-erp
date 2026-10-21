@@ -9,7 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
 const _operation = 'a1333333-3333-4333-8333-333333333333';
-const _out = '../docs/reviews/invoice-branding-2026-10-21/pdf';
+const _out = String.fromEnvironment(
+  'INVOICE_PDF_CAPTURE_DIR',
+  defaultValue: '../docs/reviews/invoice-branding-2026-10-21/pdf',
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -21,7 +21,9 @@ import 'meeting_pdf_handoff_test.dart' show PdfGateway;
 import 'closing_delegation_test.dart'
     show DelegateFake, assignmentJson, delegateShop, delegateTask;
 import 'invoice_appearance_screen_test.dart'
-    show AppearanceTestGateway, AppearanceTestLocker;
+    show AppearanceTestGateway, AppearanceTestLocker, FakeShopImageGateway;
+import 'package:eldafttar/src/features/shop_accounts/domain/shop_image.dart';
+import 'package:eldafttar/src/features/daily_notes/application/notes_gateway.dart';
 import 'meeting_ui_completion_test.dart'
     show completionLots, completionShop, completionUser;
 import 'package:eldafttar/src/features/inventory/presentation/inventory_lots_table.dart';
@@ -180,7 +182,7 @@ void main() {
             await expectLater(
               find.byKey(key),
               matchesGoldenFile(
-                '../../docs/reviews/owner-meeting-2026-10-18/captures/$state-$suffix.png',
+                '${const String.fromEnvironment('OWNER_MEETING_CAPTURE_DIR', defaultValue: '../../docs/reviews/owner-meeting-2026-10-18/captures')}/$state-$suffix.png',
               ),
             );
           }
@@ -338,6 +340,38 @@ void main() {
           await shot('invoice-appearance');
           await tap(find.byKey(const Key('appearance-template-dark')));
           await shot('invoice-dark-option');
+          await t.pumpWidget(
+            host(
+              InvoiceAppearanceScreen(
+                key: UniqueKey(),
+                gateway: AppearanceTestGateway()..acceptLogoUploads = true,
+                store: AppearanceTestLocker(),
+                logoStore: MemoryLogoUploadStore(),
+                shopImageGateway: FakeShopImageGateway(
+                  ShopImage(
+                    shopId: completionShop,
+                    sha256: 'cd' * 32,
+                    mime: 'image/png',
+                    width: 2,
+                    height: 2,
+                    bytes: registrationLogoBytes(),
+                  ),
+                ),
+                userId: completionUser,
+                shopId: completionShop,
+                canRead: () => true,
+                canWrite: () => true,
+              ),
+            ),
+          );
+          await t.pumpAndSettle();
+          await Scrollable.ensureVisible(
+            t.element(find.byKey(const Key('appearance-shop-image-toggle'))),
+            alignment: 0.5,
+          );
+          await shot('invoice-shop-image-off');
+          await tap(find.byKey(const Key('appearance-shop-image-toggle')));
+          await shot('invoice-shop-image-on');
           final staff = StaffCaptureGateway();
           await t.pumpWidget(
             host(
@@ -409,7 +443,13 @@ void main() {
                 businessDayId: notes.dayId,
                 drafts: notes.MemoryDrafts(),
                 files: notes.MemoryFiles(),
-                images: MeetingCamera(),
+                images: MeetingCamera()
+                  ..queue.add(
+                    SelectedNoteImage(
+                      name: 'preview.png',
+                      bytes: registrationLogoBytes(),
+                    ),
+                  ),
               ),
             ),
           );
@@ -417,6 +457,14 @@ void main() {
           await tap(find.byKey(const Key('daily-note-attach')));
           await shot('notes-camera');
           await tap(find.byKey(const Key('daily-note-gallery')));
+          final preview = find.byKey(const Key('daily-note-compose-preview'));
+          await t.runAsync(
+            () => precacheImage(
+              t.widget<Image>(preview).image,
+              t.element(preview),
+            ),
+          );
+          await shot('notes-preview');
           await t.pumpWidget(
             host(
               TraderScreen(

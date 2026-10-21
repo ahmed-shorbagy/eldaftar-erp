@@ -1,4 +1,5 @@
 import 'package:eldafttar/src/features/daily_notes/application/notes_gateway.dart';
+import 'package:eldafttar/src/features/daily_notes/presentation/daily_note_copy.dart';
 import 'package:eldafttar/src/features/daily_notes/presentation/daily_notes_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,15 @@ class MeetingCamera extends ScriptImages implements CameraNoteImageSource {
   Future<SelectedNoteImage?> captureImage() async {
     captures++;
     return const SelectedNoteImage(name: 'camera.jpg', bytes: [1, 2, 3, 4]);
+  }
+}
+
+class FailingCamera extends ScriptImages implements CameraNoteImageSource {
+  @override
+  bool get canCapture => true;
+  @override
+  Future<SelectedNoteImage?> captureImage() async {
+    throw StateError('permission');
   }
 }
 
@@ -122,4 +132,57 @@ void main() {
     expect(find.byType(InteractiveViewer), findsNothing);
     expect(gateway.posts, 0);
   });
+
+  testWidgets(
+    'a camera failure keeps the local draft editable and does not freeze it',
+    (t) async {
+      final drafts = MemoryDrafts();
+      final camera = FailingCamera()
+        ..queue.add(
+          const SelectedNoteImage(name: 'gallery.jpg', bytes: [1, 2, 3, 4]),
+        );
+      await pumpApp(
+        t,
+        DailyNotesScreen(
+          gateway: NoteScript(),
+          userId: userId,
+          shopId: shopId,
+          businessDayId: dayId,
+          drafts: drafts,
+          files: MemoryFiles(),
+          images: camera,
+          newKey: () => pendingKey,
+        ),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('daily-note-attach')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('daily-note-gallery')));
+      await t.pumpAndSettle();
+      expect(
+        find.byKey(const Key('daily-note-compose-preview')),
+        findsOneWidget,
+      );
+      expect(
+        t.widget<TextField>(find.byKey(const Key('daily-note-text'))).enabled,
+        isTrue,
+      );
+      await t.tap(find.byKey(const Key('daily-note-attach')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('daily-note-camera')));
+      await t.pumpAndSettle();
+      expect(find.text(DailyNoteCopy.imageSourceFailed), findsOneWidget);
+      expect(find.text(DailyNoteCopy.frozen), findsNothing);
+      expect(
+        t.widget<TextField>(find.byKey(const Key('daily-note-text'))).enabled,
+        isTrue,
+      );
+      expect(
+        find.byKey(const Key('daily-note-compose-preview')),
+        findsOneWidget,
+      );
+      expect(find.text(DailyNoteCopy.retrySameRequest), findsNothing);
+      expect(drafts.saved?.attachment, isNotNull);
+    },
+  );
 }

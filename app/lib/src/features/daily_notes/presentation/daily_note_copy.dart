@@ -16,6 +16,8 @@ abstract final class DailyNoteCopy {
   static const retrySameRequest = 'إعادة المحاولة بنفس الطلب';
   static const frozen =
       'لم تتأكد حالة الطلب. النص والصورة محفوظان دون تغيير حتى يؤكد الخادم حالته.';
+  static const imageSourceFailed =
+      'تعذر اختيار الصورة أو التقاطها. الملاحظة لم تُحفظ بعد.';
   static const searchLabel = 'بحث في النص';
   static const textLabel = 'نص الملاحظة';
   static const save = 'حفظ الملاحظة';
