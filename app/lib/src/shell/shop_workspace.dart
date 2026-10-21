@@ -30,6 +30,7 @@ class ShopWorkspace extends StatefulWidget {
     this.repairBuilder,
     this.debtBuilder,
     this.customerBuilder,
+    this.reportsBuilder,
     this.appearanceBuilder,
     this.messageBuilder,
     this.shopImageBuilder,
@@ -53,6 +54,7 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? repairBuilder;
   final WidgetBuilder? debtBuilder;
   final WidgetBuilder? customerBuilder;
+  final WidgetBuilder? reportsBuilder;
   final WidgetBuilder? appearanceBuilder;
   final WidgetBuilder? messageBuilder;
   final WidgetBuilder? shopImageBuilder;
@@ -262,12 +264,18 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
               () => _select(0),
             ),
           ]),
-    3 => _page('التقارير', [
-      const Text(
-        'التقارير الدورية ضمن المرحلة الخامسة. يمكنك الآن قراءة الدفتر وتصدير نسخة عربية من العملية المؤكدة.',
-      ),
-      _link('فتح الدفتر اليومي', Icons.menu_book_outlined, () => _select(0)),
-    ]),
+    3 =>
+      widget.reportsBuilder?.call(context) ??
+          _page('التقارير', [
+            const Text(
+              'التقارير غير متاحة في هذا الاتصال. أعد الاتصال وحاول مجددًا.',
+            ),
+            _link(
+              'فتح الدفتر اليومي',
+              Icons.menu_book_outlined,
+              () => _select(0),
+            ),
+          ]),
     _ => _page('المزيد', [
       LedgerMoreBalances(
         key: ValueKey(

@@ -1,5 +1,11 @@
 # ElDafttar UI theme contract
 
+## Selected financial-day Reports — 2026-10-21
+
+Reports opens directly from the existing desktop destination or phone More entry. Within the shared 720-pixel measure, use a labelled financial-day selector, separate open/closed and shop-local opening/snapshot lines, the shop name, a primary Arabic PDF export control, exact money/count sections, five independent net bought/sold karat sections and expandable full transaction details. The selector's selected date has its own LTR run; opening time and state remain separate so enlarged phone text cannot clip them. Arabic RTL, Cairo, semantic theme colors, 16-pixel gutters, 48-pixel actions and persisted themes remain unchanged. No chart, guide or weekly/admin placeholder action is added.
+
+Reports deliberately show money with two decimals and gold with three, including historical milligrams. Totals come from the complete server snapshot. Detail rows reveal original/reversal status, original references, net metric contributions, payment postings and stock effects. Explain net cash's accounting meaning beside the export control; never label it profit. Loading clears stale totals; failure offers retry; no-day and no-transaction states are distinct. Export status stays beside its disabled-in-flight button. [ADR 0025](adr/0025-selected-financial-day-reports.md) defines the accounting/output rules; [report evidence](reviews/reports-2026-10-21/validation.md) distinguishes render checks from native acceptance.
+
 ## Current meeting corrections — 2026-10-21
 
 [ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md) and the [37-item register](reviews/owner-meeting-2026-10-18/audit.md) supersede conflicting historical directions below. Preserve the existing app theme tokens; document colors do not change Flutter/React themes.

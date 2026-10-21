@@ -2,6 +2,8 @@
 
 ## Current decision pointers — 2026-10-21
 
+The owner's later October 21 Reports request resolves the bounded daily part of D18 through [ADR 0025](adr/0025-selected-financial-day-reports.md): select one actual financial day, use complete confirmed server data, separate gross/returns/net consideration from signed cash movement, retain correction evidence and export Arabic A4 through verified R2. Weekly grouping, wider periods and admin dashboards remain open. [Report validation](reviews/reports-2026-10-21/validation.md) and [development deployment](reviews/reports-2026-10-21/deployment.md) distinguish implementation from device/owner acceptance.
+
 The [stabilization evidence](reviews/stabilization-2026-10-21/validation.md), [development reconciliation](reviews/stabilization-2026-10-21/development-reconciliation.md), and [remaining acceptance](reviews/stabilization-2026-10-21/acceptance.md) are the current status pointers. [ADR 0023](adr/0023-owner-meeting-calendar-pdf-and-closing-counts.md) includes the October 21 override: the home ledger stays on the explicitly open financial day across calendar midnight. D28 allows temporary physical-count staff only; the owner alone commits financial closing. D35's text-only invoice handoff/settings are superseded by confirmed PDF/image handoff with separate owner attestation. D12/D34 now include renderer-v2 cream/gold or dark/gold and explicit shop-image logo opt-in; immutable older editions remain unchanged. D36/ADR 0024 governs every new media write through verified R2 metadata. Native/device/owner acceptance and D23 legal/tax fields remain open.
 
 The dated October 20 and earlier entries below are historical context where they conflict with these pointers.

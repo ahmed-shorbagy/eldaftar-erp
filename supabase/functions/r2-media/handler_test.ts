@@ -28,6 +28,110 @@ const png = new Uint8Array([
 ]);
 const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 
+Deno.test("PDF export verifies content-addressed bytes without passing bytes to Postgres", async () => {
+  const bytes = new TextEncoder().encode("%PDF-1.7\nsynthetic\n%%EOF\n");
+  const hash = await sha256Hex(bytes);
+  let recorded: RecordInput | undefined;
+  const response = await handleR2Media(
+    post({
+      kind: "report_pdf",
+      op: "confirm",
+      object_key: `report-pdf/${shop}/${hash}.pdf`,
+    }),
+    ports({
+      ...serving(bytes),
+      recordObject: (input) => {
+        recorded = input;
+        return Promise.resolve({
+          ok: true,
+          facts: {
+            object_key: input.objectKey,
+            sha256: input.sha256,
+            byte_size: input.byteSize,
+            replayed: false,
+          },
+        });
+      },
+    }),
+  );
+  assertEquals(response.status, 200);
+  assertEquals(recorded?.imageBase64, null);
+  assertEquals(recorded?.kind, "report_pdf");
+  assertEquals(recorded?.sha256, hash);
+  const bad = await handleR2Media(
+    post({
+      kind: "report_pdf",
+      op: "confirm",
+      object_key: `report-pdf/${shop}/${sha}.pdf`,
+    }),
+    ports(serving(bytes)),
+  );
+  assertEquals(bad.status, 400);
+});
+
+Deno.test("PDF keys, MIME, boundaries and size are enforced", async () => {
+  const upload = await handleR2Media(
+    post({
+      kind: "report_pdf",
+      op: "upload",
+      sha256: sha,
+      mime: "application/pdf",
+    }),
+    ports(),
+  );
+  assertEquals(
+    (await upload.json()).object_key,
+    `report-pdf/${shop}/${sha}.pdf`,
+  );
+  assertEquals(
+    (await handleR2Media(
+      post({
+        kind: "report_pdf",
+        op: "upload",
+        sha256: sha,
+        mime: "image/png",
+      }),
+      ports(),
+    )).status,
+    400,
+  );
+  assertEquals(
+    (await handleR2Media(
+      post({
+        kind: "report_pdf",
+        op: "confirm",
+        object_key: `report-pdf/${user}/${sha}.pdf`,
+      }),
+      ports(),
+    )).status,
+    403,
+  );
+  assertEquals(
+    mimeMatches(
+      new TextEncoder().encode("%PDF-1.7 missing EOF"),
+      "application/pdf",
+    ),
+    false,
+  );
+  assertEquals(mimeMatches(png, "application/pdf"), false);
+  let limit = 0;
+  const large = await handleR2Media(
+    post({
+      kind: "report_pdf",
+      op: "confirm",
+      object_key: `report-pdf/${shop}/${sha}.pdf`,
+    }),
+    ports({
+      fetchObject: (_k, max) => {
+        limit = max;
+        return Promise.resolve({ status: "too_large" });
+      },
+    }),
+  );
+  assertEquals(limit, 20971520);
+  assertEquals(large.status, 400);
+});
+
 function ports(overrides: Partial<R2MediaPorts> = {}): R2MediaPorts {
   return {
     owner: () => Promise.resolve({ shopId: shop, userId: user }),

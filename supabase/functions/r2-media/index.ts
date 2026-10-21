@@ -163,6 +163,19 @@ Deno.serve((request) => {
       return await readBounded(response, maxBytes);
     },
     async recordObject(input) {
+      if (input.kind === "report_pdf") {
+        const { data, error } = await admin.rpc("record_report_pdf_object_v1", {
+          p_actor: input.actor,
+          p_shop: input.shopId,
+          p_object_key: input.objectKey,
+          p_byte_size: input.byteSize,
+          p_sha256: input.sha256,
+        });
+        if (error) return { ok: false, code: error.message };
+        return data && typeof data === "object"
+          ? { ok: true, facts: data as Record<string, unknown> }
+          : { ok: false, code: "unavailable" };
+      }
       const { data, error } = await admin.rpc("record_r2_media_object_v1", {
         p_actor: input.actor,
         p_shop: input.shopId,

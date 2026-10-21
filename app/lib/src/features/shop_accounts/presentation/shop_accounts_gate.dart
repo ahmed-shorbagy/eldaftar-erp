@@ -5,6 +5,8 @@ import '../../debts/application/debt_reminder_device.dart';
 import '../../debts/application/debt_native_gateway.dart';
 import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
+import '../../reports/application/report_gateway.dart';
+import '../../reports/presentation/reports_screen.dart';
 import '../../closing_delegation/application/closing_delegation_gateway.dart';
 import '../../closing_delegation/presentation/closing_staff_screen.dart';
 import '../../closing_delegation/presentation/staff_count_portal.dart';
@@ -614,6 +616,19 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         shopImageBytes: _shopImageShopId == selected.id
             ? _shopImageBytes
             : null,
+        reportsBuilder: opening is! ReportGateway || userId == null
+            ? null
+            : (context) => ReportsScreen(
+                gateway: opening as ReportGateway,
+                userId: userId,
+                shopId: selected.id,
+                canRead: () =>
+                    mounted &&
+                    !_accessLost &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
+                syncTicks: _ticks,
+              ),
         closingStaffBuilder:
             opening is ClosingDelegationGateway &&
                 opening is FinancialGateway &&

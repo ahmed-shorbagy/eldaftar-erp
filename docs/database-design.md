@@ -1,5 +1,11 @@
 # Database design and transaction model
 
+## Selected financial-day report contract — 2026-10-21
+
+[ADR 0025](adr/0025-selected-financial-day-reports.md) defines `list_financial_report_days_v1()` and `get_financial_day_report_v1(uuid)`. Each derives the shop through the existing authenticated owner-reader boundary. The stable report RPC returns one MVCC snapshot with full ordered operation rows, effective gross/returned/net commerce totals, signed cash-method postings excluding opening initialization, separate counts, five exact karat buckets and a content fingerprint. It creates no financial or projection rows and has no feed pagination limit. The fingerprint excludes generation time and includes financial-day state and printed content.
+
+The existing append-only R2 registry adds `report_pdf`, a 20 MiB maximum and the exact key `report-pdf/<shop>/<sha256>.pdf`. All earlier kind/MIME/key/size rules are retained. `record_report_pdf_object_v1` is service-role-only and accepts verified facts without bytes; replay uses the same content key and checks metadata. Owner-only `confirm_financial_day_pdf_v1` requires the same shop/uploader/kind registry row and a current report fingerprint. No new table, media column, Storage bucket or client registry grant is introduced. [Validation and deployment evidence](reviews/reports-2026-10-21/validation.md).
+
 ## Current financial implementation — 2026-10-04
 
 Opening balances, daily sale/purchase/expense/day commands, cash settlement/transfer, scrap sale/conversion, full linked returns, explicit pricing and the inventory/custody/one-unit obligation contract are applied to the development project. Current names are `business_days`, `financial_operations`, `financial_operation_details`, `financial_command_requests`, `ledger_accounts`, `journals`, `journal_postings`, `financial_audit_events` and `financial_outbox`. Rich inventory uses `inventory_products`, immutable `inventory_lots`/`inventory_lot_movements`, `inventory_receipts`, `receipt_quantity_allocations`, denomination/type catalogs, `traders` and `gold_obligations`. EGP obligations reuse `purchase_cash_payables` with an optional immutable trader link.

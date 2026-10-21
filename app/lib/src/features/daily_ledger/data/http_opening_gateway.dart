@@ -2,6 +2,10 @@ import '../../debts/application/debt_native_gateway.dart';
 import '../../debts/application/debt_native_contract.dart';
 import '../../debts/data/debt_native_codec.dart';
 import 'dart:convert';
+import 'dart:typed_data';
+import '../../reports/application/report_gateway.dart';
+import '../../reports/data/report_codec.dart';
+import '../../reports/domain/financial_day_report.dart';
 import '../../closing_delegation/application/closing_delegation_gateway.dart';
 import '../../closing_delegation/data/closing_delegation_codec.dart';
 import '../../customers/application/customer_contract.dart';
@@ -50,6 +54,7 @@ import 'ledger_date_codec.dart';
 import 'ledger_trade_change_codec.dart';
 
 const _errorCodes = <String>{
+  'stale_report',
   'stale_native',
   'trade_not_editable',
   'trade_has_followups',
@@ -148,6 +153,7 @@ const _errorCodes = <String>{
 class HttpOpeningGateway
     implements
         OpeningGateway,
+        ReportGateway,
         LedgerDateGateway,
         LedgerTradeChangeGateway,
         FinancialGateway,
@@ -1446,6 +1452,92 @@ class HttpOpeningGateway
       return FinancialRejected(error.code);
     } catch (_) {
       return const FinancialUnknown();
+    }
+  }
+
+  @override
+  Object? reportSession(String userId) => contactSession(userId);
+
+  @override
+  Future<List<ReportDay>> reportDays(String userId, String shopId) async {
+    final response = await _rpc(userId, 'list_financial_report_days_v1', {});
+    return parseReportDays(jsonDecode(response.body), shopId);
+  }
+
+  @override
+  Future<FinancialDayReport> financialDayReport(
+    String userId,
+    String shopId,
+    String dayId,
+  ) async {
+    final response = await _rpc(userId, 'get_financial_day_report_v1', {
+      'p_day_id': dayId,
+    });
+    final report = parseFinancialDayReport(jsonDecode(response.body));
+    if (report.shopId != shopId || report.day.id != dayId) {
+      throw const FormatException('report_scope');
+    }
+    return report;
+  }
+
+  @override
+  Future<Uint8List> storeReportPdf(
+    String userId,
+    FinancialDayReport report,
+    Uint8List bytes,
+  ) async {
+    final token = _callerToken(userId);
+    final sha = await R2MediaClient.sha256Hex(bytes);
+    if (bytes.isEmpty || bytes.length > 20971520) {
+      throw const FormatException('report_size');
+    }
+    _sameOwner(userId, token);
+    final upload = await _media.presignUpload(
+      kind: R2MediaKind.reportPdf,
+      mime: 'application/pdf',
+      sha256: sha,
+    );
+    if (upload.objectKey != 'report-pdf/${report.shopId}/$sha.pdf') {
+      throw const FormatException('report_key');
+    }
+    _sameOwner(userId, token);
+    await _media.putBytes(upload, bytes);
+    _sameOwner(userId, token);
+    final verified = await _media.confirm(
+      kind: R2MediaKind.reportPdf,
+      objectKey: upload.objectKey,
+    );
+    if (verified.sha256 != sha || verified.byteSize != bytes.length) {
+      throw const FormatException('report_media');
+    }
+    try {
+      await _rpc(userId, 'confirm_financial_day_pdf_v1', {
+        'p_day_id': report.day.id,
+        'p_fingerprint': report.fingerprint,
+        'p_object_key': upload.objectKey,
+      });
+    } on InventoryReadException catch (error) {
+      if (error.code == 'stale_report') throw const ReportChanged();
+      rethrow;
+    }
+    _sameOwner(userId, token);
+    final url = await _media.presignRead(
+      kind: R2MediaKind.reportPdf,
+      objectKey: upload.objectKey,
+    );
+    _sameOwner(userId, token);
+    final downloaded = await _media.getBytes(url);
+    try {
+      _sameOwner(userId, token);
+      if (downloaded.length != bytes.length ||
+          await R2MediaClient.sha256Hex(downloaded) != sha) {
+        throw const FormatException('report_hash');
+      }
+      _sameOwner(userId, token);
+      return downloaded;
+    } catch (_) {
+      downloaded.fillRange(0, downloaded.length, 0);
+      rethrow;
     }
   }
 

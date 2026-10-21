@@ -2,6 +2,8 @@
 
 ## Current status — 2026-10-21
 
+The owner's later October 21 request selects the first Milestone 5 Reports slice: one selected financial day, including history, exact authoritative totals/details and Arabic PDF export through verified R2. [ADR 0025](adr/0025-selected-financial-day-reports.md), [implementation/validation](reviews/reports-2026-10-21/validation.md) and [development deployment](reviews/reports-2026-10-21/deployment.md) record its bounded delivery. Weekly reports and admin dashboards remain later slices. This selected slice supersedes earlier statements that no Reports work is authorized; it does not close Milestone 4 or native/owner acceptance.
+
 Milestone 4 remains **implemented in bounded slices, not fully accepted**. The [October 21 stabilization record](reviews/stabilization-2026-10-21/validation.md) separates implementation, fresh local verification, development-hosted verification, and native/device/owner acceptance. The [development reconciliation record](reviews/stabilization-2026-10-21/development-reconciliation.md) records installed-schema comparison and migration-history repair; no application release or publishing is included.
 
 | Area | Implemented behavior | Acceptance boundary |

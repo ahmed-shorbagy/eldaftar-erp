@@ -5,7 +5,11 @@
 // type, and hash, and records the verified facts through a service-only RPC.
 // Domain RPCs accept only objects present in that registry.
 
-export type MediaKind = "shop_image" | "invoice_logo" | "note_image";
+export type MediaKind =
+  | "shop_image"
+  | "invoice_logo"
+  | "note_image"
+  | "report_pdf";
 
 export type R2Caller = { shopId: string; userId: string };
 
@@ -65,24 +69,28 @@ const prefixes: Record<MediaKind, string> = {
   shop_image: "shop-image",
   invoice_logo: "invoice-logo",
   note_image: "note-image",
+  report_pdf: "report-pdf",
 };
 
 const extensions: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "application/pdf": "pdf",
 };
 
 const allowedMimes: Record<MediaKind, string[]> = {
   shop_image: ["image/jpeg", "image/png"],
   invoice_logo: ["image/jpeg", "image/png"],
   note_image: ["image/jpeg", "image/png", "image/webp"],
+  report_pdf: ["application/pdf"],
 };
 
 const maxObjectBytes: Record<MediaKind, number> = {
   shop_image: 2097152,
   invoice_logo: 2097152,
   note_image: 5242880,
+  report_pdf: 20971520,
 };
 
 const recordCodes = new Set([
@@ -101,6 +109,9 @@ const reply = (status: number, body: unknown) =>
 
 export function keyPattern(kind: MediaKind, shop: string): RegExp {
   const prefix = prefixes[kind];
+  if (kind === "report_pdf") {
+    return new RegExp(`^${prefix}/${shop}/([0-9a-f]{64})\\.pdf$`);
+  }
   if (kind === "note_image") {
     return new RegExp(
       `^${prefix}/${shop}/${uuidPattern}/${uuidPattern}\\.(jpg|png|webp)$`,
@@ -111,6 +122,13 @@ export function keyPattern(kind: MediaKind, shop: string): RegExp {
 
 export function mimeMatches(bytes: Uint8Array, mime: string): boolean {
   const at = (i: number) => bytes[i];
+  if (mime === "application/pdf") {
+    const text = new TextDecoder().decode(bytes.subarray(0, 8));
+    const tail = new TextDecoder().decode(
+      bytes.subarray(Math.max(0, bytes.length - 1024)),
+    );
+    return /^%PDF-[12][.][0-9]/.test(text) && /%%EOF\s*$/.test(tail);
+  }
   if (mime === "image/jpeg") {
     return bytes.length > 3 && at(0) === 0xff && at(1) === 0xd8 &&
       at(2) === 0xff;
@@ -247,7 +265,10 @@ export async function handleR2Media(
       return reply(400, { code: "media_rejected" });
     }
     const bytes = fetched.bytes;
-    if (bytes.length === 0 || !mimeMatches(bytes, mime)) {
+    if (
+      bytes.length === 0 || bytes.length > maxObjectBytes[kind] ||
+      !mimeMatches(bytes, mime)
+    ) {
       return reply(400, { code: "media_rejected" });
     }
     const sha = await sha256Hex(bytes);
@@ -262,7 +283,9 @@ export async function handleR2Media(
       objectKey,
       byteSize: bytes.length,
       sha256: sha,
-      imageBase64: kind === "note_image" ? null : toBase64(bytes),
+      imageBase64: kind === "note_image" || kind === "report_pdf"
+        ? null
+        : toBase64(bytes),
     });
     if (!recorded.ok) {
       if (!recordCodes.has(recorded.code)) {

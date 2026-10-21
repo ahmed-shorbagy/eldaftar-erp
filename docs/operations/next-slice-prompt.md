@@ -1,5 +1,7 @@
 # Current task pointer — 2026-10-21
 
+The owner subsequently selected and authorized the first Reports implementation slice. The selected financial-day report and Arabic PDF contract is [ADR 0025](../adr/0025-selected-financial-day-reports.md); [validation](../reviews/reports-2026-10-21/validation.md) and [development deployment](../reviews/reports-2026-10-21/deployment.md) are its current pointers. Weekly reports and admin dashboards remain unselected later slices. The native invoice-output acceptance recommendation below remains open and separate. No commit, push, application publication or release/production build is part of Reports delivery.
+
 October 21 stabilization and Milestone 4 reconciliation supersede the slice-11-only pointer below. See [validation and implementation fixes](../reviews/stabilization-2026-10-21/validation.md), [development reconciliation](../reviews/stabilization-2026-10-21/development-reconciliation.md), and [remaining acceptance plus one next-task recommendation](../reviews/stabilization-2026-10-21/acceptance.md). Milestone 4 remains open. PDF/image output exists; text-only invoice messaging/settings are retired from current navigation. Device/owner acceptance and legal invoice content are separate.
 
 ## Historical Milestone 4 slice 11 pointer

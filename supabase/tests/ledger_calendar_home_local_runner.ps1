@@ -1,4 +1,4 @@
-param([string]$Database = 'eldaftar_owner_meeting_calendar')
+param([string]$Database = 'eldaftar_owner_meeting_calendar', [switch]$ReportsOnly)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if ($Database -notmatch '^eldaftar_owner_meeting_[a-z0-9_]+$') { throw 'dedicated database required' }
@@ -86,12 +86,18 @@ try {
     }
     FileSql $_.FullName
   }
+  if ($ReportsOnly) {
+    FileSql (Join-Path $PSScriptRoot 'financial_day_report.sql')
+    Write-Host 'REPORTS_SQL_PASSED'
+    return
+  }
   FileSql (Join-Path $PSScriptRoot 'ledger_calendar_home.sql')
   FileSql (Join-Path $PSScriptRoot 'ledger_date_read.sql')
   FileSql (Join-Path $PSScriptRoot 'daily_notes_pagination.sql')
   FileSql (Join-Path $PSScriptRoot 'invoice_price_components.sql')
   FileSql (Join-Path $PSScriptRoot 'daily_ledger_trades.sql')
   FileSql (Join-Path $PSScriptRoot 'ledger_trade_change.sql')
+  FileSql (Join-Path $PSScriptRoot 'financial_day_report.sql')
   FileSql (Join-Path $PSScriptRoot 'staff_closing_delegation.sql')
   FileSql (Join-Path $PSScriptRoot 'invoice_appearance.sql')
   FileSql (Join-Path $PSScriptRoot 'closing_delegation_index_coverage.sql')

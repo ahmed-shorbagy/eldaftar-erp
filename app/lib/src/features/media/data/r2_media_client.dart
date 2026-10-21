@@ -9,6 +9,7 @@ abstract final class R2MediaKind {
   static const shopImage = 'shop_image';
   static const invoiceLogo = 'invoice_logo';
   static const noteImage = 'note_image';
+  static const reportPdf = 'report_pdf';
 }
 
 /// Thrown when the r2-media function or the R2 transfer fails. [code] mirrors

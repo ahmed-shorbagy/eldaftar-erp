@@ -10,6 +10,8 @@ The repository now implements owner authentication/registration, exact opening a
 
 ## Runtime boundaries
 
+The first operational Reports slice follows [ADR 0025](adr/0025-selected-financial-day-reports.md). An owner-only SQL snapshot combines immutable postings, active trade replacements and explicit return-day effects for one actual financial day. Flutter's separate Reports domain/application/data/presentation layers validate exact string integers, display full details and render Arabic A4 locally. New report documents are canonically stored through verified R2 `report_pdf` metadata and a current-fingerprint confirmation; the authorized downloaded copy is then saved/shared by the owner. Weekly reports and platform-admin dashboards remain separate.
+
 ~~~mermaid
 flowchart LR
   F[Flutter Android iOS Windows] -->|JWT, reads, commands| S[Supabase API]

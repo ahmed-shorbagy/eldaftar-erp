@@ -20,6 +20,8 @@ Rows written before this change remain readable only: inline shop-image and invo
 
 ## Adding a media kind
 
+The first report slice adds `report_pdf` under [ADR 0025](0025-selected-financial-day-reports.md): `report-pdf/<shop>/<sha256>.pdf`, `application/pdf`, 1–20,971,520 bytes, no image dimensions. The authenticated broker checks the PDF signature/end marker and hash from a bounded R2 read. The service-only `record_report_pdf_object_v1` accepts verified metadata only; `confirm_financial_day_pdf_v1` requires that registry row and the unchanged server report fingerprint. The client verifies downloaded bytes before save/share. Function, SQL and client tests cover this kind; no legacy image path or byte RPC is extended to accept documents.
+
 A new kind needs, before use: a key prefix and regex in the function, MIME and size limits, a registry `kind` value with matching table checks, a domain RPC that requires the registry row, function, SQL and client tests, and updates to this ADR, the architecture guide and the database design.
 
 ## Consequences
