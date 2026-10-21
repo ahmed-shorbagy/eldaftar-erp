@@ -214,7 +214,7 @@ void main() {
           await shot('sale');
           await tap(find.byKey(const Key('trade-add-item')));
           await shot('add-category');
-          await tap(find.text('إلغاء'));
+          await tap(find.byKey(const Key('trade-picker-close')));
           await t.pumpWidget(
             host(
               FinancialTradeScreen(
