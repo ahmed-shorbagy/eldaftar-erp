@@ -120,7 +120,7 @@ void main() {
     expect(find.text('لم يؤكد الإرسال'), findsOneWidget);
     expect(find.text('تأكيد الإرسال بعد إرساله'), findsNothing);
     expect(find.text('فتح رسالة واتساب'), findsNothing);
-    expect(find.text('مشاركة مستند PDF'), findsOneWidget);
+    expect(find.text('مشاركة مستند PDF عبر واتساب'), findsOneWidget);
     for (final width in [320.0, 1440.0]) {
       for (final dark in [false, true]) {
         tester.view.physicalSize = Size(width, 820);

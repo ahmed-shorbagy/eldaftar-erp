@@ -111,6 +111,12 @@ const builtinNominalWeightSuggestions = <NominalWeightSuggestion>[
     fromCatalog: false,
   ),
   NominalWeightSuggestion(
+    label: 'ثمن جنيه',
+    grams: '1.000',
+    category: 'coin',
+    fromCatalog: false,
+  ),
+  NominalWeightSuggestion(
     label: 'ربع جنيه',
     grams: '2.000',
     category: 'coin',

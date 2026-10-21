@@ -42,6 +42,15 @@ abstract final class InvoiceDocumentPalette {
   static const int brown = 0xFF6F4E1B;
   static const int gold = 0xFF94681F;
   static const int neutral = 0xFF1C1915;
+  static const int cream = 0xFFFBF6EC;
+  static const int creamPanel = 0xFFF5ECDA;
+  static const int creamLine = 0xFFE4D5B7;
+  static const int frameGold = 0xFFC9A24D;
+  static const int muted = 0xFF6B6257;
+  static const int darkPanel = 0xFF1A1916;
+  static const int darkLine = 0xFF3B3427;
+  static const int darkMuted = 0xFFB9B0A0;
+  static const int footerBand = 0xFF15130F;
 
   static int accent(InvoiceAccent value) => switch (value) {
     InvoiceAccent.brown => brown,

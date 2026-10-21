@@ -2,6 +2,7 @@ import 'message_display.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/whatsapp_icon.dart';
 import '../application/message_gateway.dart';
 import '../application/message_handoff.dart';
 import '../domain/message_template.dart';
@@ -205,10 +206,11 @@ class _MessageHandoffDialogState extends State<MessageHandoffDialog>
             child: const Text('إعادة التحقق'),
           ),
         if (_preview != null)
-          FilledButton(
+          FilledButton.icon(
             key: const Key('message-open'),
             onPressed: _busy ? null : _open,
-            child: const Text('فتح واتساب بعد المراجعة'),
+            icon: const WhatsappIcon(),
+            label: const Text('فتح واتساب بعد المراجعة'),
           ),
         TextButton(
           onPressed: _busy ? null : () => Navigator.of(context).pop(_opened),

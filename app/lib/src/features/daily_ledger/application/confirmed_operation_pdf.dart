@@ -6,17 +6,26 @@ import 'package:pdf/widgets.dart' as pw;
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/pdf_arabic.dart';
 
 /// A stable customer copy of one confirmed server operation. No client draft is used.
-bool validConfirmedInvoiceFacts(Map<String, Object?> operation,
-    {required String operationId, required String shopId}) {
+bool validConfirmedInvoiceFacts(
+  Map<String, Object?> operation, {
+  required String operationId,
+  required String shopId,
+}) {
   final utc = operation['occurred_at'];
   final local = operation['occurred_at_shop'] ?? operation['occurred_at_cairo'];
-  return operation['operation_id'] == operationId && operation['shop_id'] == shopId &&
-      operation['trade_change'] == null && const ['sale','purchase'].contains(operation['kind']) &&
+  return operation['operation_id'] == operationId &&
+      operation['shop_id'] == shopId &&
+      operation['trade_change'] == null &&
+      const ['sale', 'purchase'].contains(operation['kind']) &&
       operation['shop_sequence'] is String &&
-      utc is String && DateTime.tryParse(utc)?.isUtc == true &&
-      local is String && DateTime.tryParse(local) != null && operation['payload'] is Map;
+      utc is String &&
+      DateTime.tryParse(utc)?.isUtc == true &&
+      local is String &&
+      DateTime.tryParse(local) != null &&
+      operation['payload'] is Map;
 }
 
 Future<Uint8List> buildConfirmedOperationPdf(
@@ -56,12 +65,12 @@ Future<Uint8List> buildConfirmedOperationPdf(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(
+              pdfText(
                 '${operation['shop_name'] ?? 'الدفتر'}',
                 style: pw.TextStyle(color: paper, fontSize: 18),
               ),
               pw.SizedBox(height: 4),
-              pw.Text(
+              pdfText(
                 kind == 'sale' ? 'مستند بيع مؤكد' : 'مستند شراء مؤكد',
                 style: pw.TextStyle(color: paper, fontSize: 12),
               ),
@@ -74,7 +83,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
         if ((payload['customer_name'] ?? '').toString().isNotEmpty)
           _row('العميل', '${payload['customer_name']}', ink),
         pw.SizedBox(height: 18),
-        pw.Text('الأصناف', style: pw.TextStyle(color: primary, fontSize: 14)),
+        pdfText('الأصناف', style: pw.TextStyle(color: primary, fontSize: 14)),
         if (items is List)
           for (final raw in items)
             if (raw is Map)
@@ -89,15 +98,15 @@ Future<Uint8List> buildConfirmedOperationPdf(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(
+                    pdfText(
                       '${raw['item_name'] ?? 'صنف'} · عيار ${raw['karat'] ?? '—'}',
                     ),
-                    pw.Text(
+                    pdfText(
                       '${_grams(raw['milligrams'])} جرام'
                       '${raw['count'] == null ? '' : ' · ${raw['count']} قطعة'}',
                     ),
                     if (raw['line_price_piastres'] is String)
-                      pw.Text(
+                      pdfText(
                         'سعر الصنف: ${_pounds(raw['line_price_piastres'])}',
                       ),
                   ],
@@ -134,7 +143,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
             ),
         ],
         pw.SizedBox(height: 14),
-        pw.Text(
+        pdfText(
           'وسائل الدفع',
           style: pw.TextStyle(color: primary, fontSize: 14),
         ),
@@ -144,7 +153,7 @@ Future<Uint8List> buildConfirmedOperationPdf(
               _row(_method(raw['method']), _pounds(raw['piastres']), ink),
         if ((payload['note'] ?? '').toString().isNotEmpty) ...[
           pw.SizedBox(height: 12),
-          pw.Text('ملاحظة: ${payload['note']}'),
+          pdfText('ملاحظة: ${payload['note']}'),
         ],
       ],
     ),
@@ -159,10 +168,10 @@ pw.Widget _row(String label, String value, PdfColor ink) => pw.Padding(
     children: [
       pw.Expanded(
         flex: 2,
-        child: pw.Text(label, style: pw.TextStyle(color: ink)),
+        child: pdfText(label, style: pw.TextStyle(color: ink)),
       ),
       pw.Expanded(
-        child: pw.Text(
+        child: pdfText(
           value,
           textAlign: pw.TextAlign.end,
           style: pw.TextStyle(color: ink),

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
+import '../../../theme/whatsapp_icon.dart';
 import '../../invoice_message/application/message_gateway.dart';
 import '../../invoice_message/data/url_message_launcher.dart';
 import '../../invoice_message/domain/message_template.dart';
@@ -782,11 +783,12 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         ),
                         if (_dispatchLoading) const LinearProgressIndicator(),
                         OutlinedButton.icon(
+                          key: const Key('operation-whatsapp-share'),
                           onPressed: _dispatchBusy || _operation == null
                               ? null
                               : _sharePdf,
-                          icon: const Icon(Icons.picture_as_pdf_outlined),
-                          label: const Text('مشاركة مستند PDF'),
+                          icon: const WhatsappIcon(),
+                          label: const Text('مشاركة مستند PDF عبر واتساب'),
                         ),
                         if (_dispatch?.ownerConfirmed == true)
                           const Text('أكد المالك الإرسال عبر واتساب')

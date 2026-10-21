@@ -2,6 +2,10 @@ import 'package:eldafttar/src/features/daily_ledger/presentation/invoice_pdf_sha
 import 'package:eldafttar/src/features/invoice_appearance/application/invoice_appearance_contract.dart';
 import 'package:eldafttar/src/features/invoice_appearance/application/invoice_appearance_gateway.dart';
 import 'package:eldafttar/src/features/invoice_appearance/domain/appearance_rules.dart';
+import 'package:eldafttar/src/features/invoice_appearance/domain/branded_invoice_document.dart';
+import 'package:eldafttar/src/theme/app_theme.dart';
+import 'package:eldafttar/src/theme/pdf_arabic.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -17,6 +21,8 @@ class BrandShareGateway extends FakeFinancialGateway
   final identity = Object();
   var editions = 0, creates = 0, copyReads = 0;
   bool staleCopy = false;
+  ValueNotifier<int>? syncTick;
+  Map<String, Object?> liveFields = const {};
   @override
   Object? appearanceSession(String userId) => identity;
   @override
@@ -27,6 +33,7 @@ class BrandShareGateway extends FakeFinancialGateway
     ...meetingInvoiceSource(),
     'operation_id': operationId,
     'shop_id': completionShop,
+    ...liveFields,
   };
   @override
   Future<InvoiceBrandSource> readBrandSource({
@@ -68,6 +75,7 @@ class BrandShareGateway extends FakeFinancialGateway
   }) async {
     creates++;
     editions = 1;
+    syncTick?.value++;
     return AppearanceTransport(
       receipt: AppearanceReceipt(
         shopId: shopId,
@@ -176,4 +184,127 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'sync ticks and live fields after the sale never block sharing the image',
+    (t) async {
+      final tick = ValueNotifier<int>(0);
+      final gateway = BrandShareGateway()..syncTick = tick;
+      final names = <String>[];
+      Uint8List? rasterInput;
+      await t.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark(),
+          home: Scaffold(
+            body: InvoicePdfShareDialog(
+              gateway: gateway,
+              userId: completionUser,
+              shopId: completionShop,
+              operationId: brandOperation,
+              canRead: () => true,
+              canWrite: () => true,
+              invalidations: tick,
+              rasterize: (pdf) async {
+                rasterInput = pdf;
+                gateway.liveFields = {
+                  'return_remainder': {'fully_returned': false},
+                };
+                return Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
+              },
+              share: (bytes, name) async {
+                names.add(name);
+                return true;
+              },
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      tick.value++;
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.pumpAndSettle();
+      expect(gateway.creates, 1);
+      expect(String.fromCharCodes(rasterInput!.take(4)), '%PDF');
+      expect(names.single, endsWith('.png'));
+      expect(find.textContaining('تغيّرت'), findsNothing);
+      expect(find.text('إرسال صورة عبر واتساب'), findsOneWidget);
+      expect(find.byKey(const Key('invoice-pdf-share')), findsOneWidget);
+      await t.pumpWidget(const SizedBox());
+      tick.dispose();
+    },
+  );
+
+  test('invoice fingerprint ignores live fields but not printed facts', () {
+    final base = {...meetingInvoiceSource(), 'operation_id': brandOperation};
+    final live = {
+      ...base,
+      'return_remainder': {'fully_returned': false},
+      'returned_by_operation_id': null,
+    };
+    expect(invoiceFactsFingerprint(live), invoiceFactsFingerprint(base));
+    final payload = Map<String, Object?>.from(base['payload'] as Map)
+      ..['customer_name'] = 'اسم آخر';
+    expect(
+      invoiceFactsFingerprint({...base, 'payload': payload}),
+      isNot(invoiceFactsFingerprint(base)),
+    );
+  });
+
+  test('isolated yeh is printable while joined yeh is kept', () {
+    expect(pdfArabic('نقدي'), 'نقدى');
+    expect(pdfArabic('مهدي'), 'مهدى');
+    expect(pdfArabic('علي'), 'علي');
+    expect(pdfArabic('بيع'), 'بيع');
+    expect(pdfArabic('يوم'), 'يوم');
+    expect(pdfArabic('ي'), 'ى');
+    expect(pdfArabic('ريال'), 'ريال');
+  });
+
+  test('karat weight totals are exact milligram sums', () {
+    final document = BrandedInvoiceDocument.fromConfirmed(
+      source: {
+        'operation_id': brandOperation,
+        'kind': 'sale',
+        'shop_name': 'متجر',
+        'shop_sequence': '1',
+        'time_zone': 'Africa/Cairo',
+        'occurred_at': '2026-10-17T08:00:00Z',
+        'occurred_at_shop': '2026-10-17T10:00:00',
+        'payload': {
+          'total_piastres': '100',
+          'items': [
+            for (final (karat, mg) in [(21, '1830'), (18, '2560'), (21, '1')])
+              {
+                'item_name': 'صنف',
+                'category': 'worked_jewelry',
+                'karat': karat,
+                'milligrams': mg,
+                'count': '1',
+              },
+          ],
+          'tenders': [
+            {'method': 'cash', 'piastres': '100'},
+          ],
+        },
+      },
+      edition: 1,
+      contentSha256: 'ab' * 32,
+      appearanceRevision: 0,
+      template: InvoiceTemplate.header,
+      accent: InvoiceAccent.brown,
+      renderVersion: 2,
+      copyCreatedAtUtc: '2026-10-17T09:00:00Z',
+      copyCreatedAtShop: '2026-10-17T11:00:00',
+    );
+    expect(
+      [
+        for (final row in document.weightByKarat)
+          '${row.karat}:${row.gramsText}',
+      ],
+      ['21:1.831', '18:2.560'],
+    );
+    expect(document.totalGramsText, '4.391');
+    expect(document.titleLabel, 'فاتورة بيع');
+  });
 }

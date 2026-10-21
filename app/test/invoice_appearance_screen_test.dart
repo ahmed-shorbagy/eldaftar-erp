@@ -158,8 +158,11 @@ void main() {
       200,
     );
     expect(find.text('معاينة المستند الأصلي الثابت'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('مشاركة مستند PDF'), 200);
-    expect(find.text('مشاركة مستند PDF'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('مشاركة مستند PDF عبر واتساب'),
+      200,
+    );
+    expect(find.text('مشاركة مستند PDF عبر واتساب'), findsOneWidget);
     expect(calls.any((path) => path.contains('presentation')), isFalse);
     await tester.scrollUntilVisible(
       find.byKey(const Key('invoice-branded-open')),

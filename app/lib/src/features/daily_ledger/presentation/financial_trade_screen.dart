@@ -25,6 +25,7 @@ import '../../inventory/presentation/inventory_copy.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/whatsapp_icon.dart';
 import 'invoice_pdf_share_dialog.dart';
 import 'jewelry_icons.dart';
 import 'ledger_form_fields.dart';
@@ -2191,7 +2192,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       OutlinedButton.icon(
         key: const Key('trade-send-invoice'),
         onPressed: _invoiceBusy ? null : _openInvoice,
-        icon: const Icon(Icons.receipt_long_outlined),
+        icon: const WhatsappIcon(),
         label: const Text('إرسال الفاتورة للعميل'),
       ),
     ],

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../../theme/app_tokens.dart';
+import '../../../theme/pdf_arabic.dart';
 import '../domain/debt_rules.dart';
 import '../domain/debt_statement.dart';
 import 'debt_copy.dart';
@@ -34,7 +35,7 @@ Future<Uint8List> buildDebtStatementPdf(DebtStatement s) async {
       accent = color(AppTokens.seed),
       paper = color(AppTokens.lightSurface);
   final document = pw.Document(title: 'كشف حساب دين', author: s.shopName);
-  pw.Widget text(String value, {bool ltr = false, double size = 10}) => pw.Text(
+  pw.Widget text(String value, {bool ltr = false, double size = 10}) => pdfText(
     value.replaceAll(RegExp('[\u2066-\u2069]'), ''),
     textDirection: ltr ? pw.TextDirection.ltr : pw.TextDirection.rtl,
     style: pw.TextStyle(fontSize: size, color: ink),

@@ -74,6 +74,23 @@ final class BrandedInvoiceDocument {
 
   String get kindLabel => kind == 'sale' ? 'مستند بيع مؤكد' : 'مستند شراء مؤكد';
 
+  String get titleLabel => kind == 'sale' ? 'فاتورة بيع' : 'فاتورة شراء';
+
+  /// Exact milligram sums per karat, highest karat first.
+  List<KaratWeight> get weightByKarat {
+    final sums = <int, BigInt>{};
+    for (final line in lines) {
+      sums[line.karat] =
+          (sums[line.karat] ?? BigInt.zero) + BigInt.parse(line.milligrams);
+    }
+    final karats = sums.keys.toList()..sort((a, b) => b.compareTo(a));
+    return [for (final karat in karats) KaratWeight(karat, sums[karat]!)];
+  }
+
+  String get totalGramsText => _gramsOf(
+    lines.fold(BigInt.zero, (sum, line) => sum + BigInt.parse(line.milligrams)),
+  );
+
   /// Builds from a fresh authorized operation read plus one frozen edition.
   /// Malformed lines throw. Live remaining balance is ignored.
   factory BrandedInvoiceDocument.fromConfirmed({
@@ -336,6 +353,21 @@ final class BrandedInvoicePricing {
       )!,
     );
   }
+}
+
+final class KaratWeight {
+  const KaratWeight(this.karat, this.milligrams);
+  final int karat;
+  final BigInt milligrams;
+  String get gramsText => _gramsOf(milligrams);
+}
+
+String _gramsOf(BigInt milligrams) {
+  final parsed = Milligrams.parseWire(milligrams.toString());
+  if (parsed is! Accepted<Milligrams>) {
+    throw const FormatException('branded_invoice');
+  }
+  return parsed.value.gramsText;
 }
 
 String? _optionalText(Object? value) {

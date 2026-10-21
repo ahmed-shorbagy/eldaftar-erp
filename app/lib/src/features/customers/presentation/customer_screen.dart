@@ -583,9 +583,27 @@ class _CustomerScreenState extends State<CustomerScreen> {
     VoidCallback? tap, {
     Key? key,
     bool primary = false,
-  }) => primary
-      ? FilledButton(key: key, onPressed: tap, child: Text(label))
-      : OutlinedButton(key: key, onPressed: tap, child: Text(label));
+    Widget? icon,
+  }) {
+    if (icon == null) {
+      return primary
+          ? FilledButton(key: key, onPressed: tap, child: Text(label))
+          : OutlinedButton(key: key, onPressed: tap, child: Text(label));
+    }
+    return primary
+        ? FilledButton.icon(
+            key: key,
+            onPressed: tap,
+            icon: icon,
+            label: Text(label),
+          )
+        : OutlinedButton.icon(
+            key: key,
+            onPressed: tap,
+            icon: icon,
+            label: Text(label),
+          );
+  }
   Widget _heading(String label) => Padding(
     padding: const EdgeInsets.only(top: 24, bottom: 8),
     child: Text(label, style: Theme.of(context).textTheme.titleLarge),
@@ -930,6 +948,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
             : () => _launchContact(_contactAction),
         key: const Key('customer-contact-open'),
         primary: true,
+        icon: _contactAction == CustomerContactAction.dialer
+            ? const Icon(Icons.phone_outlined)
+            : const CustomerWhatsappIcon(),
       ),
       if (_contactFallback)
         _action(
@@ -937,6 +958,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
           _contactBusy || !_canContact || _contactNumber == null
               ? null
               : () => _launchContact(CustomerContactAction.whatsappLink),
+          icon: const CustomerWhatsappIcon(),
         ),
       _action(
         'تحديث أرقام الاتصال',

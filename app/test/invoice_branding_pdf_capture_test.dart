@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
 const _operation = 'a1333333-3333-4333-8333-333333333333';
-const _out = '../docs/reviews/invoice-branding-2026-10-17/pdf';
+const _out = '../docs/reviews/invoice-branding-2026-10-21/pdf';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +86,30 @@ void main() {
         await pdf.writeAsBytes(bytes);
         await _raster(bytes, pdf.path, '${directory.path}/${entry.key}');
       }
+      for (final template in [InvoiceTemplate.header, InvoiceTemplate.dark]) {
+        final sale = _document(
+          shopName: 'مجوهرات النور',
+          address: 'شبرا - القاهرة',
+          items: [
+            _item('خاتم', 21, '1830', '1', price: '500000'),
+            _item('سلسلة', 18, '2560', '1', price: '200000'),
+          ],
+          tenders: [
+            {'method': 'cash', 'piastres': '500000'},
+            {'method': 'card', 'piastres': '200000'},
+          ],
+          total: '700000',
+          phone: '01012345678',
+          template: template,
+        );
+        for (final output in BrandedInvoiceOutput.values) {
+          final bytes = await buildBrandedInvoicePdf(sale, output: output);
+          final name = 'design-${template.wire}-${output.name}';
+          final pdf = File('${directory.path}/$name.pdf');
+          await pdf.writeAsBytes(bytes);
+          await _raster(bytes, pdf.path, '${directory.path}/$name');
+        }
+      }
       final legacy = await buildConfirmedOperationPdf({
         'kind': 'sale',
         'shop_name': 'متجر المعاينة',
@@ -135,6 +159,10 @@ BrandedInvoiceDocument _document({
   bool logo = false,
   String? obligation,
   List<Map<String, Object?>>? tenders,
+  String total = '100000',
+  String customer = 'طرف معاينة',
+  String? phone,
+  InvoiceTemplate template = InvoiceTemplate.header,
 }) {
   return BrandedInvoiceDocument.fromConfirmed(
     source: {
@@ -146,8 +174,9 @@ BrandedInvoiceDocument _document({
       'occurred_at': '2026-10-17T08:00:00.000000Z',
       'occurred_at_shop': '2026-10-17T10:00:00',
       'payload': {
-        'total_piastres': '100000',
-        'customer_name': 'طرف معاينة',
+        'total_piastres': total,
+        'customer_name': customer,
+        'customer_phone': ?phone,
         'items': items,
         'tenders':
             tenders ??
@@ -161,9 +190,9 @@ BrandedInvoiceDocument _document({
     edition: 1,
     contentSha256: 'ab' * 32,
     appearanceRevision: 3,
-    template: InvoiceTemplate.header,
+    template: template,
     accent: InvoiceAccent.gold,
-    renderVersion: 1,
+    renderVersion: phone == null ? 1 : 2,
     copyCreatedAtUtc: '2026-10-17T09:00:00.000000Z',
     copyCreatedAtShop: '2026-10-17T11:00:00',
     slogan: slogan,
@@ -180,13 +209,14 @@ Map<String, Object?> _item(
   String milligrams,
   String? count, {
   String category = 'worked_jewelry',
+  String? price,
 }) => {
   'item_name': name,
   'category': category,
   'karat': karat,
   'milligrams': milligrams,
   'count': count,
-  'line_price_piastres': null,
+  'line_price_piastres': price,
 };
 
 extension on BrandedInvoiceDocument {

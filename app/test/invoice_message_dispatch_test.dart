@@ -102,8 +102,8 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('فتح رسالة واتساب'), findsNothing);
       expect(find.text('تأكيد الإرسال بعد إرساله'), findsNothing);
-      await tapMessage(t, find.text('مشاركة مستند PDF'));
-      expect(find.text('مشاركة فاتورة PDF'), findsOneWidget);
+      await tapMessage(t, find.text('مشاركة مستند PDF عبر واتساب'));
+      expect(find.text('إرسال الفاتورة'), findsOneWidget);
       expect(confirmed, isFalse);
       expect(launcher.uris, isEmpty);
       await tapMessage(t, find.byKey(const Key('invoice-pdf-share')));
@@ -138,7 +138,7 @@ void main() {
         calls.every((r) => !r.url.pathSegments.last.startsWith('post_')),
         isTrue,
       );
-      expect(find.text('مشاركة مستند PDF'), findsOneWidget);
+      expect(find.text('مشاركة مستند PDF عبر واتساب'), findsOneWidget);
     },
   );
 }

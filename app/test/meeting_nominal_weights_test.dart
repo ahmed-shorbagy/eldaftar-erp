@@ -7,6 +7,7 @@ void main() {
     expect(
       {for (final item in suggestions) item.label: item.grams},
       {
+        'ثمن جنيه': '1.000',
         'ربع جنيه': '2.000',
         'نصف جنيه': '4.000',
         'جنيه': '8.000',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/whatsapp_icon.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
 import 'financial_operation_screen.dart';
@@ -161,6 +162,12 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
                           Card(
                             child: ListTile(
                               onTap: () => _open(item),
+                              leading: IconTheme(
+                                data: IconThemeData(
+                                  color: theme.colorScheme.primary,
+                                ),
+                                child: const WhatsappIcon(),
+                              ),
                               title: Text(
                                 '${item.kind == 'sale' ? 'بيع' : 'شراء'} رقم ${item.shopSequence}',
                               ),

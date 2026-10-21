@@ -252,6 +252,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       'طقم',
                     ],
                     if (row.category == 'coin') ...[
+                      'ثمن جنيه',
                       'ربع جنيه',
                       'نصف جنيه',
                       'جنيه',

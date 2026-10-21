@@ -194,11 +194,11 @@ void main() {
       await chooseTradeItem(tester, 'جنيهات');
       expect(find.text('عملة قديمة'), findsNothing);
       expect(find.textContaining('8.50 جرام'), findsWidgets);
-      // Built-ins: ربع=0, نصف=1, جنيه=2 (shop override 8.5g), خمسة=3.
-      await tester.ensureVisible(find.byKey(const Key('nominal-select-2')));
-      await tester.tap(find.byKey(const Key('nominal-select-2')));
+      // Built-ins: ثمن=0, ربع=1, نصف=2, جنيه=3 (shop override 8.5g), خمسة=4.
+      await tester.ensureVisible(find.byKey(const Key('nominal-select-3')));
+      await tester.tap(find.byKey(const Key('nominal-select-3')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('nominal-count-2')), '2');
+      await tester.enterText(find.byKey(const Key('nominal-count-3')), '2');
       await tester.tap(find.byKey(const Key('nominal-apply')));
       await tester.pumpAndSettle();
       expect(
@@ -214,8 +214,8 @@ void main() {
       await revealTrade(tester, find.byKey(const Key('trade-nominals-0')));
       await tester.tap(find.byKey(const Key('trade-nominals-0')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const Key('nominal-select-4')));
-      await tester.tap(find.byKey(const Key('nominal-select-4')));
+      await tester.ensureVisible(find.byKey(const Key('nominal-select-5')));
+      await tester.tap(find.byKey(const Key('nominal-select-5')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nominal-apply')));
       await tester.pumpAndSettle();
@@ -247,16 +247,16 @@ void main() {
       kind: FinancialKind.sale,
     );
     await chooseTradeItem(tester, 'جنيهات');
-    // ربع=0, نصف=1
+    // ثمن=0, ربع=1, نصف=2
+    await tester.tap(find.byKey(const Key('nominal-select-2')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('nominal-select-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('nominal-select-0')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('nominal-count-0-plus')));
+    await tester.tap(find.byKey(const Key('nominal-count-1-plus')));
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<TextField>(find.byKey(const Key('nominal-count-0')))
+          .widget<TextField>(find.byKey(const Key('nominal-count-1')))
           .controller!
           .text,
       '2',
@@ -638,10 +638,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-send-invoice')));
     await tester.pumpAndSettle();
-    expect(find.text('مشاركة فاتورة PDF'), findsOneWidget);
+    expect(find.text('إرسال الفاتورة'), findsOneWidget);
     expect(find.textContaining('\u20663:04\u2069 م'), findsOneWidget);
     expect(find.textContaining('أكتوبر'), findsNothing);
-    expect(find.textContaining('رقم العملية: 42'), findsOneWidget);
+    expect(find.text('فاتورة رقم 42'), findsOneWidget);
     expect(ready.operationIds, [tradeOperationId, tradeOperationId]);
 
     final reconciled = Batch2DispatchGateway()
