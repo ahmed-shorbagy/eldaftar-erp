@@ -2,10 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
 import '../application/report_gateway.dart';
+import '../application/weekly_report_gateway.dart';
 import '../application/report_export.dart';
 import '../data/report_output.dart';
 import '../domain/financial_day_report.dart';
 import 'report_pdf.dart';
+import 'report_transaction_card.dart';
+import 'weekly_reports_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({
@@ -39,6 +42,47 @@ class _ReportsScreenState extends State<ReportsScreen>
   int _generation = 0;
   Timer? _watch;
   late ReportExport _export;
+  Route<void>? _weeklyRoute;
+  void _closeWeekly() {
+    final route = _weeklyRoute;
+    _weeklyRoute = null;
+    final navigator = route?.navigator;
+    if (route == null || navigator == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (navigator.mounted && route.isActive) navigator.removeRoute(route);
+    });
+  }
+
+  Future<void> _openWeekly() async {
+    final gateway = widget.gateway;
+    if (gateway is! WeeklyReportGateway ||
+        _weeklyRoute != null ||
+        _exporting ||
+        !_allowed)
+      return;
+    final user = widget.userId, shop = widget.shopId;
+    final route = MaterialPageRoute<void>(
+      builder: (_) => WeeklyReportsScreen(
+        sessions: gateway,
+        gateway: gateway as WeeklyReportGateway,
+        userId: user,
+        shopId: shop,
+        canRead: () =>
+            _allowed &&
+            widget.userId == user &&
+            widget.shopId == shop &&
+            identical(widget.gateway, gateway),
+        syncTicks: widget.syncTicks,
+      ),
+    );
+    _weeklyRoute = route;
+    try {
+      await Navigator.of(context).push<void>(route);
+    } finally {
+      if (identical(_weeklyRoute, route)) _weeklyRoute = null;
+    }
+  }
+
   bool get _allowed =>
       mounted &&
       widget.canRead() &&
@@ -80,6 +124,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     if (old.gateway != widget.gateway ||
         old.userId != widget.userId ||
         old.shopId != widget.shopId) {
+      _closeWeekly();
       _days = null;
       _report = null;
       _dayId = null;
@@ -92,6 +137,7 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   @override
   void dispose() {
+    _closeWeekly();
     _generation++;
     _watch?.cancel();
     widget.syncTicks?.removeListener(_reload);
@@ -106,6 +152,7 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   void _deny() {
     if (!mounted) return;
+    _closeWeekly();
     _generation++;
     setState(() {
       _report = null;
@@ -239,43 +286,9 @@ class _ReportsScreenState extends State<ReportsScreen>
       ),
     ),
   );
-  Widget _transaction(ReportTransaction t) => Card(
-    child: ExpansionTile(
-      key: PageStorageKey('report-${widget.shopId}-$_dayId-${t.id}'),
-      title: Text('${t.label} • \u2066${t.sequence}\u2069'),
-      subtitle: Text('${t.stateLabel}\n\u2066${t.atShop}\u2069'),
-      childrenPadding: const EdgeInsets.all(16),
-      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (t.description.isNotEmpty) Text(t.description),
-        if (t.sourceId != null) ...[
-          const Text('مرجع العملية الأصلية'),
-          SelectableText(t.sourceId!, textDirection: TextDirection.ltr),
-        ],
-        _value('قيمة العملية الأصلية', reportMoney(t.originalTotal)),
-        _value('مساهمة صافي المبيعات', reportMoney(t.sale)),
-        _value('مساهمة صافي المشتريات', reportMoney(t.purchase)),
-        _value('المصروف', reportMoney(t.expense)),
-        _value('حركة النقد', reportMoney(t.cash)),
-        if (t.kind == 'opening_balances')
-          _value(
-            'الرصيد الافتتاحي المستبعد من الحركة',
-            reportMoney(t.openingCash),
-          ),
-        for (final m in t.methods.entries)
-          _value(reportMethod(m.key), reportMoney(m.value)),
-        for (final i in t.items) ...[
-          const Divider(),
-          Text(i.name.isEmpty ? 'ذهب' : i.name),
-          _value('العيار', i.karat.toString()),
-          _value('الوزن الأصلي بالجرام', reportGrams(i.milligrams)),
-          _value('مساهمة المباع بالجرام', reportGrams(i.sold)),
-          _value('مساهمة المشترى بالجرام', reportGrams(i.bought)),
-        ],
-        for (final g in t.inventory.entries)
-          _value('تغير المخزون بالجرام • عيار ${g.key}', reportGrams(g.value)),
-      ],
-    ),
+  Widget _transaction(ReportTransaction t) => ReportTransactionCard(
+    transaction: t,
+    scopeKey: 'report-${widget.shopId}-$_dayId-${t.id}',
   );
   @override
   Widget build(BuildContext context) {
@@ -298,6 +311,13 @@ class _ReportsScreenState extends State<ReportsScreen>
                     'تقرير يوم مالي',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
                   ),
+                  if (widget.gateway is WeeklyReportGateway)
+                    OutlinedButton.icon(
+                      key: const Key('reports-open-weekly'),
+                      onPressed: _exporting || !_allowed ? null : _openWeekly,
+                      icon: const Icon(Icons.date_range_outlined),
+                      label: const Text('فتح التقرير الأسبوعي'),
+                    ),
                   if (_loading) ...[
                     const SizedBox(height: 16),
                     const LinearProgressIndicator(),

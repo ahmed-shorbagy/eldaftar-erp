@@ -4,6 +4,9 @@ import '../../debts/data/debt_native_codec.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import '../../reports/application/report_gateway.dart';
+import '../../reports/application/weekly_report_gateway.dart';
+import '../../reports/domain/financial_week_report.dart';
+import '../../reports/data/weekly_report_codec.dart';
 import '../../reports/data/report_codec.dart';
 import '../../reports/domain/financial_day_report.dart';
 import '../../closing_delegation/application/closing_delegation_gateway.dart';
@@ -154,6 +157,7 @@ class HttpOpeningGateway
     implements
         OpeningGateway,
         ReportGateway,
+        WeeklyReportGateway,
         LedgerDateGateway,
         LedgerTradeChangeGateway,
         FinancialGateway,
@@ -1486,6 +1490,54 @@ class HttpOpeningGateway
     FinancialDayReport report,
     Uint8List bytes,
   ) async {
+    return _storeVerifiedReportPdf(
+      userId,
+      report.shopId,
+      bytes,
+      'confirm_financial_day_pdf_v1',
+      {'p_day_id': report.day.id, 'p_fingerprint': report.fingerprint},
+    );
+  }
+
+  @override
+  Future<FinancialWeekReport> financialWeekReport(
+    String userId,
+    String shopId, {
+    String? endDate,
+  }) async {
+    final response = await _rpc(userId, 'get_financial_week_report_v1', {
+      'p_end_date': endDate,
+    });
+    final report = parseFinancialWeekReport(jsonDecode(response.body));
+    if (report.shopId != shopId ||
+        (endDate != null && report.endDate != endDate)) {
+      throw const FormatException('weekly_report_scope');
+    }
+    return report;
+  }
+
+  @override
+  Future<Uint8List> storeWeeklyReportPdf(
+    String userId,
+    FinancialWeekReport report,
+    Uint8List bytes,
+  ) {
+    return _storeVerifiedReportPdf(
+      userId,
+      report.shopId,
+      bytes,
+      'confirm_financial_week_pdf_v1',
+      {'p_end_date': report.endDate, 'p_fingerprint': report.fingerprint},
+    );
+  }
+
+  Future<Uint8List> _storeVerifiedReportPdf(
+    String userId,
+    String shopId,
+    Uint8List bytes,
+    String confirmationRpc,
+    Map<String, Object?> confirmation,
+  ) async {
     final token = _callerToken(userId);
     final sha = await R2MediaClient.sha256Hex(bytes);
     if (bytes.isEmpty || bytes.length > 20971520) {
@@ -1497,7 +1549,7 @@ class HttpOpeningGateway
       mime: 'application/pdf',
       sha256: sha,
     );
-    if (upload.objectKey != 'report-pdf/${report.shopId}/$sha.pdf') {
+    if (upload.objectKey != 'report-pdf/$shopId/$sha.pdf') {
       throw const FormatException('report_key');
     }
     _sameOwner(userId, token);
@@ -1511,9 +1563,8 @@ class HttpOpeningGateway
       throw const FormatException('report_media');
     }
     try {
-      await _rpc(userId, 'confirm_financial_day_pdf_v1', {
-        'p_day_id': report.day.id,
-        'p_fingerprint': report.fingerprint,
+      await _rpc(userId, confirmationRpc, {
+        ...confirmation,
         'p_object_key': upload.objectKey,
       });
     } on InventoryReadException catch (error) {

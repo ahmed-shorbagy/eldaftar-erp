@@ -1,5 +1,9 @@
 # Database design and transaction model
 
+## Weekly report continuation — local, pending migration
+
+`20261021133552_financial_week_reports.sql` adds owner-only stable `get_financial_week_report_v1(date)` and `confirm_financial_week_pdf_v1(date,text,text)` under [ADR 0026](adr/0026-weekly-financial-reports.md). The first composes every full daily snapshot with a financial date in the selected inclusive seven-date range, including duplicate dates with distinct day ids, then computes authoritative weekly money/count/karat/category totals. The content hash includes complete day data and excludes generated timestamps and picker metadata. The confirmation rechecks that whole-week hash and an owned verified `report_pdf` registry row. No table, financial write or media kind is added. [Local implementation/deferred gates](reviews/weekly-reports-2026-10-21/implementation.md); no weekly SQL execution or hosted application is claimed.
+
 ## Selected financial-day report contract — 2026-10-21
 
 [ADR 0025](adr/0025-selected-financial-day-reports.md) defines `list_financial_report_days_v1()` and `get_financial_day_report_v1(uuid)`. Each derives the shop through the existing authenticated owner-reader boundary. The stable report RPC returns one MVCC snapshot with full ordered operation rows, effective gross/returned/net commerce totals, signed cash-method postings excluding opening initialization, separate counts, five exact karat buckets and a content fingerprint. It creates no financial or projection rows and has no feed pagination limit. The fingerprint excludes generation time and includes financial-day state and printed content.

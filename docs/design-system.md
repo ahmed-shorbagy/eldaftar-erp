@@ -1,5 +1,9 @@
 # ElDafttar UI theme contract
 
+## Weekly Reports continuation — local, unverified
+
+Reports adds «فتح التقرير الأسبوعي» to a dedicated Arabic RTL route. Show the selected start/end dates and a labelled «اختيار آخر يوم في الأسبوع» date picker; the week is seven inclusive financial dates. Keep the same 720-pixel measure, 16-pixel gutters, Cairo, semantic colors and wrapping 48-pixel controls. Follow the money/count/karat sections with expandable category/karat groups showing exact signed item contributions and separate financial-day sections containing the shared complete transaction card. Distinguish empty period from no gold trade activity. Export feedback stays beside its disabled-in-flight PDF control; access loss clears content and errors expose retry/latest-week recovery. PDF repeats operation number and financial date on continuation pages. No palette change, chart or guide card is introduced. [ADR 0026](adr/0026-weekly-financial-reports.md) and [local/deferred status](reviews/weekly-reports-2026-10-21/implementation.md). Checks and visual acceptance are deferred at the owner's request.
+
 ## Selected financial-day Reports — 2026-10-21
 
 Reports opens directly from the existing desktop destination or phone More entry. Within the shared 720-pixel measure, use a labelled financial-day selector, separate open/closed and shop-local opening/snapshot lines, the shop name, a primary Arabic PDF export control, exact money/count sections, five independent net bought/sold karat sections and expandable full transaction details. The selector's selected date has its own LTR run; opening time and state remain separate so enlarged phone text cannot clip them. Arabic RTL, Cairo, semantic theme colors, 16-pixel gutters, 48-pixel actions and persisted themes remain unchanged. No chart, guide or weekly/admin placeholder action is added.
