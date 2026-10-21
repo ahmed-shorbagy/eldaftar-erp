@@ -462,19 +462,12 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                       '${_method(method.code)} في الدفتر: ${displayPounds(_pounds(_map(widget.book['cash'])[method.code]))}',
                     ),
                     const SizedBox(height: 8),
-                    TextField(
+                    ledgerMoneyField(
                       key: Key('correction-cash-${method.code}'),
-                      controller: _cash[method.code],
-                      inputFormatters: const [CashInputFormatter()],
+                      context: context,
+                      controller: _cash[method.code]!,
                       readOnly: locked || !widget.writesEnabled,
-                      textDirection: TextDirection.ltr,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'المعدود ',
-                      ),
+                      label: 'المعدود',
                     ),
                   ],
                   for (var index = 0; index < _bookStock.length; index++) ...[
@@ -488,6 +481,9 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                       controller: _stockGrams[index],
                       readOnly: locked || !widget.writesEnabled,
                       textDirection: TextDirection.ltr,
+                      keyboardType: ledgerDecimalKeyboard,
+                      autocorrect: false,
+                      enableSuggestions: false,
                       decoration: ledgerFieldDecoration(
                         context,
                         label: 'الوزن المعدود بالجرام',
@@ -499,6 +495,9 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                       controller: _stockCounts[index],
                       readOnly: locked || !widget.writesEnabled,
                       textDirection: TextDirection.ltr,
+                      keyboardType: ledgerIntegerKeyboard,
+                      autocorrect: false,
+                      enableSuggestions: false,
                       decoration: ledgerFieldDecoration(
                         context,
                         label: 'العدد المعدود',

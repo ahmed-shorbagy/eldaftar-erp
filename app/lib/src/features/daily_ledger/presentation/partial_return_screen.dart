@@ -652,32 +652,21 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              TextField(
+                              ledgerGramsField(
                                 key: Key('partial-grams-$index'),
+                                context: context,
                                 controller: _lines[index].grams,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
                                 readOnly: locked,
-                                textDirection: TextDirection.ltr,
-                                decoration: ledgerFieldDecoration(
-                                  context,
-                                  label: 'الوزن المرتجع بالجرام',
-                                ),
+                                label: 'الوزن المرتجع بالجرام',
                               ),
                               if (!_lines[index].item.scrap) ...[
                                 const SizedBox(height: 12),
-                                TextField(
+                                ledgerCountField(
                                   key: Key('partial-count-$index'),
+                                  context: context,
                                   controller: _lines[index].count,
-                                  keyboardType: TextInputType.number,
                                   readOnly: locked,
-                                  textDirection: TextDirection.ltr,
-                                  decoration: ledgerFieldDecoration(
-                                    context,
-                                    label: 'عدد القطع المرتجعة',
-                                  ),
+                                  label: 'عدد القطع المرتجعة',
                                 ),
                               ],
                             ],
@@ -691,19 +680,12 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                       style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 10),
-                    TextField(
+                    ledgerMoneyField(
                       key: const Key('partial-consideration'),
+                      context: context,
                       controller: _consideration,
-                      inputFormatters: const [CashInputFormatter()],
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
                       readOnly: locked,
-                      textDirection: TextDirection.ltr,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'المقابل المتفق عليه',
-                      ),
+                      label: 'المقابل المتفق عليه',
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -715,26 +697,18 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                     ),
                     const SizedBox(height: 12),
                     for (final method in CashMethod.canonicalOrder) ...[
-                      TextField(
+                      ledgerMoneyField(
                         key: Key(
                           method == CashMethod.cash
                               ? 'partial-tender'
                               : 'partial-tender-${method.code}',
                         ),
+                        context: context,
                         controller: method == CashMethod.cash
                             ? _tender
-                            : _extraTenders[method.code],
-                        inputFormatters: const [CashInputFormatter()],
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                            : _extraTenders[method.code]!,
                         readOnly: locked,
-                        textDirection: TextDirection.ltr,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label:
-                              'النقد المرتجع · ${_methodLabel(method.code)}',
-                        ),
+                        label: 'النقد المرتجع · ${_methodLabel(method.code)}',
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -744,64 +718,36 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
-                      TextField(
+                      ledgerMoneyField(
                         key: const Key('partial-base'),
+                        context: context,
                         controller: _base,
-                        inputFormatters: const [CashInputFormatter()],
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
                         readOnly: locked,
-                        textDirection: TextDirection.ltr,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label: 'السعر الأساسي المرتجع',
-                        ),
+                        label: 'السعر الأساسي المرتجع',
                       ),
                       const SizedBox(height: 12),
-                      TextField(
+                      ledgerMoneyField(
                         key: const Key('partial-work'),
+                        context: context,
                         controller: _work,
-                        inputFormatters: const [CashInputFormatter()],
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
                         readOnly: locked,
-                        textDirection: TextDirection.ltr,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label: 'المصنعية المرتجعة',
-                        ),
+                        label: 'المصنعية المرتجعة',
                       ),
                       const SizedBox(height: 12),
-                      TextField(
+                      ledgerMoneyField(
                         key: const Key('partial-other'),
+                        context: context,
                         controller: _other,
-                        inputFormatters: const [CashInputFormatter()],
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
                         readOnly: locked,
-                        textDirection: TextDirection.ltr,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label: 'الرسوم الأخرى المرتجعة',
-                        ),
+                        label: 'الرسوم الأخرى المرتجعة',
                       ),
                       const SizedBox(height: 12),
-                      TextField(
+                      ledgerMoneyField(
                         key: const Key('partial-discount'),
+                        context: context,
                         controller: _discount,
-                        inputFormatters: const [CashInputFormatter()],
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
                         readOnly: locked,
-                        textDirection: TextDirection.ltr,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label: 'الخصم المرتجع',
-                        ),
+                        label: 'الخصم المرتجع',
                       ),
                       const SizedBox(height: 12),
                     ],

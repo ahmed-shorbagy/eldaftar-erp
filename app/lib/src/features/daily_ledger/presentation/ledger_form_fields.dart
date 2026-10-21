@@ -1,4 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../../theme/cash_input.dart';
+
+/// Decimal money and weight keyboard (number pad with decimal separator).
+const TextInputType ledgerDecimalKeyboard = TextInputType.numberWithOptions(
+  decimal: true,
+);
+
+/// Whole-count keyboard (number pad without letters).
+const TextInputType ledgerIntegerKeyboard = TextInputType.number;
+
+/// Signed decimal keyboard for inventory corrections that allow negatives.
+const TextInputType ledgerSignedDecimalKeyboard =
+    TextInputType.numberWithOptions(decimal: true, signed: true);
 
 /// Filled outline field used by the daily ledger forms.
 ///
@@ -16,6 +31,119 @@ InputDecoration ledgerFieldDecoration(
     alignLabelWithHint: true,
     floatingLabelBehavior: FloatingLabelBehavior.always,
     contentPadding: const EdgeInsetsDirectional.fromSTEB(16, 18, 16, 18),
+  );
+}
+
+/// Money field: LTR digits, cash grouping, and a decimal number keyboard.
+TextField ledgerMoneyField({
+  Key? key,
+  required BuildContext context,
+  required TextEditingController controller,
+  required String label,
+  bool readOnly = false,
+  bool signed = false,
+  String? helper,
+  String? hint,
+  int? maxLines = 1,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onChanged,
+  ValueChanged<String>? onSubmitted,
+  FocusNode? focusNode,
+  List<TextInputFormatter>? extraFormatters,
+}) {
+  return TextField(
+    key: key,
+    controller: controller,
+    focusNode: focusNode,
+    readOnly: readOnly,
+    maxLines: maxLines,
+    textDirection: TextDirection.ltr,
+    keyboardType: signed ? ledgerSignedDecimalKeyboard : ledgerDecimalKeyboard,
+    textInputAction: textInputAction,
+    autocorrect: false,
+    enableSuggestions: false,
+    inputFormatters: [
+      CashInputFormatter(signed: signed),
+      ...?extraFormatters,
+    ],
+    decoration: ledgerFieldDecoration(
+      context,
+      label: label,
+      helper: helper,
+      hint: hint,
+    ),
+    onChanged: onChanged,
+    onSubmitted: onSubmitted,
+  );
+}
+
+/// Weight-in-grams field with a decimal number keyboard.
+TextField ledgerGramsField({
+  Key? key,
+  required BuildContext context,
+  required TextEditingController controller,
+  required String label,
+  bool readOnly = false,
+  String? helper,
+  List<TextInputFormatter>? inputFormatters,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onChanged,
+  ValueChanged<String>? onSubmitted,
+  FocusNode? focusNode,
+}) {
+  return TextField(
+    key: key,
+    controller: controller,
+    focusNode: focusNode,
+    readOnly: readOnly,
+    textDirection: TextDirection.ltr,
+    keyboardType: ledgerDecimalKeyboard,
+    textInputAction: textInputAction,
+    autocorrect: false,
+    enableSuggestions: false,
+    inputFormatters: inputFormatters,
+    decoration: ledgerFieldDecoration(
+      context,
+      label: label,
+      helper: helper,
+    ),
+    onChanged: onChanged,
+    onSubmitted: onSubmitted,
+  );
+}
+
+/// Piece-count field with an integer number keyboard.
+TextField ledgerCountField({
+  Key? key,
+  required BuildContext context,
+  required TextEditingController controller,
+  required String label,
+  bool readOnly = false,
+  String? helper,
+  List<TextInputFormatter>? inputFormatters,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onChanged,
+  ValueChanged<String>? onSubmitted,
+  FocusNode? focusNode,
+}) {
+  return TextField(
+    key: key,
+    controller: controller,
+    focusNode: focusNode,
+    readOnly: readOnly,
+    textDirection: TextDirection.ltr,
+    keyboardType: ledgerIntegerKeyboard,
+    textInputAction: textInputAction,
+    autocorrect: false,
+    enableSuggestions: false,
+    inputFormatters: inputFormatters,
+    decoration: ledgerFieldDecoration(
+      context,
+      label: label,
+      helper: helper,
+    ),
+    onChanged: onChanged,
+    onSubmitted: onSubmitted,
   );
 }
 

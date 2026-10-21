@@ -264,19 +264,12 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                       onChanged: (value) => setState(() => _to = value ?? _to),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
+                    ledgerMoneyField(
                       key: const Key('transfer-amount'),
+                      context: context,
                       controller: _amount,
-                      inputFormatters: const [CashInputFormatter()],
-                      textDirection: TextDirection.ltr,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
+                      label: 'المبلغ',
                       textInputAction: TextInputAction.next,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'المبلغ ',
-                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(

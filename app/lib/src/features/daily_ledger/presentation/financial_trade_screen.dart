@@ -406,18 +406,16 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     String key,
     String label,
     TextEditingController controller,
-  ) => TextField(
+  ) => ledgerMoneyField(
     key: Key(key),
+    context: context,
     controller: controller,
-    inputFormatters: const [CashInputFormatter()],
-    textDirection: TextDirection.ltr,
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    label: label,
     textInputAction: TextInputAction.next,
     onChanged: (_) => setState(() {
       if (_fastEntry) _priceDetails = true;
     }),
     onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-    decoration: ledgerFieldDecoration(context, label: label),
   );
 
   List<Widget> _pricingFields(ThemeData theme) {

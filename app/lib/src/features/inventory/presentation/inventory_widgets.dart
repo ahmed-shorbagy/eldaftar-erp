@@ -202,16 +202,26 @@ Widget inventoryField({
   bool cashAmount = false,
   int maxLength = 200,
 }) {
+  final numeric =
+      cashAmount ||
+      keyboard == TextInputType.number ||
+      keyboard.decimal == true ||
+      keyboard.signed == true;
+  final resolvedKeyboard = cashAmount && keyboard == TextInputType.text
+      ? const TextInputType.numberWithOptions(decimal: true)
+      : keyboard;
   return TextField(
     key: fieldKey,
     controller: controller,
     focusNode: focusNode,
     enabled: enabled,
     maxLength: maxLength,
-    keyboardType: keyboard,
-    textDirection: cashAmount ? TextDirection.ltr : null,
+    keyboardType: resolvedKeyboard,
+    textDirection: cashAmount || numeric ? TextDirection.ltr : null,
+    autocorrect: numeric ? false : true,
+    enableSuggestions: numeric ? false : true,
     inputFormatters: cashAmount
-        ? [CashInputFormatter(signed: keyboard.signed == true)]
+        ? [CashInputFormatter(signed: resolvedKeyboard.signed == true)]
         : null,
     textInputAction: action,
     decoration: ledgerFieldDecoration(context, label: label),

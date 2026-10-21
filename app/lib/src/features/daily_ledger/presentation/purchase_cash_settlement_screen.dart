@@ -10,6 +10,7 @@ import '../data/pending_financial_command.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
+import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class PurchaseCashSettlementScreen extends StatefulWidget {
@@ -210,17 +211,11 @@ class _PurchaseCashSettlementScreenState
                           setState(() => _method = value ?? _method),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
+                    ledgerMoneyField(
                       key: const Key('settlement-amount'),
+                      context: context,
                       controller: _amount,
-                      inputFormatters: const [CashInputFormatter()],
-                      textDirection: TextDirection.ltr,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'المبلغ المدفوع الآن ',
-                      ),
+                      label: 'المبلغ المدفوع الآن',
                     ),
                   ] else ...[
                     Card(

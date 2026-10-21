@@ -301,30 +301,20 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                     ),
                     const SizedBox(height: 12),
                     LedgerFieldPair(
-                      first: TextField(
+                      first: ledgerGramsField(
                         key: const Key('scrap-stock-grams'),
+                        context: context,
                         controller: _grams,
-                        textDirection: TextDirection.ltr,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                        label: 'الوزن بالجرام',
+                        helper: 'حتى ثلاث منازل عشرية',
                         textInputAction: TextInputAction.next,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label: 'الوزن بالجرام',
-                          helper: 'حتى ثلاث منازل عشرية',
-                        ),
                       ),
-                      second: TextField(
+                      second: ledgerCountField(
                         key: const Key('scrap-stock-count'),
+                        context: context,
                         controller: _count,
-                        textDirection: TextDirection.ltr,
-                        keyboardType: TextInputType.number,
+                        label: 'عدد القطع الجديدة',
                         textInputAction: TextInputAction.next,
-                        decoration: ledgerFieldDecoration(
-                          context,
-                          label: 'عدد القطع الجديدة',
-                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
