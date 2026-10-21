@@ -45,9 +45,7 @@ import 'daily_close_screen.dart';
 import 'cash_transfer_screen.dart';
 import 'scrap_to_stock_screen.dart';
 import 'ledger_app_bar.dart';
-import '../application/ledger_date_gateway.dart';
 import '../application/ledger_trade_change.dart';
-import 'ledger_date_screen.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
@@ -140,24 +138,45 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
 
   bool get _expired => widget.shop.entitlement == ShopEntitlement.expired;
 
-  bool get _currentCalendarDay {
-    final journal = _controller?.ledger?.journalContext;
-    return !_calendarBoundaryPassed &&
-        (journal == null ||
-            _financialDay?.businessDate == journal.businessDate);
-  }
-
+  /// Writes follow the open financial day until the owner closes it.
+  /// Calendar midnight refreshes reads only; it does not open or close a day.
   bool _canStartEntry(String userId) =>
       mounted &&
       widget.userId == userId &&
       !_expired &&
       _controller?.readOnly == false &&
-      _financialDay?.isOpen == true &&
-      _currentCalendarDay;
+      _financialDay?.isOpen == true;
+
+  String? get _tradeBlockedReason {
+    if (_expired || (_controller?.readOnly ?? true)) {
+      return 'الاشتراك منتهٍ. العرض للقراءة فقط.';
+    }
+    if (_financialPending != null) {
+      return 'عملية مالية بانتظار تأكيد الحفظ. أكملها قبل إضافة عملية جديدة.';
+    }
+    if (_financialDay == null) {
+      return 'جارٍ تحميل حالة يوم العمل.';
+    }
+    if (_financialDay!.isClosed) {
+      return 'يوم العمل مغلق. افتح اليوم قبل إضافة عملية.';
+    }
+    return null;
+  }
+
+  void _requestTrade(FinancialKind kind) {
+    final reason = _tradeBlockedReason;
+    if (reason != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(reason)));
+      return;
+    }
+    _startTrade(kind);
+  }
 
   void _onScroll() {
-    final collapsed = _scroll.hasClients &&
-        _scroll.offset > (_headerCollapsed ? 40 : 100);
+    final collapsed =
+        _scroll.hasClients && _scroll.offset > (_headerCollapsed ? 40 : 100);
     if (collapsed != _headerCollapsed) {
       setState(() => _headerCollapsed = collapsed);
     }
@@ -313,8 +332,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final canWrite =
         !_expired &&
         (_financialGateway == null || _financialDay?.isOpen == true) &&
-        day != null &&
-        _currentCalendarDay;
+        day != null;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => DailyNotesScreen(
@@ -561,7 +579,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     if (gateway == null ||
         userId == null ||
         _financialDay?.isOpen != true ||
-        !_currentCalendarDay ||
         _financialPending != null) {
       return;
     }
@@ -781,25 +798,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     await _maybeLoadFinancialDay(force: true);
   }
 
-  Future<void> _openDateLedger() async {
-    final gateway = _financialGateway;
-    final userId = widget.userId;
-    if (gateway is! LedgerDateGateway || userId == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => LedgerDateScreen(
-          gateway: gateway as LedgerDateGateway,
-          userId: userId,
-          shopId: widget.shop.id,
-          canRead: () => mounted && widget.userId == userId,
-          syncTicks: widget.syncTicks,
-          onOperation: _openOperation,
-          loadItems: _loadOperationItems,
-        ),
-      ),
-    );
-  }
-
   void _openPendingInvoices() {
     final gateway = _financialGateway;
     final userId = widget.userId;
@@ -987,24 +985,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               compact ? 28 : 36,
             ),
             children: [
-              if (!_currentCalendarDay && _financialDay?.isOpen == true)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'بدأ تاريخ جديد للمتجر. أغلق يوم العمل السابق صراحةً ثم افتح اليوم الجديد لإضافة العمليات. الأرصدة محفوظة.',
-                  ),
-                ),
-              if (_financialGateway is LedgerDateGateway &&
-                  controller?.ledger?.isConfirmed == true)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton.icon(
-                    key: const Key('ledger-date-navigation'),
-                    onPressed: _openDateLedger,
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    label: const Text('دفتر حسب التاريخ'),
-                  ),
-                ),
               if (_expired || (controller?.readOnly ?? false)) ...[
                 DecoratedBox(
                   decoration: BoxDecoration(
@@ -1150,29 +1130,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                   canReturn:
                       _financialGateway is LinkedReturnGateway &&
                       _financialDay?.isOpen == true &&
-                      _currentCalendarDay &&
                       !_expired &&
                       !controller.readOnly &&
                       _financialPending == null,
-                  onSale:
-                      _financialDay?.isOpen == true &&
-                          _currentCalendarDay &&
-                          !_expired &&
-                          !controller.readOnly &&
-                          _financialPending == null
-                      ? () => _startTrade(FinancialKind.sale)
-                      : null,
-                  onPurchase:
-                      _financialDay?.isOpen == true &&
-                          _currentCalendarDay &&
-                          !_expired &&
-                          !controller.readOnly &&
-                          _financialPending == null
-                      ? () => _startTrade(FinancialKind.purchase)
-                      : null,
+                  onSale: () => _requestTrade(FinancialKind.sale),
+                  onPurchase: () => _requestTrade(FinancialKind.purchase),
                   onExpense:
                       _financialDay?.isOpen == true &&
-                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
@@ -1180,7 +1144,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onCashTransfer:
                       _financialDay?.isOpen == true &&
-                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null &&
@@ -1189,7 +1152,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onScrapSale:
                       _financialDay?.isOpen == true &&
-                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
@@ -1197,7 +1159,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       : null,
                   onScrapToStock:
                       _financialDay?.isOpen == true &&
-                          _currentCalendarDay &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null &&

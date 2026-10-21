@@ -534,6 +534,7 @@ LedgerFeedLine _feedLine(Object? row) {
     'is_return',
     'occurred_at_shop',
     'party_name',
+    'party_phone',
     'total_pounds',
     'weight_grams',
     'karat',
@@ -580,6 +581,7 @@ LedgerFeedLine _feedLine(Object? row) {
       : false;
   final isReturn = row.containsKey('is_return') ? row['is_return'] : false;
   final party = row['party_name'];
+  final partyPhone = row['party_phone'];
   final total = row['total_pounds'];
   final weight = row['weight_grams'];
   final karat = row['karat'];
@@ -595,6 +597,9 @@ LedgerFeedLine _feedLine(Object? row) {
     throw const FormatException('feed items');
   }
   if ((party != null && (party is! String || !_plainText(party))) ||
+      (partyPhone != null &&
+          (partyPhone is! String ||
+              !RegExp(r'^\+?[0-9]{7,15}$').hasMatch(partyPhone))) ||
       (total != null &&
           (total is! String ||
               !RegExp(r'^[0-9]+\.[0-9]{2}$').hasMatch(total))) ||
@@ -641,6 +646,7 @@ LedgerFeedLine _feedLine(Object? row) {
     isDailyNote: dailyNote,
     isReturn: isReturn,
     partyName: party as String?,
+    partyPhone: partyPhone as String?,
     totalPounds: total as String?,
     weightGrams: weight as String?,
     karat: karat as int?,

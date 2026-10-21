@@ -18,20 +18,20 @@ void main() {
     'normalization selector persists default21 and switches all equivalent figures',
     (t) async {
       await host(t);
+      await tapVisible(t, find.byKey(const Key('ledger-customize')));
       await tapVisible(t, find.byKey(const ValueKey('ledger-normalize-21')));
       await t.tap(find.text('عيار 24').last);
       await t.pumpAndSettle();
       final tile = t.widget<LedgerMetricTile>(
         find.byKey(const Key('ledger-metric-sale_gold')),
       );
-      expect(tile.unit, 'جرام مكافئ عيار 24');
+      expect(tile.unit, 'جرام محيف عيار 24');
       expect(
         (await SharedPreferences.getInstance()).getStringList(
           'ledger_layout_feedback-shop',
         ),
         contains('normalize:24'),
       );
-      await tapVisible(t, find.byKey(const Key('ledger-customize')));
       await tapVisible(t, find.byKey(const Key('ledger-scrap-karat-14')));
       await tapVisible(t, find.byKey(const Key('ledger-scrap-karat-22')));
       final saved = (await SharedPreferences.getInstance()).getStringList(

@@ -58,6 +58,65 @@ class LedgerCashBreakdown extends StatelessWidget {
   }
 }
 
+/// Actual sold weights by category and karat. Karats stay separate.
+class LedgerSoldGoldBreakdown extends StatelessWidget {
+  const LedgerSoldGoldBreakdown({super.key, required this.view});
+
+  final DailyLedgerView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final groups = <String, List<LedgerGoldMovement>>{};
+    for (final row
+        in view.daySummary?.goldByBucket ?? const <LedgerGoldMovement>[]) {
+      if (row.kind != 'sale') continue;
+      groups.putIfAbsent(row.category, () => []).add(row);
+    }
+    for (final rows in groups.values) {
+      rows.sort((a, b) => b.karat.compareTo(a.karat));
+    }
+    const preferred = ['worked_jewelry', 'jewelry', 'bullion', 'coin', 'scrap'];
+    final categories = [
+      for (final category in preferred)
+        if (groups.containsKey(category)) category,
+      for (final category in groups.keys)
+        if (!preferred.contains(category)) category,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('ذهب مباع', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          'الوزن الفعلي لكل صنف وعيار.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (categories.isEmpty)
+          const Text('لا يوجد ذهب مباع.', key: Key('ledger-sale-gold-empty'))
+        else
+          for (final category in categories)
+            _InventoryCategoryBlock(
+              category: category,
+              label: goldCategoryLabel(category),
+              items: [
+                for (final row in groups[category]!)
+                  (
+                    karat: row.karat,
+                    grams: row.milligrams,
+                    count: category == 'scrap' ? null : row.count,
+                  ),
+              ],
+            ),
+      ],
+    );
+  }
+}
+
 /// Confirmed stock and scrap. Honest when both are empty.
 class LedgerGoldBreakdown extends StatelessWidget {
   const LedgerGoldBreakdown({super.key, required this.view});
@@ -486,7 +545,9 @@ class LedgerMetricTile extends StatelessWidget {
     required this.icon,
     required this.tone,
     this.compact = false,
-    this.trailing,
+    this.onOpen,
+    this.openTooltip,
+    this.openKey,
   });
 
   final String label;
@@ -495,12 +556,15 @@ class LedgerMetricTile extends StatelessWidget {
   final IconData icon;
   final LedgerMetricTone tone;
   final bool compact;
-  final Widget? trailing;
+  final VoidCallback? onOpen;
+  final String? openTooltip;
+  final Key? openKey;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final interactive = onOpen != null;
     final (Color accent, Color wash) = switch (tone) {
       LedgerMetricTone.primary => (
         scheme.primary,
@@ -519,84 +583,105 @@ class LedgerMetricTile extends StatelessWidget {
         scheme.surfaceContainerHighest.withValues(alpha: 0.7),
       ),
     };
-    return Semantics(
-      label: [label, value, if (unit.isNotEmpty) unit].join(' '),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppSemanticColors.of(context).goldFrame),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            compact ? 10 : 14,
-            compact ? 10 : 14,
-            compact ? 10 : 14,
-            compact ? 10 : 14,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final frame = AppSemanticColors.of(context).goldFrame;
+    final side = interactive
+        ? BorderSide(color: accent.withValues(alpha: 0.55), width: 1.4)
+        : BorderSide(color: frame);
+    final body = Padding(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 10 : 14,
+        compact ? 10 : 14,
+        compact ? 10 : 14,
+        compact ? 10 : 14,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: wash,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(icon, size: 18, color: accent),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.25,
-                      ),
-                    ),
-                  ),
-                  ?trailing,
-                ],
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: wash,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(icon, size: 18, color: accent),
+                ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: MediaQuery.textScalerOf(context).scale(30),
-                child: FittedBox(
-                  alignment: AlignmentDirectional.centerStart,
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    textDirection: TextDirection.ltr,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.25,
                   ),
                 ),
               ),
-              Text(
-                unit.isEmpty ? ' ' : unit,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              if (interactive)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: accent.withValues(alpha: 0.35)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.keyboard_arrow_left_rounded,
+                      size: 18,
+                      color: accent,
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: MediaQuery.textScalerOf(context).scale(30),
+            child: FittedBox(
+              alignment: AlignmentDirectional.centerStart,
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                maxLines: 1,
+                textDirection: TextDirection.ltr,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                ),
+              ),
+            ),
+          ),
+          Text(
+            unit.isEmpty ? ' ' : unit,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
+    );
+    final card = Material(
+      key: openKey,
+      color: scheme.surfaceContainerLow,
+      elevation: interactive ? 1.5 : 0,
+      shadowColor: scheme.shadow.withValues(alpha: 0.18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: side,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: interactive ? InkWell(onTap: onOpen, child: body) : body,
+    );
+    return Semantics(
+      button: interactive,
+      label: [label, value, if (unit.isNotEmpty) unit, ?openTooltip].join(' '),
+      child: openTooltip == null
+          ? card
+          : Tooltip(message: openTooltip!, child: card),
     );
   }
 }

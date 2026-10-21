@@ -352,7 +352,7 @@ void main() {
           expect(tester.takeException(), isNull);
           await tester.pumpAndSettle();
           expect(find.text('حركة الذهب'), findsNothing);
-          expect(find.byKey(const Key('ledger-more-metrics')), findsNothing);
+          expect(find.byKey(const Key('ledger-more-metrics')), findsOneWidget);
           expect(find.byKey(const Key('ledger-metric-strip')), findsOneWidget);
           expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
           expect(

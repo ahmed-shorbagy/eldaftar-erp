@@ -21,6 +21,8 @@ import '../application/ledger_trade_change.dart';
 import '../domain/financial_draft.dart';
 import 'financial_trade_screen.dart';
 import 'ledger_trade_change_screen.dart';
+import 'linked_return_screen.dart';
+import 'partial_return_screen.dart';
 import 'exchange_effect_review.dart';
 
 class FinancialOperationScreen extends StatefulWidget {
@@ -225,8 +227,76 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   }
 
   bool _changeBusy = false;
+  bool _returnBusy = false;
   String? _changeError;
   bool get _active => _operation?['trade_change'] == null;
+
+  Future<void> _returnOperation() async {
+    final gateway = widget.gateway;
+    final operation = _operation;
+    final shopId = widget.shopId ?? operation?['shop_id'];
+    if (_returnBusy ||
+        !_active ||
+        _loading ||
+        gateway is! LinkedReturnGateway ||
+        gateway is! OpeningGateway ||
+        operation == null ||
+        shopId is! String ||
+        widget.canWrite?.call() == false) {
+      return;
+    }
+    setState(() => _returnBusy = true);
+    try {
+      if (gateway is PartialReturnGateway) {
+        try {
+          final remainder = await (gateway as PartialReturnGateway).remainder(
+            callerUserId: widget.userId,
+            operationId: widget.line.operationId,
+          );
+          if (!mounted || widget.canWrite?.call() == false) return;
+          final saved = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => PartialReturnScreen(
+                gateway: gateway as PartialReturnGateway,
+                statusGateway: gateway as OpeningGateway,
+                dayGateway: gateway,
+                userId: widget.userId,
+                shopId: shopId,
+                remainder: remainder,
+                writesEnabled: widget.canWrite?.call() != false,
+              ),
+            ),
+          );
+          if (saved == true && mounted) await _load();
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'تعذر قراءة المتبقي من العملية. حدّث الدفتر وأعد المحاولة.',
+                ),
+              ),
+            );
+          }
+        }
+        return;
+      }
+      final saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => LinkedReturnScreen(
+            gateway: gateway as LinkedReturnGateway,
+            statusGateway: gateway as OpeningGateway,
+            userId: widget.userId,
+            shopId: shopId,
+            operation: operation,
+          ),
+        ),
+      );
+      if (saved == true && mounted) await _load();
+    } finally {
+      if (mounted) setState(() => _returnBusy = false);
+    }
+  }
 
   Future<bool> _reviewChange(
     String action, {
@@ -628,6 +698,31 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       if (_active &&
                           (widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase') &&
+                          widget.gateway is LinkedReturnGateway &&
+                          widget.gateway is OpeningGateway &&
+                          widget.canWrite?.call() != false) ...[
+                        const SizedBox(height: 16),
+                        if (operation?['returned_by_operation_id'] is String)
+                          const Text('سُجل مرتجع كامل لهذه العملية.')
+                        else ...[
+                          if (_returnBusy) const LinearProgressIndicator(),
+                          OutlinedButton.icon(
+                            key: const Key('operation-create-return'),
+                            onPressed: _returnBusy || _changeBusy || _loading
+                                ? null
+                                : _returnOperation,
+                            icon: const Icon(Icons.assignment_return_outlined),
+                            label: Text(
+                              widget.gateway is PartialReturnGateway
+                                  ? 'تسجيل مرتجع أو استبدال'
+                                  : 'تسجيل مرتجع كامل',
+                            ),
+                          ),
+                        ],
+                      ],
+                      if (_active &&
+                          (widget.line.kind == 'sale' ||
+                              widget.line.kind == 'purchase') &&
                           widget.gateway is LedgerTradeChangeGateway &&
                           widget.gateway is OpeningGateway &&
                           widget.canWrite?.call() != false) ...[
@@ -638,7 +733,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         if (_changeBusy) const LinearProgressIndicator(),
                         OutlinedButton.icon(
                           key: const Key('operation-edit'),
-                          onPressed: _changeBusy || _loading
+                          onPressed: _changeBusy || _returnBusy || _loading
                               ? null
                               : () => _changeTrade('edit'),
                           icon: const Icon(Icons.edit_outlined),
@@ -646,7 +741,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         ),
                         OutlinedButton.icon(
                           key: const Key('operation-delete'),
-                          onPressed: _changeBusy || _loading
+                          onPressed: _changeBusy || _returnBusy || _loading
                               ? null
                               : () => _changeTrade('delete'),
                           icon: const Icon(Icons.delete_outline),

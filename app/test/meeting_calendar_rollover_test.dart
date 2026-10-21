@@ -52,7 +52,7 @@ class RolloverGateway extends FakeFinancialGateway {
 
 void main() {
   testWidgets(
-    'server midnight refreshes the calendar journal without financially closing the open day',
+    'server midnight refreshes without closing the open day or blocking entry',
     (t) async {
       SharedPreferences.setMockInitialValues({});
       FlutterSecureStorage.setMockInitialValues({});
@@ -91,16 +91,18 @@ void main() {
           )
           .ledger!;
       expect(gateway.reads, greaterThanOrEqualTo(2));
-      expect(ledger.journalContext?.businessDate, '2026-10-20');
-      expect(ledger.feed, isEmpty);
       expect(ledger.cash.first.piastres, '1000000');
       expect(ledger.businessDay?.businessDate, '2026-10-19');
       expect(gateway.closeCounts, isEmpty);
       expect(gateway.keys, isEmpty);
       expect(
-        find.textContaining('أغلق يوم العمل السابق صراحةً'),
-        findsOneWidget,
+        find.textContaining('أغلق يوم العمل السابق ثم افتح اليوم الجديد'),
+        findsNothing,
       );
+      expect(find.byKey(const Key('ledger-new-sale')), findsOneWidget);
+      await t.tap(find.byKey(const Key('ledger-new-sale')));
+      await t.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
       await t.pumpWidget(const SizedBox());
     },
   );

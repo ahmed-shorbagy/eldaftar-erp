@@ -20,7 +20,7 @@ class LedgerNormalizationControl extends StatelessWidget {
   Widget build(BuildContext context) => DropdownButtonFormField<int>(
     key: ValueKey('ledger-normalize-$value'),
     initialValue: value,
-    decoration: const InputDecoration(labelText: 'عرض الذهب بمكافئ عيار'),
+    decoration: const InputDecoration(labelText: 'عرض الذهب بمحيف عيار'),
     items: [
       for (final karat in normalizationKarats)
         DropdownMenuItem(value: karat, child: Text('عيار $karat')),
@@ -78,7 +78,7 @@ Map<String, LedgerMetricSpec> ledgerMetricValues(
     return displayGrams(milligrams.toString());
   }
 
-  final equivalent = 'جرام مكافئ عيار $targetKarat';
+  final equivalent = 'جرام محيف عيار $targetKarat';
   return {
     'total_cash': LedgerMetricSpec(
       ledgerMetricLabel('total_cash'),

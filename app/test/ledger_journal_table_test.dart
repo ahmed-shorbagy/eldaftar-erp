@@ -8,14 +8,19 @@ import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-LedgerFeedLine line(String id) => LedgerFeedLine(
+LedgerFeedLine line(
+  String id, {
+  String? partyName = 'عميل اختبار',
+  String? partyPhone = '01012345678',
+}) => LedgerFeedLine(
   kind: 'sale',
   labelAr: 'بيع',
   operationId: id,
   actorDisplayName: 'مالك اختبار',
   occurredAt: '2026-10-12T09:00:00Z',
   occurredAtCairo: '2026-10-12T12:00:00',
-  partyName: 'عميل اختبار',
+  partyName: partyName,
+  partyPhone: partyPhone,
   totalPounds: '1200000.25',
   weightGrams: '1.255',
 );
@@ -87,7 +92,9 @@ void main() {
         expect(find.text('سلسلة اختبار'), findsOneWidget);
         expect(find.text('تعليقة اختبار'), findsNothing);
         expect(find.text('1,200,000.25'), findsOneWidget);
-        expect(find.textContaining('عميل اختبار'), findsNothing);
+        expect(find.text('العميل: عميل اختبار'), findsOneWidget);
+        expect(find.textContaining('الجوال:'), findsOneWidget);
+        expect(find.textContaining('01012345678'), findsOneWidget);
         expect(find.textContaining('اسم البائع: مالك اختبار'), findsOneWidget);
         expect(find.textContaining('كاش'), findsNothing);
         await tester.tap(find.text('عرض المزيد'));
@@ -131,6 +138,23 @@ void main() {
     expect(find.text('خاتم اختبار'), findsNothing);
   });
 
+  testWidgets('omits customer lines when name and phone are absent', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      surface(
+        LedgerOperationTable(
+          line: line('sale', partyName: null, partyPhone: null),
+          showDetails: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('اسم البائع: مالك اختبار'), findsOneWidget);
+    expect(find.textContaining('العميل:'), findsNothing);
+    expect(find.textContaining('الجوال:'), findsNothing);
+  });
+
   testWidgets('failed item reads have a retry with no fabricated rows', (
     tester,
   ) async {
@@ -149,7 +173,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('اسم البائع: مالك اختبار'), findsOneWidget);
-    expect(find.textContaining('عميل اختبار'), findsNothing);
+    expect(find.text('العميل: عميل اختبار'), findsOneWidget);
     expect(find.text('خاتم اختبار'), findsNothing);
     await tester.tap(find.text('تعذر تحميل الأصناف. إعادة المحاولة'));
     await tester.pumpAndSettle();

@@ -53,25 +53,26 @@ begin
 end;
 $test$;
 reset role;
--- Move the still-open financial session to yesterday: the main journal must
--- clear automatically while cash/stock and explicit close state remain intact.
+-- Move the still-open financial session to yesterday: the home journal stays on
+-- that open day until explicit close. Cash/stock remain intact. Calendar-date
+-- notes for today stay empty when no session exists on the calendar date.
 update public.business_days set business_date = business_date - 1, opened_at = opened_at - interval '1 day'
 where shop_id = 'c2900000-0000-4000-8000-000000000001';
 set local role authenticated;
 do $empty$
-declare v_home jsonb; v_old jsonb; v_notes jsonb;
+declare v_home jsonb; v_old jsonb; v_notes jsonb; v_open_date text; v_day text;
 begin
   v_old := public.get_daily_ledger_v2();
   v_home := public.get_daily_ledger_home_v1();
   v_notes := public.list_daily_notes_date_v1((now() at time zone 'Africa/Cairo')::date, null, 30, null);
+  v_open_date := v_old #>> '{business_day,business_date}';
+  v_day := v_old #>> '{business_day,id}';
   if v_home -> 'cash' <> v_old -> 'cash' or v_home -> 'stock' <> v_old -> 'stock'
     or v_home -> 'business_day' <> v_old -> 'business_day'
-    or v_home -> 'feed' <> '[]'::jsonb
-    or v_home #> '{journal_context,day_ids}' <> '[]'::jsonb
-    or v_home #>> '{day_summary,sale_count}' <> '0'
-    or v_home #>> '{journal_context,note_count}' <> '0'
+    or v_home #>> '{journal_context,business_date}' is distinct from v_open_date
+    or v_home #> '{journal_context,day_ids}' <> jsonb_build_array(v_day)
     or v_notes #> '{page,items}' <> '[]'::jsonb then
-    raise exception 'empty calendar date leaked previous day %',v_home;
+    raise exception 'open-day home journal drifted %',v_home;
   end if;
 end;
 $empty$;

@@ -55,8 +55,8 @@ final class DailyLedgerView {
   }
 }
 
-/// Calendar journal identity and rollover timing are supplied by the server.
-/// An old open financial day can coexist with a new empty calendar journal.
+/// Journal identity and rollover timing are supplied by the server.
+/// While a financial day is open, home journal follows that day until close.
 final class LedgerJournalContext {
   const LedgerJournalContext({
     required this.businessDate,
@@ -207,6 +207,7 @@ final class LedgerFeedLine {
     this.isDailyNote = false,
     this.isReturn = false,
     this.partyName,
+    this.partyPhone,
     this.totalPounds,
     this.weightGrams,
     this.karat,
@@ -227,6 +228,9 @@ final class LedgerFeedLine {
   final bool isDailyNote;
   final bool isReturn;
   final String? partyName;
+
+  /// Optional customer mobile from the trade payload when the owner recorded one.
+  final String? partyPhone;
   final String? totalPounds;
   final String? weightGrams;
   final int? karat;

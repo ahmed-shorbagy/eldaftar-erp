@@ -360,8 +360,14 @@ void compensationWorkflowTests() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('إرجاع كامل المتبقي'));
       await tester.tap(find.text('إرجاع كامل المتبقي'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('partial-consideration')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('partial-consideration')))

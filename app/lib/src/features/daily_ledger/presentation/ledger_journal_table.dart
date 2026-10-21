@@ -109,30 +109,41 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
         ? items
         : items.take(2).toList();
     final time = formatShopTwelveHourTime(line.displayTime);
+    final cardBorder = AppSemanticColors.of(context).ledgerCardBorder;
+    final partyName = line.partyName?.trim();
+    final partyPhone = line.partyPhone?.trim();
+    final hasPartyName = partyName != null && partyName.isNotEmpty;
+    final hasPartyPhone = partyPhone != null && partyPhone.isNotEmpty;
+    final metaStyle = theme.textTheme.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      height: 1.3,
+    );
     return Padding(
       padding: const EdgeInsets.only(top: 6, bottom: 6),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppSemanticColors.of(context).ledgerCardBorder,
-          ),
+      child: Material(
+        color: scheme.surfaceContainerLow,
+        elevation: widget.onOpen == null ? 0 : 0.5,
+        shadowColor: scheme.shadow.withValues(alpha: 0.12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: cardBorder),
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InkWell(
-                key: Key('ledger-open-${line.kind}-${line.operationId}'),
-                onTap: widget.onOpen,
-                borderRadius: BorderRadius.circular(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: Key('ledger-open-${line.kind}-${line.operationId}'),
+          onTap: widget.onOpen,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        ...[
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           DecoratedBox(
                             decoration: BoxDecoration(
                               color: scheme.primary.withValues(alpha: 0.12),
@@ -140,8 +151,8 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: 9,
+                                vertical: 5,
                               ),
                               child: Text(
                                 '${widget.position}',
@@ -150,6 +161,7 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
                                 ),
                                 textDirection: TextDirection.ltr,
                                 style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                   fontFeatures: const [
                                     FontFeature.tabularFigures(),
                                   ],
@@ -157,198 +169,268 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  line.labelAr,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'اسم البائع: ${line.actorDisplayName}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: metaStyle,
+                                ),
+                                if (hasPartyName) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'العميل: $partyName',
+                                    key: Key(
+                                      'ledger-party-name-${line.kind}-${line.operationId}',
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: metaStyle,
+                                  ),
+                                ],
+                                if (hasPartyPhone) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'الجوال: \u2066$partyPhone\u2069',
+                                    key: Key(
+                                      'ledger-party-phone-${line.kind}-${line.operationId}',
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: metaStyle,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ],
-                        Expanded(
-                          child: Text(
-                            line.labelAr,
-                            style: theme.textTheme.titleSmall,
-                          ),
-                        ),
-                        if (line.totalPounds != null)
-                          Flexible(
-                            child: Text(
-                              displayPounds(line.totalPounds!),
-                              textDirection: TextDirection.ltr,
-                              style: theme.textTheme.titleMedium,
-                            ),
-                          ),
-                        if (widget.onOpen != null)
-                          IconButton(
-                            key: Key(
-                              'ledger-open-btn-${line.kind}-${line.operationId}',
-                            ),
-                            tooltip: 'تفاصيل العملية',
-                            onPressed: widget.onOpen,
-                            style: IconButton.styleFrom(
-                              minimumSize: const Size(48, 48),
-                              shape: const CircleBorder(),
-                            ),
-                            icon: const Icon(Icons.chevron_left),
-                          ),
-                      ],
+                      ),
                     ),
-                    Row(
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Expanded(
-                          child: Text(
-                            'اسم البائع: ${line.actorDisplayName}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (line.totalPounds != null)
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 128,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: AlignmentDirectional.centerEnd,
+                                  child: Text(
+                                    displayPounds(line.totalPounds!),
+                                    maxLines: 1,
+                                    textDirection: TextDirection.ltr,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            if (widget.onOpen != null) ...[
+                              const SizedBox(width: 8),
+                              Material(
+                                key: Key(
+                                  'ledger-open-btn-${line.kind}-${line.operationId}',
+                                ),
+                                color: scheme.primaryContainer,
+                                elevation: 1,
+                                shadowColor: scheme.shadow.withValues(
+                                  alpha: 0.18,
+                                ),
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: widget.onOpen,
+                                  child: SizedBox(
+                                    width: 36,
+                                    height: 36,
+                                    child: Icon(
+                                      Icons.keyboard_arrow_left_rounded,
+                                      size: 22,
+                                      color: scheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
+                        const SizedBox(height: 6),
                         Text(
                           time,
                           key: Key(
                             'ledger-time-${line.kind}-${line.operationId}',
                           ),
+                          textDirection: TextDirection.ltr,
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: scheme.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-              if (widget.showDetails) ...[
-                if (_loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (_failed)
-                  TextButton.icon(
-                    onPressed: _load,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('تعذر تحميل الأصناف. إعادة المحاولة'),
-                  ),
-                if (items != null && items.isEmpty)
-                  const Text('لا تحتوي العملية على أصناف مفصلة.'),
-                if (visible.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  LayoutBuilder(
-                    builder: (context, bounds) {
-                      final scale = MediaQuery.textScalerOf(context).scale(1);
-                      final minimum = scale > 1.3
-                          ? 360 * scale
-                          : bounds.maxWidth;
-                      final width = minimum > bounds.maxWidth
-                          ? minimum
-                          : bounds.maxWidth;
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            width: width,
-                            child: Table(
-                              border: TableBorder(
-                                horizontalInside: BorderSide(
-                                  color: border.withValues(alpha: 0.45),
-                                ),
-                              ),
-                              columnWidths: {
-                                0: const FlexColumnWidth(),
-                                1: FixedColumnWidth(52 * scale),
-                                2: FixedColumnWidth(72 * scale),
-                                3: FixedColumnWidth(44 * scale),
-                              },
-                              defaultVerticalAlignment:
-                                  TableCellVerticalAlignment.middle,
-                              children: [
-                                TableRow(
-                                  decoration: BoxDecoration(
-                                    color: scheme.primary.withValues(
-                                      alpha: 0.09,
-                                    ),
+                if (widget.showDetails) ...[
+                  if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    ),
+                  if (_failed)
+                    TextButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('تعذر تحميل الأصناف. إعادة المحاولة'),
+                    ),
+                  if (items != null && items.isEmpty)
+                    const Text('لا تحتوي العملية على أصناف مفصلة.'),
+                  if (visible.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    LayoutBuilder(
+                      builder: (context, bounds) {
+                        final scale = MediaQuery.textScalerOf(context).scale(1);
+                        final minimum = scale > 1.3
+                            ? 360 * scale
+                            : bounds.maxWidth;
+                        final width = minimum > bounds.maxWidth
+                            ? minimum
+                            : bounds.maxWidth;
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: width,
+                              child: Table(
+                                border: TableBorder(
+                                  horizontalInside: BorderSide(
+                                    color: border.withValues(alpha: 0.45),
                                   ),
-                                  children: [
-                                    _cell(context, 'الصنف', heading: true),
-                                    _cell(
-                                      context,
-                                      'العيار',
-                                      heading: true,
-                                      numeric: true,
-                                    ),
-                                    _cell(
-                                      context,
-                                      'الوزن\n(جرام)',
-                                      heading: true,
-                                      numeric: true,
-                                    ),
-                                    _cell(
-                                      context,
-                                      'العدد',
-                                      heading: true,
-                                      numeric: true,
-                                    ),
-                                  ],
                                 ),
-                                for (final item in visible)
+                                columnWidths: {
+                                  0: const FlexColumnWidth(),
+                                  1: FixedColumnWidth(52 * scale),
+                                  2: FixedColumnWidth(72 * scale),
+                                  3: FixedColumnWidth(44 * scale),
+                                },
+                                defaultVerticalAlignment:
+                                    TableCellVerticalAlignment.middle,
+                                children: [
                                   TableRow(
+                                    decoration: BoxDecoration(
+                                      color: scheme.primary.withValues(
+                                        alpha: 0.09,
+                                      ),
+                                    ),
                                     children: [
-                                      _cell(context, item.name),
+                                      _cell(context, 'الصنف', heading: true),
                                       _cell(
                                         context,
-                                        item.karat == null
-                                            ? '—'
-                                            : '${item.karat}',
+                                        'العيار',
+                                        heading: true,
                                         numeric: true,
                                       ),
                                       _cell(
                                         context,
-                                        displayGrams(item.grams),
+                                        'الوزن\n(جرام)',
+                                        heading: true,
                                         numeric: true,
                                       ),
                                       _cell(
                                         context,
-                                        item.count ?? '—',
+                                        'العدد',
+                                        heading: true,
                                         numeric: true,
                                       ),
                                     ],
                                   ),
-                              ],
+                                  for (final item in visible)
+                                    TableRow(
+                                      children: [
+                                        _cell(context, item.name),
+                                        _cell(
+                                          context,
+                                          item.karat == null
+                                              ? '—'
+                                              : '${item.karat}',
+                                          numeric: true,
+                                        ),
+                                        _cell(
+                                          context,
+                                          displayGrams(item.grams),
+                                          numeric: true,
+                                        ),
+                                        _cell(
+                                          context,
+                                          item.count ?? '—',
+                                          numeric: true,
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-                if (items != null && items.length > 2)
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: TextButton.icon(
-                      key: Key(
-                        'ledger-items-more-${line.kind}-${line.operationId}',
-                      ),
-                      onPressed: () =>
-                          setState(() => _showAllItems = !_showAllItems),
-                      icon: Icon(
-                        _showAllItems ? Icons.expand_less : Icons.expand_more,
-                      ),
-                      label: Text(_showAllItems ? 'عرض أقل' : 'عرض المزيد'),
+                        );
+                      },
                     ),
-                  ),
-                if (items == null && !_loading && line.itemSummary != null)
-                  Text(
-                    [
-                      line.itemSummary!,
-                      if (line.pieceCount != null)
-                        'عدد القطع: ${line.pieceCount}',
-                    ].join(' · '),
-                    style: theme.textTheme.bodySmall,
-                  )
-                else if (line.pieceCount != null &&
-                    (items == null || items.isEmpty))
-                  Text(
-                    'عدد القطع: ${line.pieceCount}',
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  ],
+                  if (items != null && items.length > 2)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton.icon(
+                        key: Key(
+                          'ledger-items-more-${line.kind}-${line.operationId}',
+                        ),
+                        onPressed: () =>
+                            setState(() => _showAllItems = !_showAllItems),
+                        icon: Icon(
+                          _showAllItems ? Icons.expand_less : Icons.expand_more,
+                        ),
+                        label: Text(_showAllItems ? 'عرض أقل' : 'عرض المزيد'),
+                      ),
+                    ),
+                  if (items == null && !_loading && line.itemSummary != null)
+                    Text(
+                      [
+                        line.itemSummary!,
+                        if (line.pieceCount != null)
+                          'عدد القطع: ${line.pieceCount}',
+                      ].join(' · '),
+                      style: theme.textTheme.bodySmall,
+                    )
+                  else if (line.pieceCount != null &&
+                      (items == null || items.isEmpty))
+                    Text(
+                      'عدد القطع: ${line.pieceCount}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

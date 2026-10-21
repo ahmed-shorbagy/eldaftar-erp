@@ -208,9 +208,11 @@ void main() {
             ),
           );
           await shot('summary21');
+          await tap(find.byKey(const Key('ledger-customize')));
           await tap(find.byKey(const ValueKey('ledger-normalize-21')));
           await t.tap(find.text('عيار 24').last);
           await t.pumpAndSettle();
+          await tap(find.byKey(const Key('detail-close')));
           await shot('summary24');
           await tap(find.byKey(const Key('ledger-customize')));
           await shot('six-slots');

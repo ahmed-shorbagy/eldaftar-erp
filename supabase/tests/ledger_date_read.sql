@@ -112,7 +112,7 @@ insert into public.financial_operations (
 
 insert into public.financial_operation_details (operation_id, shop_id, payload, created_at) values
   ('e1100000-0000-4000-8000-000000000001', 'b1100000-0000-4000-8000-000000000001',
-    '{"version":1,"kind":"sale","total_piastres":"5000","tenders":[{"method":"cash","piastres":"5000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"1000","count":"1","item_name":"خاتم"}],"customer_name":"عميل أ","note":"ملاحظة بيع"}'::jsonb,
+    '{"version":1,"kind":"sale","total_piastres":"5000","tenders":[{"method":"cash","piastres":"5000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"1000","count":"1","item_name":"خاتم"}],"customer_name":"عميل أ","customer_phone":"01012345678","note":"ملاحظة بيع"}'::jsonb,
     timestamp '2020-01-15 11:15:30' at time zone 'Africa/Cairo'),
   ('e1100000-0000-4000-8000-000000000002', 'b1100000-0000-4000-8000-000000000001',
     '{"version":1,"kind":"scrap_sale","total_piastres":"2000","tenders":[{"method":"cash","piastres":"1000"},{"method":"card","piastres":"1000"}],"items":[{"category":"scrap","karat":21,"milligrams":"300","count":null,"item_name":"كسر"}],"customer_name":"","note":"اختبار كسر"}'::jsonb,
@@ -388,6 +388,7 @@ begin
   if v_item ->> 'occurred_at_shop' is distinct from '2020-01-15T11:15:30'
     or v_item ->> 'label_ar' is distinct from 'بيع'
     or v_item ->> 'party_name' is distinct from 'عميل أ'
+    or v_item ->> 'party_phone' is distinct from '01012345678'
     or v_item ->> 'has_note' is distinct from 'true'
     or v_item ->> 'actor_display_name' is distinct from 'المالك التاريخي' then
     raise exception 'sale feed fields drifted: %', v_item;
@@ -397,7 +398,9 @@ begin
   where item.value ->> 'shop_sequence' = '2';
   if v_item ->> 'kind' is distinct from 'scrap_sale'
     or v_item ->> 'label_ar' is distinct from 'بيع كسر'
-    or v_item ->> 'payment_label' is distinct from 'فيزا + كاش' then
+    or v_item ->> 'payment_label' is distinct from 'فيزا + كاش'
+    or v_item ? 'party_name'
+    or v_item ? 'party_phone' then
     raise exception 'scrap sale feed drifted: %', v_item;
   end if;
   select item.value into v_item

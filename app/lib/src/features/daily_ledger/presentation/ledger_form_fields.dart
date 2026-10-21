@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Filled outline field used by the daily ledger forms.
+///
+/// Labels stay on the outline (persistent) so empty and filled fields match.
 InputDecoration ledgerFieldDecoration(
   BuildContext context, {
   required String label,
@@ -8,10 +10,12 @@ InputDecoration ledgerFieldDecoration(
   String? hint,
 }) {
   return InputDecoration(
-    labelText: label,
+    labelText: label.trim(),
     helperText: helper,
     hintText: hint,
     alignLabelWithHint: true,
+    floatingLabelBehavior: FloatingLabelBehavior.always,
+    contentPadding: const EdgeInsetsDirectional.fromSTEB(16, 18, 16, 18),
   );
 }
 

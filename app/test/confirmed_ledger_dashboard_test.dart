@@ -113,6 +113,124 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('sold gold arrow opens actual weights by type and karat', (
+    tester,
+  ) async {
+    await pumpDashboard(
+      tester,
+      view: DailyLedgerView(
+        state: 'confirmed',
+        entitlementStatus: 'active',
+        canConfirm: false,
+        businessDay: null,
+        cash: ledger.cash,
+        stock: ledger.stock,
+        scrap: ledger.scrap,
+        feed: ledger.feed,
+        daySummary: LedgerDaySummary(
+          salePiastres: '0',
+          purchasePiastres: '0',
+          expensePiastres: '0',
+          saleCount: 3,
+          purchaseCount: 1,
+          expenseCount: 0,
+          goldByBucket: [
+            LedgerGoldMovement(
+              kind: 'sale',
+              category: 'worked_jewelry',
+              karat: 21,
+              milligrams: '2500',
+              count: '2',
+            ),
+            LedgerGoldMovement(
+              kind: 'sale',
+              category: 'bullion',
+              karat: 24,
+              milligrams: '10000',
+              count: '1',
+            ),
+            LedgerGoldMovement(
+              kind: 'sale',
+              category: 'scrap',
+              karat: 18,
+              milligrams: '1555',
+              count: '0',
+            ),
+            LedgerGoldMovement(
+              kind: 'purchase',
+              category: 'coin',
+              karat: 22,
+              milligrams: '8000',
+              count: '1',
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(find.text('مشغولات'), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const Key('ledger-sale-gold-weights')),
+    );
+    await tester.tap(find.byKey(const Key('ledger-sale-gold-weights')));
+    await tester.pumpAndSettle();
+    expect(find.text('مشغولات'), findsOneWidget);
+    expect(find.text('سبائك'), findsOneWidget);
+    expect(find.text('كسر'), findsOneWidget);
+    expect(find.text('جنيهات'), findsNothing);
+    expect(find.textContaining('2.50'), findsOneWidget);
+    expect(find.textContaining('10.00'), findsOneWidget);
+    expect(find.textContaining('1.56'), findsOneWidget);
+    expect(find.text('2 قطعة'), findsOneWidget);
+    expect(find.text('0 قطعة'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('empty journals always show add and hide the details icon', (
+    tester,
+  ) async {
+    await pumpDashboard(tester, size: const Size(390, 900));
+    expect(find.text('عرض التفاصيل'), findsNothing);
+    expect(find.byKey(const Key('ledger-journal-details-sale')), findsNothing);
+    expect(find.byKey(const Key('ledger-new-sale')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-new-purchase')), findsOneWidget);
+    expect(find.text('لا توجد عمليات حتى الآن.'), findsNWidgets(2));
+    expect(find.byKey(const Key('ledger-journal-divider')), findsOneWidget);
+  });
+
+  testWidgets('show more opens a sheet with every summary box', (tester) async {
+    await pumpDashboard(tester, size: const Size(390, 900));
+    expect(find.byKey(const Key('ledger-more-metrics')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-all-metrics')), findsNothing);
+    await tester.tap(find.byKey(const Key('ledger-more-metrics')));
+    await tester.pumpAndSettle();
+    expect(find.text('ملخص الأرقام'), findsOneWidget);
+    expect(find.byKey(const Key('ledger-all-metrics')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-total-cash')), findsWidgets);
+    expect(
+      find.byKey(const Key('ledger-metric-sale_karat_18')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('ledger-metric-scrap_purchase_21')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ledger filters are small buttons', (tester) async {
+    await pumpDashboard(tester, size: const Size(390, 900));
+    expect(find.byType(DropdownButtonFormField<bool>), findsNothing);
+    expect(find.text('ترتيب العمليات'), findsNothing);
+    final chip = find.ancestor(
+      of: find.text('الأحدث'),
+      matching: find.byType(ChoiceChip),
+    );
+    expect(chip, findsOneWidget);
+    final size = tester.getSize(chip);
+    expect(size.height, lessThan(36));
+    expect(size.width, lessThan(120));
+  });
+
   testWidgets('section visibility is saved and restored', (tester) async {
     await pumpDashboard(tester);
     await tester.tap(find.byKey(const Key('ledger-customize')));
@@ -128,6 +246,24 @@ void main() {
     expect(find.byKey(const Key('ledger-journal-sort')), findsNothing);
     expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
   });
+
+  testWidgets(
+    'home summary tiles share one size and settings sit in the gear',
+    (tester) async {
+      await pumpDashboard(tester, size: const Size(390, 900));
+      final cash = tester.getSize(find.byKey(const Key('ledger-total-cash')));
+      final sale = tester.getSize(find.byKey(const Key('ledger-metric-sale')));
+      expect(cash.width, sale.width);
+      expect(cash.height, sale.height);
+      expect(find.text('ملخص اليوم'), findsNothing);
+      expect(find.text('دفتر حسب التاريخ'), findsNothing);
+      expect(find.byKey(const ValueKey('ledger-normalize-21')), findsNothing);
+      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+      await tester.tap(find.byKey(const Key('ledger-customize')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('ledger-normalize-21')), findsOneWidget);
+    },
+  );
 
   testWidgets('narrow dark layout has no overflow', (tester) async {
     await pumpDashboard(

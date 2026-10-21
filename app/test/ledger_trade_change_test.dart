@@ -389,7 +389,7 @@ void main() {
     expect(gateway.posts, isEmpty);
   });
   testWidgets(
-    'details replace returns with edit and delete; server refuses ineligible source before posting',
+    'details keep edit and delete; return needs a return-capable gateway; server refuses ineligible source before posting',
     (t) async {
       final gateway = RevisionGateway()..reviewFailure = 'trade_has_followups';
       await t.pumpWidget(
@@ -403,6 +403,7 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
+      // RevisionGateway has trade-change only; return entry requires LinkedReturnGateway.
       expect(find.byKey(const Key('operation-create-return')), findsNothing);
       await t.scrollUntilVisible(
         find.byKey(const Key('operation-edit')),

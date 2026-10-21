@@ -29,7 +29,7 @@ Retained means existing behavior was reviewed and kept. Implemented means the co
 | M18-11 | 12:37–13:39 | Compact journal cards; hide initial weight/payment rows. | Retained. |
 | M18-12 | 13:39–13:50 | Seller label for recording person. | Retained. Delegated counters are not sellers. |
 | M18-13 | 13:57–15:14 | Omit redundant operation date; use 12-hour time. | Retained. |
-| M18-14 | 14:24–15:14 | Main ledger starts empty on each new shop date; earlier dates remain selectable. | Implemented: server-calendar journal, exact counters and midnight/resume refresh. Balances and explicit financial closing/opening remain separate; stale entry forms are blocked. |
+| M18-14 | 14:24–15:14 | Main ledger starts empty on each new shop date; earlier dates remain selectable. | Superseded 2026-10-21 by owner override: home journal stays on the open financial day until explicit close; calendar midnight refreshes timing only and does not block entry. Historical date selection remains. |
 | M18-15 | 15:21–16:51 | Customer name/phone or honest absent state; explicit notes indicator and expandable text. | Retained. |
 | M18-16 | 17:01–18:34 | Easy card/header opening, circular control, visible dark borders, display numbering. | Retained. |
 | M18-17 | 18:39–19:52 | Edit/Delete instead of new return/exchange; prefilled edits and confirmed net effects. | Retained reviewed, atomic, idempotent workflow. |

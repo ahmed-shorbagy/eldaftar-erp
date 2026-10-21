@@ -8,9 +8,11 @@ The local 2026-10-18 recording is a product reference. The user explicitly resol
 
 ## Calendar and financial day
 
-`get_daily_ledger_home_v1` returns read model v3. Its journal and daily figures cover all open/reopened financial sessions on the current shop date. Exact return/note counters cover all records, independently of pagination. Current cash, stock, scrap and the explicitly open financial day remain authoritative financial state, even when that day belongs to yesterday. The home journal may therefore be empty while balances remain unchanged.
+`get_daily_ledger_home_v1` returns read model v3. Exact return/note counters cover all records, independently of pagination. Current cash, stock, scrap and the explicitly open financial day remain authoritative financial state.
 
-The response supplies server UTC `server_now` and `next_midnight_at`, calculated with the shop's time zone. Flutter schedules the interval, refreshes on resume and normal sync, and freezes entry forms across the boundary. It never decides a date from the device clock. New entries require the open financial day's date to match the calendar journal. The owner explicitly closes the older day and opens the next; there is no automatic financial close or balance reset. Historical date selection remains available. Notes can paginate across all sessions of the selected calendar date.
+**2026-10-21 owner override:** while a financial day is open, the home journal and daily figures stay on that open day. Calendar midnight refreshes server timing only; it does not empty the main ledger, open a new financial day, or block sale/purchase/expense entry. The owner alone closes the open day, then opens the next. When no financial day is open, the home journal uses the shop calendar date. Historical date selection remains available. Notes can paginate across all sessions of a selected calendar date.
+
+The response supplies server UTC `server_now` and `next_midnight_at`, calculated with the shop's time zone. Flutter schedules the interval and refreshes on resume and normal sync. It never decides a date from the device clock. There is no automatic financial close or balance reset.
 
 ## Named physical observations
 

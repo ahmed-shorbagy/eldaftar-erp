@@ -213,6 +213,54 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   void _showCashMethods() =>
       _details('وسائل الدفع', (_) => LedgerCashBreakdown(view: widget.ledger!));
 
+  void _showSoldGold() => _details(
+    'ذهب مباع',
+    (_) => LedgerSoldGoldBreakdown(view: widget.ledger!),
+  );
+
+  void _showAllMetrics() =>
+      _details('ملخص الأرقام', (_) => _allMetrics(widget.ledger!));
+
+  Widget _allMetrics(DailyLedgerView view) {
+    final values = ledgerMetricValues(view, _metricLayout.normalizationKarat);
+    final ids = _metricLayout.availableIds;
+    return LayoutBuilder(
+      builder: (context, size) {
+        final columns = size.maxWidth >= 520
+            ? 3
+            : size.maxWidth >= 340
+            ? 2
+            : 1;
+        const gap = 10.0;
+        final width = columns == 1
+            ? size.maxWidth
+            : (size.maxWidth - gap * (columns - 1)) / columns;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'كل خانات ملخص اليوم.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              key: const Key('ledger-all-metrics'),
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final id in ids)
+                  SizedBox(width: width, child: _metricTile(id, values[id]!)),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showHistory([String filter = 'all']) => _details(
     'حركة الدفتر',
     (surface) => _ActivitySection(
@@ -238,6 +286,18 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        LedgerNormalizationControl(
+          value: _metricLayout.normalizationKarat,
+          onChanged: (karat) {
+            setState(
+              () => _metricLayout = _metricLayout.copyWith(
+                normalizationKarat: karat,
+              ),
+            );
+            _saveLayout();
+          },
+        ),
+        const SizedBox(height: 16),
         Text('الأرقام الظاهرة', style: theme.textTheme.titleMedium),
         Text(
           'اختر ست خانات للملخص. تظهر بقية الأرقام في المزيد.',
@@ -326,27 +386,35 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     final shown = _metricLayout.homeIds;
     return LayoutBuilder(
       builder: (context, size) {
+        final minimum = size.maxWidth < 390 ? 148.0 : 168.0;
+        var width = minimum;
+        for (final id in shown) {
+          final needed = _metricWidth(
+            context,
+            values[id]!.value,
+            minimum,
+            label: values[id]!.label,
+            hasAction: id == 'total_cash' || id == 'sale_gold',
+          );
+          if (needed > width) width = needed;
+        }
         return SingleChildScrollView(
           key: const Key('ledger-metric-strip'),
           scrollDirection: Axis.horizontal,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final id in shown)
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(end: 8),
-                  child: SizedBox(
-                    width: _metricWidth(
-                      context,
-                      values[id]!.value,
-                      size.maxWidth < 390 ? 148 : 168,
-                      label: values[id]!.label,
-                      hasAction: id == 'total_cash',
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final id in shown)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: SizedBox(
+                      width: width,
+                      child: _metricTile(id, values[id]!),
                     ),
-                    child: _metricTile(id, values[id]!),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -354,7 +422,19 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   }
 
   Widget _metricTile(String id, LedgerMetricSpec spec) {
-    final cash = id == 'total_cash';
+    final open = switch (id) {
+      'total_cash' => (
+        onOpen: _showCashMethods,
+        tooltip: 'وسائل الدفع',
+        key: const Key('ledger-cash-methods'),
+      ),
+      'sale_gold' => (
+        onOpen: _showSoldGold,
+        tooltip: 'أوزان الذهب المباع',
+        key: const Key('ledger-sale-gold-weights'),
+      ),
+      _ => null,
+    };
     return LedgerMetricTile(
       key: Key(id == 'total_cash' ? 'ledger-total-cash' : 'ledger-metric-$id'),
       label: spec.label,
@@ -363,14 +443,9 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
       icon: spec.icon,
       tone: spec.tone,
       compact: true,
-      trailing: cash
-          ? IconButton(
-              key: const Key('ledger-cash-methods'),
-              tooltip: 'وسائل الدفع',
-              onPressed: _showCashMethods,
-              icon: const Icon(Icons.keyboard_arrow_left),
-            )
-          : null,
+      onOpen: open?.onOpen,
+      openTooltip: open?.tooltip,
+      openKey: open?.key,
     );
   }
 
@@ -445,62 +520,50 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ملخص اليوم',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      view.businessDay == null
-                          ? 'الأرصدة الحالية'
-                          : widget.dayClosed
-                          ? 'يوم العمل مغلق'
-                          : 'الأرصدة الحالية',
-                      key: const Key('ledger-confirmed-status'),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                key: const Key('ledger-customize'),
-                tooltip: 'تخصيص الدفتر',
-                onPressed: () => _details('تخصيص الدفتر', _customization),
-                icon: const Icon(Icons.tune_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           for (final section in [
             'metrics',
             ..._order.where((s) => s != 'metrics'),
           ])
             if (_visible[section]!) ...[
               if (section == 'metrics') ...[
-                LedgerNormalizationControl(
-                  value: _metricLayout.normalizationKarat,
-                  onChanged: (karat) {
-                    setState(
-                      () => _metricLayout = _metricLayout.copyWith(
-                        normalizationKarat: karat,
-                      ),
-                    );
-                    _saveLayout();
-                  },
+                KeyedSubtree(
+                  key: const Key('ledger-confirmed-status'),
+                  child: _metrics(view),
                 ),
-                const SizedBox(height: 12),
-                _metrics(view),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      key: const Key('ledger-more-metrics'),
+                      onPressed: _showAllMetrics,
+                      icon: const Icon(Icons.grid_view_rounded, size: 18),
+                      label: const Text('عرض المزيد'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const Key('ledger-customize'),
+                      tooltip: 'إعدادات الملخص',
+                      visualDensity: VisualDensity.compact,
+                      iconSize: 20,
+                      onPressed: () =>
+                          _details('إعدادات الملخص', _customization),
+                      icon: const Icon(Icons.settings_outlined),
+                    ),
+                  ],
+                ),
+                if (widget.dayClosed) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'يوم العمل مغلق',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ],
               if (section == 'activity') ...[
                 const SizedBox(height: 12),
@@ -659,21 +722,44 @@ class _JournalPreviewState extends State<_JournalPreview> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<bool>(
-          key: const Key('ledger-journal-sort'),
-          isExpanded: true,
-          initialValue: _newestFirst,
-          decoration: const InputDecoration(labelText: 'ترتيب العمليات'),
-          items: const [
-            DropdownMenuItem(value: true, child: Text('الأحدث أولًا')),
-            DropdownMenuItem(value: false, child: Text('الأقدم أولًا')),
-          ],
-          onChanged: (value) => setState(() => _newestFirst = value ?? true),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            key: const Key('ledger-journal-sort'),
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _ledgerFilterChip(
+                context,
+                label: 'الأحدث',
+                selected: _newestFirst,
+                onSelected: () => setState(() => _newestFirst = true),
+              ),
+              _ledgerFilterChip(
+                context,
+                label: 'الأقدم',
+                selected: !_newestFirst,
+                onSelected: () => setState(() => _newestFirst = false),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        for (final journal in journals)
+        const SizedBox(height: 8),
+        for (final (index, journal) in journals.indexed) ...[
+          if (index > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 24),
+              child: Divider(
+                key: const Key('ledger-journal-divider'),
+                height: 1,
+                thickness: 1.5,
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
           Padding(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.only(
+              bottom: index == journals.length - 1 ? 24 : 4,
+            ),
             child: Column(
               key: Key('ledger-journal-${journal.$1}'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -686,6 +772,24 @@ class _JournalPreviewState extends State<_JournalPreview> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
+                    if (journal.$3.isNotEmpty)
+                      IconButton(
+                        key: Key('ledger-journal-details-${journal.$1}'),
+                        tooltip: (_details[journal.$1] ?? false)
+                            ? 'إخفاء التفاصيل'
+                            : 'عرض التفاصيل',
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 20,
+                        onPressed: () => setState(
+                          () => _details[journal.$1] =
+                              !(_details[journal.$1] ?? false),
+                        ),
+                        icon: Icon(
+                          (_details[journal.$1] ?? false)
+                              ? Icons.unfold_less_rounded
+                              : Icons.unfold_more_rounded,
+                        ),
+                      ),
                     TextButton(
                       key: Key('ledger-journal-all-${journal.$1}'),
                       onPressed: () => widget.onViewAll(journal.$1),
@@ -693,59 +797,46 @@ class _JournalPreviewState extends State<_JournalPreview> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (journal.$4 != null)
-                      FilledButton.icon(
+                if (journal.$3.isEmpty)
+                  _JournalEmptyState(book: journal.$1, onAdd: journal.$4)
+                else ...[
+                  if (journal.$4 != null) ...[
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: FilledButton.tonalIcon(
                         key: Key(
                           journal.$1 == 'sale'
                               ? 'ledger-new-sale'
                               : 'ledger-new-purchase',
                         ),
                         onPressed: journal.$4,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(Icons.add, size: 18),
                         label: Text(
                           journal.$1 == 'sale' ? 'إضافة بيع' : 'إضافة شراء',
                         ),
                       ),
-                    TextButton(
-                      key: Key('ledger-journal-details-${journal.$1}'),
-                      onPressed: () => setState(
-                        () => _details[journal.$1] =
-                            !(_details[journal.$1] ?? false),
-                      ),
-                      child: Text(
-                        (_details[journal.$1] ?? false)
-                            ? 'إخفاء التفاصيل'
-                            : 'عرض التفاصيل',
-                      ),
                     ),
+                    const SizedBox(height: 8),
                   ],
-                ),
-                if (journal.$3.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text('لا توجد عمليات حتى الآن.'),
-                  ),
-                for (final (index, line)
-                    in journal.$3.take(journal.$1 == 'return' ? 1 : 3).indexed)
-                  LedgerOperationTable(
-                    key: ValueKey('${line.kind}-${line.operationId}'),
-                    line: line,
-                    position: index + 1,
-                    showDetails: _details[journal.$1] ?? false,
-                    loadItems: widget.loadItems,
-                    onOpen: widget.onOperation == null
-                        ? null
-                        : () => widget.onOperation!(line),
-                  ),
+                  for (final (row, line)
+                      in journal.$3
+                          .take(journal.$1 == 'return' ? 1 : 3)
+                          .indexed)
+                    LedgerOperationTable(
+                      key: ValueKey('${line.kind}-${line.operationId}'),
+                      line: line,
+                      position: row + 1,
+                      showDetails: _details[journal.$1] ?? false,
+                      loadItems: widget.loadItems,
+                      onOpen: widget.onOperation == null
+                          ? null
+                          : () => widget.onOperation!(line),
+                    ),
+                ],
               ],
             ),
           ),
+        ],
         Align(
           alignment: AlignmentDirectional.centerEnd,
           child: TextButton.icon(
@@ -1025,32 +1116,42 @@ class _ActivitySectionState extends State<_ActivitySection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: [
             for (final filter in filters)
-              ChoiceChip(
+              _ledgerFilterChip(
+                context,
                 key: Key('ledger-filter-${filter.$1}'),
-                label: Text(filter.$2),
+                label: filter.$2,
                 selected: selected == filter.$1,
-                onSelected: (_) => setState(() => _filter = filter.$1),
+                onSelected: () => setState(() => _filter = filter.$1),
               ),
-            ChoiceChip(
+            _ledgerFilterChip(
+              context,
               key: const Key('ledger-sort-newest'),
-              label: const Text('الأحدث'),
+              label: 'الأحدث',
               selected: _newestFirst,
-              onSelected: (_) => setState(() => _newestFirst = true),
+              onSelected: () => setState(() => _newestFirst = true),
             ),
-            ChoiceChip(
+            _ledgerFilterChip(
+              context,
               key: const Key('ledger-sort-oldest'),
-              label: const Text('الأقدم'),
+              label: 'الأقدم',
               selected: !_newestFirst,
-              onSelected: (_) => setState(() => _newestFirst = false),
+              onSelected: () => setState(() => _newestFirst = false),
             ),
-            TextButton(
+            IconButton(
               key: const Key('ledger-history-details'),
+              tooltip: _showDetails ? 'إخفاء التفاصيل' : 'عرض التفاصيل',
+              visualDensity: VisualDensity.compact,
+              iconSize: 20,
               onPressed: () => setState(() => _showDetails = !_showDetails),
-              child: Text(_showDetails ? 'إخفاء التفاصيل' : 'عرض التفاصيل'),
+              icon: Icon(
+                _showDetails
+                    ? Icons.unfold_less_rounded
+                    : Icons.unfold_more_rounded,
+              ),
             ),
           ],
         ),
@@ -1093,4 +1194,91 @@ class _ActivitySectionState extends State<_ActivitySection> {
       ],
     );
   }
+}
+
+class _JournalEmptyState extends StatelessWidget {
+  const _JournalEmptyState({required this.book, this.onAdd});
+
+  final String book;
+  final VoidCallback? onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final sale = book == 'sale';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'لا توجد عمليات حتى الآن.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: FilledButton.icon(
+                  key: Key(sale ? 'ledger-new-sale' : 'ledger-new-purchase'),
+                  onPressed:
+                      onAdd ??
+                      () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('تعذر إضافة العملية الآن.'),
+                          ),
+                        );
+                      },
+                  icon: const Icon(Icons.add),
+                  label: Text(sale ? 'إضافة بيع' : 'إضافة شراء'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact ledger filter. Filters stay buttons; entry fields stay fields.
+ChoiceChip _ledgerFilterChip(
+  BuildContext context, {
+  Key? key,
+  required String label,
+  required bool selected,
+  required VoidCallback onSelected,
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  return ChoiceChip(
+    key: key,
+    label: Text(label),
+    selected: selected,
+    showCheckmark: false,
+    visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
+    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+      height: 1.1,
+      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      color: selected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+    ),
+    selectedColor: scheme.primaryContainer,
+    backgroundColor: scheme.surface.withValues(alpha: 0),
+    side: BorderSide(color: selected ? scheme.primary : scheme.outlineVariant),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    onSelected: (_) => onSelected(),
+  );
 }

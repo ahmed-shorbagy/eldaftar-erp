@@ -286,14 +286,9 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
       unit: spec.unit,
       icon: spec.icon,
       tone: spec.tone,
-      trailing: cash
-          ? IconButton(
-              key: const Key('more-cash-methods'),
-              tooltip: 'وسائل الدفع',
-              onPressed: () => _showDetails(cash: true),
-              icon: const Icon(Icons.keyboard_arrow_left),
-            )
-          : null,
+      onOpen: cash ? () => _showDetails(cash: true) : null,
+      openTooltip: cash ? 'وسائل الدفع' : null,
+      openKey: cash ? const Key('more-cash-methods') : null,
     );
   }
 }

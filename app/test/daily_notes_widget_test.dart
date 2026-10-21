@@ -876,7 +876,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('عملية مالية بانتظار تأكيد الحفظ'), findsOneWidget);
-    expect(find.byKey(const Key('ledger-new-sale')), findsNothing);
+    expect(find.byKey(const Key('ledger-new-sale')), findsOneWidget);
     await tester.tap(find.byKey(const Key('ledger-quick-actions')));
     await tester.pumpAndSettle();
     await tester.pumpAndSettle();
