@@ -891,9 +891,9 @@ BigInt _amount(String wire) => BigInt.tryParse(wire) ?? BigInt.zero;
 
 String _methodLabel(String code) => switch (code) {
   'cash' => 'نقدي',
-  'instant_transfer' => 'تحويل فوري',
+  'instant_transfer' => 'انستا',
   'wallet' => 'محفظة',
-  'card' => 'بطاقة',
+  'card' => 'فيزا',
   _ => code,
 };
 

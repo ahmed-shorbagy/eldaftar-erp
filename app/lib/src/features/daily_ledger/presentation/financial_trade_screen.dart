@@ -18,7 +18,10 @@ import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import '../domain/invoice_pricing.dart';
+import '../../inventory/application/inventory_command_flow.dart';
 import '../../inventory/application/inventory_gateway.dart';
+import '../../inventory/domain/inventory_models.dart';
+import '../../inventory/presentation/inventory_copy.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_tokens.dart';
@@ -1239,6 +1242,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   Widget _otherCategoryGrid(ThemeData theme) {
+    final canAdd =
+        widget.catalog != null &&
+        !_busy &&
+        !_unknown &&
+        widget.canWrite?.call() != false;
     return LayoutBuilder(
       builder: (context, size) {
         final columns = size.maxWidth < 360 ? 2 : 3;
@@ -1277,10 +1285,91 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   child: Text(choice.$1, textAlign: TextAlign.center),
                 ),
               ),
+            if (canAdd)
+              SizedBox(
+                width: width,
+                child: OutlinedButton(
+                  key: const Key('trade-add-other-product'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 12,
+                    ),
+                    minimumSize: const Size(48, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: _productsLoading ? null : _addOtherProduct,
+                  child: const Text('إضافة صنف', textAlign: TextAlign.center),
+                ),
+              ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _addOtherProduct() async {
+    if (_busy ||
+        _unknown ||
+        widget.catalog == null ||
+        widget.canWrite?.call() == false) {
+      return;
+    }
+    final saved = await showDialog<_SavedOtherProduct>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _TradeAddOtherProductDialog(
+        gateway: widget.gateway,
+        catalog: widget.catalog!,
+        statusGateway: widget.statusGateway,
+        userId: widget.userId,
+        shopId: widget.shopId,
+        store: _pending,
+        readOnly: widget.canWrite?.call() == false,
+      ),
+    );
+    if (!mounted || saved == null || widget.canWrite?.call() == false) return;
+    await _loadProducts(reset: true);
+    if (!mounted || widget.canWrite?.call() == false) return;
+    setState(() {
+      _rememberSavedOtherProduct(saved);
+      final item = _items.last;
+      item.customName = false;
+      _showOther = true;
+      item.name.text = saved.name;
+      item.category = saved.category;
+      item.karat = saved.karat;
+      _error = null;
+    });
+  }
+
+  void _rememberSavedOtherProduct(_SavedOtherProduct saved) {
+    final existing = _products.indexWhere(
+      (product) =>
+          product.name == saved.name &&
+          product.category == saved.category &&
+          product.karat == saved.karat,
+    );
+    if (existing >= 0) {
+      _products = [
+        _products[existing],
+        for (final product in _products.indexed)
+          if (product.$1 != existing) product.$2,
+      ];
+      return;
+    }
+    _products = [
+      CatalogProduct(
+        id: saved.id,
+        name: saved.name,
+        category: saved.category,
+        karat: saved.karat,
+        createdAt: saved.createdAt,
+      ),
+      ..._products,
+    ];
   }
 
   bool _choiceSelected(String label) {
@@ -1638,8 +1727,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     ),
   ];
 
-  // Keep the connected catalog table for Instant Inventory access from
-  // other sale/purchase paths; أصناف أخرى uses the predefined text grid.
+  // أصناف أخرى keeps Egypt built-ins, fetched shop products, and إضافة صنف.
   List<Widget> _nominalWidgets(_ItemEntry row, int index) {
     if (row.category != 'coin' && row.category != 'bullion') return const [];
     final suggestions = nominalSuggestionsFor(
@@ -2281,3 +2369,255 @@ String _serverCopy(String code) => switch (code) {
 String _poundsText(String wire) => displayPounds(
   (Piastres.parseWire(wire) as Accepted<Piastres>).value.poundsText,
 );
+
+final class _SavedOtherProduct {
+  const _SavedOtherProduct({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.karat,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String name;
+  final String category;
+  final int karat;
+  final String createdAt;
+}
+
+/// Compact catalog save for Egypt-market «أخرى» names on the trade sheet.
+class _TradeAddOtherProductDialog extends StatefulWidget {
+  const _TradeAddOtherProductDialog({
+    required this.gateway,
+    required this.catalog,
+    required this.statusGateway,
+    required this.userId,
+    required this.shopId,
+    required this.store,
+    required this.readOnly,
+  });
+
+  final FinancialGateway gateway;
+  final InventoryGateway catalog;
+  final OpeningGateway statusGateway;
+  final String userId;
+  final String shopId;
+  final FinancialCommandLocker store;
+  final bool readOnly;
+
+  @override
+  State<_TradeAddOtherProductDialog> createState() =>
+      _TradeAddOtherProductDialogState();
+}
+
+class _TradeAddOtherProductDialogState
+    extends State<_TradeAddOtherProductDialog> {
+  static const _reserved = {
+    'خاتم',
+    'حلق',
+    'سلسلة',
+    'تعليقة',
+    'جنيهات',
+    'سبائك',
+    'كسر',
+    'أخرى',
+  };
+
+  final _name = TextEditingController();
+  late final InventoryCommandFlow _flow;
+  int _karat = 21;
+  String? _message;
+  bool _error = false;
+  bool _busy = false;
+  String? _key;
+
+  @override
+  void initState() {
+    super.initState();
+    _flow = InventoryCommandFlow(
+      gateway: widget.catalog,
+      statusGateway: widget.statusGateway,
+      store: widget.store,
+    );
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_busy || widget.readOnly) return;
+    final trimmed = _name.text.trim();
+    if (_reserved.contains(trimmed)) {
+      setState(() {
+        _error = true;
+        _message = 'هذا الاسم ضمن الأصناف الرئيسية. اختره من الشبكة أعلاه.';
+      });
+      return;
+    }
+    final dayState = await widget.gateway.dayState(callerUserId: widget.userId);
+    if (!mounted) return;
+    final dayId = dayState.dayId;
+    final version = dayState.dayVersion;
+    if (!dayState.isOpen || dayId == null || version == null || version < 1) {
+      setState(() {
+        _error = true;
+        _message = 'افتح يوم العمل قبل إضافة صنف للكتالوج.';
+      });
+      return;
+    }
+    final dayResult = DayAnchor.tryCreate(dayId, '$version');
+    if (dayResult is! InventoryAccepted<DayAnchor>) {
+      setState(() {
+        _error = true;
+        _message = 'تعذر قراءة يوم العمل. حدّث الدفتر وحاول مجدداً.';
+      });
+      return;
+    }
+    final reviewed = reviewProduct(
+      day: dayResult.value,
+      name: trimmed,
+      category: 'worked_jewelry',
+      karat: _karat,
+    );
+    if (reviewed is InventoryRejected<ReviewedCommand>) {
+      setState(() {
+        _error = true;
+        _message = inventoryIssueCopy(reviewed.code);
+      });
+      return;
+    }
+    final command = (reviewed as InventoryAccepted<ReviewedCommand>).value;
+    final key = _key ?? newIdempotencyKey();
+    setState(() {
+      _busy = true;
+      _key = key;
+      _message = null;
+      _error = false;
+    });
+    final result = await _flow.submit(
+      userId: widget.userId,
+      shopId: widget.shopId,
+      idempotencyKey: key,
+      command: command,
+      readOnly: widget.readOnly,
+    );
+    if (!mounted) return;
+    if (result is InventorySaved) {
+      Navigator.pop(
+        context,
+        _SavedOtherProduct(
+          id: result.id,
+          name: command.payload['name']! as String,
+          category: 'worked_jewelry',
+          karat: _karat,
+          createdAt: DateTime.now().toUtc().toIso8601String(),
+        ),
+      );
+      return;
+    }
+    if (result is InventoryFailed) {
+      setState(() {
+        _busy = false;
+        _key = null;
+        _error = true;
+        _message = inventoryFailureCopy(result.code);
+      });
+      return;
+    }
+    if (result is InventoryNotSent) {
+      setState(() {
+        _busy = false;
+        _key = null;
+        _error = true;
+        _message = inventoryFailureCopy(result.code);
+      });
+      return;
+    }
+    if (result is InventoryUnconfirmed) {
+      setState(() {
+        _busy = false;
+        _error = true;
+        _message = result.statusUnknown
+            ? 'حالة الحفظ غير مؤكدة. تحقق من الاتصال قبل إعادة المحاولة.'
+            : 'لم نتأكد من حفظ الصنف. أعد المحاولة دون تغيير الاسم.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final karats = StockCategory.workedJewelry.karats.toList()..sort();
+    return AlertDialog(
+      title: const Text('إضافة صنف آخر'),
+      content: SizedBox(
+        width: AppTokens.contentMaxWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'يُحفظ في كتالوج المتجر ويظهر مع دبلة وغويشة وباقي أصناف مصر.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('trade-other-product-name'),
+              controller: _name,
+              enabled: !_busy,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => unawaited(_save()),
+              decoration: ledgerFieldDecoration(context, label: 'اسم الصنف'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              key: Key('trade-other-product-karat-$_karat'),
+              initialValue: _karat,
+              isExpanded: true,
+              decoration: ledgerFieldDecoration(context, label: 'العيار'),
+              items: [
+                for (final karat in karats)
+                  DropdownMenuItem(value: karat, child: Text('$karat')),
+              ],
+              onChanged: _busy
+                  ? null
+                  : (value) {
+                      if (value != null) setState(() => _karat = value);
+                    },
+            ),
+            const SizedBox(height: 8),
+            const Text('الحفظ لا يضيف وزناً ولا نقداً.'),
+            if (_message != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _message!,
+                key: const Key('trade-other-product-status'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: _error ? Theme.of(context).colorScheme.error : null,
+                ),
+              ),
+            ],
+            if (_busy) ...[
+              const SizedBox(height: 12),
+              const LinearProgressIndicator(),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          key: const Key('trade-other-product-save'),
+          onPressed: _busy || widget.readOnly ? null : _save,
+          child: const Text('حفظ'),
+        ),
+      ],
+    );
+  }
+}

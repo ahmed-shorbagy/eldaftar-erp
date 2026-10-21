@@ -618,9 +618,9 @@ BigInt _wire(Object? value) {
 
 String _method(String code) => switch (code) {
   'cash' => 'نقدي',
-  'instant_transfer' => 'تحويل فوري',
+  'instant_transfer' => 'انستا',
   'wallet' => 'محفظة',
-  'card' => 'بطاقة',
+  'card' => 'فيزا',
   _ => code,
 };
 

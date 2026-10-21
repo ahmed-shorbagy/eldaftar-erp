@@ -29,9 +29,9 @@ const debtStatusLabels = <String, String>{
 
 const debtMethodLabels = <String, String>{
   'cash': 'نقدي',
-  'instant_transfer': 'تحويل فوري',
+  'instant_transfer': 'انستا',
   'wallet': 'محفظة',
-  'card': 'بطاقة',
+  'card': 'فيزا',
 };
 
 const debtCategoryLabels = <String, String>{

@@ -123,9 +123,10 @@ String _category(String code) => switch (code) {
 };
 String _method(String code) => switch (code) {
   'cash' => 'نقدي',
-  'card' => 'بطاقة',
+  'card' => 'فيزا',
   'wallet' => 'محفظة',
-  _ => 'تحويل فوري',
+  'instant_transfer' => 'انستا',
+  _ => code,
 };
 
 class ConfirmedCompensationEffects extends StatelessWidget {

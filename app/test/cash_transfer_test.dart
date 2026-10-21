@@ -28,7 +28,7 @@ const _cash = [
   ),
   LedgerCashLine(
     method: 'instant_transfer',
-    labelAr: 'تحويل فوري',
+    labelAr: 'انستا',
     piastres: '2000',
     pounds: '20.00',
   ),
@@ -40,7 +40,7 @@ const _cash = [
   ),
   LedgerCashLine(
     method: 'card',
-    labelAr: 'بطاقة',
+    labelAr: 'فيزا',
     piastres: '0',
     pounds: '0.00',
   ),

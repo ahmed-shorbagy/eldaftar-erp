@@ -245,7 +245,7 @@ void main() {
     },
   );
 
-  testWidgets('other opens a text-only predefined grid without inventory', (
+  testWidgets('other opens built-ins, shop products, and add control', (
     tester,
   ) async {
     final catalog = Batch2Catalog(
@@ -283,6 +283,7 @@ void main() {
     expect(find.byKey(const Key('trade-catalog-table')), findsNothing);
     expect(find.byKey(const Key('trade-open-inventory')), findsNothing);
     expect(find.byKey(const Key('trade-select-name')), findsNothing);
+    expect(find.byKey(const Key('trade-add-other-product')), findsOneWidget);
     expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
     await revealTrade(tester, find.byKey(const Key('trade-select-غويشة')));
     await tester.tap(find.byKey(const Key('trade-select-غويشة')));
@@ -317,6 +318,7 @@ void main() {
     await chooseTradeItem(tester, 'أخرى');
     expect(find.byKey(const Key('trade-other-grid')), findsOneWidget);
     expect(find.byKey(const Key('trade-select-name')), findsNothing);
+    expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '50');
     await reviewTrade(tester);
@@ -326,6 +328,66 @@ void main() {
     await tester.pumpAndSettle();
     await reviewTrade(tester);
     expect(find.textContaining('طقم'), findsWidgets);
+  });
+
+  testWidgets('other grid saves a shop product then selects it', (
+    tester,
+  ) async {
+    final catalog = Batch2Catalog(
+      productsPage: ReadPage.ready([
+        tradeProduct(id: 'p1', name: 'خاتم ملكي', karat: 21),
+      ], null),
+    );
+    final gateway = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: gateway,
+      statusGateway: gateway,
+      kind: FinancialKind.sale,
+      catalog: catalog,
+    );
+    await chooseTradeItem(tester, 'أخرى');
+    expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-خاتم ملكي')), findsOneWidget);
+    await revealTrade(tester, find.byKey(const Key('trade-add-other-product')));
+    await tester.tap(find.byKey(const Key('trade-add-other-product')));
+    await tester.pumpAndSettle();
+    await enterTradeField(
+      tester,
+      const Key('trade-other-product-name'),
+      'بروش',
+    );
+    await tester.tap(find.byKey(const Key('trade-other-product-save')));
+    await tester.pumpAndSettle();
+    expect(catalog.savedProducts, hasLength(1));
+    final payload =
+        catalog.savedProducts.single['p_payload'] as Map<String, Object?>;
+    expect(payload['kind'], 'product');
+    expect(payload['name'], 'بروش');
+    expect(payload['category'], 'worked_jewelry');
+    expect(payload['karat'], 21);
+    expect(find.byKey(const Key('trade-select-بروش')), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+          .controller,
+      isNotNull,
+    );
+    await enterTradeField(tester, const Key('trade-grams-0'), '2.50');
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
+    await reviewTrade(tester);
+    expect(find.textContaining('بروش'), findsWidgets);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    expect(
+      (gateway.payloads.single['items'] as List).single['item_name'],
+      'بروش',
+    );
+    expect(
+      (gateway.payloads.single['items'] as List).single['category'],
+      'worked_jewelry',
+    );
+    expect((gateway.payloads.single['items'] as List).single['karat'], 21);
   });
 
   testWidgets('unknown sale keeps one key and ignores a duplicate tap', (

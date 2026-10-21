@@ -275,9 +275,9 @@ final class BrandedTender {
   factory BrandedTender._parse(Map<String, Object?> raw) {
     const labels = {
       'cash': 'نقدي',
-      'instant_transfer': 'تحويل فوري',
+      'instant_transfer': 'انستا',
       'wallet': 'محفظة',
-      'card': 'بطاقة',
+      'card': 'فيزا',
     };
     final method = raw['method'];
     if (method is! String || !labels.containsKey(method)) {

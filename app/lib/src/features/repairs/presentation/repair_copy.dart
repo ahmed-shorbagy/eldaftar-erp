@@ -22,9 +22,9 @@ const repairFilterLabels = <String, String>{
 
 const repairMethodLabels = <String, String>{
   'cash': 'نقدي',
-  'instant_transfer': 'تحويل فوري',
+  'instant_transfer': 'انستا',
   'wallet': 'محفظة',
-  'card': 'بطاقة',
+  'card': 'فيزا',
 };
 
 const repairCollectionLabels = <RepairCollectionMode, String>{

@@ -72,9 +72,15 @@ class Batch2TradeGateway implements FinancialGateway, OpeningGateway {
   Future<DailyLedgerView> ledger({required String callerUserId}) async =>
       throw UnimplementedError();
 
+  FinancialDayState day = const FinancialDayState(
+    state: 'open',
+    dayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    dayVersion: 1,
+  );
+
   @override
   Future<FinancialDayState> dayState({required String callerUserId}) async =>
-      const FinancialDayState(state: 'open');
+      day;
 
   @override
   Future<FinancialCommandResult> closeDay({
@@ -140,6 +146,12 @@ class Batch2Catalog implements InventoryGateway {
   Map<String, ReadPage<CatalogProduct>> laterProducts = const {};
   Map<String, ReadPage<CatalogDenomination>> laterDenoms = const {};
   Map<String, ReadPage<CatalogCoin>> laterCoins = const {};
+  final savedProducts = <Map<String, Object?>>[];
+  FinancialCommandResult productResult = const FinancialCommitted(
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    replayed: false,
+  );
+  StatusResult catalogStatusResult = const StatusAbsent();
 
   @override
   Future<ReadPage<CatalogProduct>> products({
@@ -257,13 +269,33 @@ class Batch2Catalog implements InventoryGateway {
   Future<StatusResult> catalogStatus({
     required String callerUserId,
     required String idempotencyKey,
-  }) => throw UnimplementedError();
+  }) async => catalogStatusResult;
 
   @override
   Future<FinancialCommandResult> postStored({
     required String callerUserId,
     required PendingFinancialCommand command,
-  }) => throw UnimplementedError();
+  }) async {
+    savedProducts.add(Map<String, Object?>.from(command.body));
+    final payload = command.body['p_payload'];
+    if (productResult is FinancialCommitted &&
+        payload is Map &&
+        payload['kind'] == 'product') {
+      final committed = productResult as FinancialCommitted;
+      final current = productsPage.items ?? const <CatalogProduct>[];
+      productsPage = ReadPage.ready([
+        CatalogProduct(
+          id: committed.operationId,
+          name: payload['name']! as String,
+          category: payload['category']! as String,
+          karat: payload['karat']! as int,
+          createdAt: '2026-10-21T00:00:00Z',
+        ),
+        ...current,
+      ], productsPage.nextCursor);
+    }
+    return productResult;
+  }
 }
 
 CatalogProduct tradeProduct({

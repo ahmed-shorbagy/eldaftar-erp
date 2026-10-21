@@ -917,9 +917,9 @@ String _grams(Object? value) {
 
 String _method(Object? value) => switch (value) {
   'cash' => 'نقدي',
-  'instant_transfer' => 'تحويل فوري',
+  'instant_transfer' => 'انستا',
   'wallet' => 'محفظة',
-  'card' => 'بطاقة',
+  'card' => 'فيزا',
   _ => 'وسيلة دفع',
 };
 
