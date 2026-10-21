@@ -20,6 +20,9 @@ abstract final class DailyNoteCopy {
   static const textLabel = 'نص الملاحظة';
   static const save = 'حفظ الملاحظة';
   static const attach = 'إرفاق صورة';
+  static const changeImage = 'تغيير الصورة';
+  static const removeImage = 'إزالة الصورة';
+  static const selectedImageLabel = 'الصورة المختارة للرفع';
   static const refreshPreview = 'تحديث معاينة الصورة';
   static const older = 'ملاحظات أقدم';
 }

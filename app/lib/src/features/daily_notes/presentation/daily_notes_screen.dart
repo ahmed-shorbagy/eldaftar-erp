@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../application/daily_note_submission.dart';
@@ -165,7 +168,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
         if (stored.userId != user || stored.shopId != shop) {
           throw StateError('Draft ownership mismatch');
         }
-        _freezeDraft(stored.toDraft(), user);
+        await _freezeDraft(stored.toDraft(), user);
       }
       final draft = _pending;
       if (draft != null) {
@@ -187,7 +190,22 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     }
   }
 
-  void _freezeDraft(DailyNoteDraft draft, String user) {
+  Future<void> _freezeDraft(DailyNoteDraft draft, String user) async {
+    List<int>? bytes = _bytes;
+    final attachment = draft.attachment;
+    if (attachment != null &&
+        (bytes == null || bytes.length.toString() != attachment.byteSize)) {
+      try {
+        bytes = await widget.files.read(
+          userId: user,
+          shopId: draft.shopId,
+          clientObjectId: attachment.clientObjectId,
+        );
+      } catch (_) {
+        bytes = null;
+      }
+    }
+    if (!mounted || widget.userId != user) return;
     setState(() {
       _pending = draft;
       _pendingUncertain = true;
@@ -197,6 +215,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       _idempotencyKey = draft.idempotencyKey;
       _text.text = draft.text;
       _attachment = draft.attachment;
+      _bytes = attachment == null ? null : bytes;
       _status = DailyNoteCopy.confirming;
       _error = DailyNoteCopy.frozen;
     });
@@ -224,10 +243,75 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
             : null;
       });
     } else {
-      _freezeDraft(draft, user);
+      await _freezeDraft(draft, user);
       if (status is NoteStatusRejected) {
         setState(() => _error = noteFailureCopy(status.code));
       }
+    }
+  }
+
+  Future<void> _clearAttachment() async {
+    if (_busy ||
+        _restoring ||
+        _restoreFailed ||
+        !_canWrite ||
+        _pendingUncertain) {
+      return;
+    }
+    final generation = _screenGeneration;
+    final user = widget.userId;
+    final shop = widget.shopId;
+    final previous = _attachment;
+    final recorded = _recorded;
+    setState(() {
+      _attachment = null;
+      _bytes = null;
+      _error = null;
+      _status = _text.text.trim().isEmpty ? null : DailyNoteCopy.localDraft;
+    });
+    if (previous != null) {
+      try {
+        await widget.files.delete(
+          userId: user,
+          shopId: shop,
+          clientObjectId: previous.clientObjectId,
+        );
+      } catch (_) {}
+    }
+    if (!_sameScreen(generation, user, shop) || recorded == null) return;
+    final day = widget.businessDayId;
+    if (day == null) return;
+    final decision = _compose(
+      idempotencyKey: recorded.idempotencyKey,
+      day: day,
+    );
+    if (!decision.isAccepted || decision.draft == null) {
+      try {
+        await widget.drafts.clear(
+          userId: user,
+          shopId: shop,
+          idempotencyKey: recorded.idempotencyKey,
+        );
+      } catch (_) {}
+      if (!_sameScreen(generation, user, shop)) return;
+      setState(() {
+        _recorded = null;
+        _idempotencyKey = null;
+        _status = null;
+      });
+      return;
+    }
+    try {
+      await _persist(decision.draft!, user);
+      if (!_sameScreen(generation, user, shop)) return;
+      setState(() {
+        _recorded = decision.draft;
+        _idempotencyKey = decision.draft!.idempotencyKey;
+        _status = DailyNoteCopy.localDraft;
+      });
+    } catch (_) {
+      if (!_sameScreen(generation, user, shop)) return;
+      setState(() => _error = noteFailureCopy('local_persistence'));
     }
   }
 
@@ -346,7 +430,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     if (!_sameScreen(generation, user, shop)) return;
     final frozen = _recorded;
     if (frozen == null) return;
-    _freezeDraft(frozen, user);
+    await _freezeDraft(frozen, user);
   }
 
   Future<void> _markConfirmed(DailyNoteDraft draft) async {
@@ -879,17 +963,75 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            key: const Key('daily-note-attach'),
-            onPressed: _canWrite && !editingLocked ? _pick : null,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
+          if (_bytes != null) ...[
+            Semantics(
+              label: DailyNoteCopy.selectedImageLabel,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppTokens.fieldRadius),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 160,
+                  child: Image.memory(
+                    Uint8List.fromList(_bytes!),
+                    key: const Key('daily-note-compose-preview'),
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => ColoredBox(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      child: Center(
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            icon: const Icon(Icons.image_outlined),
-            label: Text(
-              _attachment == null ? DailyNoteCopy.attach : 'تم اختيار صورة',
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const Key('daily-note-attach'),
+                    onPressed: _canWrite && !editingLocked ? _pick : null,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(
+                        AppTokens.minControlSize,
+                      ),
+                    ),
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text(DailyNoteCopy.changeImage),
+                  ),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                Expanded(
+                  child: TextButton(
+                    key: const Key('daily-note-remove-image'),
+                    onPressed: _canWrite && !editingLocked
+                        ? _clearAttachment
+                        : null,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size.fromHeight(
+                        AppTokens.minControlSize,
+                      ),
+                    ),
+                    child: const Text(DailyNoteCopy.removeImage),
+                  ),
+                ),
+              ],
             ),
-          ),
+          ] else
+            OutlinedButton.icon(
+              key: const Key('daily-note-attach'),
+              onPressed: _canWrite && !editingLocked ? _pick : null,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(AppTokens.minControlSize),
+              ),
+              icon: const Icon(Icons.image_outlined),
+              label: const Text(DailyNoteCopy.attach),
+            ),
           const SizedBox(height: 12),
           FilledButton(
             key: const Key('daily-note-save'),
@@ -956,6 +1098,12 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
             for (final note in items)
               ListTile(
                 key: Key('daily-note-${note.noteId}'),
+                leading: note.attachment == null
+                    ? null
+                    : Icon(
+                        Icons.image_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
                 title: Text(note.text.isEmpty ? 'صورة' : note.text),
                 subtitle: Text(
                   '${note.actorDisplayName} · ${formatServerCairoTimestamp(note.occurredAtShop)} · ${note.shopSequence}',

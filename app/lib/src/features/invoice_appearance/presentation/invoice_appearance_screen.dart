@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
+import '../../shop_accounts/domain/shop_image.dart';
 import '../application/branded_invoice_pdf.dart';
 import '../application/invoice_appearance_contract.dart';
 import '../application/invoice_copy_files.dart';
@@ -30,6 +31,7 @@ class InvoiceAppearanceScreen extends StatefulWidget {
     required this.canRead,
     required this.canWrite,
     this.logoStore = const FileLogoUploadStore(),
+    this.shopImageGateway,
     this.syncTicks,
     this.pickLogo,
     this.newKey,
@@ -38,6 +40,7 @@ class InvoiceAppearanceScreen extends StatefulWidget {
   final InvoiceAppearanceGateway gateway;
   final FinancialCommandLocker store;
   final LogoUploadStore logoStore;
+  final ShopImageGateway? shopImageGateway;
   final String userId;
   final String shopId;
   final bool Function() canRead;
@@ -76,10 +79,14 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
   var _expectedRevision = 0;
   String? _logoAssetId;
   String? _logoSha256;
+  ShopImage? _shopImage;
+  var _showShopImage = false;
   String? _message;
   PendingFinancialCommand? _command;
   Map<String, Object?>? _reviewPayload;
   var _copiesCleared = false;
+
+  bool get _hasInvoiceImage => _logoAssetId != null && _logoSha256 != null;
 
   void _loseAccess() {
     if (!_copiesCleared) {
@@ -167,11 +174,21 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
         shopId: widget.shopId,
       );
       final upload = await widget.logoStore.read(widget.userId, widget.shopId);
+      ShopImage? shopImage;
+      final shopImages = widget.shopImageGateway;
+      if (shopImages != null) {
+        try {
+          shopImage = await shopImages.readCurrent();
+        } catch (_) {
+          shopImage = null;
+        }
+      }
       if (!_alive || generation != _generation) return;
       if (snapshot.shopId != widget.shopId) {
         setState(_loseAccess);
         return;
       }
+      _shopImage = shopImage?.shopId == widget.shopId ? shopImage : null;
       if (!keepDraft) {
         _applySaved(snapshot.value);
         _dirty = false;
@@ -243,6 +260,10 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
     _address.text = value.address ?? '';
     _logoAssetId = value.logoAssetId;
     _logoSha256 = value.logoSha256;
+    // A linked logo prints on new editions. Enabling the switch always refreshes
+    // it from the current shop image; re-encoding changes the sha, so we do not
+    // compare hashes to decide the switch state.
+    _showShopImage = value.logoAssetId != null && value.logoSha256 != null;
     _reviewPayload = null;
   }
 
@@ -558,10 +579,11 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       setState(() {
         _logoAssetId = confirmed.assetId;
         _logoSha256 = confirmed.sha256;
+        _showShopImage = true;
         _phase = _AppearancePhase.draft;
         _reviewPayload = null;
         _message =
-            'تم التحقق من الشعار على الخادم. لن يظهر في النسخ إلا بعد حفظ المظهر.';
+            'تم ربط الصورة بالفاتورة. راجع المظهر واحفظه لتظهر في النسخ الجديدة.';
       });
     } on LogoByteRejection {
       if (!_alive || generation != _logoGeneration) return;
@@ -613,17 +635,58 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
     setState(() {
       _logoAssetId = null;
       _logoSha256 = null;
+      _showShopImage = false;
       _dirty = true;
       _reviewPayload = null;
       _phase = widget.canWrite()
           ? _AppearancePhase.draft
           : _AppearancePhase.expired;
       _message =
-          'سيُزال الشعار من المظهر الجديد دون حذف النسخ أو ملفات الشعار السابقة.';
+          'ستُزال الصورة من المظهر الجديد دون حذف النسخ أو صورة المتجر المحفوظة.';
     });
   }
 
+  Future<void> _setShowShopImage(bool enabled) async {
+    if (_busy || _logoControlsLocked) return;
+    if (!enabled) {
+      await _clearLogo();
+      return;
+    }
+    final image = _shopImage;
+    if (image == null) {
+      setState(
+        () => _message =
+            'أضف صورة المتجر من المزيد ← صورة المتجر أولاً، ثم فعّل هذا الخيار.',
+      );
+      return;
+    }
+    if (_hasInvoiceImage && _showShopImage) {
+      setState(() {
+        _dirty = true;
+        _reviewPayload = null;
+        _message = 'صورة المتجر مربوطة. راجع المظهر واحفظه إن لم تحفظ بعد.';
+      });
+      return;
+    }
+    setState(() => _showShopImage = true);
+    await _uploadLogo(image.bytes);
+    if (!mounted) return;
+    if (!_hasInvoiceImage) {
+      setState(() => _showShopImage = false);
+    }
+  }
+
+  bool get _logoControlsLocked =>
+      !widget.canWrite() ||
+      _phase == _AppearancePhase.expired ||
+      _phase == _AppearancePhase.accessLoss ||
+      _phase == _AppearancePhase.submitting ||
+      _phase == _AppearancePhase.unknown;
+
   Future<void> _synthetic() async {
+    final previewLogo = _showShopImage && _shopImage != null
+        ? _shopImage!.bytes
+        : null;
     final document = BrandedInvoiceDocument(
       operationId: '00000000-0000-4000-8000-000000000000',
       kind: 'sale',
@@ -653,7 +716,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       tenders: const [
         BrandedTender(method: 'cash', methodLabel: 'نقدي', piastres: '100'),
       ],
-      logoRequired: false,
+      logoRequired: previewLogo != null,
       slogan: normalizeSlogan(_slogan.text),
       address: normalizeAddress(_address.text),
       totalPiastres: '100',
@@ -661,7 +724,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
     );
     Uint8List? bytes;
     try {
-      bytes = await buildBrandedInvoicePdf(document);
+      bytes = await buildBrandedInvoicePdf(document, logoBytes: previewLogo);
     } catch (_) {
       bytes = null;
     }
@@ -679,6 +742,11 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
               Text('اللون: ${_accentLabel(_accent)}'),
               Text(_slogan.text.trim().isEmpty ? 'بلا شعار نصي' : _slogan.text),
               Text(_address.text.trim().isEmpty ? 'بلا عنوان' : _address.text),
+              Text(
+                previewLogo == null
+                    ? 'بلا صورة متجر على المعاينة'
+                    : 'تشمل المعاينة صورة المتجر الحالية',
+              ),
               Text(
                 bytes == null
                     ? 'تعذر تجهيز المعاينة. أعد المحاولة.'
@@ -795,24 +863,71 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
-                    _logoAssetId == null || _logoSha256 == null
-                        ? 'بلا شعار'
-                        : 'شعار مرتبط بهذه المراجعة',
+                    'صورة الفاتورة',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
+                  const SizedBox(height: 8),
+                  if (_shopImage != null)
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.fieldRadius,
+                        ),
+                        child: Image.memory(
+                          _shopImage!.bytes,
+                          key: const Key('appearance-shop-image-preview'),
+                          height: 88,
+                          width: 88,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                  else
+                    Text(
+                      key: const Key('appearance-shop-image-missing'),
+                      'لا توجد صورة متجر محفوظة. أضفها من المزيد ← صورة المتجر.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    key: const Key('appearance-shop-image-toggle'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('إظهار صورة المتجر على الفاتورة'),
+                    subtitle: Text(
+                      _showShopImage && _hasInvoiceImage
+                          ? 'ستظهر الصورة في النسخ الجديدة بعد حفظ المظهر.'
+                          : 'عند الإيقاف تُطبع الفاتورة بعلامة الماسة دون صورة.',
+                    ),
+                    value: _showShopImage,
+                    onChanged: readOnly || _busy
+                        ? null
+                        : (value) => unawaited(_setShowShopImage(value)),
+                  ),
+                  if (_phase == _AppearancePhase.uploadPending ||
+                      _phase == _AppearancePhase.uploadFailure)
+                    OutlinedButton(
+                      key: const Key('appearance-logo-resume'),
+                      style: buttonStyle,
+                      onPressed: readOnly || _busy ? null : _resumeLogo,
+                      child: const Text('متابعة رفع الصورة'),
+                    ),
                   OutlinedButton(
                     key: const Key('appearance-logo-pick'),
                     style: buttonStyle,
                     onPressed: readOnly || _busy ? null : _pickLogo,
-                    child: const Text('اختيار شعار'),
+                    child: const Text('اختيار صورة أخرى للفاتورة'),
                   ),
-                  OutlinedButton(
-                    key: const Key('appearance-logo-clear'),
-                    style: buttonStyle,
-                    onPressed: readOnly || _busy ? null : _clearLogo,
-                    child: const Text('إزالة الشعار من المظهر الجديد'),
-                  ),
+                  if (_hasInvoiceImage)
+                    TextButton(
+                      key: const Key('appearance-logo-clear'),
+                      onPressed: readOnly || _busy ? null : _clearLogo,
+                      child: const Text('إزالة الصورة من المظهر الجديد'),
+                    ),
                   const SizedBox(height: 8),
                   OutlinedButton(
                     key: const Key('appearance-synthetic'),

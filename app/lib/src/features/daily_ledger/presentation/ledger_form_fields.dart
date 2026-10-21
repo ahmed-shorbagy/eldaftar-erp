@@ -102,11 +102,7 @@ TextField ledgerGramsField({
     autocorrect: false,
     enableSuggestions: false,
     inputFormatters: inputFormatters,
-    decoration: ledgerFieldDecoration(
-      context,
-      label: label,
-      helper: helper,
-    ),
+    decoration: ledgerFieldDecoration(context, label: label, helper: helper),
     onChanged: onChanged,
     onSubmitted: onSubmitted,
   );
@@ -137,11 +133,7 @@ TextField ledgerCountField({
     autocorrect: false,
     enableSuggestions: false,
     inputFormatters: inputFormatters,
-    decoration: ledgerFieldDecoration(
-      context,
-      label: label,
-      helper: helper,
-    ),
+    decoration: ledgerFieldDecoration(context, label: label, helper: helper),
     onChanged: onChanged,
     onSubmitted: onSubmitted,
   );
@@ -176,6 +168,60 @@ class LedgerFieldPair extends StatelessWidget {
             Expanded(child: first),
             const SizedBox(width: 12),
             Expanded(child: second),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Type / count / optional weight for a closing-count row.
+///
+/// One line of three fields when the row is at least [oneLineBreakpoint]
+/// wide; otherwise type+count on the first line and weight on the second.
+class LedgerCountFields extends StatelessWidget {
+  const LedgerCountFields({
+    super.key,
+    required this.type,
+    required this.count,
+    required this.weight,
+    this.oneLineBreakpoint = 400,
+  });
+
+  final Widget type;
+  final Widget count;
+  final Widget weight;
+  final double oneLineBreakpoint;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= oneLineBreakpoint) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: type),
+              const SizedBox(width: 8),
+              Expanded(flex: 2, child: count),
+              const SizedBox(width: 8),
+              Expanded(flex: 3, child: weight),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: type),
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: count),
+              ],
+            ),
+            const SizedBox(height: 8),
+            weight,
           ],
         );
       },

@@ -22,6 +22,15 @@ import 'package:flutter_test/flutter_test.dart';
 const shopId = '22222222-2222-4222-8222-222222222222';
 const dayId = '33333333-3333-4333-8333-333333333333';
 const captureDir = 'build/m03-notes-review';
+const _tinyPng = <int>[
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x72, 0xb6, 0x0d, 0x24, 0x00, 0x00, 0x00,
+  0x1a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0xe1, 0x12, 0x91, 0x63,
+  0x90, 0x93, 0x93, 0xfb, 0xcf, 0x62, 0x63, 0x63, 0xd3, 0xb0, 0x7b, 0xd3,
+  0xca, 0x93, 0x00, 0x20, 0xe1, 0x05, 0xb1, 0xe1, 0xef, 0x98, 0xad, 0x00,
+  0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+];
 
 class CaptureStore implements PendingOpeningStore {
   @override
@@ -322,9 +331,9 @@ void main() {
           await capture(tester, 'note-form-$label.png');
 
           final images = CaptureImages()
-            ..next = const SelectedNoteImage(
-              name: 'note.jpg',
-              bytes: [1, 2, 3, 4],
+            ..next = SelectedNoteImage(
+              name: 'note.png',
+              bytes: _tinyPng,
             );
           await _pumpNote(
             tester,
@@ -335,7 +344,11 @@ void main() {
           );
           await tester.tap(find.byKey(const Key('daily-note-attach')));
           await tester.pump();
-          expect(find.text('تم اختيار صورة'), findsOneWidget);
+          expect(
+            find.byKey(const Key('daily-note-compose-preview')),
+            findsOneWidget,
+          );
+          expect(find.text(DailyNoteCopy.changeImage), findsOneWidget);
           await capture(tester, 'note-image-$label.png');
 
           final gate = Completer<NoteCommandResult>();

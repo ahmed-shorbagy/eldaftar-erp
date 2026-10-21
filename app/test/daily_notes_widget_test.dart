@@ -29,6 +29,15 @@ const dayId = '33333333-3333-4333-8333-333333333333';
 const userId = 'user-1';
 const noteId = '66666666-6666-4666-8666-666666666666';
 const pendingKey = '11111111-1111-4111-8111-111111111111';
+const _tinyPng = <int>[
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x72, 0xb6, 0x0d, 0x24, 0x00, 0x00, 0x00,
+  0x1a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0xe1, 0x12, 0x91, 0x63,
+  0x90, 0x93, 0x93, 0xfb, 0xcf, 0x62, 0x63, 0x63, 0xd3, 0xb0, 0x7b, 0xd3,
+  0xca, 0x93, 0x00, 0x20, 0xe1, 0x05, 0xb1, 0xe1, 0xef, 0x98, 0xad, 0x00,
+  0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+];
 
 class MemoryDrafts implements NoteDraftStore {
   StoredNoteDraft? saved;
@@ -187,13 +196,20 @@ class NoteScript implements NotesGateway {
     return Future.value(command ?? const NoteUnknown());
   }
 
+  int imageUploadCount = 0;
+  List<int>? lastUploadBytes;
+
   @override
   Future<NoteUploadResult> uploadNoteImage({
     required String callerUserId,
     required String objectName,
     required String mimeType,
     required List<int> bytes,
-  }) async => const NoteUploadResult(NoteUploadDisposition.stored);
+  }) async {
+    imageUploadCount += 1;
+    lastUploadBytes = List<int>.from(bytes);
+    return const NoteUploadResult(NoteUploadDisposition.stored);
+  }
 }
 
 class MemoryOpening implements PendingOpeningStore {
@@ -776,9 +792,7 @@ void main() {
   ) async {
     final files = MemoryFiles()..failWrite = true;
     final images = ScriptImages()
-      ..queue.add(
-        const SelectedNoteImage(name: 'note.jpg', bytes: [1, 2, 3, 4]),
-      );
+      ..queue.add(SelectedNoteImage(name: 'note.png', bytes: _tinyPng));
     await pumpApp(
       tester,
       DailyNotesScreen(
@@ -794,10 +808,54 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const Key('daily-note-attach')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text(noteFailureCopy('local_persistence')), findsOneWidget);
-    expect(find.text('تم اختيار صورة'), findsOneWidget);
+    expect(find.byKey(const Key('daily-note-compose-preview')), findsOneWidget);
+    expect(find.text(DailyNoteCopy.changeImage), findsOneWidget);
     expect(files.files, isEmpty);
+  });
+
+  testWidgets('selected image shows a preview and uploads on save', (
+    tester,
+  ) async {
+    final notes = NoteScript()
+      ..command = const NoteCommitted(
+        noteId: noteId,
+        shopSequence: '9',
+        replayed: false,
+      );
+    final images = ScriptImages()
+      ..queue.add(SelectedNoteImage(name: 'note.png', bytes: _tinyPng));
+    await pumpApp(
+      tester,
+      DailyNotesScreen(
+        gateway: notes,
+        userId: userId,
+        shopId: shopId,
+        businessDayId: dayId,
+        drafts: MemoryDrafts(),
+        files: MemoryFiles(),
+        images: images,
+        newKey: () => pendingKey,
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('daily-note-attach')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('daily-note-compose-preview')), findsOneWidget);
+    expect(find.text(DailyNoteCopy.attach), findsNothing);
+    await tester.ensureVisible(find.byKey(const Key('daily-note-save')));
+    await tester.tap(find.byKey(const Key('daily-note-save')));
+    await tester.pumpAndSettle();
+    expect(notes.imageUploadCount, 1);
+    expect(notes.lastUploadBytes, _tinyPng);
+    expect(notes.posts, 1);
+    expect(
+      (notes.postedPayload?['attachment'] as Map?)?['client_object_id'],
+      pendingKey,
+    );
+    expect(find.text(DailyNoteCopy.confirmed), findsOneWidget);
+    expect(find.byKey(const Key('daily-note-compose-preview')), findsNothing);
   });
 
   testWidgets('server confirmation stays success when local cleanup fails', (

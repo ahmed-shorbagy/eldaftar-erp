@@ -96,11 +96,12 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
     widget.onReview({'stock': stock, 'scrap': scrap});
   }
 
-  String _category(String value) => switch (value) {
-    'coin' => 'جنيهات',
-    'bullion' => 'سبائك',
-    _ => 'مشغولات',
+  String _bucketTitle(ClosingCountBucket bucket) => switch (bucket.category) {
+    'coin' => 'جنيهات · عيار ${bucket.karat}',
+    'bullion' => 'سبائك · عيار ${bucket.karat}',
+    _ => 'عيار ${bucket.karat}',
   };
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -109,62 +110,60 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
         'أدخل ما عُدّ فعلياً. العدد مطلوب ووزن المخزون اختياري. لا تظهر أرصدة الدفتر في هذه المهمة.',
       ),
       for (final bucket in widget.assignment.stock) ...[
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Text(
-          '${_category(bucket.category)} · عيار ${bucket.karat}',
+          _bucketTitle(bucket),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         for (final row in _rows.where((row) => identical(row.bucket, bucket)))
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  TextField(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LedgerCountFields(
+                  type: TextField(
                     key: Key('staff-item-name-${_rows.indexOf(row)}'),
                     controller: row.name,
                     enabled: widget.enabled,
                     maxLength: 120,
                     decoration: ledgerFieldDecoration(
                       context,
-                      label: 'النوع (مثل خاتم أو حلق)',
+                      label: 'النوع',
+                    ).copyWith(counterText: ''),
+                  ),
+                  count: TextField(
+                    key: Key('staff-item-count-${_rows.indexOf(row)}'),
+                    controller: row.count,
+                    enabled: widget.enabled,
+                    keyboardType: TextInputType.number,
+                    textDirection: TextDirection.ltr,
+                    inputFormatters: const [
+                      GramInputFormatter(decimalPlaces: 0),
+                    ],
+                    decoration: ledgerFieldDecoration(context, label: 'العدد'),
+                  ),
+                  weight: TextField(
+                    key: Key('staff-item-weight-${_rows.indexOf(row)}'),
+                    controller: row.grams,
+                    enabled: widget.enabled,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    textDirection: TextDirection.ltr,
+                    decoration: ledgerFieldDecoration(
+                      context,
+                      label: 'الوزن (اختياري)',
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  LedgerFieldPair(
-                    first: TextField(
-                      key: Key('staff-item-count-${_rows.indexOf(row)}'),
-                      controller: row.count,
-                      enabled: widget.enabled,
-                      keyboardType: TextInputType.number,
-                      textDirection: TextDirection.ltr,
-                      inputFormatters: const [
-                        GramInputFormatter(decimalPlaces: 0),
-                      ],
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'العدد',
-                      ),
-                    ),
-                    second: TextField(
-                      key: Key('staff-item-weight-${_rows.indexOf(row)}'),
-                      controller: row.grams,
-                      enabled: widget.enabled,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textDirection: TextDirection.ltr,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'الوزن بالجرام (اختياري)',
-                      ),
-                    ),
-                  ),
-                  if (_rows
-                          .where((other) => identical(other.bucket, bucket))
-                          .length >
-                      1)
-                    TextButton(
+                ),
+                if (_rows
+                        .where((other) => identical(other.bucket, bucket))
+                        .length >
+                    1)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
                       onPressed: widget.enabled
                           ? () => setState(() {
                               _rows.remove(row);
@@ -173,8 +172,8 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
                           : null,
                       child: const Text('حذف الصف'),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         OutlinedButton.icon(

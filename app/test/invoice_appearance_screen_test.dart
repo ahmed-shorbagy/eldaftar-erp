@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/financial_operation_screen.dart';
@@ -11,6 +12,7 @@ import 'package:eldafttar/src/features/invoice_appearance/data/logo_upload_store
 import 'package:eldafttar/src/features/invoice_appearance/domain/appearance_rules.dart';
 import 'package:eldafttar/src/features/invoice_appearance/presentation/invoice_appearance_screen.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
+import 'package:eldafttar/src/features/shop_accounts/domain/shop_image.dart';
 import 'package:eldafttar/src/shell/shop_workspace.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +27,9 @@ const _user = 'a1111111-1111-4111-8111-111111111111';
 const _shop = 'a1222222-2222-4222-8222-222222222222';
 const _key = 'a1555555-5555-4555-8555-555555555555';
 const _operation = 'a1333333-3333-4333-8333-333333333333';
+const _logoAsset = 'a1666666-6666-4666-8666-666666666666';
+const _tinyPngHex =
+    '89504e470d0a1a0a0000000d494844520000000200000002080600000072b60d240000001a49444154789c63e1129163909393fbcf626363d3b07bd3ca930020e105b1e1ef98ad0000000049454e44ae426082';
 
 void main() {
   setUpAll(() async {
@@ -324,6 +329,92 @@ void main() {
     );
     expect(find.text('أكد المالك الإرسال عبر واتساب'), findsNothing);
   });
+
+  testWidgets('shop image toggle uploads and clears the invoice logo', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    final gateway = AppearanceTestGateway()..acceptLogoUploads = true;
+    final shopImages = FakeShopImageGateway(
+      ShopImage(
+        shopId: _shop,
+        sha256: 'cd' * 32,
+        mime: 'image/png',
+        width: 2,
+        height: 2,
+        bytes: _hex(_tinyPngHex),
+      ),
+    );
+    final screen = InvoiceAppearanceScreen(
+      gateway: gateway,
+      store: AppearanceTestLocker(),
+      logoStore: MemoryLogoUploadStore(),
+      shopImageGateway: shopImages,
+      userId: _user,
+      shopId: _shop,
+      canRead: () => true,
+      canWrite: () => true,
+      newKey: () => _key,
+    );
+    await tester.pumpWidget(_host(screen, 390, false, 1));
+    await _pumpIdle(tester);
+    expect(
+      find.byKey(const Key('appearance-shop-image-preview')),
+      findsOneWidget,
+    );
+    expect(find.text('إظهار صورة المتجر على الفاتورة'), findsOneWidget);
+    final toggle = find.byKey(const Key('appearance-shop-image-toggle'));
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await _pumpIdle(tester);
+    expect(gateway.logoUploads, 1);
+    expect(gateway.logoConfirms, 1);
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    expect(find.textContaining('تم ربط الصورة بالفاتورة'), findsOneWidget);
+    await tester.tap(toggle);
+    await _pumpIdle(tester);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(find.byKey(const Key('appearance-logo-clear')), findsNothing);
+  });
+
+  testWidgets('shop image toggle asks for a shop image when none is saved', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    final screen = InvoiceAppearanceScreen(
+      gateway: AppearanceTestGateway(),
+      store: AppearanceTestLocker(),
+      logoStore: MemoryLogoUploadStore(),
+      shopImageGateway: FakeShopImageGateway(null),
+      userId: _user,
+      shopId: _shop,
+      canRead: () => true,
+      canWrite: () => true,
+      newKey: () => _key,
+    );
+    await tester.pumpWidget(_host(screen, 390, false, 1));
+    await _pumpIdle(tester);
+    expect(
+      find.byKey(const Key('appearance-shop-image-missing')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('appearance-shop-image-toggle')));
+    await _pumpIdle(tester);
+    expect(find.textContaining('أضف صورة المتجر من المزيد'), findsOneWidget);
+  });
+}
+
+Uint8List _hex(String value) {
+  final out = Uint8List(value.length ~/ 2);
+  for (var i = 0; i < out.length; i++) {
+    out[i] = int.parse(value.substring(i * 2, i * 2 + 2), radix: 16);
+  }
+  return out;
 }
 
 _Harness _harness(String state) {
@@ -478,6 +569,21 @@ final class AppearanceTestLocker implements FinancialCommandLocker {
   }
 }
 
+class FakeShopImageGateway implements ShopImageGateway {
+  FakeShopImageGateway(this.current);
+  ShopImage? current;
+
+  @override
+  Future<ShopImage?> readCurrent() async => current;
+
+  @override
+  Future<ShopImage> setImage(Uint8List preparedBytes) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> clearImage() => throw UnimplementedError();
+}
+
 class AppearanceTestGateway implements InvoiceAppearanceGateway {
   static const snapshot = InvoiceAppearanceSnapshot(
     shopId: _shop,
@@ -492,6 +598,9 @@ class AppearanceTestGateway implements InvoiceAppearanceGateway {
     canWrite: true,
   );
   Object? session = Object();
+  var acceptLogoUploads = false;
+  var logoUploads = 0;
+  var logoConfirms = 0;
 
   @override
   Object? appearanceSession(String userId) => session;
@@ -543,7 +652,11 @@ class AppearanceTestGateway implements InvoiceAppearanceGateway {
     required String objectName,
     required String mimeType,
     required List<int> bytes,
-  }) => throw UnimplementedError();
+  }) async {
+    if (!acceptLogoUploads) throw UnimplementedError();
+    logoUploads++;
+    return const LogoUploadResult(LogoUploadDisposition.stored);
+  }
 
   @override
   Future<LogoConfirmation> confirmInvoiceLogo({
@@ -551,7 +664,18 @@ class AppearanceTestGateway implements InvoiceAppearanceGateway {
     required String shopId,
     required String base64Bytes,
     required String sha256,
-  }) => throw UnimplementedError();
+  }) async {
+    if (!acceptLogoUploads) throw UnimplementedError();
+    logoConfirms++;
+    return LogoConfirmation(
+      shopId: shopId,
+      assetId: _logoAsset,
+      sha256: sha256,
+      mime: 'image/png',
+      width: 2,
+      height: 2,
+    );
+  }
 
   @override
   Future<InvoiceBrandSource> readBrandSource({

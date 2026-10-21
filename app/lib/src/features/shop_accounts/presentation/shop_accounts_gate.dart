@@ -789,6 +789,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 store: const PendingFinancialCommands(),
                 userId: userId,
                 shopId: selected.id,
+                shopImageGateway: widget.shopImageGateway,
                 canRead: () =>
                     mounted &&
                     !_accessLost &&

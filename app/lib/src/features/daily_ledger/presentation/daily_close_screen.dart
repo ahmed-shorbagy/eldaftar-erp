@@ -216,73 +216,78 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     });
   }
 
+  String _stockBucketTitle(Map bucket) {
+    final category = StockCategory.byCode(bucket['category'] as String)!;
+    final karat = bucket['karat'];
+    if (category == StockCategory.workedJewelry) return 'عيار $karat';
+    return '${stockCategoryLabel(category)} · عيار $karat';
+  }
+
   List<Widget> _namedStockFields() => [
     const Text(
       'النوع · العدد المطلوب · الوزن اختياري. الوزن الفارغ يُسجّل «لم يُوزن»؛ يظل وزن الدفتر مرجعاً منفصلاً.',
     ),
     for (final bucket in widget.day.counts!['stock'] as List) ...[
       const SizedBox(height: 12),
-      Text(
-        '${stockCategoryLabel(StockCategory.byCode((bucket as Map)['category'] as String)!)} · عيار ${bucket['karat']}',
-      ),
+      Text(_stockBucketTitle(bucket as Map)),
       for (final row in _observations.where(
         (row) =>
             row.category == bucket['category'] && row.karat == bucket['karat'],
       ))
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DropdownButtonFormField<String>(
-                key: ObjectKey(row),
-                initialValue: row.name,
-                isExpanded: true,
-                decoration: ledgerFieldDecoration(context, label: 'النوع'),
-                items: [
-                  for (final name in {
-                    if (row.category == 'worked_jewelry') ...[
-                      'خاتم',
-                      'حلق',
-                      'سلسلة',
-                      'تعليقة',
-                      'دبلة',
-                      'غويشة',
-                      'إسورة',
-                      'خلخال',
-                      'طقم',
-                    ],
-                    if (row.category == 'coin') ...[
-                      'ثمن جنيه',
-                      'ربع جنيه',
-                      'نصف جنيه',
-                      'جنيه',
-                      'خمسة جنيهات',
-                    ],
-                    if (row.category == 'bullion') ...[
-                      'سبيكة ربع جرام',
-                      'سبيكة نصف جرام',
-                      'سبيكة 1 جرام',
-                      'سبيكة 2.5 جرام',
-                      'سبيكة 5 جرام',
-                      'سبيكة 10 جرام',
-                      'سبيكة 20 جرام',
-                      'سبيكة 25 جرام',
-                      'سبيكة أونصة',
-                    ],
-                    for (final product in _products)
-                      if (product.category == row.category &&
-                          product.karat == row.karat)
-                        product.name,
-                  })
-                    DropdownMenuItem(value: name, child: Text(name)),
-                ],
-                onChanged: _busy || _unknown || _review != null
-                    ? null
-                    : (name) => setState(() => row.name = name),
-              ),
-              const SizedBox(height: 8),
-              LedgerFieldPair(
-                first: TextField(
+              LedgerCountFields(
+                type: DropdownButtonFormField<String>(
+                  key: ObjectKey(row),
+                  initialValue: row.name,
+                  isExpanded: true,
+                  decoration: ledgerFieldDecoration(context, label: 'النوع'),
+                  items: [
+                    for (final name in {
+                      if (row.category == 'worked_jewelry') ...[
+                        'خاتم',
+                        'حلق',
+                        'سلسلة',
+                        'تعليقة',
+                        'دبلة',
+                        'غويشة',
+                        'إسورة',
+                        'خلخال',
+                        'طقم',
+                      ],
+                      if (row.category == 'coin') ...[
+                        'ثمن جنيه',
+                        'ربع جنيه',
+                        'نصف جنيه',
+                        'جنيه',
+                        'خمسة جنيهات',
+                      ],
+                      if (row.category == 'bullion') ...[
+                        'سبيكة ربع جرام',
+                        'سبيكة نصف جرام',
+                        'سبيكة 1 جرام',
+                        'سبيكة 2.5 جرام',
+                        'سبيكة 5 جرام',
+                        'سبيكة 10 جرام',
+                        'سبيكة 20 جرام',
+                        'سبيكة 25 جرام',
+                        'سبيكة أونصة',
+                      ],
+                      for (final product in _products)
+                        if (product.category == row.category &&
+                            product.karat == row.karat)
+                          product.name,
+                    })
+                      DropdownMenuItem(value: name, child: Text(name)),
+                  ],
+                  onChanged: _busy || _unknown || _review != null
+                      ? null
+                      : (name) => setState(() => row.name = name),
+                ),
+                count: TextField(
                   controller: row.count,
                   key: ValueKey('close-count-${row.id}'),
                   readOnly: _busy || _unknown || _review != null,
@@ -291,7 +296,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   textDirection: TextDirection.ltr,
                   decoration: ledgerFieldDecoration(context, label: 'العدد'),
                 ),
-                second: TextField(
+                weight: TextField(
                   controller: row.grams,
                   key: ValueKey('close-weight-${row.id}'),
                   readOnly: _busy || _unknown || _review != null,
@@ -301,7 +306,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   textDirection: TextDirection.ltr,
                   decoration: ledgerFieldDecoration(
                     context,
-                    label: 'الوزن بالجرام (اختياري)',
+                    label: 'الوزن (اختياري)',
                   ),
                 ),
               ),
@@ -313,14 +318,17 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       )
                       .length >
                   1)
-                TextButton(
-                  onPressed: _busy || _unknown || _review != null
-                      ? null
-                      : () => setState(() {
-                          _observations.remove(row);
-                          row.dispose();
-                        }),
-                  child: const Text('حذف الصف'),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton(
+                    onPressed: _busy || _unknown || _review != null
+                        ? null
+                        : () => setState(() {
+                            _observations.remove(row);
+                            row.dispose();
+                          }),
+                    child: const Text('حذف الصف'),
+                  ),
                 ),
             ],
           ),
