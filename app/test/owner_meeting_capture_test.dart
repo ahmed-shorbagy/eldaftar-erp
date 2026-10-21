@@ -240,6 +240,7 @@ void main() {
           );
           await tap(find.byKey(const Key('nominal-select-0')));
           await t.enterText(find.byKey(const Key('nominal-count-0')), '2');
+          await t.pumpAndSettle();
           await tap(find.byKey(const Key('nominal-select-1')));
           await shot('denominations');
           final count = CountGateway();

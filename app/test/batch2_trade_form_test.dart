@@ -193,13 +193,10 @@ void main() {
       );
       await chooseTradeItem(tester, 'جنيهات');
       expect(find.text('عملة قديمة'), findsNothing);
-      expect(find.text('8.500 جرام للقطعة'), findsOneWidget);
-      final pound = find.ancestor(
-        of: find.text('جنيه'),
-        matching: find.byType(CheckboxListTile),
-      );
-      await tester.ensureVisible(pound);
-      await tester.tap(pound);
+      expect(find.textContaining('8.50 جرام'), findsWidgets);
+      // Built-ins: ربع=0, نصف=1, جنيه=2 (shop override 8.5g), خمسة=3.
+      await tester.ensureVisible(find.byKey(const Key('nominal-select-2')));
+      await tester.tap(find.byKey(const Key('nominal-select-2')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('nominal-count-2')), '2');
       await tester.tap(find.byKey(const Key('nominal-apply')));
@@ -217,12 +214,8 @@ void main() {
       await revealTrade(tester, find.byKey(const Key('trade-nominals-0')));
       await tester.tap(find.byKey(const Key('trade-nominals-0')));
       await tester.pumpAndSettle();
-      final large = find.ancestor(
-        of: find.text('جنيه كبير'),
-        matching: find.byType(CheckboxListTile),
-      );
-      await tester.ensureVisible(large);
-      await tester.tap(large);
+      await tester.ensureVisible(find.byKey(const Key('nominal-select-4')));
+      await tester.tap(find.byKey(const Key('nominal-select-4')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nominal-apply')));
       await tester.pumpAndSettle();
@@ -244,6 +237,52 @@ void main() {
       );
     },
   );
+
+  testWidgets('coin chips select half pound and two quarters', (tester) async {
+    final gateway = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: gateway,
+      statusGateway: gateway,
+      kind: FinancialKind.sale,
+    );
+    await chooseTradeItem(tester, 'جنيهات');
+    // ربع=0, نصف=1
+    await tester.tap(find.byKey(const Key('nominal-select-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('nominal-select-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('nominal-count-0-plus')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('nominal-count-0')))
+          .controller!
+          .text,
+      '2',
+    );
+    expect(find.textContaining('×2'), findsWidgets);
+    expect(find.byKey(const Key('nominal-total')), findsOneWidget);
+    expect(find.textContaining('8'), findsWidgets);
+    await tester.tap(find.byKey(const Key('nominal-apply')));
+    await tester.pumpAndSettle();
+    expect(find.text('الصنف 1'), findsOneWidget);
+    expect(find.text('الصنف 2'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+          .controller!
+          .text,
+      '4',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('trade-grams-1')))
+          .controller!
+          .text,
+      '4',
+    );
+  });
 
   testWidgets('other opens built-ins, shop products, and add control', (
     tester,
