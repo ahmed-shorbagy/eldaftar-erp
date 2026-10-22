@@ -1,4 +1,14 @@
-# Current task pointer — 2026-10-21
+# Current task pointer — 2026-10-22
+
+The bounded ADM-01 directory slice is independently verified and development-deployed: [ADR 0027](../adr/0027-admin-subscriber-directory.md), [final review](../reviews/admin-subscribers-2026-10-22/independent-validation.md), [deployment/preservation](../reviews/admin-subscribers-2026-10-22/deployment.md). Next proposed real feature: ADM-02/ADM-08 admin subscription-code issuance and management using the existing owner redemption contract, with term/renewal choices scoped before implementation. It is not started. Contact/location permissions, owner acceptance, DOC-04 native reliability and Milestone 5 remain open.
+
+The paragraph below is the historical recommendation that selected this directory. It is not a statement that the directory is still unbuilt.
+
+Recommended next real feature: **ADM-01 subscriber directory and subscription overview in React admin**. Deliver protected metadata reads, server-derived subscription counts/status, search/filter/paging and read-only detail. [Feature plan](admin-subscribers-plan-2026-10-22.md), [ready-to-paste implementation prompt](admin-subscribers-prompt-2026-10-22.md). This is a recommendation prepared for selection, not an implementation performed by the documentation task. Subscription mutations, contact/location permissions and shop financial access remain separate.
+
+Weekly Reports is locally verified and applied on development: [validation](../reviews/weekly-reports-2026-10-22/validation.md), [deployment](../reviews/weekly-reports-2026-10-22/deployment.md), [follow-up examination](../reviews/weekly-reports-2026-10-22/follow-up-review.md). Native/owner acceptance and Milestones 4/5 stay open. The DOC-04 harness remains [acceptance/reliability backlog](../reviews/stabilization-2026-10-21/acceptance.md). The earlier task pointers below are historical context, not the current next-task recommendation.
+
+## Previous pointer — 2026-10-21
 
 Latest continuation: weekly Reports is implemented locally under [ADR 0026](../adr/0026-weekly-financial-reports.md). The owner explicitly deferred checks and verification to continue feature implementation. [Local status and deferred work](../reviews/weekly-reports-2026-10-21/implementation.md) tracks the pending weekly migration, shared daily code regression needs and later development deployment. Do not treat earlier daily test/deployment evidence as verification of this weekly source. No later implementation feature or admin dashboard was selected in this continuation.
 

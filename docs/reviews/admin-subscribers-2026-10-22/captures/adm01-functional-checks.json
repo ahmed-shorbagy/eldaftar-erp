@@ -1,0 +1,16 @@
+{
+  "literalSearch": true,
+  "nextPageReplacedRows": true,
+  "statusFilterResetPage": true,
+  "detailTabAndShiftTab": true,
+  "escapeClosedAndRestoredFocus": true,
+  "signOutClearedContent": true,
+  "syntheticGateway": true,
+  "keyboardScroll": {
+    "before": 0,
+    "after": 740.7999877929688,
+    "scrollHeight": 1378,
+    "clientHeight": 637
+  },
+  "signOutPendingAndFailureReviewed": true
+}

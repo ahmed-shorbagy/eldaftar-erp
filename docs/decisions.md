@@ -1,6 +1,14 @@
 # Architecture and product decisions
 
-## Current decision pointers — 2026-10-21
+## Current decision — 2026-10-22
+
+[ADR 0027](adr/0027-admin-subscriber-directory.md) records the owner-selected read-only subscriber directory. It uses current entitlement semantics and the existing live platform-admin/session guard with ban denial, returning only shop/subscription metadata. [Independent review](reviews/admin-subscribers-2026-10-22/independent-validation.md) and [development deployment/preservation](reviews/admin-subscribers-2026-10-22/deployment.md) are complete for the bounded slice. Contact/location permissions, shop financial access, subscription mutations, owner acceptance and Milestone 5 remain separate; no wider policy is accepted by this delivery.
+
+## Previous planning pointer — 2026-10-22
+
+No new accepted product decision is introduced by the planning pass. ADR 0026's weekly contract is locally verified and applied on development: [validation](reviews/weekly-reports-2026-10-22/validation.md), [deployment](reviews/weekly-reports-2026-10-22/deployment.md), [follow-up examination](reviews/weekly-reports-2026-10-22/follow-up-review.md). The next real feature recommendation is [ADM-01 subscriber directory/overview](operations/admin-subscribers-plan-2026-10-22.md), with a [prepared prompt](operations/admin-subscribers-prompt-2026-10-22.md). Proposed defaults reuse current entitlement semantics and live platform-admin checks, exposing only shop/subscription metadata. They grant no D21 support access, ADM-07 contact/location access, subscription mutation or owner impersonation. Record the bounded ADR when implementation is selected. DOC-04 and native acceptance remain separate backlog; wider periods and D23 legal/tax content remain open.
+
+## Previous decision pointers — 2026-10-21
 
 Later Reports continuation: the owner asked to proceed to weekly reports and leave checks/verification for later. [ADR 0026](adr/0026-weekly-financial-reports.md) defines seven inclusive financial dates ending on the selected date, exact category/karat net weights and distinct movement counts, and full transaction-level money without invented price allocation. [Local implementation status](reviews/weekly-reports-2026-10-21/implementation.md) is explicitly unverified and not deployed. Wider period semantics and admin dashboards remain open; earlier daily verification is not reused as evidence for weekly changes.
 

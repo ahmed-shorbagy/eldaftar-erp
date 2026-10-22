@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test } from 'vitest'
 import { App } from '../App.tsx'
@@ -18,7 +18,7 @@ class FakeAdminAuthGateway implements AdminAuthGateway {
     this.status = status
   }
 
-  subscribe(): () => void {
+  subscribe(_listener: (access: AdminAccess) => void): () => void {
     return () => {}
   }
 
@@ -41,6 +41,52 @@ class MemoryThemePreferenceStore implements ThemePreferenceStore {
     this.value = value
   }
 }
+
+test('sign-out blocks duplicate requests and exposes a failed request for retry', async () => {
+  const user = userEvent.setup()
+  const gateway = new FakeAdminAuthGateway()
+  let notify: (access: AdminAccess) => void = () => {}
+  let rejectSignOut: (reason: Error) => void = () => {}
+  let completeSignOut: () => void = () => {}
+  let attempts = 0
+  gateway.subscribe = (listener) => {
+    notify = listener
+    return () => { notify = () => {} }
+  }
+  gateway.signOut = () => {
+    attempts += 1
+    return new Promise<void>((resolve, reject) => {
+      rejectSignOut = reject
+      completeSignOut = () => {
+        gateway.status = 'signedOut'
+        notify('signedOut')
+        resolve()
+      }
+    })
+  }
+  render(
+    <App
+      supabaseStatus="ready"
+      authGateway={gateway}
+      subscriberGateway={null}
+      themeController={new ThemeController(new MemoryThemePreferenceStore())}
+    />,
+  )
+  await user.dblClick(screen.getByRole('button', { name: 'تسجيل الخروج' }))
+  expect(attempts).toBe(1)
+  expect(screen.getByText(shellCopy.signingOut)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'تسجيل الخروج' })).not.toBeInTheDocument()
+  rejectSignOut(new Error('offline'))
+  const failure = await screen.findByRole('alert')
+  expect(within(failure).getByText(shellCopy.signOutFailure)).toBeInTheDocument()
+  await user.click(within(failure).getByRole('button', { name: shellCopy.retrySignOut }))
+  expect(attempts).toBe(2)
+  expect(screen.getByText(shellCopy.signingOut)).toBeInTheDocument()
+  completeSignOut()
+  await waitFor(() => expect(screen.queryByText(shellCopy.signingOut)).not.toBeInTheDocument())
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'تسجيل الخروج' })).not.toBeInTheDocument()
+})
 
 function renderShell(
   status: SupabaseStartupStatus,
@@ -72,25 +118,42 @@ test('missing public config shows the Arabic setup message in RTL', () => {
   expect(screen.getByText(/VITE_SUPABASE_URL/).closest('[dir="ltr"]')).not.toBeNull()
 })
 
-test('ready and failed states stay labeled as a prototype', () => {
-  const { unmount } = render(
+test('a signed-in admin sees the subscriber directory instead of the prototype shell', async () => {
+  render(
     <App
       supabaseStatus="ready"
       authGateway={new FakeAdminAuthGateway()}
+      subscriberGateway={{
+        async list() {
+          return {
+            snapshotAt: '2026-10-22T00:30:00.000Z',
+            counts: { all: '0', active: '0', pending: '0', expired: '0' },
+            filteredCount: '0',
+            pageSize: 20,
+            rows: [],
+            nextCursor: null,
+          }
+        },
+        async get() {
+          throw new Error('unused')
+        },
+      }}
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,
   )
-  expect(screen.getByText(shellCopy.prototypeLabel)).toBeInTheDocument()
-  expect(screen.getByText(shellCopy.readyTitle)).toBeInTheDocument()
-  expect(screen.getByText(shellCopy.readyBody)).toBeInTheDocument()
-  expect(screen.queryByText(/VITE_SUPABASE_URL/)).not.toBeInTheDocument()
-  unmount()
+  expect(await screen.findByRole('heading', { name: 'المشتركون' })).toBeInTheDocument()
+  expect(screen.queryByText(shellCopy.prototypeLabel)).not.toBeInTheDocument()
+  expect(screen.queryByText(shellCopy.readyBody)).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'تسجيل الخروج' })).toBeInTheDocument()
+})
 
+test('failed startup stays labeled as a prototype', () => {
   renderShell('failed')
   expect(screen.getByText(shellCopy.prototypeLabel)).toBeInTheDocument()
   expect(screen.getByText(shellCopy.failedTitle)).toBeInTheDocument()
   expect(screen.getByText(shellCopy.failedBody)).toBeInTheDocument()
   expect(screen.queryByText(shellCopy.missingTitle)).not.toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'المشتركون' })).not.toBeInTheDocument()
   expect(screen.queryByText(/public-key/)).not.toBeInTheDocument()
 })
 

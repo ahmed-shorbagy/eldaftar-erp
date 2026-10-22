@@ -1,6 +1,6 @@
 # ADR 0026: Weekly financial reports by category and karat
 
-Status: local implementation under the owner's follow-up request to proceed to the next real feature. Checks, verification and deployment are deferred by that same request. This adds the weekly part of D18/RPT-01/RPT-02/RPT-04; it does not change the historical daily-report acceptance record or authorize admin dashboards.
+Status: locally verified and applied on development `xchapwvmvoefriqcxtvn` on 2026-10-22. [Validation](../reviews/weekly-reports-2026-10-22/validation.md), [deployment](../reviews/weekly-reports-2026-10-22/deployment.md). This adds the weekly part of D18/RPT-01/RPT-02/RPT-04. It does not change the historical daily-report acceptance record, close Milestones 4/5, or authorize admin dashboards. Native save/share/print and owner acceptance remain open.
 
 ## Selection and accounting
 
@@ -24,4 +24,4 @@ Reuse the existing verified `report_pdf` R2 kind and its 20 MiB/content-addresse
 
 ## Delivery boundary
 
-See the [local implementation and deferred work register](../reviews/weekly-reports-2026-10-21/implementation.md). No test, analyzer, SQL execution, render review or hosted application is claimed for this slice. The migration must pass the queued gates and be reconciled/applied only to authorized development `xchapwvmvoefriqcxtvn` before the updated client is used against it. Earlier daily deployment/evidence stays intact. No commit, push, publish or release/production build is included.
+The October 21 [implementation note](../reviews/weekly-reports-2026-10-21/implementation.md) records the first local source drop, when checks were still deferred. The 2026-10-22 [validation](../reviews/weekly-reports-2026-10-22/validation.md) and [development deployment](../reviews/weekly-reports-2026-10-22/deployment.md) are the current evidence. Earlier daily deployment evidence stays intact. No commit, push, publish or release/production build is included.

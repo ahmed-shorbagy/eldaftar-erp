@@ -58,8 +58,9 @@ class _ReportsScreenState extends State<ReportsScreen>
     if (gateway is! WeeklyReportGateway ||
         _weeklyRoute != null ||
         _exporting ||
-        !_allowed)
+        !_allowed) {
       return;
+    }
     final user = widget.userId, shop = widget.shopId;
     final route = MaterialPageRoute<void>(
       builder: (_) => WeeklyReportsScreen(

@@ -11,6 +11,9 @@ Map<String, dynamic> reportFixture({
   String day = reportDayId,
   bool empty = false,
   int sales = 1,
+  String? date,
+  String? status,
+  int idOffset = 0,
 }) {
   Map<String, dynamic> row(
     int n,
@@ -19,7 +22,8 @@ Map<String, dynamic> reportFixture({
     String total,
     String cash,
   ) => {
-    'id': 'b4444444-4444-4444-8444-${n.toString().padLeft(12, '0')}',
+    'id':
+        'b4444444-4444-4444-8444-${(n + idOffset).toString().padLeft(12, '0')}',
     'sequence': '$n',
     'kind': kind,
     'label': label,
@@ -80,9 +84,9 @@ Map<String, dynamic> reportFixture({
     'shop_id': reportShop,
     'shop_name': 'متجر الذهب التجريبي',
     'day_id': day,
-    'date': day == reportDayId ? '2026-10-21' : '2026-10-19',
-    'status': day == reportDayId ? 'open' : 'closed',
-    'opened_at_shop': '2026-10-21 00:10:00',
+    'date': date ?? (day == reportDayId ? '2026-10-21' : '2026-10-19'),
+    'status': status ?? (day == reportDayId ? 'open' : 'closed'),
+    'opened_at_shop': date == null ? '2026-10-21 00:10:00' : '$date 00:10:00',
     'time_zone': 'Africa/Cairo',
     'fingerprint': 'a' * 64,
     'generated_at_utc': '2026-10-21T10:00:00Z',

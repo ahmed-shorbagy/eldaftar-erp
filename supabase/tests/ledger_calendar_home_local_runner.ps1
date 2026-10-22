@@ -88,6 +88,7 @@ try {
   }
   if ($ReportsOnly) {
     FileSql (Join-Path $PSScriptRoot 'financial_day_report.sql')
+    FileSql (Join-Path $PSScriptRoot 'financial_week_report.sql')
     Write-Host 'REPORTS_SQL_PASSED'
     return
   }
@@ -98,6 +99,7 @@ try {
   FileSql (Join-Path $PSScriptRoot 'daily_ledger_trades.sql')
   FileSql (Join-Path $PSScriptRoot 'ledger_trade_change.sql')
   FileSql (Join-Path $PSScriptRoot 'financial_day_report.sql')
+  FileSql (Join-Path $PSScriptRoot 'financial_week_report.sql')
   FileSql (Join-Path $PSScriptRoot 'staff_closing_delegation.sql')
   FileSql (Join-Path $PSScriptRoot 'invoice_appearance.sql')
   FileSql (Join-Path $PSScriptRoot 'closing_delegation_index_coverage.sql')

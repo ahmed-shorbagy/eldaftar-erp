@@ -6,6 +6,7 @@ import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
+import type { ReactNode } from 'react'
 import type { SupabaseStartupStatus } from '../config/supabaseStartup.ts'
 import { BrandMark } from '../theme/BrandMark.tsx'
 import { tokens } from '../theme/tokens.ts'
@@ -17,11 +18,13 @@ export function HomeShell({
   themeMode,
   onToggleTheme,
   onSignOut,
+  directory,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeMode: ResolvedTheme
   onToggleTheme: () => void
   onSignOut?: () => void
+  directory?: ReactNode
 }) {
   const isDark = themeMode === 'dark'
   const toggleLabel = isDark ? shellCopy.toggleToLight : shellCopy.toggleToDark
@@ -51,8 +54,9 @@ export function HomeShell({
         <Toolbar
           sx={{
             display: 'grid',
-            gridTemplateColumns: '48px 1fr 48px',
+            gridTemplateColumns: '1fr auto 1fr',
             alignItems: 'center',
+            gap: 1,
           }}
         >
           <Box aria-hidden />
@@ -71,44 +75,55 @@ export function HomeShell({
             <BrandMark />
             {shellCopy.appTitle}
           </Typography>
-          {onSignOut && <IconButton aria-label="تسجيل الخروج" color="inherit" onClick={onSignOut}><LogoutOutlinedIcon /></IconButton>}
-          <IconButton aria-label={toggleLabel} color="inherit" onClick={onToggleTheme}>
-            {isDark ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
-          </IconButton>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            {onSignOut && (
+              <IconButton aria-label="تسجيل الخروج" color="inherit" onClick={onSignOut}>
+                <LogoutOutlinedIcon />
+              </IconButton>
+            )}
+            <IconButton aria-label={toggleLabel} color="inherit" onClick={onToggleTheme}>
+              {isDark ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+            </IconButton>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
         component="main"
         sx={{
           width: '100%',
-          maxWidth: tokens.contentMaxWidth,
+          maxWidth: directory ? tokens.adminDirectoryMaxWidth : tokens.contentMaxWidth,
           mx: 'auto',
-          px: { xs: '20px', md: '32px' },
-          py: { xs: '20px', md: '32px' },
+          px: { xs: `${tokens.spaceMd}px`, md: `${tokens.spaceXl}px` },
+          py: { xs: `${tokens.spaceMd}px`, md: `${tokens.spaceXl}px` },
           display: 'grid',
-          gap: 2,
+          gap: `${tokens.spaceMd}px`,
+          minWidth: 0,
         }}
       >
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: '16px',
-            bgcolor: bannerBackground,
-            color: bannerForeground,
-          }}
-        >
-          <Typography
-            component="p"
-            variant="subtitle1"
-            sx={{ fontWeight: 700, color: 'inherit', mb: 1, lineHeight: 1.4 }}
-          >
-            {shellCopy.prototypeLabel}
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'inherit', lineHeight: 1.6 }}>
-            {shellCopy.prototypeBody}
-          </Typography>
-        </Box>
-        <StatusCard status={supabaseStatus} />
+        {directory ?? (
+          <>
+            <Box
+              sx={{
+                p: 2,
+                borderRadius: '16px',
+                bgcolor: bannerBackground,
+                color: bannerForeground,
+              }}
+            >
+              <Typography
+                component="p"
+                variant="subtitle1"
+                sx={{ fontWeight: 700, color: 'inherit', mb: 1, lineHeight: 1.4 }}
+              >
+                {shellCopy.prototypeLabel}
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'inherit', lineHeight: 1.6 }}>
+                {shellCopy.prototypeBody}
+              </Typography>
+            </Box>
+            <StatusCard status={supabaseStatus} />
+          </>
+        )}
       </Box>
     </Box>
   )

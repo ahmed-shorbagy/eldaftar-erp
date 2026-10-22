@@ -1,6 +1,9 @@
 /** Arabic user-facing copy for the administration starter shell. */
 export const shellCopy = {
   appTitle: 'الدفتر',
+  signingOut: 'جارٍ تسجيل الخروج',
+  signOutFailure: 'تعذّر تأكيد تسجيل الخروج. حاول مرة أخرى.',
+  retrySignOut: 'إعادة المحاولة',
   prototypeLabel: 'نموذج أولي',
   prototypeBody:
     'هذه واجهة إدارة البداية فقط. تسجيل الدخول وشاشات الإدارة غير متاحة بعد.',

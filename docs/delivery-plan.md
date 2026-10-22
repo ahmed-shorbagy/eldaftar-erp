@@ -1,6 +1,14 @@
 # Long-term delivery plan
 
-## Current status — 2026-10-21
+## Current plan — 2026-10-22
+
+The bounded ADM-01 directory slice is implemented, independently verified and deployed on development: [ADR 0027](adr/0027-admin-subscriber-directory.md), [final review](reviews/admin-subscribers-2026-10-22/independent-validation.md), [deployment/preservation](reviews/admin-subscribers-2026-10-22/deployment.md). It provides protected metadata, subscription counts/status, search/filter/paging and read-only detail. All 76 tracked data fingerprints and the original 59 migration rows were preserved. The React source remains local and owner acceptance remains open. Next proposed feature: ADM-02/ADM-08 admin code issuance/management built on the existing owner redemption contract, with terms and renewal rules scoped separately. ADM-07, notifications, Help, forced updates, impersonation and retention stay later. Milestone 5 remains open.
+
+Weekly Reports is locally verified and applied on development `xchapwvmvoefriqcxtvn`. [Validation](reviews/weekly-reports-2026-10-22/validation.md), [deployment/preservation](reviews/weekly-reports-2026-10-22/deployment.md) and [follow-up examination](reviews/weekly-reports-2026-10-22/follow-up-review.md). The October 21 source note remains [historical](reviews/weekly-reports-2026-10-21/implementation.md). Historical recommendation retained: **ADM-01 subscriber directory and subscription overview** in React, [bounded plan](operations/admin-subscribers-plan-2026-10-22.md), [implementation prompt](operations/admin-subscribers-prompt-2026-10-22.md). It adds protected read-only metadata, status counts, search/filter/paging and details; it does not authorize subscription changes or shop financial access. The examination sentence that this task implements no feature belongs to the planning pass; the directory slice above is the local implementation.
+
+Feature sequence: ADM-01 directory/overview first; then scope ADM-02/ADM-08 subscription-code issuance/redemption and renewal rules as a separate task. ADM-07 contact/location permission, wider reporting and other admin modules remain later scope. The DOC-04 invoice-output harness remains acceptance/reliability backlog in [stabilization acceptance](reviews/stabilization-2026-10-21/acceptance.md). Milestones 4/5 remain open; native save/share/print and owner acceptance are not inferred from SQL or screenshot evidence.
+
+## Previous status — 2026-10-21
 
 Later continuation: the owner selected weekly Reports and explicitly deferred checks/verification. The seven-financial-date report, category/karat grouping, full details and Arabic PDF are implemented locally under [ADR 0026](adr/0026-weekly-financial-reports.md). [Implementation and deferred gates](reviews/weekly-reports-2026-10-21/implementation.md). The weekly migration is pending; no weekly test, visual acceptance or hosted deployment is claimed. Admin dashboards and wider periods remain later scope. Daily-report historical evidence below remains intact.
 

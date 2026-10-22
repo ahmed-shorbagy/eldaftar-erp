@@ -2,10 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { expect, test, vi } from 'vitest'
 import { SupabaseAdminAuthGateway } from './SupabaseAdminAuthGateway.ts'
 
-function liveSession(emailConfirmedAt: string | null = null) {
+function liveSession(emailConfirmedAt: string | null = null, userId = 'admin-1') {
   return {
     expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
-    user: { email_confirmed_at: emailConfirmedAt },
+    access_token: `token-${userId}`,
+    user: { id: userId, email_confirmed_at: emailConfirmedAt },
   }
 }
 
@@ -194,4 +195,120 @@ test('revoking platform-admin closes an open admin session', async () => {
   await vi.waitFor(() => expect(gateway.status).toBe('denied'))
   expect(rpc).toHaveBeenCalledWith('is_platform_admin')
   expect(session).not.toBeNull()
+})
+
+test('sign-out clears admin state and ignores an in-flight admin check', async () => {
+  const resolvers: Array<(value: { data: boolean; error: null }) => void> = []
+  const rpc = vi.fn(() => new Promise((resolve) => {
+    resolvers.push(resolve)
+  }))
+  let resolveSignOut: (value: { error: null }) => void = () => {}
+  const getSession = vi.fn().mockResolvedValue({ data: { session: liveSession() }, error: null })
+  const client = {
+    auth: {
+      getSession,
+      onAuthStateChange: () => {},
+      signOut: vi.fn(() => new Promise((resolve) => {
+        resolveSignOut = resolve
+      })),
+    },
+    rpc,
+  } as unknown as SupabaseClient
+  const gateway = new SupabaseAdminAuthGateway(client)
+  const pendingRefresh = gateway.refresh()
+  await vi.waitFor(() => expect(resolvers).toHaveLength(1))
+  const callsBeforeSignOut = getSession.mock.calls.length
+  const pendingOut = gateway.signOut()
+  expect(gateway.status).toBe('signedOut')
+  resolvers[0]?.({ data: true, error: null })
+  await pendingRefresh
+  expect(gateway.status).toBe('signedOut')
+  resolveSignOut({ error: null })
+  await pendingOut
+  expect(gateway.status).toBe('signedOut')
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(getSession.mock.calls.length).toBe(callsBeforeSignOut)
+  expect(rpc).toHaveBeenCalledTimes(1)
+})
+
+test('an auth sign-out event clears admin state without waiting for refresh', async () => {
+  let listener: (event: string, session: unknown) => void = () => {}
+  const getSession = vi.fn().mockResolvedValue({ data: { session: liveSession() }, error: null })
+  const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
+  const client = {
+    auth: {
+      getSession,
+      onAuthStateChange: (next: (event: string, session: unknown) => void) => {
+        listener = next
+      },
+    },
+    rpc,
+  } as unknown as SupabaseClient
+  const gateway = new SupabaseAdminAuthGateway(client)
+  await gateway.refresh()
+  expect(gateway.status).toBe('admin')
+  const calls = getSession.mock.calls.length
+  listener('SIGNED_OUT', null)
+  expect(gateway.status).toBe('signedOut')
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(gateway.status).toBe('signedOut')
+  expect(getSession.mock.calls.length).toBe(calls)
+})
+
+test('an identity change removes admin state and ignores the previous admin check', async () => {
+  let session = liveSession(null, 'user-a')
+  const resolvers: Array<(value: { data: boolean; error: null }) => void> = []
+  const rpc = vi.fn(() => new Promise((resolve) => {
+    resolvers.push(resolve)
+  }))
+  let listener: (event: string, nextSession: unknown) => void = () => {}
+  const client = {
+    auth: {
+      getSession: vi.fn(async () => ({ data: { session }, error: null })),
+      onAuthStateChange: (next: (event: string, nextSession: unknown) => void) => {
+        listener = next
+      },
+    },
+    rpc,
+  } as unknown as SupabaseClient
+  const gateway = new SupabaseAdminAuthGateway(client)
+  const first = gateway.refresh()
+  await vi.waitFor(() => expect(resolvers).toHaveLength(1))
+  resolvers[0]?.({ data: true, error: null })
+  await first
+  expect(gateway.status).toBe('admin')
+
+  const second = gateway.refresh()
+  await vi.waitFor(() => expect(resolvers).toHaveLength(2))
+  session = liveSession(null, 'user-b')
+  listener('SIGNED_IN', session)
+  expect(gateway.status).toBe('checking')
+  resolvers[1]?.({ data: true, error: null })
+  await second
+  expect(gateway.status).toBe('checking')
+  await vi.waitFor(() => expect(resolvers).toHaveLength(3))
+  resolvers[2]?.({ data: false, error: null })
+  await vi.waitFor(() => expect(gateway.status).toBe('denied'))
+})
+
+test('a same-user token refresh does not drop admin state before the next check', async () => {
+  let listener: (event: string, session: unknown) => void = () => {}
+  const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
+  const session = liveSession(null, 'admin-1')
+  const client = {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }),
+      onAuthStateChange: (next: (event: string, session: unknown) => void) => {
+        listener = next
+      },
+    },
+    rpc,
+  } as unknown as SupabaseClient
+  const gateway = new SupabaseAdminAuthGateway(client)
+  await gateway.refresh()
+  expect(gateway.status).toBe('admin')
+  listener('TOKEN_REFRESHED', { ...session, access_token: 'token-admin-1-next' })
+  expect(gateway.status).toBe('admin')
+  await vi.waitFor(() => expect(rpc).toHaveBeenCalledTimes(2))
+  expect(gateway.status).toBe('admin')
 })

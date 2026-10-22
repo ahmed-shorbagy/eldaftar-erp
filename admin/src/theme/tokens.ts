@@ -30,6 +30,7 @@ export const tokens = {
   titleSize: 20,
   figureSize: 24,
   contentMaxWidth: 720,
+  adminDirectoryMaxWidth: 1120,
   ledgerPhoneGutter: 12,
   minControlSize: 48,
   spaceSm: 8,

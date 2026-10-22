@@ -1,8 +1,12 @@
 # Database design and transaction model
 
+## Platform-admin subscriber directory — development 2026-10-22
+
+[20261022094412_admin_subscriber_directory.sql](../supabase/migrations/20261022094412_admin_subscriber_directory.sql) adds the registration-order index and five functions in [ADR 0027](adr/0027-admin-subscriber-directory.md). The two public read contracts return one allowlisted snapshot with exact count strings and live admin/session/ban checks. The three private helpers have no client execution grant. No entitlement, financial, dispatch or audit rows are rewritten. [Independent checks](reviews/admin-subscribers-2026-10-22/independent-validation.md) and [development deployment/preservation](reviews/admin-subscribers-2026-10-22/deployment.md) record the verified delivery and local-to-hosted identity mapping.
+
 ## Weekly report continuation — local, pending migration
 
-`20261021133552_financial_week_reports.sql` adds owner-only stable `get_financial_week_report_v1(date)` and `confirm_financial_week_pdf_v1(date,text,text)` under [ADR 0026](adr/0026-weekly-financial-reports.md). The first composes every full daily snapshot with a financial date in the selected inclusive seven-date range, including duplicate dates with distinct day ids, then computes authoritative weekly money/count/karat/category totals. The content hash includes complete day data and excludes generated timestamps and picker metadata. The confirmation rechecks that whole-week hash and an owned verified `report_pdf` registry row. No table, financial write or media kind is added. [Local implementation/deferred gates](reviews/weekly-reports-2026-10-21/implementation.md); no weekly SQL execution or hosted application is claimed.
+`20261021133552_financial_week_reports.sql` adds owner-only stable `get_financial_week_report_v1(date)` and `confirm_financial_week_pdf_v1(date,text,text)` under [ADR 0026](adr/0026-weekly-financial-reports.md). The first composes every full daily snapshot with a financial date in the selected inclusive seven-date range, including duplicate dates with distinct day ids, then computes authoritative weekly money/count/karat/category totals. The content hash includes complete day data and excludes generated timestamps and picker metadata. The confirmation rechecks that whole-week hash and an owned verified `report_pdf` registry row. No table, financial write or media kind is added. Local SQL and the development application are recorded in [validation](reviews/weekly-reports-2026-10-22/validation.md) and [deployment](reviews/weekly-reports-2026-10-22/deployment.md).
 
 ## Selected financial-day report contract — 2026-10-21
 

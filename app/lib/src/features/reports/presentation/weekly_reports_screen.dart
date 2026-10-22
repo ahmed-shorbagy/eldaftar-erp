@@ -182,8 +182,9 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
     if (report == null ||
         _loading ||
         _exporting ||
-        report.firstBusinessDate == null)
+        report.firstBusinessDate == null) {
       return;
+    }
     final generation = _generation;
     final picked = await showDatePicker(
       context: context,
@@ -195,8 +196,9 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
       confirmText: 'اختيار',
       cancelText: 'إلغاء',
     );
-    if (!mounted || picked == null || generation != _generation || !_allowed)
+    if (!mounted || picked == null || generation != _generation || !_allowed) {
       return;
+    }
     final date =
         '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
     if (date == _endDate) return;
@@ -276,10 +278,10 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
       key: PageStorageKey(
         'week-${report.endDate}-${group.category}-${group.karat}',
       ),
-      title: Text('${reportCategory(group.category)} • عيار ${group.karat}'),
-      subtitle: Column(
+      title: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text('${reportCategory(group.category)} • عيار ${group.karat}'),
           _value('المباع بالجرام', reportGrams(group.sold)),
           _value('المشترى بالجرام', reportGrams(group.bought)),
         ],
@@ -313,6 +315,7 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
   @override
   Widget build(BuildContext context) {
     final report = _report;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -325,7 +328,7 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
                 maxWidth: AppTokens.contentMaxWidth,
               ),
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + keyboard),
                 children: [
                   const Text(
                     'تقرير أسبوعي',

@@ -7,19 +7,21 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
   String string(Object? v) => v as String;
   Map<String, dynamic> map(Object? v) => Map<String, dynamic>.from(v as Map);
   BigInt integer(Object? value) {
-    final s = string(value);
-    if (!RegExp(r'^-?(0|[1-9][0-9]*)$').hasMatch(s))
+    if (value is! String || !RegExp(r'^-?(0|[1-9][0-9]*)$').hasMatch(value)) {
       throw const FormatException('weekly_integer');
-    return BigInt.parse(s);
+    }
+    return BigInt.parse(value);
   }
 
   DateTime date(Object? value) {
     final s = string(value);
-    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s))
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s)) {
       throw const FormatException('weekly_date');
+    }
     final parsed = DateTime.parse('${s}T00:00:00Z');
-    if (parsed.toIso8601String().substring(0, 10) != s)
+    if (parsed.toIso8601String().substring(0, 10) != s) {
       throw const FormatException('weekly_date');
+    }
     return parsed;
   }
 
@@ -31,11 +33,13 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
       end.difference(start).inDays != 6 ||
       lastSelectable.isBefore(server) ||
       end.isAfter(lastSelectable) ||
-      !RegExp(r'^[a-f0-9]{64}$').hasMatch(string(m['fingerprint'])))
+      !RegExp(r'^[a-f0-9]{64}$').hasMatch(string(m['fingerprint']))) {
     throw const FormatException('weekly_scope');
+  }
   final summary = map(m['summary']).map((k, v) => MapEntry(k, integer(v)));
-  if (!reportSummaryLabels.keys.every(summary.containsKey))
+  if (!reportSummaryLabels.keys.every(summary.containsKey)) {
     throw const FormatException('weekly_summary');
+  }
   final days = (m['days'] as List)
       .map(
         (d) => parseFinancialDayReport({
@@ -45,8 +49,9 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
         }),
       )
       .toList();
-  if (days.map((d) => d.day.id).toSet().length != days.length)
+  if (days.map((d) => d.day.id).toSet().length != days.length) {
     throw const FormatException('weekly_duplicate_day');
+  }
   final operations = <String>{};
   for (final day in days) {
     final dayDate = date(day.day.date);
@@ -54,16 +59,19 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
         day.shopName != m['shop_name'] ||
         day.timeZone != m['time_zone'] ||
         dayDate.isBefore(start) ||
-        dayDate.isAfter(end))
+        dayDate.isAfter(end)) {
       throw const FormatException('weekly_day_scope');
+    }
     for (final t in day.transactions) {
-      if (!operations.add(t.id))
+      if (!operations.add(t.id)) {
         throw const FormatException('weekly_duplicate_operation');
+      }
     }
   }
   for (final key in reportSummaryLabels.keys) {
-    if (days.fold(BigInt.zero, (n, d) => n + d.value(key)) != summary[key])
+    if (days.fold(BigInt.zero, (n, d) => n + d.value(key)) != summary[key]) {
       throw const FormatException('weekly_incomplete');
+    }
   }
   final gold = (m['gold'] as List).map((v) {
     final g = map(v);
@@ -73,8 +81,9 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
       integer(g['bought']),
     );
   }).toList();
-  if (gold.map((g) => g.karat).join(',') != '14,18,21,22,24')
+  if (gold.map((g) => g.karat).join(',') != '14,18,21,22,24') {
     throw const FormatException('weekly_karats');
+  }
   final groups = (m['groups'] as List).map((v) {
     final g = map(v);
     return WeeklyReportGroup(
@@ -128,8 +137,9 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
       throw const FormatException('weekly_groups');
     }
   }
-  if (seen.length != expected.length)
+  if (seen.length != expected.length) {
     throw const FormatException('weekly_missing_group');
+  }
   for (final g in gold) {
     final byDay = days.expand((d) => d.gold).where((v) => v.karat == g.karat);
     final byGroup = groups.where((v) => v.karat == g.karat);
@@ -141,8 +151,9 @@ FinancialWeekReport parseFinancialWeekReport(Object? raw) {
     }
   }
   final containsOpen = m['contains_open_day'] as bool;
-  if (containsOpen != days.any((d) => d.day.status == 'open'))
+  if (containsOpen != days.any((d) => d.day.status == 'open')) {
     throw const FormatException('weekly_day_state');
+  }
   if (m['first_business_date'] != null) date(m['first_business_date']);
   return FinancialWeekReport(
     shopId: string(m['shop_id']),
