@@ -1,0 +1,1512 @@
+{
+  "project": "xchapwvmvoefriqcxtvn",
+  "before": {
+    "snapshot_at": "2026-10-22 13:59:35.761241+00",
+    "manifest": [
+      {
+        "relation": "auth.sessions",
+        "row_count": 18,
+        "row_sha256": "3e42254a4a68515dcfa5d97264c4b4beb295f4bd6f4d1be31c64fced120253b9"
+      },
+      {
+        "relation": "auth.users",
+        "row_count": 13,
+        "row_sha256": "4fc346e277331523f076a171d0d4444d5b4f7c3753fda3b8640ec702d5d6e254"
+      },
+      {
+        "relation": "private.closing_delegation_commands",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.closing_staff_creation_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.owner_registration_reservations",
+        "row_count": 12,
+        "row_sha256": "29f25d109b57cede021c73d8fd5f89a24a53cc868b7ff8289058814366d56894"
+      },
+      {
+        "relation": "private.subscription_code_attempts",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.subscription_code_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.subscription_codes",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.subscription_redemption_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.bullion_denominations",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.business_days",
+        "row_count": 4,
+        "row_sha256": "a4d13c4bab514acd82dacff1694f8071111f0161b88bd1572d94ad5603b3674a"
+      },
+      {
+        "relation": "public.closing_count_tasks",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.closing_delegation_audit",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.closing_staff_accounts",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.coin_types",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.customer_command_requests",
+        "row_count": 29,
+        "row_sha256": "db4193ae7c7059f923909c96c53086917a13de3463848585f35251f8480036a5"
+      },
+      {
+        "relation": "public.customer_events",
+        "row_count": 29,
+        "row_sha256": "33ad633a1fe185841b90d4c468041992cb244077394cd4246050d01ba22cf931"
+      },
+      {
+        "relation": "public.customer_notes",
+        "row_count": 2,
+        "row_sha256": "87f29d67c644de434e2376d6e45782b70091391e2ad685ab8c51162263b101ec"
+      },
+      {
+        "relation": "public.customer_number_declarations",
+        "row_count": 2,
+        "row_sha256": "10ab35b01a84f351c641f26fa51135871dc3e79bc94c3f5f8ef909a919eb1b28"
+      },
+      {
+        "relation": "public.customer_number_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.customer_operation_links",
+        "row_count": 5,
+        "row_sha256": "f6cac379a3a90592efd42a54a0ef0025c7049b5ec8da4f61d2b3e34910de4c9e"
+      },
+      {
+        "relation": "public.customer_phones",
+        "row_count": 2,
+        "row_sha256": "653161f8d849cce331fb77d13309acfc947f11bf0e8790a8add1b5d2b858b122"
+      },
+      {
+        "relation": "public.customers",
+        "row_count": 6,
+        "row_sha256": "c39a25dcec151c7569c2259054b4b1c9fb5aeb5e87eb9e492285fe5ac7625deb"
+      },
+      {
+        "relation": "public.daily_note_attachments",
+        "row_count": 2,
+        "row_sha256": "cc2fc9b0e15f5d3b59d4bdab1f5cda1f3a9d6c7e370a5f6124f5a77f45a7344e"
+      },
+      {
+        "relation": "public.debt_command_requests",
+        "row_count": 16,
+        "row_sha256": "f038d8954030d1365b949a942e924d87a574e1cee75b0a76d6e9b50962d0598c"
+      },
+      {
+        "relation": "public.debt_due_dates",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_due_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_due_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_events",
+        "row_count": 16,
+        "row_sha256": "7e0737194b88a69acc1a8a135f03315790eceedc375b7390a369437c64281dd1"
+      },
+      {
+        "relation": "public.debt_native_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_native_intents",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_native_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_settlement_references",
+        "row_count": 8,
+        "row_sha256": "29c7f287b87bef351f46ab40a29c4dad04cb138d286c204621392348653c0c27"
+      },
+      {
+        "relation": "public.debt_source_archives",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.egypt_governorates",
+        "row_count": 27,
+        "row_sha256": "6e08f2dd2c8d3f5adbd32247126e2ca4c694532c671ec212f9fdce6137a1cfe7"
+      },
+      {
+        "relation": "public.financial_audit_events",
+        "row_count": 59,
+        "row_sha256": "fa4b8597d6d9970d613f36a3970e9a4e4e05033c5bd616497d06e8d91f6a1d21"
+      },
+      {
+        "relation": "public.financial_command_requests",
+        "row_count": 58,
+        "row_sha256": "f0d49a1685e9ca1200763ecb68c9f778a5d5c6a099db7fd43c12de355b793f81"
+      },
+      {
+        "relation": "public.financial_operation_details",
+        "row_count": 55,
+        "row_sha256": "5237b514983c6e1dc3d82ea8ee7a99889b5960d8d576d0d557b4f9b3593f0668"
+      },
+      {
+        "relation": "public.financial_operations",
+        "row_count": 58,
+        "row_sha256": "2479be844495047399763f0eb917b955c1b8d5f9bda238148d7598faa1de6f39"
+      },
+      {
+        "relation": "public.financial_outbox",
+        "row_count": 58,
+        "row_sha256": "989a2a7051753c5d807c4d6c7d500e09df500e0004c415d55d3efedbe0eb5400"
+      },
+      {
+        "relation": "public.gold_obligations",
+        "row_count": 1,
+        "row_sha256": "eb7839468cffef14616f6dd68678d0e8f1ab746d5c141592e761afc97aa36280"
+      },
+      {
+        "relation": "public.identity_audit_events",
+        "row_count": 12,
+        "row_sha256": "c1e43efa9009cd9a7cc8f416220fb6a7a56afd7a0fda760a9dbb35c27957f768"
+      },
+      {
+        "relation": "public.inventory_catalog_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_catalog_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_command_envelopes",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_explicit_plans",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_lot_movements",
+        "row_count": 52,
+        "row_sha256": "5f69b7b83801f593879d8c21d846f4eb6e70e6551489d620ef4c899899c9ba78"
+      },
+      {
+        "relation": "public.inventory_lot_sync",
+        "row_count": 58,
+        "row_sha256": "66ffc1303d0b4aa961807c18ab94d590aba977d9f6dd8529f237a3093e1cb9c3"
+      },
+      {
+        "relation": "public.inventory_lots",
+        "row_count": 26,
+        "row_sha256": "5c63800ab42d03735295e6f080c4e81c1ab8b2c07599507339e7de9204412ab2"
+      },
+      {
+        "relation": "public.inventory_products",
+        "row_count": 25,
+        "row_sha256": "72a0b90d7d6ca35c60b871a810a4c0064e718059c52ae40c6169d368655a8642"
+      },
+      {
+        "relation": "public.inventory_receipts",
+        "row_count": 1,
+        "row_sha256": "9d0e566905379d072944ae2057289b974edffbaeff985e8f040237fd8122d5f3"
+      },
+      {
+        "relation": "public.invoice_appearance_audits",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_appearance_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_appearance_revisions",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_dispatch_confirmations",
+        "row_count": 1,
+        "row_sha256": "e846ecfce02a1dc0e99cad6527d020976b356f04d7f7dc01ad03d96a19bbea38"
+      },
+      {
+        "relation": "public.invoice_logo_assets",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_message_audits",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_message_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_message_revisions",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_presentation_requests",
+        "row_count": 2,
+        "row_sha256": "68267ffd21af5e13fdc523ad541d436851d94664917ca7ee5ced21ed4f4b3fa4"
+      },
+      {
+        "relation": "public.invoice_presentation_revisions",
+        "row_count": 2,
+        "row_sha256": "f44bcfdfee93a09a6c36795056b49891ebacd95c1124553221822aac332a38b5"
+      },
+      {
+        "relation": "public.journal_postings",
+        "row_count": 327,
+        "row_sha256": "42442d15ebc4b6cb8e95b3a8791c793ab6eb7790564da105d1933ebd90b40ed0"
+      },
+      {
+        "relation": "public.journals",
+        "row_count": 156,
+        "row_sha256": "1bcda5f407e6d8f39adb8715e6b629ae4e7259eba504f02aeec54582e4126b9b"
+      },
+      {
+        "relation": "public.ledger_accounts",
+        "row_count": 61,
+        "row_sha256": "9b5067c895c4ed5a9f70bf84e8af45c0c2415ffe0e5a2aa9de69b10c6be5c19d"
+      },
+      {
+        "relation": "public.ledger_trade_change_audits",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.ledger_trade_changes",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.platform_admins",
+        "row_count": 1,
+        "row_sha256": "62da0fcd1d79d2876d801f99a55bb31faa2099da7b3c6529ebba48b5bda97cd5"
+      },
+      {
+        "relation": "public.purchase_cash_payables",
+        "row_count": 5,
+        "row_sha256": "8525f58f49f0f8bf2c631267a8bbf39d576ed61071f3655ac6a4e98ff607a638"
+      },
+      {
+        "relation": "public.r2_media_objects",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.receipt_quantity_allocations",
+        "row_count": 1,
+        "row_sha256": "5f39cd32e402f2080b27e00000eb975e9d8e99429a98457af901b6fbb5c74e1c"
+      },
+      {
+        "relation": "public.repair_command_requests",
+        "row_count": 23,
+        "row_sha256": "65e1a52f8964619969bffca4434f88cdbd243fc7b1c2973d55c1fecd36194749"
+      },
+      {
+        "relation": "public.repair_custody_events",
+        "row_count": 12,
+        "row_sha256": "267a5b9fb001a0b53b9a3f403d815cd74ced9a67a6ab67e6a74ac11004a6bcd1"
+      },
+      {
+        "relation": "public.repair_events",
+        "row_count": 23,
+        "row_sha256": "21333ad5335ae1abf4bb44e12a941f26ebd5867a9253429f91d442490e762931"
+      },
+      {
+        "relation": "public.repairs",
+        "row_count": 6,
+        "row_sha256": "d12a5677e808be8940a6bd4e77628d5ca421bf358d2d60b42416857809dc15a2"
+      },
+      {
+        "relation": "public.shop_debts",
+        "row_count": 6,
+        "row_sha256": "f88e3b552f0e5df6de3b2436c5b36a1acb3a390d9f00939d978df82329641180"
+      },
+      {
+        "relation": "public.shop_entitlements",
+        "row_count": 5,
+        "row_sha256": "edb2fece2f95a839685704ffbea70eed0b8e30be3e6e391760554444f054b2cd"
+      },
+      {
+        "relation": "public.shop_image_assets",
+        "row_count": 4,
+        "row_sha256": "54164de4f91414a32b6f63e8c7db0e97bf3dca010e89d848e457f216544ad7b1"
+      },
+      {
+        "relation": "public.shop_memberships",
+        "row_count": 12,
+        "row_sha256": "a092106247c1124b79a91123b4b8582e408e80883c11e252ce7708067eea0042"
+      },
+      {
+        "relation": "public.shop_sync_signals",
+        "row_count": 12,
+        "row_sha256": "52b0addfa92d18982be7df4ea99f0270264243f27d655f976d93a24c0366a49a"
+      },
+      {
+        "relation": "public.shops",
+        "row_count": 12,
+        "row_sha256": "d31a7ea42de212eee1a2b36becebf37ae2e31e8997f69f3b86b4d2c0c346aba0"
+      },
+      {
+        "relation": "public.traders",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "storage.buckets",
+        "row_count": 2,
+        "row_sha256": "0c05f1b8ba841fbca975212333216d955ca5ce78db1540822275d8d799aea69f"
+      },
+      {
+        "relation": "storage.objects",
+        "row_count": 2,
+        "row_sha256": "40d27ec3d39bfc910b5e252cf3f6e1296e80024a66ed189a87fd6fa06a3084e9"
+      },
+      {
+        "relation": "supabase_migrations.schema_migrations",
+        "row_count": 60,
+        "row_sha256": "f060734e363437f0a81b25dbfb38f4cdd2bbb6549b349ac44c447d6ed61aecab"
+      }
+    ]
+  },
+  "after": {
+    "snapshot_at": "2026-10-22 14:26:34.804673+00",
+    "manifest": [
+      {
+        "relation": "auth.sessions",
+        "row_count": 18,
+        "row_sha256": "3e42254a4a68515dcfa5d97264c4b4beb295f4bd6f4d1be31c64fced120253b9"
+      },
+      {
+        "relation": "auth.users",
+        "row_count": 13,
+        "row_sha256": "4fc346e277331523f076a171d0d4444d5b4f7c3753fda3b8640ec702d5d6e254"
+      },
+      {
+        "relation": "private.closing_delegation_commands",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.closing_staff_creation_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.owner_registration_reservations",
+        "row_count": 12,
+        "row_sha256": "29f25d109b57cede021c73d8fd5f89a24a53cc868b7ff8289058814366d56894"
+      },
+      {
+        "relation": "private.subscription_code_attempts",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.subscription_code_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.subscription_codes",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "private.subscription_redemption_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.bullion_denominations",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.business_days",
+        "row_count": 4,
+        "row_sha256": "a4d13c4bab514acd82dacff1694f8071111f0161b88bd1572d94ad5603b3674a"
+      },
+      {
+        "relation": "public.closing_count_tasks",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.closing_delegation_audit",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.closing_staff_accounts",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.coin_types",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.customer_command_requests",
+        "row_count": 29,
+        "row_sha256": "db4193ae7c7059f923909c96c53086917a13de3463848585f35251f8480036a5"
+      },
+      {
+        "relation": "public.customer_events",
+        "row_count": 29,
+        "row_sha256": "33ad633a1fe185841b90d4c468041992cb244077394cd4246050d01ba22cf931"
+      },
+      {
+        "relation": "public.customer_notes",
+        "row_count": 2,
+        "row_sha256": "87f29d67c644de434e2376d6e45782b70091391e2ad685ab8c51162263b101ec"
+      },
+      {
+        "relation": "public.customer_number_declarations",
+        "row_count": 2,
+        "row_sha256": "10ab35b01a84f351c641f26fa51135871dc3e79bc94c3f5f8ef909a919eb1b28"
+      },
+      {
+        "relation": "public.customer_number_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.customer_operation_links",
+        "row_count": 5,
+        "row_sha256": "f6cac379a3a90592efd42a54a0ef0025c7049b5ec8da4f61d2b3e34910de4c9e"
+      },
+      {
+        "relation": "public.customer_phones",
+        "row_count": 2,
+        "row_sha256": "653161f8d849cce331fb77d13309acfc947f11bf0e8790a8add1b5d2b858b122"
+      },
+      {
+        "relation": "public.customers",
+        "row_count": 6,
+        "row_sha256": "c39a25dcec151c7569c2259054b4b1c9fb5aeb5e87eb9e492285fe5ac7625deb"
+      },
+      {
+        "relation": "public.daily_note_attachments",
+        "row_count": 2,
+        "row_sha256": "cc2fc9b0e15f5d3b59d4bdab1f5cda1f3a9d6c7e370a5f6124f5a77f45a7344e"
+      },
+      {
+        "relation": "public.debt_command_requests",
+        "row_count": 16,
+        "row_sha256": "f038d8954030d1365b949a942e924d87a574e1cee75b0a76d6e9b50962d0598c"
+      },
+      {
+        "relation": "public.debt_due_dates",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_due_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_due_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_events",
+        "row_count": 16,
+        "row_sha256": "7e0737194b88a69acc1a8a135f03315790eceedc375b7390a369437c64281dd1"
+      },
+      {
+        "relation": "public.debt_native_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_native_intents",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_native_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.debt_settlement_references",
+        "row_count": 8,
+        "row_sha256": "29c7f287b87bef351f46ab40a29c4dad04cb138d286c204621392348653c0c27"
+      },
+      {
+        "relation": "public.debt_source_archives",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.egypt_governorates",
+        "row_count": 27,
+        "row_sha256": "6e08f2dd2c8d3f5adbd32247126e2ca4c694532c671ec212f9fdce6137a1cfe7"
+      },
+      {
+        "relation": "public.financial_audit_events",
+        "row_count": 59,
+        "row_sha256": "fa4b8597d6d9970d613f36a3970e9a4e4e05033c5bd616497d06e8d91f6a1d21"
+      },
+      {
+        "relation": "public.financial_command_requests",
+        "row_count": 58,
+        "row_sha256": "f0d49a1685e9ca1200763ecb68c9f778a5d5c6a099db7fd43c12de355b793f81"
+      },
+      {
+        "relation": "public.financial_operation_details",
+        "row_count": 55,
+        "row_sha256": "5237b514983c6e1dc3d82ea8ee7a99889b5960d8d576d0d557b4f9b3593f0668"
+      },
+      {
+        "relation": "public.financial_operations",
+        "row_count": 58,
+        "row_sha256": "2479be844495047399763f0eb917b955c1b8d5f9bda238148d7598faa1de6f39"
+      },
+      {
+        "relation": "public.financial_outbox",
+        "row_count": 58,
+        "row_sha256": "989a2a7051753c5d807c4d6c7d500e09df500e0004c415d55d3efedbe0eb5400"
+      },
+      {
+        "relation": "public.gold_obligations",
+        "row_count": 1,
+        "row_sha256": "eb7839468cffef14616f6dd68678d0e8f1ab746d5c141592e761afc97aa36280"
+      },
+      {
+        "relation": "public.identity_audit_events",
+        "row_count": 12,
+        "row_sha256": "c1e43efa9009cd9a7cc8f416220fb6a7a56afd7a0fda760a9dbb35c27957f768"
+      },
+      {
+        "relation": "public.inventory_catalog_events",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_catalog_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_command_envelopes",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_explicit_plans",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.inventory_lot_movements",
+        "row_count": 52,
+        "row_sha256": "5f69b7b83801f593879d8c21d846f4eb6e70e6551489d620ef4c899899c9ba78"
+      },
+      {
+        "relation": "public.inventory_lot_sync",
+        "row_count": 58,
+        "row_sha256": "66ffc1303d0b4aa961807c18ab94d590aba977d9f6dd8529f237a3093e1cb9c3"
+      },
+      {
+        "relation": "public.inventory_lots",
+        "row_count": 26,
+        "row_sha256": "5c63800ab42d03735295e6f080c4e81c1ab8b2c07599507339e7de9204412ab2"
+      },
+      {
+        "relation": "public.inventory_products",
+        "row_count": 25,
+        "row_sha256": "72a0b90d7d6ca35c60b871a810a4c0064e718059c52ae40c6169d368655a8642"
+      },
+      {
+        "relation": "public.inventory_receipts",
+        "row_count": 1,
+        "row_sha256": "9d0e566905379d072944ae2057289b974edffbaeff985e8f040237fd8122d5f3"
+      },
+      {
+        "relation": "public.invoice_appearance_audits",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_appearance_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_appearance_revisions",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_dispatch_confirmations",
+        "row_count": 1,
+        "row_sha256": "e846ecfce02a1dc0e99cad6527d020976b356f04d7f7dc01ad03d96a19bbea38"
+      },
+      {
+        "relation": "public.invoice_logo_assets",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_message_audits",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_message_requests",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_message_revisions",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.invoice_presentation_requests",
+        "row_count": 2,
+        "row_sha256": "68267ffd21af5e13fdc523ad541d436851d94664917ca7ee5ced21ed4f4b3fa4"
+      },
+      {
+        "relation": "public.invoice_presentation_revisions",
+        "row_count": 2,
+        "row_sha256": "f44bcfdfee93a09a6c36795056b49891ebacd95c1124553221822aac332a38b5"
+      },
+      {
+        "relation": "public.journal_postings",
+        "row_count": 327,
+        "row_sha256": "42442d15ebc4b6cb8e95b3a8791c793ab6eb7790564da105d1933ebd90b40ed0"
+      },
+      {
+        "relation": "public.journals",
+        "row_count": 156,
+        "row_sha256": "1bcda5f407e6d8f39adb8715e6b629ae4e7259eba504f02aeec54582e4126b9b"
+      },
+      {
+        "relation": "public.ledger_accounts",
+        "row_count": 61,
+        "row_sha256": "9b5067c895c4ed5a9f70bf84e8af45c0c2415ffe0e5a2aa9de69b10c6be5c19d"
+      },
+      {
+        "relation": "public.ledger_trade_change_audits",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.ledger_trade_changes",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.platform_admins",
+        "row_count": 1,
+        "row_sha256": "62da0fcd1d79d2876d801f99a55bb31faa2099da7b3c6529ebba48b5bda97cd5"
+      },
+      {
+        "relation": "public.purchase_cash_payables",
+        "row_count": 5,
+        "row_sha256": "8525f58f49f0f8bf2c631267a8bbf39d576ed61071f3655ac6a4e98ff607a638"
+      },
+      {
+        "relation": "public.r2_media_objects",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "public.receipt_quantity_allocations",
+        "row_count": 1,
+        "row_sha256": "5f39cd32e402f2080b27e00000eb975e9d8e99429a98457af901b6fbb5c74e1c"
+      },
+      {
+        "relation": "public.repair_command_requests",
+        "row_count": 23,
+        "row_sha256": "65e1a52f8964619969bffca4434f88cdbd243fc7b1c2973d55c1fecd36194749"
+      },
+      {
+        "relation": "public.repair_custody_events",
+        "row_count": 12,
+        "row_sha256": "267a5b9fb001a0b53b9a3f403d815cd74ced9a67a6ab67e6a74ac11004a6bcd1"
+      },
+      {
+        "relation": "public.repair_events",
+        "row_count": 23,
+        "row_sha256": "21333ad5335ae1abf4bb44e12a941f26ebd5867a9253429f91d442490e762931"
+      },
+      {
+        "relation": "public.repairs",
+        "row_count": 6,
+        "row_sha256": "d12a5677e808be8940a6bd4e77628d5ca421bf358d2d60b42416857809dc15a2"
+      },
+      {
+        "relation": "public.shop_debts",
+        "row_count": 6,
+        "row_sha256": "f88e3b552f0e5df6de3b2436c5b36a1acb3a390d9f00939d978df82329641180"
+      },
+      {
+        "relation": "public.shop_entitlements",
+        "row_count": 5,
+        "row_sha256": "edb2fece2f95a839685704ffbea70eed0b8e30be3e6e391760554444f054b2cd"
+      },
+      {
+        "relation": "public.shop_image_assets",
+        "row_count": 4,
+        "row_sha256": "54164de4f91414a32b6f63e8c7db0e97bf3dca010e89d848e457f216544ad7b1"
+      },
+      {
+        "relation": "public.shop_memberships",
+        "row_count": 12,
+        "row_sha256": "a092106247c1124b79a91123b4b8582e408e80883c11e252ce7708067eea0042"
+      },
+      {
+        "relation": "public.shop_sync_signals",
+        "row_count": 12,
+        "row_sha256": "52b0addfa92d18982be7df4ea99f0270264243f27d655f976d93a24c0366a49a"
+      },
+      {
+        "relation": "public.shops",
+        "row_count": 12,
+        "row_sha256": "d31a7ea42de212eee1a2b36becebf37ae2e31e8997f69f3b86b4d2c0c346aba0"
+      },
+      {
+        "relation": "public.traders",
+        "row_count": 0,
+        "row_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "relation": "storage.buckets",
+        "row_count": 2,
+        "row_sha256": "0c05f1b8ba841fbca975212333216d955ca5ce78db1540822275d8d799aea69f"
+      },
+      {
+        "relation": "storage.objects",
+        "row_count": 2,
+        "row_sha256": "40d27ec3d39bfc910b5e252cf3f6e1296e80024a66ed189a87fd6fa06a3084e9"
+      },
+      {
+        "relation": "supabase_migrations.schema_migrations",
+        "row_count": 61,
+        "row_sha256": "cb2962a8d3f39d088cb534743430e4dfad4d2b0628afee637bafd099f61f495a"
+      }
+    ]
+  },
+  "migrationsBefore": [
+    {
+      "version": "20260924130019",
+      "name": "shops",
+      "statement_sha256": "f560c5278b9369263e9ec2c88568811757002f38a1adbf5d4701ee09857ccb9c"
+    },
+    {
+      "version": "20260924130035",
+      "name": "shop_access",
+      "statement_sha256": "233e9c56f21bf87baea2e10022321ef309025dc300583b7f2271c93050f40fa3"
+    },
+    {
+      "version": "20260924130052",
+      "name": "verified_access",
+      "statement_sha256": "64d10eaf55b397069b03443bde78029f87392f47700ee7915798f968677f6a11"
+    },
+    {
+      "version": "20260924130108",
+      "name": "account_setup",
+      "statement_sha256": "3998da040a732dec865fd9bc507d7d25793cc26f5c79394bdf3954b8851ce2fd"
+    },
+    {
+      "version": "20260924130123",
+      "name": "staff_commands",
+      "statement_sha256": "88e069245794d49ee4c29fddb9cd968b8baab00c4ad9d0ad5365044be5bbddc0"
+    },
+    {
+      "version": "20260924130136",
+      "name": "platform_admin",
+      "statement_sha256": "78298d2712f7a21adf634b7d5f6c594e41eb38c7b4f20711ef197a3dedf6ab7c"
+    },
+    {
+      "version": "20260924130348",
+      "name": "policy_auth_cache",
+      "statement_sha256": "93033283a05176009d41bf1c01f2fdd5bfc5d0129a46e245c827254816239edf"
+    },
+    {
+      "version": "20260924141455",
+      "name": "list_my_shop_accounts_status",
+      "statement_sha256": "83d4c5cf5bbacbb191b9f0168d2f36babd634a4ad5bd9ecc921ec7c369f4bc5b"
+    },
+    {
+      "version": "20260926075930",
+      "name": "egypt_owner_password_registration",
+      "statement_sha256": "3e04eae3b4cc37d435cf3c58b0c507cc74c72a39004790c70f5b0c14be2f4462"
+    },
+    {
+      "version": "20260926120634",
+      "name": "owner_only_access",
+      "statement_sha256": "692a5a4bc34488e912b03c2258bda2ef25e636e04b25790ab4c421ad3fcdf450"
+    },
+    {
+      "version": "20260927065414",
+      "name": "opening_balances",
+      "statement_sha256": "4d4281b4fdb3fa13e61518d335ee22055df730899a86a944ef1c48db2aac6b26"
+    },
+    {
+      "version": "20260927070108",
+      "name": "opening_balance_indexes",
+      "statement_sha256": "120d9937f66a61fb01e67014e85cbc3cb9eb5fdbca61e2df1a9e96409cc2288a"
+    },
+    {
+      "version": "20260929115012",
+      "name": "daily_ledger_trades",
+      "statement_sha256": "80786ae9a5b56554eecefe09ea87cca3844cb49f3f89eed7c16ce845527dca8f"
+    },
+    {
+      "version": "20260929115026",
+      "name": "invoice_dispatch_confirmation",
+      "statement_sha256": "415431d600178296d7fdf5182c0b264c318ed4c6078293ae51d9a28fae68af56"
+    },
+    {
+      "version": "20260929115032",
+      "name": "purchase_cash_settlement",
+      "statement_sha256": "b65a5286603f69a05881e75aa456505f531da2a390d31d8f1479e1f41dd85805"
+    },
+    {
+      "version": "20260929123543",
+      "name": "daily_ledger_cash_transfer",
+      "statement_sha256": "fc7ee96e439114ce14d3dfd349cf954e1746cbb2aa6e5131c8e5b1be918e1eda"
+    },
+    {
+      "version": "20260929124544",
+      "name": "daily_ledger_scrap_sale",
+      "statement_sha256": "670fc1bab8e75bcfa546294cc5a807913942df1fdb3b85e6e1a5828bc17ae71d"
+    },
+    {
+      "version": "20260930063913",
+      "name": "daily_ledger_scrap_to_stock",
+      "statement_sha256": "e4807f70236b379e2624b1d9865d059a449e692e3dad5857456251e5b53c9d15"
+    },
+    {
+      "version": "20260930072025",
+      "name": "daily_ledger_linked_returns",
+      "statement_sha256": "73eb1beed3c19b6787393f7c2a647917cc64727490baebbf87c86ef1439acf9f"
+    },
+    {
+      "version": "20261001133047",
+      "name": "explicit_invoice_price_components",
+      "statement_sha256": "0d403d38cc7249e23cca06d8708124df09129444ecac8244cc18026dca2e5ed9"
+    },
+    {
+      "version": "20261004081229",
+      "name": "milestone_3_inventory_contract",
+      "statement_sha256": "dff54c698ebb85ab06d4be2c7d3f485947002568ee5796315c89bacdea428329"
+    },
+    {
+      "version": "20261004081347",
+      "name": "inventory_sync_operation_index",
+      "statement_sha256": "1763f24345ced99ba4aed6be9271cf8af4dee69d9f983c39683dc675bc6846d6"
+    },
+    {
+      "version": "20261004120509",
+      "name": "daily_notes_and_ledger_pagination",
+      "statement_sha256": "f1e51dfc27803606ee5143bcedab2ce582e450b8d7aa04502c619c58cb800950"
+    },
+    {
+      "version": "20261006072226",
+      "name": "owner_feedback_registration_and_ledger",
+      "statement_sha256": "3d76cfe273f0a7fe8baf39c93eb15cb5ba000b479ee63bc3426f191f2927a519"
+    },
+    {
+      "version": "20261006072242",
+      "name": "complete_owner_feedback",
+      "statement_sha256": "acfe0ba225a32f538b967c47032d75aed68cab6c43b2f7cda9158b561214c840"
+    },
+    {
+      "version": "20261006072259",
+      "name": "optional_owner_registration_region",
+      "statement_sha256": "252108ab176531946c435dc8d99ab41ff926df0e27c42a67faf2eed6440f3f16"
+    },
+    {
+      "version": "20261006083846",
+      "name": "ledger_compensation",
+      "statement_sha256": "69f1d7b20f22f6c4dfcf35788350d13c77d7635fa197079bd655d029dc90316a"
+    },
+    {
+      "version": "20261006124322",
+      "name": "ledger_return_refund_allocation",
+      "statement_sha256": "96ec2134a98ff079bb7dea8e5a15e59639eae4e1a93ca2101fcfd970296bcae9"
+    },
+    {
+      "version": "20261011140005",
+      "name": "required_location_subscription_sync",
+      "statement_sha256": "039169d5781296287d19414d96e42e7bb6276813489f57ea3d9d148b89b12b0c"
+    },
+    {
+      "version": "20261012134320",
+      "name": "repairs_custody_and_fees",
+      "statement_sha256": "f4de8e262b0039baca6ae719c7de274ae99078836e8d5ec93838639b832cdf5d"
+    },
+    {
+      "version": "20261012135737",
+      "name": "repairs_foreign_key_indexes",
+      "statement_sha256": "e1b9c3936b4d12a507035c57e63d99b6c9a9af281aadfa9e326e3bd176fa2360"
+    },
+    {
+      "version": "20261013110548",
+      "name": "debt_records",
+      "statement_sha256": "82aa5b2ab3c271cee45ffae334371e1316e6cf22c4f73e03ba5ec00411276f86"
+    },
+    {
+      "version": "20261013111157",
+      "name": "debt_ledger_optional_arrays",
+      "statement_sha256": "7e8cc15f0e3798c5890d688d5e0705b75bde7df1dc447d96108e26c120e122aa"
+    },
+    {
+      "version": "20261013164251",
+      "name": "customers_crm",
+      "statement_sha256": "1aaf4eb73464e2cd2cfc490a3937e819b0ee7f85365a6b78cf51ab4d9cda26a7"
+    },
+    {
+      "version": "20261013181844",
+      "name": "customer_statistics",
+      "statement_sha256": "58b64f1d039eace9510008ae0e050572f4ca525bbf82c3cc8ab6606a70e681c7"
+    },
+    {
+      "version": "20261014083123",
+      "name": "customer_saved_numbers",
+      "statement_sha256": "71f140b69ee86c97073736719c24b23be7eb5681b3f36282dbe23c85c179e10d"
+    },
+    {
+      "version": "20261014123235",
+      "name": "debt_statement_snapshot",
+      "statement_sha256": "7fc435188bcdc29c63f34e13b8a8a7e526be52173a29a41ecba0bfffa21876b2"
+    },
+    {
+      "version": "20261014142241",
+      "name": "debt_due_dates",
+      "statement_sha256": "90632e727ae775017816ad2984cf6f12e4f0e039cbcda5cb3469841a512b0740"
+    },
+    {
+      "version": "20261016090329",
+      "name": "debt_native_reminders",
+      "statement_sha256": "4eb1e4f27acc3b8e473425f1a60af433b986b3dcf5213cdce98302fc18650e1d"
+    },
+    {
+      "version": "20261017140000",
+      "name": "invoice_appearance",
+      "statement_sha256": "798e08f3e1e717045beb52b2a6454f5340667fe1f340e86100f2494149b54e8c"
+    },
+    {
+      "version": "20261019063249",
+      "name": "invoice_message_templates",
+      "statement_sha256": "2340064a9501017822a131e0c712297be006571ec93fe0e7c4593c117a5df986"
+    },
+    {
+      "version": "20261019063646",
+      "name": "invoice_message_actor_indexes",
+      "statement_sha256": "fb146cc2adf252f8378fe1449910a072297a5fb36b94a24801c75061278a2d1e"
+    },
+    {
+      "version": "20261020061540",
+      "name": "ledger_date_read",
+      "statement_sha256": "ee2b7856de50a032db72e46f7677dfd3ab5506c6c3c708647d50397345be7019"
+    },
+    {
+      "version": "20261020061546",
+      "name": "ledger_trade_edit_delete",
+      "statement_sha256": "e722eff018c241e2c84688f5da0f976c289a1587087948f4072cad34f3337bf0"
+    },
+    {
+      "version": "20261020061552",
+      "name": "ledger_trade_cache_revision",
+      "statement_sha256": "c5b617279b5f8ed3f642aea6a5f80f611919e97e9dff2221d31df162618d6368"
+    },
+    {
+      "version": "20261020101500",
+      "name": "shop_image",
+      "statement_sha256": "0cd7209955b5ed70b9447f5331925b134092eda693fcca665ee8b62819a26aea"
+    },
+    {
+      "version": "20261020132100",
+      "name": "ledger_calendar_home",
+      "statement_sha256": "da4c444f121ffdf095c330c084e97ac0caff09d9dd0c062655166414b546e845"
+    },
+    {
+      "version": "20261020132103",
+      "name": "closing_count_observations",
+      "statement_sha256": "9aa27cf7a799b65aca36414dc40138dfceeefdc1dd4b3e32bee8c88f27ca2656"
+    },
+    {
+      "version": "20261020132106",
+      "name": "temporary_staff_closing_tasks",
+      "statement_sha256": "100b16d88dbd6df06ce21c5c25f169ab9904a0927280880011cabe96f315353d"
+    },
+    {
+      "version": "20261020132110",
+      "name": "invoice_document_render_v2",
+      "statement_sha256": "2627c6bccd4c63a03af7e5b7bf5f64ce4a3504b3e479475e4d03f0a8226ca96b"
+    },
+    {
+      "version": "20261020132445",
+      "name": "closing_delegation_foreign_key_indexes",
+      "statement_sha256": "4f11fe56b3d37f35f560b0b7ac330fb269298af91db19fe25d43590db8878e03"
+    },
+    {
+      "version": "20261020143000",
+      "name": "shop_image_r2",
+      "statement_sha256": "7396706ff068662873a45c47376b0fe0cda9b9aa33997b375fbca53c495d9946"
+    },
+    {
+      "version": "20261020160000",
+      "name": "r2_media_everywhere",
+      "statement_sha256": "c49ada5c6530d44f7f1bd049ab414cbae37b503f5cefe89f835576e43d8ae3ff"
+    },
+    {
+      "version": "20261020170000",
+      "name": "ledger_home_volatile",
+      "statement_sha256": "f81cb8507d2656a7294ab93135be58d3fefb21521dca62f7ccf053668c7124e5"
+    },
+    {
+      "version": "20261021101500",
+      "name": "ledger_home_open_day",
+      "statement_sha256": "081c9b527dc244ea94a24e1bdde3e0ac34239b4e94a0c743a82f7655323bda08"
+    },
+    {
+      "version": "20261021110000",
+      "name": "ledger_feed_party_phone",
+      "statement_sha256": "07fcc8264616795139698ee9f7d75613da8b9676623957f4e7408948bbc4485d"
+    },
+    {
+      "version": "20261021120000",
+      "name": "ledger_feed_insta_label",
+      "statement_sha256": "7fc50db28a93f9dc5056dda0f7b1e966ba6bebd89ec3994e105254537bed9e05"
+    },
+    {
+      "version": "20261021125258",
+      "name": "financial_day_reports",
+      "statement_sha256": "bbc718e64a2b907e443217f7ce1865237997657d3fc8b21e8068606a10b69a3f"
+    },
+    {
+      "version": "20261021133552",
+      "name": "financial_week_reports",
+      "statement_sha256": "048733807c80240d81d9df18b4b26c84a6e7f6b0d21b98aa94beceee3ee34665"
+    },
+    {
+      "version": "20261022094412",
+      "name": "admin_subscriber_directory",
+      "statement_sha256": "7cfb7cc128d845901acbb53c6be400273c6e9c9d8dc0d4c88e1f99a09d356ad6"
+    }
+  ],
+  "migrationsAfter": [
+    {
+      "version": "20260924130019",
+      "name": "shops",
+      "statement_sha256": "f560c5278b9369263e9ec2c88568811757002f38a1adbf5d4701ee09857ccb9c"
+    },
+    {
+      "version": "20260924130035",
+      "name": "shop_access",
+      "statement_sha256": "233e9c56f21bf87baea2e10022321ef309025dc300583b7f2271c93050f40fa3"
+    },
+    {
+      "version": "20260924130052",
+      "name": "verified_access",
+      "statement_sha256": "64d10eaf55b397069b03443bde78029f87392f47700ee7915798f968677f6a11"
+    },
+    {
+      "version": "20260924130108",
+      "name": "account_setup",
+      "statement_sha256": "3998da040a732dec865fd9bc507d7d25793cc26f5c79394bdf3954b8851ce2fd"
+    },
+    {
+      "version": "20260924130123",
+      "name": "staff_commands",
+      "statement_sha256": "88e069245794d49ee4c29fddb9cd968b8baab00c4ad9d0ad5365044be5bbddc0"
+    },
+    {
+      "version": "20260924130136",
+      "name": "platform_admin",
+      "statement_sha256": "78298d2712f7a21adf634b7d5f6c594e41eb38c7b4f20711ef197a3dedf6ab7c"
+    },
+    {
+      "version": "20260924130348",
+      "name": "policy_auth_cache",
+      "statement_sha256": "93033283a05176009d41bf1c01f2fdd5bfc5d0129a46e245c827254816239edf"
+    },
+    {
+      "version": "20260924141455",
+      "name": "list_my_shop_accounts_status",
+      "statement_sha256": "83d4c5cf5bbacbb191b9f0168d2f36babd634a4ad5bd9ecc921ec7c369f4bc5b"
+    },
+    {
+      "version": "20260926075930",
+      "name": "egypt_owner_password_registration",
+      "statement_sha256": "3e04eae3b4cc37d435cf3c58b0c507cc74c72a39004790c70f5b0c14be2f4462"
+    },
+    {
+      "version": "20260926120634",
+      "name": "owner_only_access",
+      "statement_sha256": "692a5a4bc34488e912b03c2258bda2ef25e636e04b25790ab4c421ad3fcdf450"
+    },
+    {
+      "version": "20260927065414",
+      "name": "opening_balances",
+      "statement_sha256": "4d4281b4fdb3fa13e61518d335ee22055df730899a86a944ef1c48db2aac6b26"
+    },
+    {
+      "version": "20260927070108",
+      "name": "opening_balance_indexes",
+      "statement_sha256": "120d9937f66a61fb01e67014e85cbc3cb9eb5fdbca61e2df1a9e96409cc2288a"
+    },
+    {
+      "version": "20260929115012",
+      "name": "daily_ledger_trades",
+      "statement_sha256": "80786ae9a5b56554eecefe09ea87cca3844cb49f3f89eed7c16ce845527dca8f"
+    },
+    {
+      "version": "20260929115026",
+      "name": "invoice_dispatch_confirmation",
+      "statement_sha256": "415431d600178296d7fdf5182c0b264c318ed4c6078293ae51d9a28fae68af56"
+    },
+    {
+      "version": "20260929115032",
+      "name": "purchase_cash_settlement",
+      "statement_sha256": "b65a5286603f69a05881e75aa456505f531da2a390d31d8f1479e1f41dd85805"
+    },
+    {
+      "version": "20260929123543",
+      "name": "daily_ledger_cash_transfer",
+      "statement_sha256": "fc7ee96e439114ce14d3dfd349cf954e1746cbb2aa6e5131c8e5b1be918e1eda"
+    },
+    {
+      "version": "20260929124544",
+      "name": "daily_ledger_scrap_sale",
+      "statement_sha256": "670fc1bab8e75bcfa546294cc5a807913942df1fdb3b85e6e1a5828bc17ae71d"
+    },
+    {
+      "version": "20260930063913",
+      "name": "daily_ledger_scrap_to_stock",
+      "statement_sha256": "e4807f70236b379e2624b1d9865d059a449e692e3dad5857456251e5b53c9d15"
+    },
+    {
+      "version": "20260930072025",
+      "name": "daily_ledger_linked_returns",
+      "statement_sha256": "73eb1beed3c19b6787393f7c2a647917cc64727490baebbf87c86ef1439acf9f"
+    },
+    {
+      "version": "20261001133047",
+      "name": "explicit_invoice_price_components",
+      "statement_sha256": "0d403d38cc7249e23cca06d8708124df09129444ecac8244cc18026dca2e5ed9"
+    },
+    {
+      "version": "20261004081229",
+      "name": "milestone_3_inventory_contract",
+      "statement_sha256": "dff54c698ebb85ab06d4be2c7d3f485947002568ee5796315c89bacdea428329"
+    },
+    {
+      "version": "20261004081347",
+      "name": "inventory_sync_operation_index",
+      "statement_sha256": "1763f24345ced99ba4aed6be9271cf8af4dee69d9f983c39683dc675bc6846d6"
+    },
+    {
+      "version": "20261004120509",
+      "name": "daily_notes_and_ledger_pagination",
+      "statement_sha256": "f1e51dfc27803606ee5143bcedab2ce582e450b8d7aa04502c619c58cb800950"
+    },
+    {
+      "version": "20261006072226",
+      "name": "owner_feedback_registration_and_ledger",
+      "statement_sha256": "3d76cfe273f0a7fe8baf39c93eb15cb5ba000b479ee63bc3426f191f2927a519"
+    },
+    {
+      "version": "20261006072242",
+      "name": "complete_owner_feedback",
+      "statement_sha256": "acfe0ba225a32f538b967c47032d75aed68cab6c43b2f7cda9158b561214c840"
+    },
+    {
+      "version": "20261006072259",
+      "name": "optional_owner_registration_region",
+      "statement_sha256": "252108ab176531946c435dc8d99ab41ff926df0e27c42a67faf2eed6440f3f16"
+    },
+    {
+      "version": "20261006083846",
+      "name": "ledger_compensation",
+      "statement_sha256": "69f1d7b20f22f6c4dfcf35788350d13c77d7635fa197079bd655d029dc90316a"
+    },
+    {
+      "version": "20261006124322",
+      "name": "ledger_return_refund_allocation",
+      "statement_sha256": "96ec2134a98ff079bb7dea8e5a15e59639eae4e1a93ca2101fcfd970296bcae9"
+    },
+    {
+      "version": "20261011140005",
+      "name": "required_location_subscription_sync",
+      "statement_sha256": "039169d5781296287d19414d96e42e7bb6276813489f57ea3d9d148b89b12b0c"
+    },
+    {
+      "version": "20261012134320",
+      "name": "repairs_custody_and_fees",
+      "statement_sha256": "f4de8e262b0039baca6ae719c7de274ae99078836e8d5ec93838639b832cdf5d"
+    },
+    {
+      "version": "20261012135737",
+      "name": "repairs_foreign_key_indexes",
+      "statement_sha256": "e1b9c3936b4d12a507035c57e63d99b6c9a9af281aadfa9e326e3bd176fa2360"
+    },
+    {
+      "version": "20261013110548",
+      "name": "debt_records",
+      "statement_sha256": "82aa5b2ab3c271cee45ffae334371e1316e6cf22c4f73e03ba5ec00411276f86"
+    },
+    {
+      "version": "20261013111157",
+      "name": "debt_ledger_optional_arrays",
+      "statement_sha256": "7e8cc15f0e3798c5890d688d5e0705b75bde7df1dc447d96108e26c120e122aa"
+    },
+    {
+      "version": "20261013164251",
+      "name": "customers_crm",
+      "statement_sha256": "1aaf4eb73464e2cd2cfc490a3937e819b0ee7f85365a6b78cf51ab4d9cda26a7"
+    },
+    {
+      "version": "20261013181844",
+      "name": "customer_statistics",
+      "statement_sha256": "58b64f1d039eace9510008ae0e050572f4ca525bbf82c3cc8ab6606a70e681c7"
+    },
+    {
+      "version": "20261014083123",
+      "name": "customer_saved_numbers",
+      "statement_sha256": "71f140b69ee86c97073736719c24b23be7eb5681b3f36282dbe23c85c179e10d"
+    },
+    {
+      "version": "20261014123235",
+      "name": "debt_statement_snapshot",
+      "statement_sha256": "7fc435188bcdc29c63f34e13b8a8a7e526be52173a29a41ecba0bfffa21876b2"
+    },
+    {
+      "version": "20261014142241",
+      "name": "debt_due_dates",
+      "statement_sha256": "90632e727ae775017816ad2984cf6f12e4f0e039cbcda5cb3469841a512b0740"
+    },
+    {
+      "version": "20261016090329",
+      "name": "debt_native_reminders",
+      "statement_sha256": "4eb1e4f27acc3b8e473425f1a60af433b986b3dcf5213cdce98302fc18650e1d"
+    },
+    {
+      "version": "20261017140000",
+      "name": "invoice_appearance",
+      "statement_sha256": "798e08f3e1e717045beb52b2a6454f5340667fe1f340e86100f2494149b54e8c"
+    },
+    {
+      "version": "20261019063249",
+      "name": "invoice_message_templates",
+      "statement_sha256": "2340064a9501017822a131e0c712297be006571ec93fe0e7c4593c117a5df986"
+    },
+    {
+      "version": "20261019063646",
+      "name": "invoice_message_actor_indexes",
+      "statement_sha256": "fb146cc2adf252f8378fe1449910a072297a5fb36b94a24801c75061278a2d1e"
+    },
+    {
+      "version": "20261020061540",
+      "name": "ledger_date_read",
+      "statement_sha256": "ee2b7856de50a032db72e46f7677dfd3ab5506c6c3c708647d50397345be7019"
+    },
+    {
+      "version": "20261020061546",
+      "name": "ledger_trade_edit_delete",
+      "statement_sha256": "e722eff018c241e2c84688f5da0f976c289a1587087948f4072cad34f3337bf0"
+    },
+    {
+      "version": "20261020061552",
+      "name": "ledger_trade_cache_revision",
+      "statement_sha256": "c5b617279b5f8ed3f642aea6a5f80f611919e97e9dff2221d31df162618d6368"
+    },
+    {
+      "version": "20261020101500",
+      "name": "shop_image",
+      "statement_sha256": "0cd7209955b5ed70b9447f5331925b134092eda693fcca665ee8b62819a26aea"
+    },
+    {
+      "version": "20261020132100",
+      "name": "ledger_calendar_home",
+      "statement_sha256": "da4c444f121ffdf095c330c084e97ac0caff09d9dd0c062655166414b546e845"
+    },
+    {
+      "version": "20261020132103",
+      "name": "closing_count_observations",
+      "statement_sha256": "9aa27cf7a799b65aca36414dc40138dfceeefdc1dd4b3e32bee8c88f27ca2656"
+    },
+    {
+      "version": "20261020132106",
+      "name": "temporary_staff_closing_tasks",
+      "statement_sha256": "100b16d88dbd6df06ce21c5c25f169ab9904a0927280880011cabe96f315353d"
+    },
+    {
+      "version": "20261020132110",
+      "name": "invoice_document_render_v2",
+      "statement_sha256": "2627c6bccd4c63a03af7e5b7bf5f64ce4a3504b3e479475e4d03f0a8226ca96b"
+    },
+    {
+      "version": "20261020132445",
+      "name": "closing_delegation_foreign_key_indexes",
+      "statement_sha256": "4f11fe56b3d37f35f560b0b7ac330fb269298af91db19fe25d43590db8878e03"
+    },
+    {
+      "version": "20261020143000",
+      "name": "shop_image_r2",
+      "statement_sha256": "7396706ff068662873a45c47376b0fe0cda9b9aa33997b375fbca53c495d9946"
+    },
+    {
+      "version": "20261020160000",
+      "name": "r2_media_everywhere",
+      "statement_sha256": "c49ada5c6530d44f7f1bd049ab414cbae37b503f5cefe89f835576e43d8ae3ff"
+    },
+    {
+      "version": "20261020170000",
+      "name": "ledger_home_volatile",
+      "statement_sha256": "f81cb8507d2656a7294ab93135be58d3fefb21521dca62f7ccf053668c7124e5"
+    },
+    {
+      "version": "20261021101500",
+      "name": "ledger_home_open_day",
+      "statement_sha256": "081c9b527dc244ea94a24e1bdde3e0ac34239b4e94a0c743a82f7655323bda08"
+    },
+    {
+      "version": "20261021110000",
+      "name": "ledger_feed_party_phone",
+      "statement_sha256": "07fcc8264616795139698ee9f7d75613da8b9676623957f4e7408948bbc4485d"
+    },
+    {
+      "version": "20261021120000",
+      "name": "ledger_feed_insta_label",
+      "statement_sha256": "7fc50db28a93f9dc5056dda0f7b1e966ba6bebd89ec3994e105254537bed9e05"
+    },
+    {
+      "version": "20261021125258",
+      "name": "financial_day_reports",
+      "statement_sha256": "bbc718e64a2b907e443217f7ce1865237997657d3fc8b21e8068606a10b69a3f"
+    },
+    {
+      "version": "20261021133552",
+      "name": "financial_week_reports",
+      "statement_sha256": "048733807c80240d81d9df18b4b26c84a6e7f6b0d21b98aa94beceee3ee34665"
+    },
+    {
+      "version": "20261022094412",
+      "name": "admin_subscriber_directory",
+      "statement_sha256": "7cfb7cc128d845901acbb53c6be400273c6e9c9d8dc0d4c88e1f99a09d356ad6"
+    },
+    {
+      "version": "20261022140217",
+      "name": "admin_subscription_code_issuance",
+      "statement_sha256": "81b23fb9d2025d88d41bbe50a0d7c7e4f50bcea9d361300d2db6d18aa78358d8"
+    }
+  ],
+  "functions": [
+    {
+      "routine": "private.admin_list_subscription_codes_payload(p_shop_id uuid, p_cursor_at timestamp with time zone, p_cursor_id uuid, p_page_size integer)",
+      "definition_sha256": "b67706776d26def44d40c47508689c6834dfb0f75488acb7310b3cd9a782b4d7"
+    },
+    {
+      "routine": "private.subscription_owner_session()",
+      "definition_sha256": "d023ac7fe8b01c65d4a7ee6dbd7f9cb9c60656163287a7fa8dd65f6e92b5571c"
+    },
+    {
+      "routine": "private.subscription_platform_admin_session()",
+      "definition_sha256": "212048579556cbe3b21b3659ef49ec5dd979dfdbd993085183b2432603ab24f8"
+    },
+    {
+      "routine": "private.subscription_session_live()",
+      "definition_sha256": "a6f9bd53cb8d11d4732b8c273af549c9f9b16fd033d490f223f37ac7cf6648a9"
+    },
+    {
+      "routine": "public.admin_list_subscription_codes_v1(p_shop_id uuid, p_cursor text, p_page_size integer)",
+      "definition_sha256": "c5a488e6c4e92ca9b1af1ad5802e7bc0cd760316f7e7ae61e068a8be1995760b"
+    },
+    {
+      "routine": "public.issue_subscription_code(p_shop_id uuid, p_duration_days integer, p_code_ttl_days integer, p_request_key uuid)",
+      "definition_sha256": "74d26038532923199345730471d5ccfbd389e3cb35860ca5f13cffd64b8d4c64"
+    },
+    {
+      "routine": "public.redeem_subscription_code(p_request_key uuid, p_code text)",
+      "definition_sha256": "cc8c6a1bd4f18e3823e671161fcd983dcb254f8886261e32fb078bf4cd07cf62"
+    }
+  ],
+  "grants": [
+    {
+      "authenticated_history": true,
+      "anon_history": false,
+      "service_history": false,
+      "direct_private_codes": false,
+      "direct_private_helper": false,
+      "service_issue": true
+    }
+  ],
+  "advisorsBefore": {
+    "rls_enabled_no_policy": 13,
+    "authenticated_security_definer_function_executable": 134,
+    "auth_leaked_password_protection": 1
+  },
+  "advisorsAfter": {
+    "rls_enabled_no_policy": 13,
+    "authenticated_security_definer_function_executable": 135,
+    "auth_leaked_password_protection": 1
+  }
+}

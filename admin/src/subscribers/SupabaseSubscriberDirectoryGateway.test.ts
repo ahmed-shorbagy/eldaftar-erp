@@ -1,6 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { expect, test, vi } from 'vitest'
-import { SubscriberDirectoryError, subscriberPageSize } from './SubscriberDirectoryGateway.ts'
+import {
+  SubscriberDirectoryError,
+  SubscriptionCodeError,
+  subscriberPageSize,
+  subscriptionCodePageSize,
+} from './SubscriberDirectoryGateway.ts'
 import { SupabaseSubscriberDirectoryGateway } from './SupabaseSubscriberDirectoryGateway.ts'
 
 const payload = {
@@ -28,10 +33,16 @@ function accessToken(sessionId: string, mark: string): string {
   return `eyJhbGciOiJub25lIn0.${segment}.${mark}`
 }
 
-function directorySession(userId: string, sessionId: string, mark: string) {
+function directorySession(
+  userId: string,
+  sessionId: string,
+  mark: string,
+  expiresAt: number | null = Math.floor(Date.now() / 1000) + 3600,
+) {
   return {
     access_token: accessToken(sessionId, mark),
     user: { id: userId },
+    ...(expiresAt === null ? {} : { expires_at: expiresAt }),
   }
 }
 
@@ -250,4 +261,340 @@ test('a second token change during the fresh retry is retryable and keeps no sta
     p_cursor: null,
     p_page_size: subscriberPageSize,
   })
+})
+
+const issueRow = {
+  code: 'ABCDEFABCDEFABCDEFABCDEFABCDEFAB',
+  shop_id: 'a1100000-0000-4000-8000-000000000001',
+  owner_user_id: 'c2000000-0000-4000-8000-0000000000b1',
+  duration_days: 30,
+  code_expires_at: '2026-11-21T00:00:00.000Z',
+  status: 'issued',
+  request_key: 'c2300000-0000-4000-8000-000000000011',
+  issued_via: 'platform_admin',
+}
+
+const issueInput = {
+  shopId: 'a1100000-0000-4000-8000-000000000001',
+  durationDays: 30,
+  codeTtlDays: 30,
+  requestKey: 'c2300000-0000-4000-8000-000000000011',
+}
+
+test('issue does not retry a write after a same-user token refresh and still accepts the secret', async () => {
+  const harness = deferredClient()
+  const gateway = new SupabaseSubscriberDirectoryGateway(harness.client)
+  const binding = await gateway.bindSelectedShopSession()
+  const promise = gateway.issueSubscriptionCode(issueInput, binding)
+  await vi.waitFor(() => expect(harness.pending).toHaveLength(1))
+  harness.setSession(directorySession('user-a', 'session-a', '2'))
+  harness.pending[0]?.({ data: [issueRow], error: null })
+  const result = await promise
+  expect(result.code).toBe(issueRow.code)
+  expect(harness.rpc).toHaveBeenCalledTimes(1)
+})
+
+test('issue discards a late secret when the session is replaced', async () => {
+  const harness = deferredClient()
+  const gateway = new SupabaseSubscriberDirectoryGateway(harness.client)
+  const binding = await gateway.bindSelectedShopSession()
+  const promise = gateway.issueSubscriptionCode(issueInput, binding)
+  await vi.waitFor(() => expect(harness.pending).toHaveLength(1))
+  harness.setSession(directorySession('user-b', 'session-b', '2'))
+  harness.pending[0]?.({ data: [issueRow], error: null })
+  await expect(promise).rejects.toMatchObject({ code: 'access_lost' })
+  expect(harness.rpc).toHaveBeenCalledTimes(1)
+})
+
+test('issue maps unauthorized to access loss', async () => {
+  const { client: supabase } = client({ data: null, error: { message: 'unauthorized' } })
+  const gateway = new SupabaseSubscriberDirectoryGateway(supabase)
+  const binding = await gateway.bindSelectedShopSession()
+  await expect(gateway.issueSubscriptionCode(issueInput, binding)).rejects.toBeInstanceOf(SubscriptionCodeError)
+  await expect(gateway.issueSubscriptionCode(issueInput, binding)).rejects.toMatchObject({ code: 'access_lost' })
+})
+
+test('issue refuses a replacement session when no auth event arrives', async () => {
+  const harness = deferredClient()
+  const gateway = new SupabaseSubscriberDirectoryGateway(harness.client)
+  const binding = await gateway.bindSelectedShopSession()
+  harness.setSession(directorySession('user-a', 'session-b', '2'))
+  await expect(gateway.issueSubscriptionCode(issueInput, binding)).rejects.toMatchObject({ code: 'access_lost' })
+  expect(harness.rpc).not.toHaveBeenCalled()
+})
+
+test('issue has no unbound production write route', async () => {
+  const harness = deferredClient()
+  const gateway = new SupabaseSubscriberDirectoryGateway(harness.client)
+  await expect(
+    (gateway.issueSubscriptionCode as unknown as (input: typeof issueInput) => Promise<unknown>)(issueInput),
+  ).rejects.toMatchObject({ code: 'access_lost' })
+  expect(harness.rpc).not.toHaveBeenCalled()
+})
+
+test('directory list still accepts a session without expires_at', async () => {
+  const rpc = vi.fn().mockResolvedValue({ data: payload, error: null })
+  const session = directorySession('user-a', 'session-a', 'stable', null)
+  const gateway = new SupabaseSubscriberDirectoryGateway({
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }) },
+    rpc,
+  } as unknown as SupabaseClient)
+  const page = await gateway.list({ status: 'all', search: '', cursor: null })
+  expect(page.filteredCount).toBe('1')
+  expect(rpc).toHaveBeenCalled()
+})
+
+test('issue rejects an expired session before calling the rpc', async () => {
+  const rpc = vi.fn()
+  const session = directorySession('user-a', 'session-a', 'stable', Math.floor(Date.now() / 1000) - 30)
+  const gateway = new SupabaseSubscriberDirectoryGateway({
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }) },
+    rpc,
+  } as unknown as SupabaseClient)
+  await expect(gateway.bindSelectedShopSession()).rejects.toMatchObject({ code: 'access_lost' })
+  await expect(
+    (gateway.issueSubscriptionCode as unknown as (input: typeof issueInput) => Promise<unknown>)(issueInput),
+  ).rejects.toMatchObject({ code: 'access_lost' })
+  expect(rpc).not.toHaveBeenCalled()
+})
+
+test('issue rejects a malformed session without a session id', async () => {
+  const rpc = vi.fn()
+  const json = JSON.stringify({ user_metadata: { is_platform_admin: true } })
+  const segment = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+  const session = {
+    access_token: `eyJhbGciOiJub25lIn0.${segment}.mark`,
+    user: { id: 'user-a' },
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+  }
+  const gateway = new SupabaseSubscriberDirectoryGateway({
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }) },
+    rpc,
+  } as unknown as SupabaseClient)
+  await expect(gateway.bindSelectedShopSession()).rejects.toMatchObject({ code: 'access_lost' })
+  expect(rpc).not.toHaveBeenCalled()
+})
+
+test('bind compares origin user and session and a replaced session cannot adopt the lease', async () => {
+  const harness = deferredClient()
+  const gateway = new SupabaseSubscriberDirectoryGateway(harness.client)
+  const binding = await gateway.bindSelectedShopSession()
+  await gateway.assertBoundSession(binding)
+  harness.setSession(directorySession('user-a', 'session-a', '2'))
+  await gateway.assertBoundSession(binding)
+  harness.setSession(directorySession('user-a', 'session-b', '3'))
+  await expect(gateway.assertBoundSession(binding)).rejects.toMatchObject({ code: 'access_lost' })
+  await expect(gateway.assertBoundSession(binding)).rejects.toMatchObject({ code: 'access_lost' })
+})
+
+test('watchBoundSession keeps a same-session refresh and disposes the listener', async () => {
+  const listeners: Array<(event: string, session: unknown) => void> = []
+  const unsubscribe = vi.fn()
+  let session = directorySession('user-a', 'session-a', '1')
+  const gateway = new SupabaseSubscriberDirectoryGateway({
+    auth: {
+      getSession: vi.fn(async () => ({ data: { session }, error: null })),
+      onAuthStateChange: vi.fn((listener: (event: string, session: unknown) => void) => {
+        listeners.push(listener)
+        return { data: { subscription: { unsubscribe } } }
+      }),
+    },
+    rpc: vi.fn(),
+  } as unknown as SupabaseClient)
+  const binding = await gateway.bindSelectedShopSession()
+  const onLost = vi.fn()
+  const stop = gateway.watchBoundSession(binding, onLost)
+  session = directorySession('user-a', 'session-a', '2')
+  listeners[0]?.('TOKEN_REFRESHED', session)
+  expect(onLost).not.toHaveBeenCalled()
+  await gateway.assertBoundSession(binding)
+  listeners[0]?.('SIGNED_OUT', null)
+  expect(onLost).toHaveBeenCalledTimes(1)
+  stop()
+  expect(unsubscribe).toHaveBeenCalledTimes(1)
+})
+
+test('watchBoundSession invalidates at local expiry without another auth event', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-10-22T00:00:00.000Z'))
+  try {
+    const expiresAt = Math.floor(Date.now() / 1000) + 30
+    let session = directorySession('user-a', 'session-a', '1', expiresAt)
+    const unsubscribe = vi.fn()
+    const gateway = new SupabaseSubscriberDirectoryGateway({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session }, error: null })),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe } } })),
+      },
+      rpc: vi.fn(),
+    } as unknown as SupabaseClient)
+    const binding = await gateway.bindSelectedShopSession()
+    const onLost = vi.fn()
+    gateway.watchBoundSession(binding, onLost)
+    expect(onLost).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(29_000)
+    expect(onLost).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(onLost).toHaveBeenCalledTimes(1)
+    await expect(gateway.assertBoundSession(binding)).rejects.toMatchObject({ code: 'access_lost' })
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('watchBoundSession rearms on refresh and an old timer cannot clear the new lease', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-10-22T00:00:00.000Z'))
+  try {
+    const listeners: Array<(event: string, session: unknown) => void> = []
+    let session = directorySession('user-a', 'session-a', '1', Math.floor(Date.now() / 1000) + 30)
+    const gateway = new SupabaseSubscriberDirectoryGateway({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session }, error: null })),
+        onAuthStateChange: vi.fn((listener: (event: string, session: unknown) => void) => {
+          listeners.push(listener)
+          return { data: { subscription: { unsubscribe: vi.fn() } } }
+        }),
+      },
+      rpc: vi.fn(),
+    } as unknown as SupabaseClient)
+    const binding = await gateway.bindSelectedShopSession()
+    const onLost = vi.fn()
+    gateway.watchBoundSession(binding, onLost)
+    session = directorySession('user-a', 'session-a', '2', Math.floor(Date.now() / 1000) + 120)
+    listeners[0]?.('TOKEN_REFRESHED', session)
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(onLost).not.toHaveBeenCalled()
+    await gateway.assertBoundSession(binding)
+    await vi.advanceTimersByTimeAsync(90_000)
+    expect(onLost).toHaveBeenCalledTimes(1)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('watchBoundSession rearms after a refresh observed only by a session probe', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-10-22T00:00:00.000Z'))
+  try {
+    let session = directorySession('user-a', 'session-a', '1', Date.now() / 1000 + 30)
+    const gateway = new SupabaseSubscriberDirectoryGateway({
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session }, error: null })),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      },
+      rpc: vi.fn(),
+    } as unknown as SupabaseClient)
+    const binding = await gateway.bindSelectedShopSession()
+    const onLost = vi.fn()
+    gateway.watchBoundSession(binding, onLost)
+    session = directorySession('user-a', 'session-a', '2', Date.now() / 1000 + 120)
+    await gateway.assertBoundSession(binding)
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(onLost).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(90_000)
+    expect(onLost).toHaveBeenCalledTimes(1)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+test('watchBoundSession rejects NaN Infinity and missing expiry', async () => {
+  const listeners: Array<(event: string, session: unknown) => void> = []
+  let session = directorySession('user-a', 'session-a', '1')
+  const gateway = new SupabaseSubscriberDirectoryGateway({
+    auth: {
+      getSession: vi.fn(async () => ({ data: { session }, error: null })),
+      onAuthStateChange: vi.fn((listener: (event: string, session: unknown) => void) => {
+        listeners.push(listener)
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      }),
+    },
+    rpc: vi.fn(),
+  } as unknown as SupabaseClient)
+  const binding = await gateway.bindSelectedShopSession()
+  const onLost = vi.fn()
+  gateway.watchBoundSession(binding, onLost)
+  listeners[0]?.('TOKEN_REFRESHED', { ...session, expires_at: Number.NaN })
+  expect(onLost).toHaveBeenCalledTimes(1)
+
+  session = directorySession('user-a', 'session-a', '1')
+  const second = await gateway.bindSelectedShopSession()
+  const onLostInfinity = vi.fn()
+  gateway.watchBoundSession(second, onLostInfinity)
+  listeners[1]?.('TOKEN_REFRESHED', { ...session, expires_at: Number.POSITIVE_INFINITY })
+  expect(onLostInfinity).toHaveBeenCalledTimes(1)
+
+  session = directorySession('user-a', 'session-a', '1')
+  const third = await gateway.bindSelectedShopSession()
+  const onLostMissing = vi.fn()
+  gateway.watchBoundSession(third, onLostMissing)
+  const { expires_at: _dropped, ...withoutExpiry } = session
+  void _dropped
+  listeners[2]?.('TOKEN_REFRESHED', withoutExpiry)
+  expect(onLostMissing).toHaveBeenCalledTimes(1)
+})
+
+test('authorizeCopy performs a live subscriber read for the selected shop', async () => {
+  const { client: supabase, rpc } = client({ data: detailPayload, error: null })
+  const gateway = new SupabaseSubscriberDirectoryGateway(supabase)
+  const binding = await gateway.bindSelectedShopSession()
+  await gateway.authorizeCopy(binding, 'a1100000-0000-4000-8000-000000000001')
+  expect(rpc).toHaveBeenCalledWith('admin_get_subscriber_v1', {
+    p_shop_id: 'a1100000-0000-4000-8000-000000000001',
+  })
+})
+
+test('authorizeCopy reasserts the origin lease after the live read', async () => {
+  const origin = directorySession('user-a', 'session-a', '1')
+  const replaced = directorySession('user-a', 'session-b', '2')
+  let probes = 0
+  const rpc = vi.fn().mockResolvedValue({ data: detailPayload, error: null })
+  const gateway = new SupabaseSubscriberDirectoryGateway({
+    auth: {
+      getSession: vi.fn(async () => {
+        probes += 1
+        return { data: { session: probes >= 5 ? replaced : origin }, error: null }
+      }),
+    },
+    rpc,
+  } as unknown as SupabaseClient)
+  const binding = await gateway.bindSelectedShopSession()
+  await expect(
+    gateway.authorizeCopy(binding, 'a1100000-0000-4000-8000-000000000001'),
+  ).rejects.toMatchObject({ code: 'access_lost' })
+  expect(rpc).toHaveBeenCalledWith('admin_get_subscriber_v1', {
+    p_shop_id: 'a1100000-0000-4000-8000-000000000001',
+  })
+})
+
+test('issue rejects a two-row payload without retrying the write', async () => {
+  const harness = deferredClient()
+  const gateway = new SupabaseSubscriberDirectoryGateway(harness.client)
+  const binding = await gateway.bindSelectedShopSession()
+  const promise = gateway.issueSubscriptionCode(issueInput, binding)
+  await vi.waitFor(() => expect(harness.pending).toHaveLength(1))
+  harness.pending[0]?.({ data: [issueRow, issueRow], error: null })
+  await expect(promise).rejects.toMatchObject({ code: 'invalid_response' })
+  expect(harness.rpc).toHaveBeenCalledTimes(1)
+})
+
+test('history list sends the selected shop and page size', async () => {
+  const history = {
+    snapshot_at: '2026-10-22T00:30:00.000Z',
+    shop_id: 'a1100000-0000-4000-8000-000000000001',
+    shop_name: 'متجر',
+    row_count: '0',
+    page_size: 20,
+    rows: [],
+    next_cursor: null,
+  }
+  const { client: supabase, rpc } = client({ data: history, error: null })
+  const gateway = new SupabaseSubscriberDirectoryGateway(supabase)
+  const page = await gateway.listSubscriptionCodes('a1100000-0000-4000-8000-000000000001', null)
+  expect(rpc).toHaveBeenCalledWith('admin_list_subscription_codes_v1', {
+    p_shop_id: 'a1100000-0000-4000-8000-000000000001',
+    p_cursor: null,
+    p_page_size: subscriptionCodePageSize,
+  })
+  expect(page.rowCount).toBe('0')
 })

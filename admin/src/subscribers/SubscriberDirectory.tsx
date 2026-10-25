@@ -27,6 +27,7 @@ import {
   type SubscriberDirectoryGateway,
   type SubscriberStatusFilter,
 } from './SubscriberDirectoryGateway.ts'
+import { SubscriptionCodesPanel } from './SubscriptionCodesPanel.tsx'
 import {
   formatExactCount,
   formatServerInstant,
@@ -467,7 +468,25 @@ export function SubscriberDirectory({
               {detail.notFound ? subscriberCopy.notFound : subscriberCopy.detailError}
             </Typography>
           )}
-          {detail?.phase === 'ready' && <DetailFields detail={detail.detail} />}
+          {detail?.phase === 'ready' && (
+            <>
+              <DetailFields detail={detail.detail} />
+              <SubscriptionCodesPanel
+                shopId={detail.detail.shopId}
+                shopName={detail.detail.shopName}
+                gateway={gateway}
+                onAccessLost={() => {
+                  requestRef.current += 1
+                  detailRef.current += 1
+                  setPage(null)
+                  setDetail(null)
+                  setNotice(null)
+                  setPhase('accessLost')
+                  onAccessLost()
+                }}
+              />
+            </>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           {detail?.phase === 'error' && !detail.notFound && (

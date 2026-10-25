@@ -137,6 +137,25 @@ test('a signed-in admin sees the subscriber directory instead of the prototype s
         async get() {
           throw new Error('unused')
         },
+        async issueSubscriptionCode() {
+          throw new Error('unused')
+        },
+        async listSubscriptionCodes() {
+          return {
+            snapshotAt: '2026-10-22T00:30:00.000Z',
+            shopId: 'a1100000-0000-4000-8000-000000000001',
+            shopName: 'متجر',
+            rowCount: '0',
+            pageSize: 20,
+            rows: [],
+            nextCursor: null,
+          }
+        },
+        async bindSelectedShopSession() { return { id: 'lease-1' } },
+        async assertBoundSession() {},
+        async authorizeCopy() {},
+        watchBoundSession() { return () => {} },
+        releaseBoundSession() {},
       }}
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,

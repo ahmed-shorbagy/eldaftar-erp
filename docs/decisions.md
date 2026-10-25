@@ -2,7 +2,9 @@
 
 ## Current decision — 2026-10-22
 
-[ADR 0027](adr/0027-admin-subscriber-directory.md) records the owner-selected read-only subscriber directory. It uses current entitlement semantics and the existing live platform-admin/session guard with ban denial, returning only shop/subscription metadata. [Independent review](reviews/admin-subscribers-2026-10-22/independent-validation.md) and [development deployment/preservation](reviews/admin-subscribers-2026-10-22/deployment.md) are complete for the bounded slice. Contact/location permissions, shop financial access, subscription mutations, owner acceptance and Milestone 5 remain separate; no wider policy is accepted by this delivery.
+[ADR 0028](adr/0028-admin-subscription-code-issuance.md) records the bounded ADM-02/ADM-08 issuance and history slice: reuse hashed `issue_subscription_code` / `redeem_subscription_code`, integer day terms, one-time session-only secret, selected-shop metadata history, and current admin/session/ban checks. Independently reviewed and verified; backend deployed and rollback-verified on development `xchapwvmvoefriqcxtvn`. Frontend publication and owner acceptance remain pending. No revocation, bulk issuance, entitlement editing, ADM-07 contact access or impersonation is accepted.
+
+[ADR 0027](adr/0027-admin-subscriber-directory.md) records the owner-selected read-only subscriber directory. It uses current entitlement semantics and the existing live platform-admin/session guard with ban denial, returning only shop/subscription metadata. [Independent review](reviews/admin-subscribers-2026-10-22/independent-validation.md) and [development deployment/preservation](reviews/admin-subscribers-2026-10-22/deployment.md) are complete for the bounded slice. Contact/location permissions, shop financial access, owner acceptance and Milestone 5 remain separate.
 
 ## Previous planning pointer — 2026-10-22
 

@@ -6,6 +6,7 @@ import type { AdminAccess, AdminAuthGateway } from '../auth/AdminAuthGateway.ts'
 import { ThemeController } from '../theme/themeController.ts'
 import type { ThemePreferenceStore } from '../theme/themePreference.ts'
 import { subscriberCopy } from './copy.ts'
+import { unusedSubscriptionCodeMethods } from '../test/subscriptionCodeGateway.ts'
 import {
   SubscriberDirectoryError,
   type SubscriberDirectoryGateway,
@@ -61,13 +62,35 @@ function page(overrides: Partial<SubscriberPage> = {}): SubscriberPage {
   }
 }
 
-function renderDirectory(gateway: SubscriberDirectoryGateway, mode = 'light') {
+function withCodes(gateway: Omit<
+  SubscriberDirectoryGateway,
+  | 'issueSubscriptionCode'
+  | 'listSubscriptionCodes'
+  | 'bindSelectedShopSession'
+  | 'assertBoundSession'
+  | 'authorizeCopy'
+  | 'watchBoundSession'
+  | 'releaseBoundSession'
+>): SubscriberDirectoryGateway {
+  return { ...unusedSubscriptionCodeMethods(), ...gateway }
+}
+
+function renderDirectory(gateway: Omit<
+  SubscriberDirectoryGateway,
+  | 'issueSubscriptionCode'
+  | 'listSubscriptionCodes'
+  | 'bindSelectedShopSession'
+  | 'assertBoundSession'
+  | 'authorizeCopy'
+  | 'watchBoundSession'
+  | 'releaseBoundSession'
+>, mode = 'light') {
   const authGateway = new StableAuth()
   render(
     <App
       supabaseStatus="ready"
       authGateway={authGateway}
-      subscriberGateway={gateway}
+      subscriberGateway={withCodes(gateway)}
       themeController={new ThemeController(new MemoryThemePreferenceStore(mode))}
     />,
   )
@@ -228,7 +251,11 @@ test('detail dialog supports escape and ignores a late open after close', async 
   content.focus()
   expect(content).toHaveFocus()
   await user.keyboard('{Tab}')
+  expect(within(dialog).getByRole('button', { name: subscriberCopy.issueAction })).toHaveFocus()
+  await user.keyboard('{Tab}')
   expect(within(dialog).getByRole('button', { name: subscriberCopy.close })).toHaveFocus()
+  await user.keyboard('{Shift>}{Tab}{/Shift}')
+  expect(within(dialog).getByRole('button', { name: subscriberCopy.issueAction })).toHaveFocus()
   await user.keyboard('{Shift>}{Tab}{/Shift}')
   expect(content).toHaveFocus()
   await user.keyboard('{Escape}')
