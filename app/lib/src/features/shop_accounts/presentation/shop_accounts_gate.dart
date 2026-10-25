@@ -37,6 +37,7 @@ import '../../invoice_appearance/presentation/invoice_appearance_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../application/shop_sync_coordinator.dart';
 import '../application/shop_sync_ticks.dart';
+import '../../help/domain/help_models.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_account_gateway.dart';
 import '../domain/shop_image.dart';
@@ -57,6 +58,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.onboardingStore,
     this.syncGateway,
     this.shopImageGateway,
+    this.helpGateway,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -69,6 +71,7 @@ class ShopAccountsGate extends StatefulWidget {
   final OnboardingStore? onboardingStore;
   final ShopSyncGateway? syncGateway;
   final ShopImageGateway? shopImageGateway;
+  final HelpGateway? helpGateway;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -106,6 +109,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   List<SubscriptionNotice> _notices = const [];
   bool _noticeDismissing = false;
   bool _noticeDismissFailed = false;
+  PlatformAnnouncement? _announcement;
+  bool _announcementDismissed = false;
 
   @override
   void initState() {
@@ -147,6 +152,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       _notices = const [];
       _noticeDismissing = false;
       _noticeDismissFailed = false;
+      _announcement = null;
+      _announcementDismissed = false;
       _ledgerGeneration++;
       _inventoryGeneration++;
       _traderGeneration++;
@@ -603,6 +610,25 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     } catch (_) {
       if (!isCurrent()) return;
     }
+    final help = widget.helpGateway;
+    if (help == null) return;
+    try {
+      final announcement = await help.getAnnouncement();
+      if (!isCurrent()) return;
+      setState(() {
+        if (announcement == null) {
+          _announcement = null;
+          _announcementDismissed = false;
+        } else if (_announcement?.titleAr != announcement.titleAr ||
+            _announcement?.bodyAr != announcement.bodyAr ||
+            _announcement?.linkUrl != announcement.linkUrl) {
+          _announcement = announcement;
+          _announcementDismissed = false;
+        }
+      });
+    } catch (_) {
+      if (!isCurrent()) return;
+    }
   }
 
   SubscriptionNotice? get _selectedNotice {
@@ -756,6 +782,13 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         onDismissSubscriptionNotice: _selectedNotice == null
             ? null
             : _dismissNotice,
+        platformAnnouncement:
+            _announcementDismissed ? null : _announcement,
+        onDismissPlatformAnnouncement: _announcement == null ||
+                _announcementDismissed
+            ? null
+            : () => setState(() => _announcementDismissed = true),
+        helpGateway: widget.helpGateway,
         onboardingStore: widget.onboardingStore,
         shopImageBuilder: widget.shopImageGateway == null
             ? null

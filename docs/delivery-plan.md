@@ -2,7 +2,15 @@
 
 ## Current plan — 2026-10-25
 
-The bounded ADM-04 minimum-version / forced-update slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0030](adr/0030-app-version-forced-update.md), [validation](reviews/app-version-forced-update-2026-10-25/validation.md), [deployment/preservation](reviews/app-version-forced-update-2026-10-25/deployment.md). Platform admins set a semantic minimum per Android/iOS/Windows; clients below that version see a non-dismissible Arabic full-screen gate before Auth; equal or newer versions pass. Soft optional banners, Help, broadcasts, retention and ADM-07 stay separate. Frontend publication and owner acceptance remain pending. No later Milestone 5 feature is selected by this delivery.
+The bounded ADM-07 subscriber contact/location PII reveal slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0032](adr/0032-admin-subscriber-contact-reveal.md), [validation](reviews/admin-subscriber-contact-2026-10-25/validation.md), [deployment/preservation](reviews/admin-subscriber-contact-2026-10-25/deployment.md). ADM-05 Help/announcements preceded it in the same delivery. HELP-02, ADM-06, D21 shop ledger access and grant-management UI stay separate. Frontend publication and owner acceptance remain pending. No later Milestone 5 feature is selected by this delivery.
+
+## Previous plan — 2026-10-25 (ADM-05)
+
+The bounded ADM-05 Help FAQ and platform announcement slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0031](adr/0031-help-content-and-announcements.md), [validation](reviews/help-content-2026-10-25/validation.md), [deployment/preservation](reviews/help-content-2026-10-25/deployment.md). HELP-02, ADM-06 broadcasts and video stayed separate.
+
+## Previous plan — 2026-10-25 (ADM-04)
+
+The bounded ADM-04 minimum-version / forced-update slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0030](adr/0030-app-version-forced-update.md), [validation](reviews/app-version-forced-update-2026-10-25/validation.md), [deployment/preservation](reviews/app-version-forced-update-2026-10-25/deployment.md). Soft optional banners, Help, broadcasts, retention and ADM-07 stayed separate from that slice.
 
 ## Previous plan — 2026-10-25 (ADM-03)
 

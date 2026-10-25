@@ -1,5 +1,13 @@
 # ElDafttar UI theme contract
 
+## Admin subscriber contact reveal — 2026-10-25
+
+Subscriber detail keeps phone/country/city masked until an explicit Arabic «عرض رقم الهاتف والموقع» action. Revealed values use LTR isolation for phone and country code. Forbidden and failure copy is Arabic. Cairo, tokens, 48px control, no new palette. [ADR 0032](adr/0032-admin-subscriber-contact-reveal.md).
+
+## Help content and announcement — 2026-10-25
+
+Admin «المساعدة» edits Arabic topics/articles and one platform announcement. Owner Flutter opens Help from «المزيد» with search; published announcement uses a primary-container banner with session-local dismiss. Cairo, semantic tokens, 48px controls, no new palette, no guide cards. [ADR 0031](adr/0031-help-content-and-announcements.md).
+
 ## Forced app update — 2026-10-25
 
 Flutter shows a non-dismissible Arabic full-screen gate above Auth when the client version is strictly below the server minimum for Android, iOS or Windows. Keep Cairo, the brown/cream/dark semantic roles, persisted theme and 48-pixel controls. Title «يلزم تحديث التطبيق», server `message_ar`, current vs required versions as Latin digits with LTR isolation, optional «فتح صفحة التحديث» when an https URL is present, and «إعادة المحاولة» that re-fetches policy. No skip into the shop shell. Fail open with an Arabic retry strip only when no prior successful block decision exists. Admin React adds «تحديث التطبيق» beside «المشتركون»: per-platform minimum, Arabic message, optional https URL, save and clear with in-flight disable and Arabic success/failure. Same 1120-pixel admin measure and tokens; no new palette. [ADR 0030](adr/0030-app-version-forced-update.md).

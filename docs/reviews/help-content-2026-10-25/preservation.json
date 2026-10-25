@@ -1,0 +1,39 @@
+{
+  "project": "xchapwvmvoefriqcxtvn",
+  "migration": "20261025110000_help_content_and_announcements",
+  "local_sha256": "2F551A0B9BD92B6A70804C943DC706330B13F64DFC6F4423030B170E6CB219E3",
+  "before": {
+    "snapshot_utc": "2026-10-25T07:08:39.868095",
+    "migration_count": 63,
+    "latest_version": "20261025100000",
+    "list_accounts_md5": "7572213dedfcdf389de8497752484701",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "auth_sessions": 18,
+    "financial_operations": 58,
+    "migration_versions_md5_through_20261025100000": "0c9deeee5a8fc9a68b769ed4d7d43e74"
+  },
+  "after": {
+    "snapshot_utc": "2026-10-25T07:09:01.078428",
+    "migration_count": 64,
+    "latest_version": "20261025110000",
+    "latest_name": "help_content_and_announcements",
+    "list_accounts_md5": "7572213dedfcdf389de8497752484701",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "auth_sessions": 18,
+    "financial_operations": 58,
+    "help_topics": 0,
+    "help_articles": 0,
+    "announcement_published": false,
+    "authenticated_list_help_exec": true,
+    "anon_list_help_exec": false,
+    "authenticated_topics_select": false,
+    "migration_versions_md5_through_20261025100000": "0c9deeee5a8fc9a68b769ed4d7d43e74"
+  },
+  "hosted_fixture": "HELP_CONTENT_ANNOUNCEMENTS_HOSTED_SQL_PASSED"
+}

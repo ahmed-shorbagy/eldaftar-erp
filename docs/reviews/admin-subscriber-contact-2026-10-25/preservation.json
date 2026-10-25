@@ -1,0 +1,40 @@
+{
+  "project": "xchapwvmvoefriqcxtvn",
+  "migration": "20261025120000_admin_subscriber_contact_reveal",
+  "local_sha256": "701F4AC4B6D3D33E46274E6617A8ECBD365488777841D8BDF41101FB5157E60F",
+  "before": {
+    "snapshot_utc": "2026-10-25T13:50:45.019522",
+    "migration_count": 64,
+    "latest_version": "20261025110000",
+    "list_accounts_md5": "7572213dedfcdf389de8497752484701",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "auth_sessions": 18,
+    "financial_operations": 58,
+    "help_topics": 0,
+    "pii_flag_present": false,
+    "migration_versions_md5_through_20261025110000": "563d24eb68ed9516b7380532e62c7239"
+  },
+  "after": {
+    "snapshot_utc": "2026-10-25T13:51:05.88575",
+    "migration_count": 65,
+    "latest_version": "20261025120000",
+    "latest_name": "admin_subscriber_contact_reveal",
+    "list_accounts_md5": "7572213dedfcdf389de8497752484701",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "auth_sessions": 18,
+    "financial_operations": 58,
+    "help_topics": 0,
+    "contact_reveals": 0,
+    "pii_flag_true_admins": 1,
+    "authenticated_contact_exec": true,
+    "authenticated_reveals_select": false,
+    "migration_versions_md5_through_20261025110000": "563d24eb68ed9516b7380532e62c7239"
+  },
+  "hosted_fixture": "ADMIN_SUBSCRIBER_CONTACT_REVEAL_HOSTED_SQL_PASSED"
+}

@@ -1,0 +1,29 @@
+select jsonb_build_object(
+  'snapshot_utc', (now() at time zone 'utc'),
+  'migration_count', (select count(*)::int from supabase_migrations.schema_migrations),
+  'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+  'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+  'migration_versions_md5_through_20261025110000', md5((
+    select string_agg(version, ',' order by version)
+    from supabase_migrations.schema_migrations
+    where version <= '20261025110000'
+  )),
+  'list_accounts_md5', md5(pg_get_functiondef('public.list_my_shop_accounts()'::regprocedure)),
+  'shops', (select count(*)::int from public.shops),
+  'entitlements', (select count(*)::int from public.shop_entitlements),
+  'memberships', (select count(*)::int from public.shop_memberships),
+  'auth_users', (select count(*)::int from auth.users),
+  'auth_sessions', (select count(*)::int from auth.sessions),
+  'financial_operations', (select count(*)::int from public.financial_operations),
+  'help_topics', (select count(*)::int from public.help_topics),
+  'contact_reveals', (select count(*)::int from public.admin_subscriber_contact_reveals),
+  'pii_flag_true_admins', (
+    select count(*)::int from public.platform_admins where can_view_subscriber_contact
+  ),
+  'authenticated_contact_exec', has_function_privilege(
+    'authenticated', 'public.admin_get_subscriber_contact_v1(uuid)', 'EXECUTE'
+  ),
+  'authenticated_reveals_select', has_table_privilege(
+    'authenticated', 'public.admin_subscriber_contact_reveals', 'SELECT'
+  )
+);

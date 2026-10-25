@@ -8,6 +8,9 @@ import '../features/daily_ledger/presentation/daily_ledger_screen.dart';
 import '../features/daily_ledger/presentation/ledger_more_balances.dart';
 import '../features/onboarding/application/onboarding_store.dart';
 import '../features/invoice_appearance/data/logo_upload_store.dart';
+import '../features/help/domain/help_models.dart';
+import '../features/help/presentation/announcement_banner.dart';
+import '../features/help/presentation/help_screen.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../features/shop_accounts/presentation/subscription_notice_banner.dart';
 import '../theme/app_tokens.dart';
@@ -29,6 +32,9 @@ class ShopWorkspace extends StatefulWidget {
     this.noticeDismissing = false,
     this.noticeDismissFailed = false,
     this.onDismissSubscriptionNotice,
+    this.platformAnnouncement,
+    this.onDismissPlatformAnnouncement,
+    this.helpGateway,
     this.onboardingStore,
     this.inventoryBuilder,
     this.traderBuilder,
@@ -57,6 +63,9 @@ class ShopWorkspace extends StatefulWidget {
   final bool noticeDismissing;
   final bool noticeDismissFailed;
   final Future<void> Function()? onDismissSubscriptionNotice;
+  final PlatformAnnouncement? platformAnnouncement;
+  final VoidCallback? onDismissPlatformAnnouncement;
+  final HelpGateway? helpGateway;
   final OnboardingStore? onboardingStore;
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
@@ -381,6 +390,19 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           key: const Key('workspace-closing-staff'),
         ),
       _link('التقارير', Icons.assessment_outlined, () => _select(3)),
+      if (widget.helpGateway != null)
+        _link(
+          'المساعدة',
+          Icons.help_outline,
+          () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => HelpScreen(gateway: widget.helpGateway!),
+              ),
+            );
+          },
+          key: const Key('workspace-help'),
+        ),
       _link(
         Theme.of(context).brightness == Brightness.dark
             ? 'المظهر الفاتح'
@@ -400,9 +422,39 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
 
   Widget _withNotice(Widget child) {
     final notice = widget.subscriptionNotice;
-    if (notice == null || widget.onDismissSubscriptionNotice == null) {
-      return child;
-    }
+    final announcement = widget.platformAnnouncement;
+    final banners = <Widget>[
+      if (notice != null && widget.onDismissSubscriptionNotice != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: SubscriptionNoticeBanner(
+            key: const Key('subscription-notice-banner'),
+            notice: notice,
+            dismissing: widget.noticeDismissing,
+            dismissFailed: widget.noticeDismissFailed,
+            onDismiss: () {
+              final dismiss = widget.onDismissSubscriptionNotice;
+              if (dismiss != null) dismiss();
+            },
+            onRenew: widget.onActivateSubscription == null
+                ? null
+                : () {
+                    final renew = widget.onActivateSubscription;
+                    if (renew != null) renew();
+                  },
+          ),
+        ),
+      if (announcement != null && widget.onDismissPlatformAnnouncement != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: AnnouncementBanner(
+            key: const Key('platform-announcement-banner'),
+            announcement: announcement,
+            onDismiss: widget.onDismissPlatformAnnouncement!,
+          ),
+        ),
+    ];
+    if (banners.isEmpty) return child;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -414,24 +466,9 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
               constraints: const BoxConstraints(
                 maxWidth: AppTokens.contentMaxWidth,
               ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: SubscriptionNoticeBanner(
-                  key: const Key('subscription-notice-banner'),
-                  notice: notice,
-                  dismissing: widget.noticeDismissing,
-                  dismissFailed: widget.noticeDismissFailed,
-                  onDismiss: () {
-                    final dismiss = widget.onDismissSubscriptionNotice;
-                    if (dismiss != null) dismiss();
-                  },
-                  onRenew: widget.onActivateSubscription == null
-                      ? null
-                      : () {
-                          final renew = widget.onActivateSubscription;
-                          if (renew != null) renew();
-                        },
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: banners,
               ),
             ),
           ),

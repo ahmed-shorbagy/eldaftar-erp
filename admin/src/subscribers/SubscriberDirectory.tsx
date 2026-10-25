@@ -22,6 +22,8 @@ import { useTheme } from '@mui/material/styles'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { tokens } from '../theme/tokens.ts'
 import { subscriberCopy } from './copy.ts'
+import type { SubscriberContactGateway } from './SubscriberContactGateway.ts'
+import { SubscriberContactReveal } from './SubscriberContactReveal.tsx'
 import {
   SubscriberDirectoryError,
   type SubscriberDirectoryGateway,
@@ -76,9 +78,11 @@ type DetailState =
 
 export function SubscriberDirectory({
   gateway,
+  contactGateway = null,
   onAccessLost,
 }: {
   gateway: SubscriberDirectoryGateway
+  contactGateway?: SubscriberContactGateway | null
   onAccessLost: () => void
 }) {
   const theme = useTheme()
@@ -471,6 +475,21 @@ export function SubscriberDirectory({
           {detail?.phase === 'ready' && (
             <>
               <DetailFields detail={detail.detail} />
+              {contactGateway && (
+                <SubscriberContactReveal
+                  shopId={detail.detail.shopId}
+                  gateway={contactGateway}
+                  onAccessLost={() => {
+                    requestRef.current += 1
+                    detailRef.current += 1
+                    setPage(null)
+                    setDetail(null)
+                    setNotice(null)
+                    setPhase('accessLost')
+                    onAccessLost()
+                  }}
+                />
+              )}
               <SubscriptionCodesPanel
                 shopId={detail.detail.shopId}
                 shopName={detail.detail.shopName}

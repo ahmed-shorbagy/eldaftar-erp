@@ -17,6 +17,7 @@ import 'src/features/auth/data/supabase_auth_gateway.dart';
 import 'src/features/auth/domain/password_recovery.dart';
 import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
+import 'src/features/help/data/supabase_help_gateway.dart';
 import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
 import 'src/features/media/data/r2_media_client.dart';
 import 'src/features/shop_accounts/data/supabase_shop_account_gateway.dart';
@@ -89,6 +90,9 @@ Future<void> main() async {
       shopImageGateway:
           supabaseStatus == SupabaseStartupStatus.ready && r2Media != null
           ? SupabaseShopImageGateway(Supabase.instance.client, r2Media)
+          : null,
+      helpGateway: supabaseStatus == SupabaseStartupStatus.ready
+          ? SupabaseHelpGateway(Supabase.instance.client)
           : null,
       syncGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopSyncGateway(Supabase.instance.client)

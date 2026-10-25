@@ -13,6 +13,7 @@ import '../../daily_ledger/application/pending_opening_store.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../invoice_appearance/application/logo_codec.dart';
 import '../../invoice_appearance/data/logo_upload_store.dart';
+import '../../help/domain/help_models.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
 import '../../shop_accounts/domain/shop_sync.dart';
 import '../../shop_accounts/presentation/shop_accounts_gate.dart';
@@ -39,6 +40,7 @@ class AuthGate extends StatefulWidget {
     this.recoveryGateway,
     this.syncGateway,
     this.shopImageGateway,
+    this.helpGateway,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -53,6 +55,7 @@ class AuthGate extends StatefulWidget {
   final String? Function()? currentUserId;
   final ShopSyncGateway? syncGateway;
   final ShopImageGateway? shopImageGateway;
+  final HelpGateway? helpGateway;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -221,6 +224,7 @@ class _AuthGateState extends State<AuthGate> {
         currentUserId: widget.currentUserId,
         syncGateway: widget.syncGateway,
         shopImageGateway: widget.shopImageGateway,
+        helpGateway: widget.helpGateway,
         onSignOut: () async {
           await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);

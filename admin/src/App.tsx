@@ -13,10 +13,16 @@ import { AdminAuthScreen } from './auth/AdminAuthScreen.tsx'
 import type { AdminAccess, AdminAuthGateway } from './auth/AdminAuthGateway.ts'
 import { getSupabaseClient } from './config/supabaseClient.ts'
 import type { SupabaseStartupStatus } from './config/supabaseStartup.ts'
+import { HelpContentPanel } from './help/HelpContentPanel.tsx'
+import type { HelpGateway } from './help/HelpGateway.ts'
+import { helpCopy } from './help/copy.ts'
+import { SupabaseHelpGateway } from './help/SupabaseHelpGateway.ts'
 import { HomeShell } from './shell/HomeShell.tsx'
 import { shellCopy } from './shell/copy.ts'
 import { SubscriberDirectory } from './subscribers/SubscriberDirectory.tsx'
+import type { SubscriberContactGateway } from './subscribers/SubscriberContactGateway.ts'
 import type { SubscriberDirectoryGateway } from './subscribers/SubscriberDirectoryGateway.ts'
+import { SupabaseSubscriberContactGateway } from './subscribers/SupabaseSubscriberContactGateway.ts'
 import { SupabaseSubscriberDirectoryGateway } from './subscribers/SupabaseSubscriberDirectoryGateway.ts'
 import { DirectoryUnavailable } from './subscribers/DirectoryUnavailable.tsx'
 import { rtlCache } from './theme/rtlCache.ts'
@@ -25,20 +31,24 @@ import type { ThemeController } from './theme/themeController.ts'
 import { resolveThemeChoice } from './theme/themePreference.ts'
 import { useSystemDark } from './theme/useSystemDark.ts'
 
-type AdminDestination = 'subscribers' | 'appVersion'
+type AdminDestination = 'subscribers' | 'appVersion' | 'help'
 
 export function App({
   supabaseStatus,
   themeController,
   authGateway = null,
   subscriberGateway,
+  contactGateway,
   appVersionGateway,
+  helpGateway,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeController: ThemeController
   authGateway?: AdminAuthGateway | null
   subscriberGateway?: SubscriberDirectoryGateway | null
+  contactGateway?: SubscriberContactGateway | null
   appVersionGateway?: AppVersionGateway | null
+  helpGateway?: HelpGateway | null
 }) {
   const [choice, setChoice] = useState(themeController.mode)
   const [access, setAccess] = useState<AdminAccess>(authGateway?.status ?? 'unavailable')
@@ -70,11 +80,21 @@ export function App({
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseSubscriberDirectoryGateway(client)
   }, [subscriberGateway])
+  const piiGateway = useMemo(() => {
+    if (contactGateway !== undefined) return contactGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseSubscriberContactGateway(client)
+  }, [contactGateway])
   const versionGateway = useMemo(() => {
     if (appVersionGateway !== undefined) return appVersionGateway
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseAppVersionGateway(client)
   }, [appVersionGateway])
+  const contentGateway = useMemo(() => {
+    if (helpGateway !== undefined) return helpGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseHelpGateway(client)
+  }, [helpGateway])
   const reportAccessLoss = useCallback(() => {
     void authGateway?.refresh()
   }, [authGateway])
@@ -94,6 +114,29 @@ export function App({
     themeController.toggle(resolved)
     setChoice(themeController.mode)
   }, [resolved, themeController])
+
+  const directory = (() => {
+    if (!(supabaseStatus === 'ready' && access === 'admin')) return undefined
+    if (destination === 'subscribers') {
+      return directoryGateway
+        ? (
+          <SubscriberDirectory
+            gateway={directoryGateway}
+            contactGateway={piiGateway}
+            onAccessLost={reportAccessLoss}
+          />
+        )
+        : <DirectoryUnavailable />
+    }
+    if (destination === 'appVersion') {
+      return versionGateway
+        ? <AppVersionPolicyPanel gateway={versionGateway} onAccessLost={reportAccessLoss} />
+        : <DirectoryUnavailable />
+    }
+    return contentGateway
+      ? <HelpContentPanel gateway={contentGateway} onAccessLost={reportAccessLoss} />
+      : <DirectoryUnavailable />
+  })()
 
   return (
     <CacheProvider value={rtlCache}>
@@ -125,7 +168,7 @@ export function App({
                     onClick={() => setDestination('subscribers')}
                     sx={{ minHeight: 48 }}
                   >
-                    {appVersionCopy.subscribersNav}
+                    {helpCopy.subscribersNav}
                   </Button>
                   <Button
                     variant={destination === 'appVersion' ? 'contained' : 'outlined'}
@@ -134,20 +177,17 @@ export function App({
                   >
                     {appVersionCopy.navLabel}
                   </Button>
+                  <Button
+                    variant={destination === 'help' ? 'contained' : 'outlined'}
+                    onClick={() => setDestination('help')}
+                    sx={{ minHeight: 48 }}
+                  >
+                    {helpCopy.navLabel}
+                  </Button>
                 </ButtonGroup>
               ) : undefined
             }
-            directory={
-              supabaseStatus === 'ready' && access === 'admin'
-                ? destination === 'subscribers'
-                  ? directoryGateway
-                    ? <SubscriberDirectory gateway={directoryGateway} onAccessLost={reportAccessLoss} />
-                    : <DirectoryUnavailable />
-                  : versionGateway
-                    ? <AppVersionPolicyPanel gateway={versionGateway} onAccessLost={reportAccessLoss} />
-                    : <DirectoryUnavailable />
-                : undefined
-            }
+            directory={directory}
           />
         )}
       </ThemeProvider>
