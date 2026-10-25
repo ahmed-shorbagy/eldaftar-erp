@@ -75,6 +75,17 @@ class _Shops implements ShopAccountGateway {
   ];
 
   @override
+  Future<List<SubscriptionNotice>> listMySubscriptionNotices() async =>
+      const [];
+
+  @override
+  Future<void> dismissSubscriptionNotice({
+    required String shopId,
+    required SubscriptionNoticeKind kind,
+    required DateTime expiresAt,
+  }) async {}
+
+  @override
   Future<SubscriptionActivationResult> activateSubscription({
     required String requestKey,
     required String code,

@@ -9,6 +9,7 @@ import '../features/daily_ledger/presentation/ledger_more_balances.dart';
 import '../features/onboarding/application/onboarding_store.dart';
 import '../features/invoice_appearance/data/logo_upload_store.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
+import '../features/shop_accounts/presentation/subscription_notice_banner.dart';
 import '../theme/app_tokens.dart';
 
 /// Keeps the ledger as the initial workspace and exposes all Arabic destinations.
@@ -24,6 +25,10 @@ class ShopWorkspace extends StatefulWidget {
     this.userId,
     this.refreshGeneration = 0,
     this.onActivateSubscription,
+    this.subscriptionNotice,
+    this.noticeDismissing = false,
+    this.noticeDismissFailed = false,
+    this.onDismissSubscriptionNotice,
     this.onboardingStore,
     this.inventoryBuilder,
     this.traderBuilder,
@@ -48,6 +53,10 @@ class ShopWorkspace extends StatefulWidget {
   final String? userId;
   final int refreshGeneration;
   final Future<void> Function()? onActivateSubscription;
+  final SubscriptionNotice? subscriptionNotice;
+  final bool noticeDismissing;
+  final bool noticeDismissFailed;
+  final Future<void> Function()? onDismissSubscriptionNotice;
   final OnboardingStore? onboardingStore;
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
@@ -389,6 +398,49 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     ]),
   };
 
+  Widget _withNotice(Widget child) {
+    final notice = widget.subscriptionNotice;
+    if (notice == null || widget.onDismissSubscriptionNotice == null) {
+      return child;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SafeArea(
+          bottom: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppTokens.contentMaxWidth,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: SubscriptionNoticeBanner(
+                  key: const Key('subscription-notice-banner'),
+                  notice: notice,
+                  dismissing: widget.noticeDismissing,
+                  dismissFailed: widget.noticeDismissFailed,
+                  onDismiss: () {
+                    final dismiss = widget.onDismissSubscriptionNotice;
+                    if (dismiss != null) dismiss();
+                  },
+                  onRenew: widget.onActivateSubscription == null
+                      ? null
+                      : () {
+                          final renew = widget.onActivateSubscription;
+                          if (renew != null) renew();
+                        },
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(child: child),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
@@ -412,14 +464,14 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
                 ),
               ),
               const VerticalDivider(width: 1),
-              Expanded(child: _body()),
+              Expanded(child: _withNotice(_body())),
             ],
           ),
         );
       }
       const indices = [0, 1, 2, 4];
       return Scaffold(
-        body: _body(),
+        body: _withNotice(_body()),
         bottomNavigationBar: NavigationBar(
           height:
               80 +

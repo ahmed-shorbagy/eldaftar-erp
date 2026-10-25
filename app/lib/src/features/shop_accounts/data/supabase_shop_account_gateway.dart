@@ -32,6 +32,87 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
   }
 
   @override
+  Future<List<SubscriptionNotice>> listMySubscriptionNotices() async {
+    final owner = _requireSession();
+    try {
+      final response = await _client
+          .rpc('list_my_subscription_notices_v1')
+          .timeout(const Duration(seconds: 15));
+      if (_requireSession() != owner) {
+        throw const SubscriptionNoticeException(
+          SubscriptionNoticeFailure.unauthorized,
+        );
+      }
+      if (response is! List) {
+        throw const SubscriptionNoticeException(
+          SubscriptionNoticeFailure.invalidResponse,
+        );
+      }
+      return response.map(_parseNotice).toList(growable: false);
+    } on SubscriptionNoticeException {
+      rethrow;
+    } on PostgrestException catch (error) {
+      throw SubscriptionNoticeException(_mapNoticeError(error));
+    } catch (_) {
+      throw const SubscriptionNoticeException(
+        SubscriptionNoticeFailure.unavailable,
+      );
+    }
+  }
+
+  @override
+  Future<void> dismissSubscriptionNotice({
+    required String shopId,
+    required SubscriptionNoticeKind kind,
+    required DateTime expiresAt,
+  }) async {
+    final owner = _requireSession();
+    try {
+      final response = await _client
+          .rpc(
+            'dismiss_subscription_notice_v1',
+            params: {
+              'p_shop_id': shopId,
+              'p_kind': kind == SubscriptionNoticeKind.renewalDue
+                  ? 'renewal_due'
+                  : 'expired',
+              'p_expires_at': expiresAt.toUtc().toIso8601String(),
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+      if (_requireSession() != owner) {
+        throw const SubscriptionNoticeException(
+          SubscriptionNoticeFailure.unauthorized,
+        );
+      }
+      if (response is! Map) {
+        throw const SubscriptionNoticeException(
+          SubscriptionNoticeFailure.invalidResponse,
+        );
+      }
+      final map = Map<String, dynamic>.from(response);
+      if (map['status'] != 'dismissed' ||
+          map['shop_id'] != shopId ||
+          map['kind'] !=
+              (kind == SubscriptionNoticeKind.renewalDue
+                  ? 'renewal_due'
+                  : 'expired')) {
+        throw const SubscriptionNoticeException(
+          SubscriptionNoticeFailure.invalidResponse,
+        );
+      }
+    } on SubscriptionNoticeException {
+      rethrow;
+    } on PostgrestException catch (error) {
+      throw SubscriptionNoticeException(_mapNoticeError(error));
+    } catch (_) {
+      throw const SubscriptionNoticeException(
+        SubscriptionNoticeFailure.unavailable,
+      );
+    }
+  }
+
+  @override
   Future<SubscriptionActivationResult> activateSubscription({
     required String requestKey,
     required String code,
@@ -86,6 +167,53 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
   static final _uuid = RegExp(
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
   );
+
+  static SubscriptionNotice _parseNotice(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const SubscriptionNoticeException(
+        SubscriptionNoticeFailure.invalidResponse,
+      );
+    }
+    final id = value['shop_id'];
+    final kind = value['kind'];
+    final expires = value['entitlement_expires_at'];
+    final expiresAt = expires is String ? DateTime.tryParse(expires) : null;
+    if (id is! String ||
+        !_uuid.hasMatch(id) ||
+        kind is! String ||
+        (kind != 'renewal_due' && kind != 'expired') ||
+        expiresAt == null) {
+      throw const SubscriptionNoticeException(
+        SubscriptionNoticeFailure.invalidResponse,
+      );
+    }
+    return SubscriptionNotice(
+      shopId: id,
+      kind: kind == 'renewal_due'
+          ? SubscriptionNoticeKind.renewalDue
+          : SubscriptionNoticeKind.expired,
+      expiresAt: expiresAt.toUtc(),
+    );
+  }
+
+  static SubscriptionNoticeFailure _mapNoticeError(PostgrestException error) {
+    final message = error.message.toLowerCase();
+    if (error.code == '42501' ||
+        error.code == 'PGRST301' ||
+        message.contains('unauthorized')) {
+      return SubscriptionNoticeFailure.unauthorized;
+    }
+    if (message.contains('notice_stale') || error.code == 'P0001') {
+      return SubscriptionNoticeFailure.stale;
+    }
+    if (message.contains('invalid_input') ||
+        message.contains('notice_unavailable') ||
+        error.code == '22023' ||
+        error.code == 'P0002') {
+      return SubscriptionNoticeFailure.rejected;
+    }
+    return SubscriptionNoticeFailure.unavailable;
+  }
 
   static ShopAccount _parseAccount(Object? value) {
     if (value is! Map<String, dynamic>) {

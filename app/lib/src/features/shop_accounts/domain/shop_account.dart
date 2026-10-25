@@ -1,5 +1,36 @@
 enum ShopEntitlement { pending, active, expired }
 
+enum SubscriptionNoticeKind { renewalDue, expired }
+
+class SubscriptionNotice {
+  const SubscriptionNotice({
+    required this.shopId,
+    required this.kind,
+    required this.expiresAt,
+  });
+
+  final String shopId;
+  final SubscriptionNoticeKind kind;
+  final DateTime expiresAt;
+}
+
+enum SubscriptionNoticeFailure {
+  unauthorized,
+  unavailable,
+  invalidResponse,
+  stale,
+  rejected,
+}
+
+class SubscriptionNoticeException implements Exception {
+  const SubscriptionNoticeException(this.failure);
+
+  final SubscriptionNoticeFailure failure;
+
+  @override
+  String toString() => 'SubscriptionNoticeException($failure)';
+}
+
 class ShopAccount {
   const ShopAccount({
     required this.id,

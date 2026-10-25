@@ -15,6 +15,8 @@ abstract final class SubscriptionCopy {
       'الحساب ينتظر التفعيل. أدخل رمز الاشتراك الذي استلمته لتفعيل المتجر.';
   static const expiredBody =
       'انتهى الاشتراك. العرض الحالي للقراءة فقط. أدخل رمز التجديد لاستعادة الكتابة.';
+  static const renewalBody =
+      'يمكنك تجديد الاشتراك قبل انتهائه. أدخل رمز التجديد لتمديد المدة.';
   static const codeLabel = 'رمز الاشتراك';
   static const codeHint = 'رمز من ٣٢ خانة';
   static const activate = 'تفعيل';
@@ -109,13 +111,17 @@ class _SubscriptionActivationPanelState
     super.dispose();
   }
 
-  String get _title => widget.account.entitlement == ShopEntitlement.expired
-      ? SubscriptionCopy.expiredTitle
-      : SubscriptionCopy.pendingTitle;
+  String get _title => switch (widget.account.entitlement) {
+    ShopEntitlement.pending => SubscriptionCopy.pendingTitle,
+    ShopEntitlement.active ||
+    ShopEntitlement.expired => SubscriptionCopy.expiredTitle,
+  };
 
-  String get _body => widget.account.entitlement == ShopEntitlement.expired
-      ? SubscriptionCopy.expiredBody
-      : SubscriptionCopy.pendingBody;
+  String get _body => switch (widget.account.entitlement) {
+    ShopEntitlement.pending => SubscriptionCopy.pendingBody,
+    ShopEntitlement.active => SubscriptionCopy.renewalBody,
+    ShopEntitlement.expired => SubscriptionCopy.expiredBody,
+  };
 
   Future<void> _submit() async {
     if (_busy) return;

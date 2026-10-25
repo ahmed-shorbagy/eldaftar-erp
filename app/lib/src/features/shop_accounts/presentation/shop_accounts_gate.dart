@@ -103,6 +103,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   Uint8List? _shopImageBytes;
   String? _shopImageShopId;
   String? _shopImageSha;
+  List<SubscriptionNotice> _notices = const [];
+  bool _noticeDismissing = false;
+  bool _noticeDismissFailed = false;
 
   @override
   void initState() {
@@ -141,6 +144,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       _activationDialogShown = false;
       _activationShopId = null;
       _syncIdentity = null;
+      _notices = const [];
+      _noticeDismissing = false;
+      _noticeDismissFailed = false;
       _ledgerGeneration++;
       _inventoryGeneration++;
       _traderGeneration++;
@@ -245,6 +251,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       );
       unawaited(_ensureSync());
       unawaited(_ensureShopImage());
+      await _refreshNotices(isCurrent);
+      if (!isCurrent()) return;
       _maybePromptActivation();
     } on ShopAccountException catch (error) {
       if (!isCurrent()) return;
@@ -254,6 +262,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _shopImageBytes = null;
         _shopImageShopId = null;
         _shopImageSha = null;
+        _notices = const [];
+        _noticeDismissing = false;
+        _noticeDismissFailed = false;
         if (error.failure == ShopAccountFailure.unauthorized) {
           _markAccessLost();
         } else {
@@ -273,6 +284,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         _shopImageBytes = null;
         _shopImageShopId = null;
         _shopImageSha = null;
+        _notices = const [];
+        _noticeDismissing = false;
+        _noticeDismissFailed = false;
         _error = 'تعذر تحميل المتاجر. تحقق من الاتصال وحاول مجددًا.';
       });
     } finally {
@@ -569,9 +583,86 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     await widget.onSignOut();
   }
 
+  Future<void> _refreshNotices(bool Function() isCurrent) async {
+    try {
+      final notices = await widget.gateway.listMySubscriptionNotices();
+      if (!isCurrent()) return;
+      setState(() {
+        _notices = notices;
+        _noticeDismissFailed = false;
+      });
+    } on SubscriptionNoticeException catch (error) {
+      if (!isCurrent()) return;
+      if (error.failure == SubscriptionNoticeFailure.unauthorized) {
+        setState(() {
+          _notices = const [];
+          _noticeDismissFailed = false;
+        });
+      }
+      // Keep the last known notice on a transient list failure.
+    } catch (_) {
+      if (!isCurrent()) return;
+    }
+  }
+
+  SubscriptionNotice? get _selectedNotice {
+    final selected = _selected;
+    if (selected == null) return null;
+    for (final notice in _notices) {
+      if (notice.shopId == selected.id) return notice;
+    }
+    return null;
+  }
+
+  Future<void> _dismissNotice() async {
+    final notice = _selectedNotice;
+    if (notice == null || _noticeDismissing) return;
+    final generation = _requestGeneration;
+    final userId = widget.currentUserId?.call();
+    setState(() {
+      _noticeDismissing = true;
+      _noticeDismissFailed = false;
+    });
+    try {
+      await widget.gateway.dismissSubscriptionNotice(
+        shopId: notice.shopId,
+        kind: notice.kind,
+        expiresAt: notice.expiresAt,
+      );
+      if (!mounted ||
+          generation != _requestGeneration ||
+          userId != widget.currentUserId?.call()) {
+        return;
+      }
+      setState(() {
+        _notices = [
+          for (final item in _notices)
+            if (item.shopId != notice.shopId ||
+                item.kind != notice.kind ||
+                item.expiresAt != notice.expiresAt)
+              item,
+        ];
+        _noticeDismissing = false;
+        _noticeDismissFailed = false;
+      });
+    } catch (_) {
+      if (!mounted ||
+          generation != _requestGeneration ||
+          userId != widget.currentUserId?.call()) {
+        return;
+      }
+      setState(() {
+        _noticeDismissing = false;
+        _noticeDismissFailed = true;
+      });
+    }
+  }
+
   Future<void> _openActivation() async {
     final selected = _selected;
-    if (selected == null || !selected.needsActivation) return;
+    if (selected == null) return;
+    final canRenew = selected.needsActivation || _selectedNotice != null;
+    if (!canRenew) return;
     await showSubscriptionActivationDialog(
       context: context,
       account: selected,
@@ -655,9 +746,16 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             : null,
         onSignOut: _signOut,
         onToggleTheme: widget.onToggleTheme,
-        onActivateSubscription: selected.needsActivation
+        onActivateSubscription:
+            selected.needsActivation || _selectedNotice != null
             ? _openActivation
             : null,
+        subscriptionNotice: _selectedNotice,
+        noticeDismissing: _noticeDismissing,
+        noticeDismissFailed: _noticeDismissFailed,
+        onDismissSubscriptionNotice: _selectedNotice == null
+            ? null
+            : _dismissNotice,
         onboardingStore: widget.onboardingStore,
         shopImageBuilder: widget.shopImageGateway == null
             ? null

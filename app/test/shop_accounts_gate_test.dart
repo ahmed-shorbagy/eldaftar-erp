@@ -23,8 +23,11 @@ ShopAccount account(ShopEntitlement entitlement) => ShopAccount(
 
 class FakeShops implements ShopAccountGateway {
   List<ShopAccount> accounts = [];
+  List<SubscriptionNotice> notices = [];
   bool failList = false;
+  bool failDismiss = false;
   Completer<List<ShopAccount>>? listCompletion;
+  int dismissCalls = 0;
 
   @override
   Future<List<ShopAccount>> listMyShopAccounts() async {
@@ -33,6 +36,30 @@ class FakeShops implements ShopAccountGateway {
       throw const ShopAccountException(ShopAccountFailure.unavailable);
     }
     return accounts;
+  }
+
+  @override
+  Future<List<SubscriptionNotice>> listMySubscriptionNotices() async => notices;
+
+  @override
+  Future<void> dismissSubscriptionNotice({
+    required String shopId,
+    required SubscriptionNoticeKind kind,
+    required DateTime expiresAt,
+  }) async {
+    dismissCalls++;
+    if (failDismiss) {
+      throw const SubscriptionNoticeException(
+        SubscriptionNoticeFailure.unavailable,
+      );
+    }
+    notices = [
+      for (final notice in notices)
+        if (notice.shopId != shopId ||
+            notice.kind != kind ||
+            notice.expiresAt != expiresAt)
+          notice,
+    ];
   }
 
   @override
@@ -358,6 +385,114 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text('قيد التفعيل'), findsOneWidget);
         expect(find.text('اختر المتجر'), findsNothing);
+      }
+    }
+  });
+
+  testWidgets('renewal notice follows the server payload and can dismiss', (
+    tester,
+  ) async {
+    final expires = DateTime.utc(2026, 10, 28, 12);
+    final shops = FakeShops()
+      ..accounts = [account(ShopEntitlement.active)]
+      ..notices = [
+        SubscriptionNotice(
+          shopId: shopId,
+          kind: SubscriptionNoticeKind.renewalDue,
+          expiresAt: expires,
+        ),
+      ];
+    await pumpGate(tester, shops);
+    expect(find.byKey(const Key('subscription-notice-banner')), findsOneWidget);
+    expect(find.text('تذكير بتجديد الاشتراك'), findsOneWidget);
+    expect(find.byKey(const Key('subscription-notice-renew')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('subscription-notice-dismiss')));
+    await tester.pumpAndSettle();
+    expect(shops.dismissCalls, 1);
+    expect(find.byKey(const Key('subscription-notice-banner')), findsNothing);
+  });
+
+  testWidgets('failed dismiss keeps the notice visible with retry copy', (
+    tester,
+  ) async {
+    final expires = DateTime.utc(2026, 10, 28, 12);
+    final shops = FakeShops()
+      ..failDismiss = true
+      ..accounts = [account(ShopEntitlement.active)]
+      ..notices = [
+        SubscriptionNotice(
+          shopId: shopId,
+          kind: SubscriptionNoticeKind.renewalDue,
+          expiresAt: expires,
+        ),
+      ];
+    await pumpGate(tester, shops);
+    await tester.tap(find.byKey(const Key('subscription-notice-dismiss')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('subscription-notice-banner')), findsOneWidget);
+    expect(
+      find.byKey(const Key('subscription-notice-dismiss-error')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'expired notice dismiss leaves the read-only access banner and renew',
+    (tester) async {
+      final expires = DateTime.utc(2026, 10, 20, 12);
+      final shops = FakeShops()
+        ..accounts = [account(ShopEntitlement.expired)]
+        ..notices = [
+          SubscriptionNotice(
+            shopId: shopId,
+            kind: SubscriptionNoticeKind.expired,
+            expiresAt: expires,
+          ),
+        ];
+      await pumpGate(tester, shops);
+      expect(find.byType(AlertDialog), findsWidgets);
+      await tester.tap(find.byKey(const Key('subscription-dismiss')).last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('subscription-notice-banner')),
+        findsOneWidget,
+      );
+      expect(find.text('انتهى الاشتراك'), findsWidgets);
+      await tester.tap(find.byKey(const Key('subscription-notice-dismiss')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('subscription-notice-banner')), findsNothing);
+      expect(find.text('منتهي - للقراءة فقط'), findsWidgets);
+      expect(find.byKey(const Key('subscription-open')), findsWidgets);
+    },
+  );
+
+  testWidgets('subscription notice fits phone and desktop in both themes', (
+    tester,
+  ) async {
+    final expires = DateTime.utc(2026, 10, 28, 12);
+    for (final size in [const Size(320, 640), const Size(1440, 900)]) {
+      for (final brightness in [Brightness.light, Brightness.dark]) {
+        final shops = FakeShops()
+          ..accounts = [account(ShopEntitlement.active)]
+          ..notices = [
+            SubscriptionNotice(
+              shopId: shopId,
+              kind: SubscriptionNoticeKind.renewalDue,
+              expiresAt: expires,
+            ),
+          ];
+        await pumpGate(tester, shops, size: size, brightness: brightness);
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const Key('subscription-notice-banner')),
+          findsOneWidget,
+        );
+        expect(
+          Directionality.of(
+            tester.element(find.byKey(const Key('subscription-notice-banner'))),
+          ),
+          TextDirection.rtl,
+        );
       }
     }
   });
