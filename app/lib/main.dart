@@ -4,12 +4,14 @@ import 'src/features/debts/data/debt_notification_port.dart';
 import 'src/features/debts/data/debt_reminder_device_store.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/app.dart';
 import 'src/config/supabase_public_config.dart';
 import 'src/config/supabase_startup.dart';
+import 'src/features/app_version/data/supabase_app_version_gateway.dart';
 import 'src/features/auth/data/recovery_session_storage.dart';
 import 'src/features/auth/data/supabase_auth_gateway.dart';
 import 'src/features/auth/domain/password_recovery.dart';
@@ -27,6 +29,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const config = SupabasePublicConfig.fromEnvironment;
   final supabaseStatus = await prepareSupabase(config, _startSupabase);
+  final packageInfo = await PackageInfo.fromPlatform();
   final preferences = await SharedPreferences.getInstance();
   final themeController = ThemeController(
     store: SharedPreferencesThemeStore(preferences),
@@ -76,6 +79,10 @@ Future<void> main() async {
       authGateway: authGateway,
       recoveryGateway: authGateway,
       themeController: themeController,
+      appVersion: packageInfo.version,
+      appVersionGateway: supabaseStatus == SupabaseStartupStatus.ready
+          ? SupabaseAppVersionGateway(Supabase.instance.client)
+          : null,
       shopAccountGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopAccountGateway(Supabase.instance.client)
           : null,

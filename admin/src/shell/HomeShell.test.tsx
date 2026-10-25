@@ -69,6 +69,7 @@ test('sign-out blocks duplicate requests and exposes a failed request for retry'
       supabaseStatus="ready"
       authGateway={gateway}
       subscriberGateway={null}
+      appVersionGateway={null}
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,
   )
@@ -157,10 +158,12 @@ test('a signed-in admin sees the subscriber directory instead of the prototype s
         watchBoundSession() { return () => {} },
         releaseBoundSession() {},
       }}
+      appVersionGateway={null}
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,
   )
   expect(await screen.findByRole('heading', { name: 'المشتركون' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'تحديث التطبيق' })).toBeInTheDocument()
   expect(screen.queryByText(shellCopy.prototypeLabel)).not.toBeInTheDocument()
   expect(screen.queryByText(shellCopy.readyBody)).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'تسجيل الخروج' })).toBeInTheDocument()

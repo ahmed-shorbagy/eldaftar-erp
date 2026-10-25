@@ -19,12 +19,14 @@ export function HomeShell({
   onToggleTheme,
   onSignOut,
   directory,
+  navigation,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeMode: ResolvedTheme
   onToggleTheme: () => void
   onSignOut?: () => void
   directory?: ReactNode
+  navigation?: ReactNode
 }) {
   const isDark = themeMode === 'dark'
   const toggleLabel = isDark ? shellCopy.toggleToLight : shellCopy.toggleToDark
@@ -100,6 +102,7 @@ export function HomeShell({
           minWidth: 0,
         }}
       >
+        {navigation}
         {directory ?? (
           <>
             <Box

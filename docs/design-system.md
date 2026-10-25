@@ -1,5 +1,9 @@
 # ElDafttar UI theme contract
 
+## Forced app update — 2026-10-25
+
+Flutter shows a non-dismissible Arabic full-screen gate above Auth when the client version is strictly below the server minimum for Android, iOS or Windows. Keep Cairo, the brown/cream/dark semantic roles, persisted theme and 48-pixel controls. Title «يلزم تحديث التطبيق», server `message_ar`, current vs required versions as Latin digits with LTR isolation, optional «فتح صفحة التحديث» when an https URL is present, and «إعادة المحاولة» that re-fetches policy. No skip into the shop shell. Fail open with an Arabic retry strip only when no prior successful block decision exists. Admin React adds «تحديث التطبيق» beside «المشتركون»: per-platform minimum, Arabic message, optional https URL, save and clear with in-flight disable and Arabic success/failure. Same 1120-pixel admin measure and tokens; no new palette. [ADR 0030](adr/0030-app-version-forced-update.md).
+
 ## Subscription expiry notices — 2026-10-25
 
 One Arabic RTL banner sits above every shop workspace section when the server returns an undismissed notice. Keep Cairo, the brown/cream/dark semantic roles, persisted theme, 48-pixel controls and the 720-pixel shop measure. The renewal reminder uses the secondary container role and states that writing remains available until the server expiry, shown with Latin digits and LTR isolation. The expiry acknowledgement uses the existing error-container role. «إخفاء التنبيه» stays disabled while dismiss is in flight and keeps the banner with retry copy on failure. Renewal reuses the existing activation dialog. The permanent read-only ledger banner and «تفعيل الاشتراك» remain after the expiry notice is dismissed. No new palette, chart or guide card. Staff count portal shows no notice. [ADR 0029](adr/0029-subscription-expiry-notices.md).

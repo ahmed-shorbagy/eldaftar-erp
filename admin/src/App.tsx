@@ -1,9 +1,14 @@
 import { CacheProvider } from '@emotion/react'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
+import ButtonGroup from '@mui/material/ButtonGroup'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ThemeProvider } from '@mui/material/styles'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AppVersionPolicyPanel } from './appVersion/AppVersionPolicyPanel.tsx'
+import type { AppVersionGateway } from './appVersion/AppVersionGateway.ts'
+import { appVersionCopy } from './appVersion/copy.ts'
+import { SupabaseAppVersionGateway } from './appVersion/SupabaseAppVersionGateway.ts'
 import { AdminAuthScreen } from './auth/AdminAuthScreen.tsx'
 import type { AdminAccess, AdminAuthGateway } from './auth/AdminAuthGateway.ts'
 import { getSupabaseClient } from './config/supabaseClient.ts'
@@ -20,21 +25,26 @@ import type { ThemeController } from './theme/themeController.ts'
 import { resolveThemeChoice } from './theme/themePreference.ts'
 import { useSystemDark } from './theme/useSystemDark.ts'
 
+type AdminDestination = 'subscribers' | 'appVersion'
+
 export function App({
   supabaseStatus,
   themeController,
   authGateway = null,
   subscriberGateway,
+  appVersionGateway,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeController: ThemeController
   authGateway?: AdminAuthGateway | null
   subscriberGateway?: SubscriberDirectoryGateway | null
+  appVersionGateway?: AppVersionGateway | null
 }) {
   const [choice, setChoice] = useState(themeController.mode)
   const [access, setAccess] = useState<AdminAccess>(authGateway?.status ?? 'unavailable')
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState(false)
+  const [destination, setDestination] = useState<AdminDestination>('subscribers')
   const signOutPending = useRef(false)
   const systemDark = useSystemDark()
   const resolved = resolveThemeChoice(choice, systemDark)
@@ -60,6 +70,11 @@ export function App({
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseSubscriberDirectoryGateway(client)
   }, [subscriberGateway])
+  const versionGateway = useMemo(() => {
+    if (appVersionGateway !== undefined) return appVersionGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseAppVersionGateway(client)
+  }, [appVersionGateway])
   const reportAccessLoss = useCallback(() => {
     void authGateway?.refresh()
   }, [authGateway])
@@ -102,11 +117,37 @@ export function App({
             themeMode={resolved}
             onToggleTheme={toggleTheme}
             onSignOut={supabaseStatus !== 'ready' || authGateway === null ? undefined : signOut}
-            directory={supabaseStatus === 'ready' && access === 'admin' ? (
-              directoryGateway
-                ? <SubscriberDirectory gateway={directoryGateway} onAccessLost={reportAccessLoss} />
-                : <DirectoryUnavailable />
-            ) : undefined}
+            navigation={
+              supabaseStatus === 'ready' && access === 'admin' ? (
+                <ButtonGroup variant="outlined" fullWidth sx={{ minHeight: 48 }}>
+                  <Button
+                    variant={destination === 'subscribers' ? 'contained' : 'outlined'}
+                    onClick={() => setDestination('subscribers')}
+                    sx={{ minHeight: 48 }}
+                  >
+                    {appVersionCopy.subscribersNav}
+                  </Button>
+                  <Button
+                    variant={destination === 'appVersion' ? 'contained' : 'outlined'}
+                    onClick={() => setDestination('appVersion')}
+                    sx={{ minHeight: 48 }}
+                  >
+                    {appVersionCopy.navLabel}
+                  </Button>
+                </ButtonGroup>
+              ) : undefined
+            }
+            directory={
+              supabaseStatus === 'ready' && access === 'admin'
+                ? destination === 'subscribers'
+                  ? directoryGateway
+                    ? <SubscriberDirectory gateway={directoryGateway} onAccessLost={reportAccessLoss} />
+                    : <DirectoryUnavailable />
+                  : versionGateway
+                    ? <AppVersionPolicyPanel gateway={versionGateway} onAccessLost={reportAccessLoss} />
+                    : <DirectoryUnavailable />
+                : undefined
+            }
           />
         )}
       </ThemeProvider>

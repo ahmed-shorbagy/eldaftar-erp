@@ -2,7 +2,11 @@
 
 ## Current plan — 2026-10-25
 
-The bounded ADM-03 in-app subscription-expiry notices slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0029](adr/0029-subscription-expiry-notices.md), [validation](reviews/subscription-notices-2026-10-25/validation.md), [deployment/preservation](reviews/subscription-notices-2026-10-25/deployment.md). Server-timed `renewal_due` (last 72 hours of an active term) and `expired` notices use durable dismissals keyed to the current entitlement expiry. D13 read-only access and the permanent expired banner remain. Outbound dispatch, contact/location, retention/deletion and financial access stay separate. Frontend publication and owner acceptance remain pending. No later Milestone 5 feature is selected by this delivery.
+The bounded ADM-04 minimum-version / forced-update slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0030](adr/0030-app-version-forced-update.md), [validation](reviews/app-version-forced-update-2026-10-25/validation.md), [deployment/preservation](reviews/app-version-forced-update-2026-10-25/deployment.md). Platform admins set a semantic minimum per Android/iOS/Windows; clients below that version see a non-dismissible Arabic full-screen gate before Auth; equal or newer versions pass. Soft optional banners, Help, broadcasts, retention and ADM-07 stay separate. Frontend publication and owner acceptance remain pending. No later Milestone 5 feature is selected by this delivery.
+
+## Previous plan — 2026-10-25 (ADM-03)
+
+The bounded ADM-03 in-app subscription-expiry notices slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0029](adr/0029-subscription-expiry-notices.md), [validation](reviews/subscription-notices-2026-10-25/validation.md), [deployment/preservation](reviews/subscription-notices-2026-10-25/deployment.md). Server-timed `renewal_due` (last 72 hours of an active term) and `expired` notices use durable dismissals keyed to the current entitlement expiry. D13 read-only access and the permanent expired banner remain. Outbound dispatch, contact/location, retention/deletion and financial access stay separate. Frontend publication and owner acceptance remain pending.
 
 ## Previous plan — 2026-10-22
 

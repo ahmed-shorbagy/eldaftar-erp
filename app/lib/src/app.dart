@@ -4,6 +4,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
 import 'config/supabase_startup.dart';
+import 'features/app_version/domain/app_version_gateway.dart';
+import 'features/app_version/domain/app_version_policy.dart';
+import 'features/app_version/presentation/app_version_gate.dart';
 import 'features/auth/domain/auth_gateway.dart';
 import 'features/auth/domain/password_recovery.dart';
 import 'features/auth/presentation/auth_gate.dart';
@@ -32,6 +35,9 @@ class ElDafttarApp extends StatelessWidget {
     this.recoveryGateway,
     this.syncGateway,
     this.shopImageGateway,
+    this.appVersionGateway,
+    this.appVersion = '1.0.0',
+    this.appVersionPlatform,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -46,6 +52,9 @@ class ElDafttarApp extends StatelessWidget {
   final PasswordRecoveryGateway? recoveryGateway;
   final ShopSyncGateway? syncGateway;
   final ShopImageGateway? shopImageGateway;
+  final AppVersionGateway? appVersionGateway;
+  final String appVersion;
+  final AppVersionPlatform? appVersionPlatform;
 
   @override
   Widget build(BuildContext context) {
@@ -67,19 +76,25 @@ class ElDafttarApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeController.mode,
-          home: AuthGate(
-            reminders: reminders,
-            supabaseStatus: supabaseStatus,
-            authGateway: authGateway,
-            shopAccountGateway: shopAccountGateway,
-            openingGateway: openingGateway,
-            pendingOpeningStore: pendingOpeningStore,
-            onboardingStore: onboardingStore,
-            currentUserId: currentUserId,
-            recoveryGateway: recoveryGateway,
-            syncGateway: syncGateway,
-            shopImageGateway: shopImageGateway,
+          home: AppVersionGate(
+            gateway: appVersionGateway,
+            currentVersion: appVersion,
+            platform: appVersionPlatform,
             onToggleTheme: themeController.toggle,
+            child: AuthGate(
+              reminders: reminders,
+              supabaseStatus: supabaseStatus,
+              authGateway: authGateway,
+              shopAccountGateway: shopAccountGateway,
+              openingGateway: openingGateway,
+              pendingOpeningStore: pendingOpeningStore,
+              onboardingStore: onboardingStore,
+              currentUserId: currentUserId,
+              recoveryGateway: recoveryGateway,
+              syncGateway: syncGateway,
+              shopImageGateway: shopImageGateway,
+              onToggleTheme: themeController.toggle,
+            ),
           ),
         );
       },
