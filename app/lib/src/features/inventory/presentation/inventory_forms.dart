@@ -1125,12 +1125,14 @@ class InventoryRecognitionForm extends StatefulWidget {
     required this.receipts,
     this.nextCursor,
     this.loadOlder,
+    this.initialReceiptId,
   });
 
   final InventoryFormScope scope;
   final List<ReceiptSnapshot> receipts;
   final String? nextCursor;
   final Future<ReceiptPage> Function(String? cursor)? loadOlder;
+  final String? initialReceiptId;
 
   @override
   State<InventoryRecognitionForm> createState() =>
@@ -1152,6 +1154,7 @@ class _InventoryRecognitionFormState extends State<InventoryRecognitionForm>
     bindReview([_grams, _count, _reason]);
     _receipts = [...widget.receipts];
     _cursor = widget.nextCursor;
+    _receiptId = widget.initialReceiptId;
   }
 
   @override
@@ -1287,6 +1290,7 @@ class InventoryManualLinkForm extends StatefulWidget {
     required this.lots,
     this.nextCursor,
     this.loadOlder,
+    this.initialReceiptId,
   });
 
   final InventoryFormScope scope;
@@ -1294,6 +1298,7 @@ class InventoryManualLinkForm extends StatefulWidget {
   final List<LotSnapshot> lots;
   final String? nextCursor;
   final Future<ReceiptPage> Function(String? cursor)? loadOlder;
+  final String? initialReceiptId;
 
   @override
   State<InventoryManualLinkForm> createState() =>
@@ -1314,6 +1319,7 @@ class _InventoryManualLinkFormState extends State<InventoryManualLinkForm>
     bindReview([_reason]);
     _receipts = [...widget.receipts];
     _cursor = widget.nextCursor;
+    _receiptId = widget.initialReceiptId;
   }
 
   @override
@@ -1445,12 +1451,14 @@ class OwnershipTransferForm extends StatefulWidget {
     required this.receipts,
     this.nextCursor,
     this.loadOlder,
+    this.initialReceiptId,
   });
 
   final InventoryFormScope scope;
   final List<ReceiptSnapshot> receipts;
   final String? nextCursor;
   final Future<ReceiptPage> Function(String? cursor)? loadOlder;
+  final String? initialReceiptId;
 
   @override
   State<OwnershipTransferForm> createState() => _OwnershipTransferFormState();
@@ -1476,6 +1484,7 @@ class _OwnershipTransferFormState extends State<OwnershipTransferForm>
     bindReview([_grams, _count, _price, _paid, _gold, _reason]);
     _receipts = [...widget.receipts];
     _cursor = widget.nextCursor;
+    _receiptId = widget.initialReceiptId;
   }
 
   @override
@@ -1893,6 +1902,7 @@ class GoldSettlementForm extends StatefulWidget {
     required this.lots,
     this.nextCursor,
     this.loadOlder,
+    this.initialObligationId,
   });
 
   final InventoryFormScope scope;
@@ -1901,6 +1911,7 @@ class GoldSettlementForm extends StatefulWidget {
   final String? nextCursor;
   final Future<ReadPage<GoldObligationView>> Function(String? cursor)?
   loadOlder;
+  final String? initialObligationId;
 
   @override
   State<GoldSettlementForm> createState() => _GoldSettlementFormState();
@@ -1922,6 +1933,7 @@ class _GoldSettlementFormState extends State<GoldSettlementForm>
     bindReview([_grams, _count, _reason]);
     _obligations = [...widget.obligations];
     _cursor = widget.nextCursor;
+    _obligationId = widget.initialObligationId;
   }
 
   @override

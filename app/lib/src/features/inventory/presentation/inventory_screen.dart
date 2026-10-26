@@ -11,6 +11,7 @@ import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
+import '../../daily_ledger/presentation/opening_copy.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../application/inventory_command_flow.dart';
 import '../application/inventory_contract.dart';
@@ -591,6 +592,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               if (totals == null)
                 const Text('لم تُحمّل أرصدة مؤكدة في هذه القراءة.')
               else ...[
+                _cashCard(),
                 _bucketCard(
                   'inventory-available',
                   'المتاح للبيع',
@@ -605,10 +607,57 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 _bucketCard(
                   'inventory-held',
-                  'أمانة تاجر',
+                  'أمانة تاجر (الحالي)',
                   totals.heldMilligrams,
                   totals.heldCount,
                 ),
+                if (_totals != null)
+                  Card(
+                    key: const Key('inventory-held-original'),
+                    child: ListTile(
+                      title: const Text('وزنة التجار الأصلية'),
+                      subtitle: Text(
+                        '${gramsOf(_totals!.originalHeldMilligrams)} جرام',
+                      ),
+                    ),
+                  ),
+                if (_totals != null) ..._karatBreakdown(_totals!),
+                if (_totals != null && _totals!.denominationRows.isNotEmpty)
+                  _sectionCard(
+                    keyName: 'inventory-bullion-section',
+                    title: 'السبائك',
+                    children: [
+                      for (final row in _totals!.denominationRows)
+                        ListTile(
+                          key: Key(
+                            'inventory-bullion-${row.denominationId ?? 'none'}',
+                          ),
+                          title: Text(row.label),
+                          subtitle: Text(
+                            '${gramsOf(row.milligrams)} جرام — ${row.count} قطعة'
+                            '${row.nominalMilligrams > BigInt.zero ? ' — اسمي ${gramsOf(row.nominalMilligrams)}' : ''}',
+                          ),
+                        ),
+                    ],
+                  ),
+                if (_totals != null && _totals!.coinRows.isNotEmpty)
+                  _sectionCard(
+                    keyName: 'inventory-coin-section',
+                    title: 'الجنيهات',
+                    children: [
+                      for (final row in _totals!.coinRows)
+                        ListTile(
+                          key: Key(
+                            'inventory-coin-${row.coinTypeId ?? 'none'}',
+                          ),
+                          title: Text(row.label),
+                          subtitle: Text(
+                            '${gramsOf(row.milligrams)} جرام — ${row.count} قطعة'
+                            '${row.nominalMilligrams == null ? '' : ' — اسمي ${gramsOf(row.nominalMilligrams!)}'}',
+                          ),
+                        ),
+                    ],
+                  ),
               ],
             ],
           ),
@@ -923,6 +972,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  Widget _cashCard() {
+    return Card(
+      key: const Key('inventory-cash'),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'النقدية المتاحة',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            for (final method in CashMethod.canonicalOrder)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '${cashMethodLabel(method)}: '
+                  '${poundsOf(_cash[method.code] ?? BigInt.zero)}',
+                  key: Key('inventory-cash-${method.code}'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _bucketCard(
     String keyName,
     String label,
@@ -938,6 +1015,80 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
       ),
     );
+  }
+
+  Widget _sectionCard({
+    required String keyName,
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Card(
+      key: Key(keyName),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _karatBreakdown(InventoryTotals totals) {
+    final jewelry = [
+      for (final bucket in totals.buckets)
+        if (bucket.category == 'worked_jewelry' &&
+            bucket.quantities.availableMilligrams > BigInt.zero)
+          bucket,
+    ];
+    final scrap = [
+      for (final bucket in totals.buckets)
+        if (bucket.category == 'scrap' &&
+            (bucket.quantities.availableMilligrams > BigInt.zero ||
+                bucket.quantities.heldMilligrams > BigInt.zero))
+          bucket,
+    ];
+    if (jewelry.isEmpty && scrap.isEmpty) return const [];
+    return [
+      if (jewelry.isNotEmpty)
+        _sectionCard(
+          keyName: 'inventory-jewelry-section',
+          title: 'المشغولات حسب العيار',
+          children: [
+            for (final bucket in jewelry)
+              ListTile(
+                key: Key('inventory-jewelry-${bucket.karat}'),
+                title: Text('عيار ${bucket.karat}'),
+                subtitle: Text(
+                  '${gramsOf(bucket.quantities.availableMilligrams)} جرام'
+                  '${bucket.quantities.availableCount == null ? '' : ' — ${bucket.quantities.availableCount} قطعة'}',
+                ),
+              ),
+          ],
+        ),
+      if (scrap.isNotEmpty)
+        _sectionCard(
+          keyName: 'inventory-scrap-section',
+          title: 'الكسر',
+          children: [
+            for (final bucket in scrap)
+              ListTile(
+                key: Key('inventory-scrap-${bucket.karat}'),
+                title: Text('كسر عيار ${bucket.karat}'),
+                subtitle: Text(
+                  'متاح ${gramsOf(bucket.quantities.availableMilligrams)} جرام'
+                  '${bucket.quantities.heldMilligrams > BigInt.zero ? ' — أمانة ${gramsOf(bucket.quantities.heldMilligrams)}' : ''}',
+                ),
+              ),
+          ],
+        ),
+    ];
   }
 }
 

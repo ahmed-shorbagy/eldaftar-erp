@@ -55,21 +55,53 @@ InventoryTotals parseInventoryTotals(Object? raw) {
   if (json['ok'] != true || json['buckets'] is! List) {
     throw const FormatException('inventory');
   }
-  return InventoryTotals([
-    for (final item in json['buckets'] as List)
-      InventoryBucket(
-        category: _text(_map(item)['category']),
-        karat: _karat(_map(item)['karat']),
-        quantities: QuantityTriple(
-          availableMilligrams: _positive(_map(item)['available_milligrams']),
-          pendingMilligrams: _positive(_map(item)['pending_milligrams']),
-          heldMilligrams: _positive(_map(item)['held_milligrams']),
-          availableCount: _nullableCount(_map(item)['available_count']),
-          pendingCount: _nullableCount(_map(item)['pending_count']),
-          heldCount: _nullableCount(_map(item)['held_count']),
+  final denominationRaw = json['denomination_rows'];
+  final coinRaw = json['coin_rows'];
+  return InventoryTotals(
+    [
+      for (final item in json['buckets'] as List)
+        InventoryBucket(
+          category: _text(_map(item)['category']),
+          karat: _karat(_map(item)['karat']),
+          quantities: QuantityTriple(
+            availableMilligrams: _positive(_map(item)['available_milligrams']),
+            pendingMilligrams: _positive(_map(item)['pending_milligrams']),
+            heldMilligrams: _positive(_map(item)['held_milligrams']),
+            availableCount: _nullableCount(_map(item)['available_count']),
+            pendingCount: _nullableCount(_map(item)['pending_count']),
+            heldCount: _nullableCount(_map(item)['held_count']),
+          ),
         ),
-      ),
-  ]);
+    ],
+    originalHeldMilligrams: _positive(json['original_held_milligrams']),
+    denominationRows: denominationRaw is List
+        ? [
+            for (final item in denominationRaw)
+              InventoryDenominationRow(
+                denominationId: _optionalUuid(_map(item)['denomination_id']),
+                label: _text(_map(item)['label']),
+                nominalMilligrams: _positive(_map(item)['nominal_milligrams']),
+                milligrams: _positive(_map(item)['milligrams']),
+                count: _positive(_map(item)['count']),
+              ),
+          ]
+        : const [],
+    coinRows: coinRaw is List
+        ? [
+            for (final item in coinRaw)
+              InventoryCoinRow(
+                coinTypeId: _optionalUuid(_map(item)['coin_type_id']),
+                label: _text(_map(item)['label']),
+                nominalMilligrams: _map(item)['nominal_milligrams'] == null ||
+                        _map(item)['nominal_milligrams'] == 'null'
+                    ? null
+                    : _positive(_map(item)['nominal_milligrams']),
+                milligrams: _positive(_map(item)['milligrams']),
+                count: _positive(_map(item)['count']),
+              ),
+          ]
+        : const [],
+  );
 }
 
 LotPage parseLotPage(Object? raw) {
@@ -169,6 +201,9 @@ TraderPage parseTraderPage(Object? raw) {
         active: _map(item)['active'] == true,
         createdAt: _text(_map(item)['created_at']),
         cursor: _text(_map(item)['cursor']),
+        pendingReceiptCount: _map(item).containsKey('pending_receipt_count')
+            ? _positive(_map(item)['pending_receipt_count'])
+            : BigInt.zero,
       ),
   ], _cursor(json['next_cursor']));
 }

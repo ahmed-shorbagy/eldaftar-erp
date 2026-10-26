@@ -23,9 +23,50 @@ final class InventoryBucket {
   final QuantityTriple quantities;
 }
 
+final class InventoryDenominationRow {
+  const InventoryDenominationRow({
+    required this.denominationId,
+    required this.label,
+    required this.nominalMilligrams,
+    required this.milligrams,
+    required this.count,
+  });
+
+  final String? denominationId;
+  final String label;
+  final BigInt nominalMilligrams;
+  final BigInt milligrams;
+  final BigInt count;
+}
+
+final class InventoryCoinRow {
+  const InventoryCoinRow({
+    required this.coinTypeId,
+    required this.label,
+    required this.nominalMilligrams,
+    required this.milligrams,
+    required this.count,
+  });
+
+  final String? coinTypeId;
+  final String label;
+  final BigInt? nominalMilligrams;
+  final BigInt milligrams;
+  final BigInt count;
+}
+
 final class InventoryTotals {
-  const InventoryTotals(this.buckets);
+  InventoryTotals(
+    this.buckets, {
+    BigInt? originalHeldMilligrams,
+    this.denominationRows = const [],
+    this.coinRows = const [],
+  }) : originalHeldMilligrams = originalHeldMilligrams ?? BigInt.zero;
+
   final List<InventoryBucket> buckets;
+  final BigInt originalHeldMilligrams;
+  final List<InventoryDenominationRow> denominationRows;
+  final List<InventoryCoinRow> coinRows;
 }
 
 final class LotPage {
@@ -65,14 +106,15 @@ final class MovementPage {
 }
 
 final class TraderSummary {
-  const TraderSummary({
+  TraderSummary({
     required this.id,
     required this.displayName,
     required this.phone,
     required this.active,
     required this.createdAt,
     required this.cursor,
-  });
+    BigInt? pendingReceiptCount,
+  }) : pendingReceiptCount = pendingReceiptCount ?? BigInt.zero;
 
   final String id;
   final String displayName;
@@ -80,6 +122,7 @@ final class TraderSummary {
   final bool active;
   final String createdAt;
   final String cursor;
+  final BigInt pendingReceiptCount;
 }
 
 final class TraderPage {

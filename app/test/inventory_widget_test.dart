@@ -215,7 +215,7 @@ class _TraderInventory extends QuietInventory {
     required String callerUserId,
     String? query,
     String? cursor,
-  }) async => const TraderPage([
+  }) async => TraderPage([
     TraderSummary(
       id: traderId,
       displayName: 'تاجر الاختبار',
@@ -223,6 +223,7 @@ class _TraderInventory extends QuietInventory {
       active: true,
       createdAt: '2026-10-04T08:00:00Z',
       cursor: '',
+      pendingReceiptCount: BigInt.from(2),
     ),
   ], null);
 
@@ -237,13 +238,37 @@ class _TraderInventory extends QuietInventory {
     note: '',
     active: true,
     createdAt: '2026-10-04T08:00:00Z',
-    originalHeldMilligrams: BigInt.zero,
-    currentHeldMilligrams: BigInt.zero,
-    pendingReceiptCount: BigInt.zero,
+    originalHeldMilligrams: BigInt.from(5000),
+    currentHeldMilligrams: BigInt.from(3000),
+    pendingReceiptCount: BigInt.from(2),
     cashPayableRemainingPiastres: BigInt.from(15000),
     goldRemaining: const [],
     buckets: const [],
   );
+
+  @override
+  Future<ReceiptPage> receipts({
+    required String callerUserId,
+    String? ownerKind,
+    String? traderId,
+    String? recognition,
+    String? cursor,
+  }) async => ReceiptPage.ready([
+    ReceiptSnapshot(
+      id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      ownerKind: 'trader',
+      policy: 'custody',
+      traderId: traderId,
+      counterpartyName: 'تاجر الاختبار',
+      productId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      lotId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      category: 'worked_jewelry',
+      karat: 21,
+      remainingMilligrams: BigInt.from(3000),
+      remainingCount: BigInt.one,
+      productName: 'سوار',
+    ),
+  ], null);
 
   @override
   Future<ReadPage<TraderObligation>> traderObligations({
@@ -537,6 +562,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(find.byKey(const Key('inventory-cash')), findsOneWidget);
+    expect(find.byKey(const Key('inventory-cash-cash')), findsOneWidget);
     await tester.tap(find.byKey(const Key('inventory-search')));
     await tester.pump();
     final search = tester.widget<TextField>(
@@ -614,8 +641,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('trader-pending-banner')), findsOneWidget);
+    expect(
+      find.textContaining('أوزان لم يتم إضافتها إلى المخزون'),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('trader-row-$traderId')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('trader-receipt-dddddddd-dddd-4ddd-8ddd-dddddddddddd')), findsOneWidget);
+    expect(find.textContaining('لم تتم إضافتها للمخزون'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const Key('trader-obligation-$operationId')),
       300,

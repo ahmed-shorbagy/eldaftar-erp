@@ -1,0 +1,33 @@
+{
+  "project": "xchapwvmvoefriqcxtvn",
+  "migrations": [
+    "20261026130000_inventory_trader_page_summaries"
+  ],
+  "local_sha256": {
+    "20261026130000": "25BA21C0BF48355A7E9F0876EF717A8086929124F952213453432669C03FFC01"
+  },
+  "before": {
+    "snapshot_utc": "2026-10-26T08:47:17.705535",
+    "migration_count": 68,
+    "latest_version": "20261026120200",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "financial_operations": 58,
+    "membership_roles_md5": "2f2909292baa563ffd378c5dd5c1e969"
+  },
+  "after": {
+    "snapshot_utc": "2026-10-26T08:47:41.925926",
+    "migration_count": 69,
+    "latest_version": "20261026130000",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "financial_operations": 58,
+    "membership_roles_md5": "2f2909292baa563ffd378c5dd5c1e969",
+    "has_original_held": true,
+    "has_trader_pending": true
+  }
+}

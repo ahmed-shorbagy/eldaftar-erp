@@ -1,5 +1,11 @@
 # ElDafttar UI theme contract
 
+## Instant inventory and traders (abouniyat) — 2026-10-26
+
+«الجرد الفوري» keeps the horizontal lot table and financial actions. Above the table, show confirmed cash by method (نقدي / انستا / محفظة / فيزا) beside available, pending and trader-custody totals; add shop-wide original trader weight; show jewelry-by-karat, scrap, bullion-by-denomination and coin-type summary sections from server totals. Semantic cards only—no new palette.
+
+«التجار والأمانات» keeps search and PDF. Add a secondary-container banner for pending weights on the loaded page, pending badges on trader rows, and per-receipt stock-status chips (pending vs added) using tertiary/primary containers. Pending receipts open ownership transfer or recognition; deferred rows also offer «تمت إضافتها يدويًا». Cash and gold obligations remain tappable for settlement. Cairo, RTL, 48-pixel controls and the 720-pixel measure stay unchanged.
+
 ## Shop staff and profile — 2026-10-26
 
 Owner «المزيد» adds «بيانات المتجر» and «الموظفون والصلاحيات». Keep Cairo, Arabic RTL, brown/cream/dark tokens, 48-pixel controls and the 720-pixel shop measure. Profile edits shop name, owner name and phone with pending/failure Arabic states. Staff create uses role segments (موظف/شريك), grant checkboxes, and list actions for grants and revoke. Partners and employees never see owner-only destinations (customers, debts, repairs, traders, profile, staff, closing team, appearance). Employees do not see shop cash/gold cards under «المزيد». [ADR 0033](adr/0033-shop-staff-grants-and-profile.md).

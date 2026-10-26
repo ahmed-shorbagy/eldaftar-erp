@@ -86,7 +86,20 @@ class _TraderScreenState extends State<TraderScreen> {
   List<TraderObligation> _obligations = const [];
   String? _obligationCursor;
   bool _obligationsMissing = false;
+  List<ReceiptSnapshot> _receipts = const [];
+  String? _receiptCursor;
+  bool _receiptsMissing = false;
+  List<LotSnapshot> _lots = const [];
+  List<GoldObligationView> _gold = const [];
   bool _sharing = false;
+
+  BigInt get _pendingOnPage {
+    var total = BigInt.zero;
+    for (final trader in _traders) {
+      total += trader.pendingReceiptCount;
+    }
+    return total;
+  }
 
   @override
   void initState() {
@@ -209,6 +222,10 @@ class _TraderScreenState extends State<TraderScreen> {
           _activityCursor = null;
           _obligations = const [];
           _obligationCursor = null;
+          _receipts = const [];
+          _receiptCursor = null;
+          _lots = const [];
+          _gold = const [];
         }
       });
       final selected = _detail?.id;
@@ -241,6 +258,22 @@ class _TraderScreenState extends State<TraderScreen> {
         traderId: id,
       );
       if (!_same(generation, userId, shopId)) return;
+      var receipts = const ReceiptPage.missing();
+      try {
+        receipts = await widget.gateway.receipts(
+          callerUserId: userId,
+          traderId: id,
+        );
+      } catch (_) {}
+      if (!_same(generation, userId, shopId)) return;
+      var lots = const LotPage([], null);
+      var gold = const ReadPage<GoldObligationView>.ready([], null);
+      try {
+        lots = await widget.gateway.lots(callerUserId: userId);
+        if (!_same(generation, userId, shopId)) return;
+        gold = await widget.gateway.goldObligations(callerUserId: userId);
+      } catch (_) {}
+      if (!_same(generation, userId, shopId)) return;
       setState(() {
         _detail = detail;
         _activity = activity.items;
@@ -248,6 +281,14 @@ class _TraderScreenState extends State<TraderScreen> {
         _obligationsMissing = !obligations.available;
         _obligations = obligations.items ?? const [];
         _obligationCursor = obligations.nextCursor;
+        _receiptsMissing = !receipts.available;
+        _receipts = receipts.items ?? const [];
+        _receiptCursor = receipts.nextCursor;
+        _lots = lots.items;
+        _gold = [
+          for (final item in gold.items ?? const <GoldObligationView>[])
+            if (item.traderId == id) item,
+        ];
         if (!quiet) {
           _message = null;
           _messageError = false;
@@ -376,8 +417,112 @@ class _TraderScreenState extends State<TraderScreen> {
     );
   }
 
+  Future<void> _openGoldSettlement(TraderObligation item) async {
+    GoldObligationView? matched;
+    for (final row in _gold) {
+      if (row.operationId == item.operationId) {
+        matched = row;
+        break;
+      }
+    }
+    final rows = [
+      ?matched,
+      for (final row in _gold)
+        if (row.operationId != item.operationId) row,
+    ];
+    if (rows.isEmpty) {
+      setState(() {
+        _message = 'لا يوجد مستحق ذهبي مفتوح لهذا التاجر في هذه القراءة.';
+        _messageError = true;
+      });
+      return;
+    }
+    await _openForm(
+      GoldSettlementForm(
+        scope: _scope,
+        obligations: rows,
+        lots: _lots,
+        initialObligationId: item.operationId,
+        loadOlder: (cursor) => widget.gateway.goldObligations(
+          callerUserId: widget.userId,
+          cursor: cursor,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openForm(Widget page) async {
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => page));
+    final id = _detail?.id;
+    if (saved == true && id != null) {
+      await _load();
+      if (mounted) await _openTrader(id, quiet: true);
+    }
+  }
+
+  Future<void> _openReceiptAction(ReceiptSnapshot receipt) async {
+    if (receipt.remainingMilligrams <= BigInt.zero) return;
+    if (receipt.policy == 'custody') {
+      await _openForm(
+        OwnershipTransferForm(
+          scope: _scope,
+          receipts: _receipts,
+          nextCursor: _receiptCursor,
+          initialReceiptId: receipt.id,
+          loadOlder: (cursor) => widget.gateway.receipts(
+            callerUserId: widget.userId,
+            traderId: _detail?.id,
+            ownerKind: 'trader',
+            recognition: 'custody',
+            cursor: cursor,
+          ),
+        ),
+      );
+      return;
+    }
+    if (receipt.policy == 'deferred') {
+      await _openForm(
+        InventoryRecognitionForm(
+          scope: _scope,
+          receipts: _receipts,
+          nextCursor: _receiptCursor,
+          initialReceiptId: receipt.id,
+          loadOlder: (cursor) => widget.gateway.receipts(
+            callerUserId: widget.userId,
+            traderId: _detail?.id,
+            ownerKind: 'shop',
+            recognition: 'deferred',
+            cursor: cursor,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openManualLink(ReceiptSnapshot receipt) async {
+    await _openForm(
+      InventoryManualLinkForm(
+        scope: _scope,
+        receipts: _receipts,
+        lots: _lots,
+        nextCursor: _receiptCursor,
+        initialReceiptId: receipt.id,
+        loadOlder: (cursor) => widget.gateway.receipts(
+          callerUserId: widget.userId,
+          traderId: _detail?.id,
+          ownerKind: 'shop',
+          recognition: 'deferred',
+          cursor: cursor,
+        ),
+      ),
+    );
+  }
+
   InventoryFormScope get _scope => InventoryFormScope(
     flow: _flow,
+    gateway: widget.gateway,
     userId: widget.userId,
     shopId: widget.shopId,
     readOnly: widget.readOnly,
@@ -417,6 +562,19 @@ class _TraderScreenState extends State<TraderScreen> {
           child: const Text('بحث'),
         ),
         const SizedBox(height: 12),
+        if (_pendingOnPage > BigInt.zero)
+          Card(
+            key: const Key('trader-pending-banner'),
+            color: Theme.of(context).colorScheme.secondaryContainer,
+            child: ListTile(
+              title: Text(
+                'يوجد $_pendingOnPage أوزان لم يتم إضافتها إلى المخزون.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+          ),
         Focus(
           focusNode: _listFocus,
           child: Column(
@@ -433,8 +591,12 @@ class _TraderScreenState extends State<TraderScreen> {
                     title: Text(trader.displayName),
                     subtitle: Text(
                       '${trader.active ? 'نشط' : 'موقوف'}'
-                      '${trader.phone.isEmpty ? '' : ' — ${trader.phone}'}',
+                      '${trader.phone.isEmpty ? '' : ' — ${trader.phone}'}'
+                      '${trader.pendingReceiptCount > BigInt.zero ? ' — معلّق ${trader.pendingReceiptCount}' : ''}',
                     ),
+                    trailing: trader.pendingReceiptCount > BigInt.zero
+                        ? _StockStatusChip(pending: true)
+                        : null,
                     onTap: () => _openTrader(trader.id),
                   ),
                 ),
@@ -497,8 +659,76 @@ class _TraderScreenState extends State<TraderScreen> {
                 '${inventoryCategoryLabel(bucket.category)} عيار ${bucket.karat}',
               ),
               subtitle: Text(
-                'الأصل ${gramsOf(bucket.originalMilligrams)} — الحالي ${gramsOf(bucket.currentMilligrams)}',
+                'الأصل ${gramsOf(bucket.originalMilligrams)} — الحالي ${gramsOf(bucket.currentMilligrams)}'
+                '${bucket.pendingReceiptCount > BigInt.zero ? ' — معلّق ${bucket.pendingReceiptCount}' : ''}',
               ),
+              trailing: bucket.pendingReceiptCount > BigInt.zero
+                  ? const _StockStatusChip(pending: true)
+                  : const _StockStatusChip(pending: false),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            'أوزان الاستلام وحالة المخزون',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          if (_receiptsMissing)
+            const Text('قائمة أوزان الاستلام غير متاحة في هذا الاتصال.')
+          else if (_receipts.isEmpty)
+            const Text('لا توجد أوزان استلام مؤكدة لهذا التاجر.')
+          else
+            for (final receipt in _receipts)
+              Card(
+                key: Key('trader-receipt-${receipt.id}'),
+                child: ListTile(
+                  title: Text(
+                    '${inventoryCategoryLabel(receipt.category)} عيار ${receipt.karat}'
+                    '${receipt.productName.isEmpty ? '' : ' — ${receipt.productName}'}',
+                  ),
+                  subtitle: Text(
+                    'المتبقي ${gramsOf(receipt.remainingMilligrams)} جرام'
+                    '${receipt.remainingCount == null ? '' : ' — ${receipt.remainingCount} قطعة'}'
+                    '\n${receipt.remainingMilligrams > BigInt.zero ? 'لم تتم إضافتها للمخزون' : 'تمت إضافتها للمخزون'}',
+                  ),
+                  trailing: _StockStatusChip(
+                    pending: receipt.remainingMilligrams > BigInt.zero,
+                  ),
+                  onTap: receipt.remainingMilligrams > BigInt.zero &&
+                          !widget.readOnly &&
+                          _day != null
+                      ? () => _openReceiptAction(receipt)
+                      : null,
+                ),
+              ),
+          if (!_receiptsMissing)
+            for (final receipt in _receipts)
+              if (receipt.policy == 'deferred' &&
+                  receipt.remainingMilligrams > BigInt.zero)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OutlinedButton(
+                    key: Key('trader-manual-${receipt.id}'),
+                    onPressed: widget.readOnly || _day == null
+                        ? null
+                        : () => _openManualLink(receipt),
+                    child: const Text('تمت إضافتها يدويًا'),
+                  ),
+                ),
+          if (_receiptCursor != null)
+            OutlinedButton(
+              key: const Key('trader-receipts-older'),
+              onPressed: () async {
+                final page = await widget.gateway.receipts(
+                  callerUserId: widget.userId,
+                  traderId: detail.id,
+                  cursor: _receiptCursor,
+                );
+                if (!mounted || !page.available) return;
+                setState(() {
+                  _receipts = [..._receipts, ...?page.items];
+                  _receiptCursor = page.nextCursor;
+                });
+              },
+              child: const Text('أوزان استلام أقدم'),
             ),
           Text(
             _activityCursor == null
@@ -509,7 +739,7 @@ class _TraderScreenState extends State<TraderScreen> {
           for (final line in _activity)
             ListTile(
               key: Key('trader-activity-${line.operationId}'),
-              title: Text('${line.kind} — ${line.shopSequence}'),
+              title: Text('${_activityKindLabel(line.kind)} — ${line.shopSequence}'),
               subtitle: Text(line.createdAt),
             ),
           if (_activity.isEmpty) const Text('لا يوجد نشاط مؤكد في هذه الصفحة.'),
@@ -534,16 +764,19 @@ class _TraderScreenState extends State<TraderScreen> {
                 title: Text(
                   item.unit == 'egp_piastres'
                       ? 'مستحق نقدي'
-                      : 'ذهب عيار ${item.karat} ${item.operationId}',
+                      : 'ذهب عيار ${item.karat}',
                 ),
                 subtitle: Text(
-                  'المتبقي ${item.unit == 'egp_piastres' ? poundsOf(item.remaining) : '${gramsOf(item.remaining)} جرام'}',
+                  'المتبقي ${item.unit == 'egp_piastres' ? poundsOf(item.remaining) : '${gramsOf(item.remaining)} جرام'}'
+                  '${item.unit == 'egp_piastres' ? '' : ' — يخصم من المخزون أو الكسر حسب اختيار التسوية'}',
                 ),
-                onTap:
-                    item.unit == 'egp_piastres' &&
-                        item.remaining > BigInt.zero &&
-                        widget.settlementGateway != null
+                onTap: item.remaining <= BigInt.zero
+                    ? null
+                    : item.unit == 'egp_piastres' &&
+                          widget.settlementGateway != null
                     ? () => _openCashSettlement(item)
+                    : item.unit != 'egp_piastres'
+                    ? () => _openGoldSettlement(item)
                     : null,
               ),
             if (_obligationCursor != null)
@@ -562,6 +795,45 @@ class _TraderScreenState extends State<TraderScreen> {
           onFinished: _load,
         ),
       ],
+    );
+  }
+}
+
+String _activityKindLabel(String kind) => switch (kind) {
+  'inventory_receipt' => 'استلام أمانة',
+  'inventory_recognition' => 'اعتراف بالمخزون',
+  'ownership_transfer' => 'نقل ملكية',
+  'receipt_manual_allocation' => 'ربط يدوي بالمخزون',
+  'gold_obligation_acquisition' => 'شراء مقابل ذهب',
+  'gold_obligation_settlement' => 'تسوية ذهب',
+  'purchase_cash_settlement' => 'تسوية نقدية',
+  _ => kind,
+};
+
+class _StockStatusChip extends StatelessWidget {
+  const _StockStatusChip({required this.pending});
+
+  final bool pending;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg = pending ? scheme.tertiaryContainer : scheme.primaryContainer;
+    final fg = pending ? scheme.onTertiaryContainer : scheme.onPrimaryContainer;
+    return Semantics(
+      label: pending ? 'لم تتم إضافتها للمخزون' : 'تمت إضافتها للمخزون',
+      child: Container(
+        key: Key(pending ? 'stock-status-pending' : 'stock-status-added'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          pending ? 'لم تُضف' : 'أُضيفت',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(color: fg),
+        ),
+      ),
     );
   }
 }
