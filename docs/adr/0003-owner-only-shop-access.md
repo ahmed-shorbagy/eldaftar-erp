@@ -1,6 +1,6 @@
 # ADR 0003: owner-only shop access
 
-- Status: accepted
+- Status: partially superseded 2026-10-26 by [ADR 0033](0033-shop-staff-grants-and-profile.md) for partner/employee membership and grants. Owner cardinality (one owner per shop, one shop per Auth user), platform-admin isolation, and revocation/entitlement boundaries remain in force. Temporary physical-count staff remain under [ADR 0023](0023-owner-meeting-calendar-pdf-and-closing-counts.md).
 - Date: 2026-09-26
 - Decision owner: product owner
 - Supersedes: the staff, partner, invitation, and per-user grant parts of ADR 0001 and ADR 0002

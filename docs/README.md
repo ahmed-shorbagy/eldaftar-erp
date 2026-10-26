@@ -1,6 +1,6 @@
 # ElDafttar ERP engineering guide
 
-Current plan — 2026-10-25: the bounded ADM-07 subscriber contact/location PII reveal slice is implemented, locally verified and development-deployed. [ADR 0032](adr/0032-admin-subscriber-contact-reveal.md), [validation](reviews/admin-subscriber-contact-2026-10-25/validation.md), [deployment/preservation](reviews/admin-subscriber-contact-2026-10-25/deployment.md), [task pointer](operations/next-slice-prompt.md). ADM-05 Help/announcements, ADM-04 forced update and earlier admin/notice slices remain deployed. The React source is not published; HELP-02, ADM-06, owner acceptance, DOC-04 and Milestones 4/5 remain open.
+Current plan — 2026-10-26: the bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed. [ADR 0033](adr/0033-shop-staff-grants-and-profile.md), [validation](reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](reviews/shop-staff-2026-10-26/deployment.md), [task pointer](operations/next-slice-prompt.md). ADM-07 contact reveal and earlier admin slices remain deployed. The React source is not published; HELP-02, ADM-06, owner acceptance, DOC-04 and Milestones 4/5 remain open.
 
 The [2026-10-18 meeting backend is deployed and verified on development](reviews/owner-meeting-2026-10-18/deployment-2026-10-20.md) after the owner's 2026-10-20 authorization. Routine Supabase deployment/hosted verification for completed task work is now part of AGENTS.md.
 

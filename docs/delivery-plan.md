@@ -1,6 +1,10 @@
 # Long-term delivery plan
 
-## Current plan — 2026-10-25
+## Current plan — 2026-10-26
+
+The bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0033](adr/0033-shop-staff-grants-and-profile.md), [validation](reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](reviews/shop-staff-2026-10-26/deployment.md). Partners and employees use server grants; the owner alone confirms financial close and edits profile. HELP-02, ADM-06, analytics, DOC-04 harness and retention stay separate. Frontend publication and owner acceptance remain pending.
+
+## Previous plan — 2026-10-25 (ADM-07)
 
 The bounded ADM-07 subscriber contact/location PII reveal slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0032](adr/0032-admin-subscriber-contact-reveal.md), [validation](reviews/admin-subscriber-contact-2026-10-25/validation.md), [deployment/preservation](reviews/admin-subscriber-contact-2026-10-25/deployment.md). ADM-05 Help/announcements preceded it in the same delivery. HELP-02, ADM-06, D21 shop ledger access and grant-management UI stay separate. Frontend publication and owner acceptance remain pending. No later Milestone 5 feature is selected by this delivery.
 

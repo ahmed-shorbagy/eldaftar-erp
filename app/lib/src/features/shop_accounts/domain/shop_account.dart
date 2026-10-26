@@ -1,5 +1,37 @@
 enum ShopEntitlement { pending, active, expired }
 
+enum ShopMemberRole { owner, partner, employee }
+
+enum ShopPermission { sale, purchase, inventory, expense, reports, invoiceSend }
+
+const kAllShopPermissions = {
+  ShopPermission.sale,
+  ShopPermission.purchase,
+  ShopPermission.inventory,
+  ShopPermission.expense,
+  ShopPermission.reports,
+  ShopPermission.invoiceSend,
+};
+
+ShopPermission? shopPermissionFromApi(String value) => switch (value) {
+  'sale' => ShopPermission.sale,
+  'purchase' => ShopPermission.purchase,
+  'inventory' => ShopPermission.inventory,
+  'expense' => ShopPermission.expense,
+  'reports' => ShopPermission.reports,
+  'invoice_send' => ShopPermission.invoiceSend,
+  _ => null,
+};
+
+String shopPermissionToApi(ShopPermission value) => switch (value) {
+  ShopPermission.sale => 'sale',
+  ShopPermission.purchase => 'purchase',
+  ShopPermission.inventory => 'inventory',
+  ShopPermission.expense => 'expense',
+  ShopPermission.reports => 'reports',
+  ShopPermission.invoiceSend => 'invoice_send',
+};
+
 enum SubscriptionNoticeKind { renewalDue, expired }
 
 class SubscriptionNotice {
@@ -39,6 +71,7 @@ class ShopAccount {
     required this.entitlement,
     this.expiresAt,
     this.imageSha256,
+    this.grants = const {},
   });
 
   final String id;
@@ -50,11 +83,28 @@ class ShopAccount {
   /// Present when the owner saved a shop image for the ledger header.
   final String? imageSha256;
 
+  /// Server grants. Owners receive every grant implicitly from the API.
+  final Set<ShopPermission> grants;
+
+  ShopMemberRole? get memberRole => switch (role) {
+    'owner' => ShopMemberRole.owner,
+    'partner' => ShopMemberRole.partner,
+    'employee' => ShopMemberRole.employee,
+    _ => null,
+  };
+
+  bool get isOwner => memberRole == ShopMemberRole.owner;
+  bool get isEmployee => memberRole == ShopMemberRole.employee;
+
+  bool hasPermission(ShopPermission permission) =>
+      isOwner || grants.contains(permission);
+
   ShopAccount copyWith({
     String? name,
     ShopEntitlement? entitlement,
     DateTime? expiresAt,
     String? imageSha256,
+    Set<ShopPermission>? grants,
     bool clearImage = false,
   }) => ShopAccount(
     id: id,
@@ -63,6 +113,7 @@ class ShopAccount {
     entitlement: entitlement ?? this.entitlement,
     expiresAt: expiresAt ?? this.expiresAt,
     imageSha256: clearImage ? null : (imageSha256 ?? this.imageSha256),
+    grants: grants ?? this.grants,
   );
 
   bool get needsActivation =>

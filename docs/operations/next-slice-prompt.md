@@ -1,6 +1,10 @@
-# Current task pointer — 2026-10-25
+# Current task pointer — 2026-10-26
 
-The bounded ADM-07 subscriber contact/location PII reveal slice is implemented, locally verified and development-deployed: [ADR 0032](../adr/0032-admin-subscriber-contact-reveal.md), [validation](../reviews/admin-subscriber-contact-2026-10-25/validation.md), [deployment/preservation](../reviews/admin-subscriber-contact-2026-10-25/deployment.md). Next proposed bounded feature is not selected; candidates remain HELP-02 support contact, ADM-06 broadcasts, DOC-04 native invoice-output harness, and Milestone 4/5 acceptance.
+The bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed: [ADR 0033](../adr/0033-shop-staff-grants-and-profile.md), [validation](../reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](../reviews/shop-staff-2026-10-26/deployment.md). Partner/employee memberships use server grants; owner-only profile edits and `shop-staff-create` are live on development. Owner-only financial close and temporary count assignments remain under ADR 0023. Next proposed bounded feature is not selected; candidates remain HELP-02, ADM-06, DOC-04 native invoice-output harness, month/year analytics, and Milestone 4/5 acceptance.
+
+## Previous pointer — 2026-10-25
+
+The bounded ADM-07 subscriber contact/location PII reveal slice is implemented, locally verified and development-deployed: [ADR 0032](../adr/0032-admin-subscriber-contact-reveal.md), [validation](../reviews/admin-subscriber-contact-2026-10-25/validation.md), [deployment/preservation](../reviews/admin-subscriber-contact-2026-10-25/deployment.md).
 
 ## Previous pointer — 2026-10-25 (ADM-05)
 

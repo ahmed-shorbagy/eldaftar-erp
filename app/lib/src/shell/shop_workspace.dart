@@ -46,6 +46,8 @@ class ShopWorkspace extends StatefulWidget {
     this.messageBuilder,
     this.shopImageBuilder,
     this.closingStaffBuilder,
+    this.profileBuilder,
+    this.staffBuilder,
     this.shopImageBytes,
     this.syncTicks,
   });
@@ -77,6 +79,8 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? messageBuilder;
   final WidgetBuilder? shopImageBuilder;
   final WidgetBuilder? closingStaffBuilder;
+  final WidgetBuilder? profileBuilder;
+  final WidgetBuilder? staffBuilder;
   final Uint8List? shopImageBytes;
   final Listenable? syncTicks;
 
@@ -221,6 +225,21 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     (route) => _shopImageRoute = route,
   );
 
+  Route<void>? _profileRoute;
+  Route<void>? _staffRoute;
+
+  Future<void> _openProfile() => _pushSingleton(
+    widget.profileBuilder,
+    () => _profileRoute,
+    (route) => _profileRoute = route,
+  );
+
+  Future<void> _openStaff() => _pushSingleton(
+    widget.staffBuilder,
+    () => _staffRoute,
+    (route) => _staffRoute = route,
+  );
+
   Future<void> _pushSingleton(
     WidgetBuilder? builder,
     Route<void>? Function() current,
@@ -259,103 +278,104 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       },
     ),
     1 =>
-      widget.inventoryBuilder?.call(context) ??
-          _page('الجرد الفوري', [
-            const Text(
-              'واجهة المخزون غير متاحة في هذا الاتصال. افتح الدفتر لمراجعة الأرصدة المؤكدة.',
-            ),
-            _link(
-              'فتح الدفتر اليومي',
-              Icons.menu_book_outlined,
-              () => _select(0),
-            ),
-          ]),
+      widget.shop.hasPermission(ShopPermission.inventory) &&
+              widget.inventoryBuilder != null
+          ? widget.inventoryBuilder!(context)
+          : _page('الجرد الفوري', [
+              Text(
+                widget.shop.hasPermission(ShopPermission.inventory)
+                    ? 'واجهة المخزون غير متاحة في هذا الاتصال. افتح الدفتر لمراجعة الأرصدة المؤكدة.'
+                    : 'لا توجد صلاحية للجرد الفوري على هذا الحساب.',
+              ),
+              _link(
+                'فتح الدفتر اليومي',
+                Icons.menu_book_outlined,
+                () => _select(0),
+              ),
+            ]),
     2 =>
-      widget.customerBuilder?.call(context) ??
-          _page('العملاء', [
-            const Text(
-              'ملفات العملاء غير متاحة في هذا الاتصال. بيانات طرف العملية متاحة في تفاصيل العملية المؤكدة داخل الدفتر.',
-            ),
-            _link(
-              'فتح العمليات المؤكدة',
-              Icons.menu_book_outlined,
-              () => _select(0),
-            ),
-          ]),
+      widget.shop.isOwner && widget.customerBuilder != null
+          ? widget.customerBuilder!(context)
+          : _page('العملاء', [
+              Text(
+                widget.shop.isOwner
+                    ? 'ملفات العملاء غير متاحة في هذا الاتصال. بيانات طرف العملية متاحة في تفاصيل العملية المؤكدة داخل الدفتر.'
+                    : 'إدارة العملاء متاحة لصاحب المتجر فقط.',
+              ),
+              _link(
+                'فتح العمليات المؤكدة',
+                Icons.menu_book_outlined,
+                () => _select(0),
+              ),
+            ]),
     3 =>
-      widget.reportsBuilder?.call(context) ??
-          _page('التقارير', [
-            const Text(
-              'التقارير غير متاحة في هذا الاتصال. أعد الاتصال وحاول مجددًا.',
-            ),
-            _link(
-              'فتح الدفتر اليومي',
-              Icons.menu_book_outlined,
-              () => _select(0),
-            ),
-          ]),
+      widget.shop.hasPermission(ShopPermission.reports) &&
+              widget.reportsBuilder != null
+          ? widget.reportsBuilder!(context)
+          : _page('التقارير', [
+              Text(
+                widget.shop.hasPermission(ShopPermission.reports)
+                    ? 'التقارير غير متاحة في هذا الاتصال. أعد الاتصال وحاول مجددًا.'
+                    : 'لا توجد صلاحية للتقارير على هذا الحساب.',
+              ),
+              _link(
+                'فتح الدفتر اليومي',
+                Icons.menu_book_outlined,
+                () => _select(0),
+              ),
+            ]),
     _ => _page('المزيد', [
-      LedgerMoreBalances(
-        key: ValueKey(
-          'more-${widget.shop.id}-${widget.userId}-${widget.refreshGeneration}',
+      if (!widget.shop.isEmployee) ...[
+        LedgerMoreBalances(
+          key: ValueKey(
+            'more-${widget.shop.id}-${widget.userId}-${widget.refreshGeneration}',
+          ),
+          shop: widget.shop,
+          gateway: widget.gateway,
+          userId: widget.userId,
+          refreshGeneration: widget.refreshGeneration,
+          syncTicks: widget.syncTicks,
         ),
-        shop: widget.shop,
-        gateway: widget.gateway,
-        userId: widget.userId,
-        refreshGeneration: widget.refreshGeneration,
-        syncTicks: widget.syncTicks,
-      ),
-      const SizedBox(height: 12),
-      if (widget.traderBuilder != null)
+        const SizedBox(height: 12),
+      ],
+      if (widget.shop.isOwner && widget.profileBuilder != null)
+        _link(
+          'بيانات المتجر',
+          Icons.store_mall_directory_outlined,
+          _openProfile,
+          key: const Key('workspace-shop-profile'),
+        ),
+      if (widget.shop.isOwner && widget.staffBuilder != null)
+        _link(
+          'الموظفون والصلاحيات',
+          Icons.badge_outlined,
+          _openStaff,
+          key: const Key('workspace-shop-staff'),
+        ),
+      if (widget.shop.isOwner && widget.traderBuilder != null)
         _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
-      if (widget.repairBuilder != null)
+      if (widget.shop.isOwner && widget.repairBuilder != null)
         _link(
           'الصيانة',
           Icons.handyman_outlined,
           _openRepairs,
           key: const Key('workspace-repairs'),
-        )
-      else
-        const ListTile(
-          key: Key('workspace-repairs-unavailable'),
-          enabled: false,
-          title: Text('الصيانة'),
-          subtitle: Text('الصيانة غير متاحة في هذا الاتصال.'),
-          leading: ExcludeSemantics(child: Icon(Icons.handyman_outlined)),
         ),
-      if (widget.debtBuilder != null)
+      if (widget.shop.isOwner && widget.debtBuilder != null)
         _link(
           'الديون',
           Icons.account_balance_wallet_outlined,
           _openDebts,
           key: const Key('workspace-debts'),
-        )
-      else
-        const ListTile(
-          key: Key('workspace-debts-unavailable'),
-          enabled: false,
-          title: Text('الديون'),
-          subtitle: Text('الديون غير متاحة في هذا الاتصال.'),
-          leading: ExcludeSemantics(
-            child: Icon(Icons.account_balance_wallet_outlined),
-          ),
         ),
-      if (widget.shopImageBuilder != null)
+      if (widget.shop.isOwner && widget.shopImageBuilder != null)
         _link(
           'صورة المتجر',
           Icons.storefront_outlined,
           _openShopImage,
           key: const Key('workspace-shop-image'),
-        )
-      else
-        const ListTile(
-          key: Key('workspace-shop-image-unavailable'),
-          enabled: false,
-          title: Text('صورة المتجر'),
-          subtitle: Text('صورة المتجر غير متاحة في هذا الاتصال.'),
-          leading: ExcludeSemantics(child: Icon(Icons.storefront_outlined)),
         ),
-      if (widget.appearanceBuilder != null)
+      if (widget.shop.isOwner && widget.appearanceBuilder != null)
         FutureBuilder<LogoUploadRecord?>(
           future: _logoDraft,
           builder: (context, snapshot) => Card(
@@ -373,36 +393,24 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
               onTap: _openAppearance,
             ),
           ),
-        )
-      else
-        const ListTile(
-          key: Key('workspace-invoice-appearance-unavailable'),
-          enabled: false,
-          title: Text('مظهر الفاتورة'),
-          subtitle: Text('مظهر الفاتورة غير متاح في هذا الاتصال.'),
-          leading: ExcludeSemantics(child: Icon(Icons.receipt_long_outlined)),
         ),
-      if (widget.closingStaffBuilder != null)
+      if (widget.shop.isOwner && widget.closingStaffBuilder != null)
         _link(
           'فريق عد التقفيل',
           Icons.fact_check_outlined,
           _openClosingStaff,
           key: const Key('workspace-closing-staff'),
         ),
-      _link('التقارير', Icons.assessment_outlined, () => _select(3)),
+      if (widget.shop.hasPermission(ShopPermission.reports))
+        _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       if (widget.helpGateway != null)
-        _link(
-          'المساعدة',
-          Icons.help_outline,
-          () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => HelpScreen(gateway: widget.helpGateway!),
-              ),
-            );
-          },
-          key: const Key('workspace-help'),
-        ),
+        _link('المساعدة', Icons.help_outline, () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => HelpScreen(gateway: widget.helpGateway!),
+            ),
+          );
+        }, key: const Key('workspace-help')),
       _link(
         Theme.of(context).brightness == Brightness.dark
             ? 'المظهر الفاتح'

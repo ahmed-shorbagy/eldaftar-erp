@@ -13,10 +13,15 @@ import '../../closing_delegation/presentation/staff_count_portal.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
 import '../../../theme/app_tokens.dart';
+import '../../shop_profile/data/supabase_shop_profile_gateway.dart';
+import '../../shop_profile/presentation/shop_profile_screen.dart';
+import '../../shop_staff/data/supabase_shop_staff_gateway.dart';
+import '../../shop_staff/presentation/shop_staff_screen.dart';
 import '../../daily_ledger/application/financial_gateway.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
@@ -733,7 +738,10 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         shopImageBytes: _shopImageShopId == selected.id
             ? _shopImageBytes
             : null,
-        reportsBuilder: opening is! ReportGateway || userId == null
+        reportsBuilder:
+            !selected.hasPermission(ShopPermission.reports) ||
+                opening is! ReportGateway ||
+                userId == null
             ? null
             : (context) => ReportsScreen(
                 gateway: opening as ReportGateway,
@@ -747,7 +755,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 syncTicks: _ticks,
               ),
         closingStaffBuilder:
-            opening is ClosingDelegationGateway &&
+            selected.isOwner &&
+                opening is ClosingDelegationGateway &&
                 opening is FinancialGateway &&
                 userId != null
             ? (context) => ClosingStaffScreen(
@@ -770,10 +779,34 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 invalidations: _ticks,
               )
             : null,
+        profileBuilder: !selected.isOwner || userId == null
+            ? null
+            : (context) => ShopProfileScreen(
+                gateway: SupabaseShopProfileGateway(Supabase.instance.client),
+                userId: userId,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+              ),
+        staffBuilder: !selected.isOwner || userId == null
+            ? null
+            : (context) => ShopStaffScreen(
+                gateway: SupabaseShopStaffGateway(Supabase.instance.client),
+                userId: userId,
+                shopId: selected.id,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+              ),
         onSignOut: _signOut,
         onToggleTheme: widget.onToggleTheme,
         onActivateSubscription:
-            selected.needsActivation || _selectedNotice != null
+            selected.isOwner &&
+                (selected.needsActivation || _selectedNotice != null)
             ? _openActivation
             : null,
         subscriptionNotice: _selectedNotice,
@@ -782,15 +815,14 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         onDismissSubscriptionNotice: _selectedNotice == null
             ? null
             : _dismissNotice,
-        platformAnnouncement:
-            _announcementDismissed ? null : _announcement,
-        onDismissPlatformAnnouncement: _announcement == null ||
-                _announcementDismissed
+        platformAnnouncement: _announcementDismissed ? null : _announcement,
+        onDismissPlatformAnnouncement:
+            _announcement == null || _announcementDismissed
             ? null
             : () => setState(() => _announcementDismissed = true),
         helpGateway: widget.helpGateway,
         onboardingStore: widget.onboardingStore,
-        shopImageBuilder: widget.shopImageGateway == null
+        shopImageBuilder: !selected.isOwner || widget.shopImageGateway == null
             ? null
             : (context) => ShopImageScreen(
                 shop: selected,
@@ -800,7 +832,10 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                     : null,
                 onChanged: _onShopImageChanged,
               ),
-        inventoryBuilder: inventory == null || userId == null
+        inventoryBuilder:
+            !selected.hasPermission(ShopPermission.inventory) ||
+                inventory == null ||
+                userId == null
             ? null
             : (context) => InventoryScreen(
                 gateway: inventory,
@@ -817,7 +852,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 refreshGeneration: _inventoryGeneration,
                 syncTicks: _ticks,
               ),
-        traderBuilder: inventory == null || userId == null
+        traderBuilder: !selected.isOwner || inventory == null || userId == null
             ? null
             : (context) => TraderScreen(
                 gateway: inventory,
@@ -837,7 +872,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 refreshGeneration: _traderGeneration,
                 syncTicks: _ticks,
               ),
-        repairBuilder: opening is! RepairGateway || userId == null
+        repairBuilder:
+            !selected.isOwner || opening is! RepairGateway || userId == null
             ? null
             : (context) => RepairScreen(
                 gateway: opening as RepairGateway,
@@ -857,7 +893,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                   setState(() => _ledgerGeneration++);
                 },
               ),
-        customerBuilder: opening is! CustomerGateway || userId == null
+        customerBuilder:
+            !selected.isOwner || opening is! CustomerGateway || userId == null
             ? null
             : (context) => CustomerScreen(
                 gateway: opening as CustomerGateway,
@@ -878,7 +915,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 refreshGeneration: _customerGeneration,
                 syncTicks: _ticks,
               ),
-        debtBuilder: opening is! DebtGateway || userId == null
+        debtBuilder:
+            !selected.isOwner || opening is! DebtGateway || userId == null
             ? null
             : (context) => DebtScreen(
                 reminders: widget.reminders,
@@ -928,7 +966,9 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                 syncTicks: _ticks.messageSettings,
               ),
         appearanceBuilder:
-            opening is! InvoiceAppearanceGateway || userId == null
+            !selected.isOwner ||
+                opening is! InvoiceAppearanceGateway ||
+                userId == null
             ? null
             : (context) => InvoiceAppearanceScreen(
                 gateway: opening as InvoiceAppearanceGateway,

@@ -225,23 +225,40 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
     final status = value['entitlement_status'];
     final expires = value['subscription_expires_at'];
     final imageSha = value['shop_image_sha256'];
+    final rawGrants = value['grants'];
     if (id is! String ||
         !_uuid.hasMatch(id) ||
         name is! String ||
         name.trim().isEmpty ||
         role is! String ||
-        role != 'owner' ||
+        !const ['owner', 'partner', 'employee'].contains(role) ||
         status is! String ||
         !const ['pending', 'active', 'expired'].contains(status) ||
         (expires != null && expires is! String) ||
         (imageSha != null &&
             (imageSha is! String ||
-                !RegExp(r'^[0-9a-f]{64}$').hasMatch(imageSha)))) {
+                !RegExp(r'^[0-9a-f]{64}$').hasMatch(imageSha))) ||
+        (rawGrants != null && rawGrants is! List)) {
       throw const ShopAccountException(ShopAccountFailure.invalidResponse);
     }
     final expiresAt = expires == null ? null : DateTime.tryParse(expires);
     if (expires != null && expiresAt == null) {
       throw const ShopAccountException(ShopAccountFailure.invalidResponse);
+    }
+    final grants = <ShopPermission>{};
+    if (role == 'owner') {
+      grants.addAll(kAllShopPermissions);
+    } else if (rawGrants is List) {
+      for (final item in rawGrants) {
+        if (item is! String) {
+          throw const ShopAccountException(ShopAccountFailure.invalidResponse);
+        }
+        final permission = shopPermissionFromApi(item);
+        if (permission == null) {
+          throw const ShopAccountException(ShopAccountFailure.invalidResponse);
+        }
+        grants.add(permission);
+      }
     }
     return ShopAccount(
       id: id,
@@ -250,6 +267,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
       entitlement: ShopEntitlement.values.byName(status),
       expiresAt: expiresAt,
       imageSha256: imageSha as String?,
+      grants: grants,
     );
   }
 

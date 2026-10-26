@@ -1,5 +1,9 @@
 # ElDafttar UI theme contract
 
+## Shop staff and profile — 2026-10-26
+
+Owner «المزيد» adds «بيانات المتجر» and «الموظفون والصلاحيات». Keep Cairo, Arabic RTL, brown/cream/dark tokens, 48-pixel controls and the 720-pixel shop measure. Profile edits shop name, owner name and phone with pending/failure Arabic states. Staff create uses role segments (موظف/شريك), grant checkboxes, and list actions for grants and revoke. Partners and employees never see owner-only destinations (customers, debts, repairs, traders, profile, staff, closing team, appearance). Employees do not see shop cash/gold cards under «المزيد». [ADR 0033](adr/0033-shop-staff-grants-and-profile.md).
+
 ## Admin subscriber contact reveal — 2026-10-25
 
 Subscriber detail keeps phone/country/city masked until an explicit Arabic «عرض رقم الهاتف والموقع» action. Revealed values use LTR isolation for phone and country code. Forbidden and failure copy is Arabic. Cairo, tokens, 48px control, no new palette. [ADR 0032](adr/0032-admin-subscriber-contact-reveal.md).

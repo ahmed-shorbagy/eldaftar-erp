@@ -1,0 +1,40 @@
+{
+  "project": "xchapwvmvoefriqcxtvn",
+  "migrations": [
+    "20261026120000_shop_staff_grants_and_profile",
+    "20261026120100_shop_staff_commands",
+    "20261026120200_shop_staff_grant_enforcement"
+  ],
+  "edge_function": "shop-staff-create",
+  "local_sha256": {
+    "20261026120000": "682B7BA78FC1E45958F8E413B1FA94AE3A98F2670DA97EBBA8884C04322F9C89",
+    "20261026120100": "E39657D6557DF1BBB051F534CFDE4A923508B97FDC5AD1786413D1FE5DA04070",
+    "20261026120200": "0E69C32D44091A06C105C790026AAB64DC327B4A93A23B2ED03909F1A10DAE96"
+  },
+  "before": {
+    "snapshot_utc": "2026-10-26T08:28:51.173796",
+    "migration_count": 65,
+    "latest_version": "20261025120000",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "financial_operations": 58,
+    "membership_roles_md5": "2f2909292baa563ffd378c5dd5c1e969"
+  },
+  "after": {
+    "snapshot_utc": "2026-10-26T08:29:37.855376",
+    "migration_count": 68,
+    "latest_version": "20261026120200",
+    "shops": 12,
+    "entitlements": 5,
+    "memberships": 12,
+    "auth_users": 13,
+    "financial_operations": 58,
+    "membership_roles_md5": "2f2909292baa563ffd378c5dd5c1e969",
+    "staff_grants": 0,
+    "has_profile_rpc": true,
+    "has_staff_list_rpc": true,
+    "has_trade_wrapper": true
+  }
+}
