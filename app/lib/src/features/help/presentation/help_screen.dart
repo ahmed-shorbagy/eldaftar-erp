@@ -10,12 +10,19 @@ abstract final class HelpCopy {
   static const loadError = 'تعذر تحميل المساعدة. حاول مجددًا.';
   static const retry = 'إعادة المحاولة';
   static const noMatch = 'لا نتائج مطابقة للبحث.';
+  static const contactSupport = 'تواصل مع الدعم';
+  static const contactSupportHint =
+      'لم تجد ما تبحث عنه؟ أرسل استفسارك إلى فريق الدعم.';
 }
 
 class HelpScreen extends StatefulWidget {
-  const HelpScreen({super.key, required this.gateway});
+  const HelpScreen({super.key, required this.gateway, this.supportBuilder});
 
   final HelpGateway gateway;
+
+  /// Builds the owner support screen; null when support is unavailable for
+  /// this account.
+  final WidgetBuilder? supportBuilder;
 
   @override
   State<HelpScreen> createState() => _HelpScreenState();
@@ -88,7 +95,9 @@ class _HelpScreenState extends State<HelpScreen> {
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppTokens.contentMaxWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppTokens.contentMaxWidth,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -103,6 +112,17 @@ class _HelpScreenState extends State<HelpScreen> {
                   onChanged: (value) => setState(() => _query = value),
                 ),
                 const SizedBox(height: 12),
+                if (widget.supportBuilder != null) ...[
+                  _SupportEntry(
+                    key: const Key('help-support-entry'),
+                    emphasized:
+                        !_loading && _error == null && _filtered.isEmpty,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: widget.supportBuilder!),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (_loading)
                   const Expanded(
                     child: Center(child: CircularProgressIndicator()),
@@ -122,13 +142,9 @@ class _HelpScreenState extends State<HelpScreen> {
                     ),
                   )
                 else if ((_topics ?? const []).isEmpty)
-                  const Expanded(
-                    child: Center(child: Text(HelpCopy.empty)),
-                  )
+                  const Expanded(child: Center(child: Text(HelpCopy.empty)))
                 else if (_filtered.isEmpty)
-                  const Expanded(
-                    child: Center(child: Text(HelpCopy.noMatch)),
-                  )
+                  const Expanded(child: Center(child: Text(HelpCopy.noMatch)))
                 else
                   Expanded(
                     child: ListView.builder(
@@ -153,9 +169,8 @@ class _HelpScreenState extends State<HelpScreen> {
                                   onTap: () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute<void>(
-                                        builder: (_) => HelpArticleScreen(
-                                          article: article,
-                                        ),
+                                        builder: (_) =>
+                                            HelpArticleScreen(article: article),
                                       ),
                                     );
                                   },
@@ -175,6 +190,46 @@ class _HelpScreenState extends State<HelpScreen> {
   }
 }
 
+class _SupportEntry extends StatelessWidget {
+  const _SupportEntry({
+    super.key,
+    required this.emphasized,
+    required this.onTap,
+  });
+
+  final bool emphasized;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.cardRadius),
+        side: emphasized
+            ? BorderSide(color: AppTokens.tableBorderFor(theme.brightness))
+            : BorderSide.none,
+      ),
+      child: ListTile(
+        leading: Icon(
+          Icons.support_agent_outlined,
+          color: emphasized ? theme.colorScheme.primary : null,
+        ),
+        title: Text(
+          HelpCopy.contactSupport,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: emphasized ? theme.colorScheme.primary : null,
+          ),
+        ),
+        subtitle: emphasized ? const Text(HelpCopy.contactSupportHint) : null,
+        trailing: const Icon(Icons.chevron_left),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
 class HelpArticleScreen extends StatelessWidget {
   const HelpArticleScreen({super.key, required this.article});
 
@@ -187,13 +242,17 @@ class HelpArticleScreen extends StatelessWidget {
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppTokens.contentMaxWidth),
+          constraints: const BoxConstraints(
+            maxWidth: AppTokens.contentMaxWidth,
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Text(
               article.bodyAr,
               key: const Key('help-article-body'),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(height: 1.6),
             ),
           ),
         ),

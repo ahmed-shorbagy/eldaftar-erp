@@ -1,6 +1,10 @@
 # Long-term delivery plan
 
-## Current plan — 2026-10-26
+## Current plan — 2026-10-27 (HELP-02 delivered)
+
+HELP-02 support contact is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: owner-only Arabic support inquiries (expired/pending read-only owners included), Help-screen and owner more-menu entries, and a gate-checked React admin triage mailbox. The narrow audited admin path is consistent with D21's approval rule without implementing the general D21 shop-data access mechanism. [ADR 0036](adr/0036-support-inquiries.md), [validation](reviews/help-support-2026-10-27/validation.md), [deployment/preservation](reviews/help-support-2026-10-27/deployment.md). Planning remains in [the bounded plan](operations/help-support-plan-2026-10-27.md) and [prompt](operations/help-support-prompt-2026-10-27.md) as history. Owner/device acceptance and publication remain open; ADM-06 broadcasts, WhatsApp/hotline handoff, threads, attachments, retention and D21 stay separate.
+
+## Previous plan — 2026-10-26
 
 The bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: [ADR 0033](adr/0033-shop-staff-grants-and-profile.md), [validation](reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](reviews/shop-staff-2026-10-26/deployment.md). Partners and employees use server grants; the owner alone confirms financial close and edits profile. HELP-02, ADM-06, analytics, DOC-04 harness and retention stay separate. Frontend publication and owner acceptance remain pending.
 

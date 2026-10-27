@@ -1,0 +1,19 @@
+﻿{
+  "rows": [
+    {
+      "payload": {
+        "auth_users": 13,
+        "entitlements": 5,
+        "financial_operations": 58,
+        "latest_version": "20261027150000",
+        "membership_roles_md5": "2f2909292baa563ffd378c5dd5c1e969",
+        "memberships": 12,
+        "migration_count": 72,
+        "shops": 12,
+        "snapshot_utc": "2026-10-27T09:43:48.426395",
+        "support_inquiries": 0,
+        "support_inquiry_events": 0
+      }
+    }
+  ],
+}

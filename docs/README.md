@@ -1,6 +1,6 @@
 # ElDafttar ERP engineering guide
 
-Current plan — 2026-10-27: SET-02 / D24 payment-method rename and archive is implemented and development-deployed ([ADR 0035](adr/0035-payment-method-rename-archive.md), [deployment](reviews/payment-methods-2026-10-27/deployment.md), [task pointer](operations/next-slice-prompt.md)). Analytics and shop staff/profile remain development-deployed. The React source is not published; HELP-02, ADM-06, owner acceptance, DOC-04 and Milestones 4/5 remain open.
+Current plan — 2026-10-27: HELP-02 support contact is implemented, locally verified and development-deployed ([ADR 0036](adr/0036-support-inquiries.md), [validation](reviews/help-support-2026-10-27/validation.md), [deployment](reviews/help-support-2026-10-27/deployment.md)). SET-02 / D24 payment-method rename and archive is implemented and development-deployed ([ADR 0035](adr/0035-payment-method-rename-archive.md), [deployment](reviews/payment-methods-2026-10-27/deployment.md)). Analytics and shop staff/profile remain development-deployed. The React source is not published; ADM-06, owner acceptance, DOC-04 and Milestones 4/5 remain open.
 
 The [2026-10-18 meeting backend is deployed and verified on development](reviews/owner-meeting-2026-10-18/deployment-2026-10-20.md) after the owner's 2026-10-20 authorization. Routine Supabase deployment/hosted verification for completed task work is now part of AGENTS.md.
 

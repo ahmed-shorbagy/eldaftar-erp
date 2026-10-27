@@ -6,6 +6,9 @@ import type { AdminAccess, AdminAuthGateway } from '../auth/AdminAuthGateway.ts'
 import { ThemeController } from '../theme/themeController.ts'
 import type { ThemePreferenceStore } from '../theme/themePreference.ts'
 import { subscriberCopy } from './copy.ts'
+import { appVersionCopy } from '../appVersion/copy.ts'
+import { helpCopy } from '../help/copy.ts'
+import { supportCopy } from '../support/copy.ts'
 import { unusedSubscriptionCodeMethods } from '../test/subscriptionCodeGateway.ts'
 import {
   SubscriberDirectoryError,
@@ -136,8 +139,11 @@ test('shows global counts apart from the filtered count and server dates', async
   expect(screen.queryByText('لقطة الخادم')).not.toBeInTheDocument()
   expect(screen.queryByText(/لا يعرض هذا الدليل/)).not.toBeInTheDocument()
   expect(seen[0]).toEqual({ status: 'all', search: '', cursor: null })
-  expect(screen.queryByText(/إصدار/)).not.toBeInTheDocument()
-  expect(screen.queryByText(/مساعدة/)).not.toBeInTheDocument()
+  // The other destinations stay one navigation click away: their panels and
+  // their actions are not on this page.
+  expect(screen.queryByText(appVersionCopy.title)).not.toBeInTheDocument()
+  expect(screen.queryByText(helpCopy.title)).not.toBeInTheDocument()
+  expect(screen.queryByText(supportCopy.title)).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /تجديد/ })).not.toBeInTheDocument()
 })
 

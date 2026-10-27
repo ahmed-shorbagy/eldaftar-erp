@@ -377,7 +377,7 @@ void main() {
     expect(gateway.posts, 0);
   });
 
-  testWidgets('more navigation exposes repairs or an unavailable explanation', (
+  testWidgets('more navigation opens repairs when a gateway is provided', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -414,11 +414,9 @@ void main() {
     }
 
     await pump();
-    expect(
-      find.byKey(const Key('workspace-repairs-unavailable')),
-      findsOneWidget,
-    );
-    expect(find.text('الصيانة غير متاحة في هذا الاتصال.'), findsOneWidget);
+    // Without a repairs gateway the link is hidden rather than shown as a
+    // disabled row; help is hidden without its gateway as well.
+    expect(find.byKey(const Key('workspace-repairs')), findsNothing);
     expect(find.byKey(const Key('workspace-help')), findsNothing);
 
     await pump(
@@ -430,7 +428,18 @@ void main() {
         readOnly: false,
       ),
     );
-    await tester.tap(find.byKey(const Key('workspace-repairs')));
+    final repairs = find.byKey(const Key('workspace-repairs'));
+    if (repairs.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        repairs,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(repairs, findsOneWidget);
+    await tester.ensureVisible(repairs);
+    await tester.tap(repairs);
     await tester.pumpAndSettle();
     expect(find.text('استلام قطعة'), findsOneWidget);
     expect(tester.takeException(), isNull);

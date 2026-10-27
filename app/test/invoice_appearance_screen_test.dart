@@ -70,7 +70,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('workspace-nav-4')));
     await tester.pumpAndSettle();
-    expect(find.text('مظهر الفاتورة غير متاح في هذا الاتصال.'), findsOneWidget);
+    // Without an appearance gateway the link stays hidden; the unavailable
+    // row was removed with the builder-gated more menu.
+    expect(find.text('مظهر الفاتورة غير متاح في هذا الاتصال.'), findsNothing);
+    expect(
+      find.byKey(const Key('workspace-invoice-appearance')),
+      findsNothing,
+    );
 
     final gateway = AppearanceTestGateway();
     await tester.pumpWidget(
@@ -98,7 +104,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('workspace-nav-4')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('workspace-invoice-appearance')));
+    final appearance = find.byKey(const Key('workspace-invoice-appearance'));
+    if (appearance.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        appearance,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(appearance, findsOneWidget);
+    await tester.ensureVisible(appearance);
+    await tester.tap(appearance);
     await tester.pumpAndSettle();
     expect(find.text('مظهر الفاتورة'), findsWidgets);
     expect(find.text('لم يُحفظ مظهر بعد'), findsWidgets);

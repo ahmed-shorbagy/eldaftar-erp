@@ -13,6 +13,7 @@ import 'features/auth/presentation/auth_gate.dart';
 import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
 import 'features/help/domain/help_models.dart';
+import 'features/support/domain/support_models.dart';
 import 'features/onboarding/application/onboarding_store.dart';
 import 'features/shop_accounts/domain/shop_account_gateway.dart';
 import 'features/shop_accounts/domain/shop_image.dart';
@@ -37,6 +38,7 @@ class ElDafttarApp extends StatelessWidget {
     this.syncGateway,
     this.shopImageGateway,
     this.helpGateway,
+    this.supportGateway,
     this.appVersionGateway,
     this.appVersion = '1.0.0',
     this.appVersionPlatform,
@@ -55,6 +57,7 @@ class ElDafttarApp extends StatelessWidget {
   final ShopSyncGateway? syncGateway;
   final ShopImageGateway? shopImageGateway;
   final HelpGateway? helpGateway;
+  final SupportGateway? supportGateway;
   final AppVersionGateway? appVersionGateway;
   final String appVersion;
   final AppVersionPlatform? appVersionPlatform;
@@ -97,6 +100,7 @@ class ElDafttarApp extends StatelessWidget {
               syncGateway: syncGateway,
               shopImageGateway: shopImageGateway,
               helpGateway: helpGateway,
+              supportGateway: supportGateway,
               onToggleTheme: themeController.toggle,
             ),
           ),

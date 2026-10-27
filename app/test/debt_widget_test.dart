@@ -234,7 +234,9 @@ void main() {
     expect(find.byKey(const Key('debt-open-declare')), findsNothing);
   });
 
-  testWidgets('workspace exposes debts beside repairs', (tester) async {
+  testWidgets('workspace more menu opens debts from the provided gateway', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -263,12 +265,20 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('المزيد').last);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('workspace-debts')), findsOneWidget);
-    expect(
-      find.byKey(const Key('workspace-repairs-unavailable')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const Key('workspace-debts')));
+    // The debts link renders only when a debt gateway is provided; it can sit
+    // below the fold of the lazy more menu at narrow widths.
+    final debts = find.byKey(const Key('workspace-debts'));
+    if (debts.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        debts,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(debts, findsOneWidget);
+    await tester.ensureVisible(debts);
+    await tester.tap(debts);
     await tester.pumpAndSettle();
     expect(find.text('طرف تاريخي'), findsOneWidget);
   });

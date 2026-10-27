@@ -11,6 +11,8 @@ import '../features/invoice_appearance/data/logo_upload_store.dart';
 import '../features/help/domain/help_models.dart';
 import '../features/help/presentation/announcement_banner.dart';
 import '../features/help/presentation/help_screen.dart';
+import '../features/support/domain/support_models.dart';
+import '../features/support/presentation/support_screen.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../features/shop_accounts/presentation/subscription_notice_banner.dart';
 import '../theme/app_tokens.dart';
@@ -35,6 +37,7 @@ class ShopWorkspace extends StatefulWidget {
     this.platformAnnouncement,
     this.onDismissPlatformAnnouncement,
     this.helpGateway,
+    this.supportGateway,
     this.onboardingStore,
     this.inventoryBuilder,
     this.traderBuilder,
@@ -70,6 +73,7 @@ class ShopWorkspace extends StatefulWidget {
   final PlatformAnnouncement? platformAnnouncement;
   final VoidCallback? onDismissPlatformAnnouncement;
   final HelpGateway? helpGateway;
+  final SupportGateway? supportGateway;
   final OnboardingStore? onboardingStore;
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
@@ -423,24 +427,38 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         _link('التقارير', Icons.assessment_outlined, () => _select(3)),
       if (widget.shop.hasPermission(ShopPermission.reports) &&
           widget.analyticsBuilder != null)
+        _link('التحليلات', Icons.insights_outlined, () {
+          final builder = widget.analyticsBuilder;
+          if (builder != null) {
+            Navigator.of(
+              context,
+            ).push<void>(MaterialPageRoute(builder: builder));
+          }
+        }, key: const Key('workspace-analytics')),
+      if (widget.shop.isOwner && widget.supportGateway != null)
         _link(
-          'التحليلات',
-          Icons.insights_outlined,
+          'تواصل مع الدعم',
+          Icons.support_agent_outlined,
           () {
-            final builder = widget.analyticsBuilder;
-            if (builder != null) {
-              Navigator.of(
-                context,
-              ).push<void>(MaterialPageRoute(builder: builder));
-            }
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => SupportScreen(gateway: widget.supportGateway!),
+              ),
+            );
           },
-          key: const Key('workspace-analytics'),
+          key: const Key('workspace-support'),
         ),
       if (widget.helpGateway != null)
         _link('المساعدة', Icons.help_outline, () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => HelpScreen(gateway: widget.helpGateway!),
+              builder: (_) => HelpScreen(
+                gateway: widget.helpGateway!,
+                supportBuilder:
+                    widget.shop.isOwner && widget.supportGateway != null
+                    ? (_) => SupportScreen(gateway: widget.supportGateway!)
+                    : null,
+              ),
             ),
           );
         }, key: const Key('workspace-help')),

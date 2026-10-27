@@ -1,5 +1,4 @@
 import 'package:eldafttar/src/features/daily_ledger/data/daily_ledger_codec.dart';
-import 'package:eldafttar/src/features/daily_ledger/domain/opening_catalog.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/payment_method_catalog.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/opening_balances.dart';
 import 'package:flutter_test/flutter_test.dart';

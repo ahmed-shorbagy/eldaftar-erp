@@ -17,6 +17,10 @@ import { HelpContentPanel } from './help/HelpContentPanel.tsx'
 import type { HelpGateway } from './help/HelpGateway.ts'
 import { helpCopy } from './help/copy.ts'
 import { SupabaseHelpGateway } from './help/SupabaseHelpGateway.ts'
+import { SupabaseSupportGateway } from './support/SupabaseSupportGateway.ts'
+import { SupportMailboxPanel } from './support/SupportMailboxPanel.tsx'
+import type { SupportGateway } from './support/SupportGateway.ts'
+import { supportCopy } from './support/copy.ts'
 import { HomeShell } from './shell/HomeShell.tsx'
 import { shellCopy } from './shell/copy.ts'
 import { SubscriberDirectory } from './subscribers/SubscriberDirectory.tsx'
@@ -31,7 +35,7 @@ import type { ThemeController } from './theme/themeController.ts'
 import { resolveThemeChoice } from './theme/themePreference.ts'
 import { useSystemDark } from './theme/useSystemDark.ts'
 
-type AdminDestination = 'subscribers' | 'appVersion' | 'help'
+type AdminDestination = 'subscribers' | 'appVersion' | 'help' | 'support'
 
 export function App({
   supabaseStatus,
@@ -41,6 +45,7 @@ export function App({
   contactGateway,
   appVersionGateway,
   helpGateway,
+  supportGateway,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeController: ThemeController
@@ -49,6 +54,7 @@ export function App({
   contactGateway?: SubscriberContactGateway | null
   appVersionGateway?: AppVersionGateway | null
   helpGateway?: HelpGateway | null
+  supportGateway?: SupportGateway | null
 }) {
   const [choice, setChoice] = useState(themeController.mode)
   const [access, setAccess] = useState<AdminAccess>(authGateway?.status ?? 'unavailable')
@@ -95,6 +101,11 @@ export function App({
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseHelpGateway(client)
   }, [helpGateway])
+  const supportMailboxGateway = useMemo(() => {
+    if (supportGateway !== undefined) return supportGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseSupportGateway(client)
+  }, [supportGateway])
   const reportAccessLoss = useCallback(() => {
     void authGateway?.refresh()
   }, [authGateway])
@@ -131,6 +142,11 @@ export function App({
     if (destination === 'appVersion') {
       return versionGateway
         ? <AppVersionPolicyPanel gateway={versionGateway} onAccessLost={reportAccessLoss} />
+        : <DirectoryUnavailable />
+    }
+    if (destination === 'support') {
+      return supportMailboxGateway
+        ? <SupportMailboxPanel gateway={supportMailboxGateway} onAccessLost={reportAccessLoss} />
         : <DirectoryUnavailable />
     }
     return contentGateway
@@ -183,6 +199,13 @@ export function App({
                     sx={{ minHeight: 48 }}
                   >
                     {helpCopy.navLabel}
+                  </Button>
+                  <Button
+                    variant={destination === 'support' ? 'contained' : 'outlined'}
+                    onClick={() => setDestination('support')}
+                    sx={{ minHeight: 48 }}
+                  >
+                    {supportCopy.navLabel}
                   </Button>
                 </ButtonGroup>
               ) : undefined

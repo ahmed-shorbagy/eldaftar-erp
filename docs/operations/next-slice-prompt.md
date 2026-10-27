@@ -1,6 +1,10 @@
 # Current task pointer — 2026-10-27
 
-**SET-02 / D24** payment-method rename and archive is implemented and development-deployed: [ADR 0035](../adr/0035-payment-method-rename-archive.md), [validation](../reviews/payment-methods-2026-10-27/validation.md), [deployment](../reviews/payment-methods-2026-10-27/deployment.md). Bounded four cash methods only; custom methods deferred. Owner/device acceptance for staff/profile/inventory/traders, analytics, and payment methods remain open on the [checklist](../reviews/owner-acceptance-staff-inventory-2026-10-27/acceptance.md). Next proposed feature is not selected; candidates remain HELP-02, ADM-06, DOC-04 native invoice harness, and Milestone 4/5 acceptance.
+**HELP-02 support contact** is implemented, locally verified and development-deployed: [ADR 0036](../adr/0036-support-inquiries.md), [validation](../reviews/help-support-2026-10-27/validation.md), [deployment/preservation](../reviews/help-support-2026-10-27/deployment.md). The bounded slice delivered owner support inquiries (including expired read-only owners), Help-screen and more-menu entries, and a gate-checked React admin triage mailbox with status/reply and idempotent writes. No next slice is selected by this pointer; ADM-06 broadcasts, WhatsApp/hotline handoff, threads, attachments, retention, publication and owner/device acceptance stay open.
+
+## Previous pointer — 2026-10-27 (SET-02 / D24)
+
+**SET-02 / D24** payment-method rename and archive is implemented and development-deployed: [ADR 0035](../adr/0035-payment-method-rename-archive.md), [validation](../reviews/payment-methods-2026-10-27/validation.md), [deployment](../reviews/payment-methods-2026-10-27/deployment.md). Bounded four cash methods only; custom methods deferred. Owner/device acceptance for staff/profile/inventory/traders, analytics, and payment methods remain open on the [checklist](../reviews/owner-acceptance-staff-inventory-2026-10-27/acceptance.md). Remaining feature candidates are ADM-06 broadcasts, DOC-04 native invoice harness, and Milestone 4/5 acceptance.
 
 ## Previous pointer — 2026-10-27 (analytics)
 

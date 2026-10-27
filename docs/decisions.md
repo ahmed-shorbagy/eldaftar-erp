@@ -2,7 +2,9 @@
 
 ## Current decision — 2026-10-27
 
-[ADR 0035](adr/0035-payment-method-rename-archive.md) accepts D24 for the four existing cash methods: immutable `ledger_accounts` IDs, owner rename via `display_label_ar`, archive without delete, historical `label_ar` snapshots on operation details, and no shared balances. Implemented and [development-deployed](reviews/payment-methods-2026-10-27/deployment.md). Custom payment methods and tender `account_id` payloads stay deferred. HELP-02, ADM-06, DOC-04, reset/retention and D20 remain separate.
+HELP-02 support contact is accepted and delivered: [ADR 0036](adr/0036-support-inquiries.md) records the confirmed contract — one text-only inquiry per submission (category enum + Arabic body 10–1000, newline the only accepted control character), owner-only submission including expired read-only owners, at most 10 non-closed inquiries per shop, admin triage `new → in_progress → answered → closed` with a required Arabic reply on `answered`, append-only audited status events, and an explicit narrow gate-checked admin path consistent with D21's approval rule — not the general D21 shop-data access mechanism. Implemented, locally verified and [development-deployed](reviews/help-support-2026-10-27/deployment.md). Staff/partner submission, attachments (new R2 kind), external hotline handoff, push notices and threads stay out of the slice.
+
+Also current: [ADR 0035](adr/0035-payment-method-rename-archive.md) accepts D24 for the four existing cash methods: immutable `ledger_accounts` IDs, owner rename via `display_label_ar`, archive without delete, historical `label_ar` snapshots on operation details, and no shared balances. Implemented and [development-deployed](reviews/payment-methods-2026-10-27/deployment.md). Custom payment methods and tender `account_id` payloads stay deferred. ADM-06, DOC-04, reset/retention and D20 remain separate.
 
 ## Previous decision — 2026-10-26
 

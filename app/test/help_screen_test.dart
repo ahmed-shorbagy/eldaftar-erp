@@ -7,7 +7,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeHelpGateway implements HelpGateway {
-  FakeHelpGateway({this.topics = const [], this.announcement, this.fail = false});
+  FakeHelpGateway({
+    this.topics = const [],
+    this.announcement,
+    this.fail = false,
+  });
 
   List<HelpTopic> topics;
   PlatformAnnouncement? announcement;
@@ -111,6 +115,81 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('الشراء'), findsOneWidget);
     expect(find.text('البيع'), findsNothing);
+  });
+
+  testWidgets('always shows the support entry and emphasizes it when search '
+      'has no match', (tester) async {
+    final gateway = FakeHelpGateway(
+      topics: const [
+        HelpTopic(
+          id: 't1',
+          titleAr: 'عام',
+          sortOrder: 1,
+          articles: [
+            HelpArticle(
+              id: 'a1',
+              titleAr: 'البيع',
+              bodyAr: 'تفاصيل البيع',
+              sortOrder: 1,
+            ),
+          ],
+        ),
+      ],
+    );
+    Widget buildHelp() => MaterialApp(
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: AppTheme.light(),
+      home: HelpScreen(
+        gateway: gateway,
+        supportBuilder: (_) =>
+            const Scaffold(key: Key('support-probe'), body: Text('شاشة الدعم')),
+      ),
+    );
+    await tester.pumpWidget(buildHelp());
+    await tester.pumpAndSettle();
+    // The action is persistent: visible before any search.
+    expect(find.byKey(const Key('help-support-entry')), findsOneWidget);
+    expect(
+      find.text('لم تجد ما تبحث عنه؟ أرسل استفسارك إلى فريق الدعم.'),
+      findsNothing,
+    );
+
+    // Emphasized when the current search yields no match.
+    await tester.enterText(
+      find.byKey(const Key('help-search')),
+      'كلمة غير موجودة',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('لا نتائج مطابقة للبحث.'), findsOneWidget);
+    expect(
+      find.text('لم تجد ما تبحث عنه؟ أرسل استفسارك إلى فريق الدعم.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('help-support-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('support-probe')), findsOneWidget);
+  });
+
+  testWidgets('hides the support entry when no support builder is provided', (
+    tester,
+  ) async {
+    final gateway = FakeHelpGateway();
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        theme: AppTheme.light(),
+        home: HelpScreen(gateway: gateway),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('help-support-entry')), findsNothing);
   });
 
   testWidgets('announcement banner dismisses for the session', (tester) async {
