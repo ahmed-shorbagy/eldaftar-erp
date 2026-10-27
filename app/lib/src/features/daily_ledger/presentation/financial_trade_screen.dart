@@ -16,6 +16,7 @@ import '../domain/financial_draft.dart';
 import '../domain/nominal_weight_suggestions.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
+import '../domain/payment_method_catalog.dart';
 import '../domain/quantities.dart';
 import '../domain/invoice_pricing.dart';
 import '../../inventory/application/inventory_command_flow.dart';
@@ -2115,7 +2116,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                     label: 'وسيلة الدفع',
                   ),
                   items: [
-                    for (final method in CashMethod.canonicalOrder)
+                    for (final method in PaymentMethodCatalog.entryChoices())
                       DropdownMenuItem(
                         value: method,
                         child: Text(cashMethodLabel(method)),

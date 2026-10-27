@@ -42,12 +42,14 @@ class ShopWorkspace extends StatefulWidget {
     this.debtBuilder,
     this.customerBuilder,
     this.reportsBuilder,
+    this.analyticsBuilder,
     this.appearanceBuilder,
     this.messageBuilder,
     this.shopImageBuilder,
     this.closingStaffBuilder,
     this.profileBuilder,
     this.staffBuilder,
+    this.paymentMethodsBuilder,
     this.shopImageBytes,
     this.syncTicks,
   });
@@ -75,12 +77,14 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? debtBuilder;
   final WidgetBuilder? customerBuilder;
   final WidgetBuilder? reportsBuilder;
+  final WidgetBuilder? analyticsBuilder;
   final WidgetBuilder? appearanceBuilder;
   final WidgetBuilder? messageBuilder;
   final WidgetBuilder? shopImageBuilder;
   final WidgetBuilder? closingStaffBuilder;
   final WidgetBuilder? profileBuilder;
   final WidgetBuilder? staffBuilder;
+  final WidgetBuilder? paymentMethodsBuilder;
   final Uint8List? shopImageBytes;
   final Listenable? syncTicks;
 
@@ -227,6 +231,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
 
   Route<void>? _profileRoute;
   Route<void>? _staffRoute;
+  Route<void>? _paymentMethodsRoute;
 
   Future<void> _openProfile() => _pushSingleton(
     widget.profileBuilder,
@@ -238,6 +243,12 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     widget.staffBuilder,
     () => _staffRoute,
     (route) => _staffRoute = route,
+  );
+
+  Future<void> _openPaymentMethods() => _pushSingleton(
+    widget.paymentMethodsBuilder,
+    () => _paymentMethodsRoute,
+    (route) => _paymentMethodsRoute = route,
   );
 
   Future<void> _pushSingleton(
@@ -345,6 +356,13 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
           _openProfile,
           key: const Key('workspace-shop-profile'),
         ),
+      if (widget.shop.isOwner && widget.paymentMethodsBuilder != null)
+        _link(
+          'وسائل الدفع',
+          Icons.payments_outlined,
+          _openPaymentMethods,
+          key: const Key('workspace-payment-methods'),
+        ),
       if (widget.shop.isOwner && widget.staffBuilder != null)
         _link(
           'الموظفون والصلاحيات',
@@ -403,6 +421,21 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         ),
       if (widget.shop.hasPermission(ShopPermission.reports))
         _link('التقارير', Icons.assessment_outlined, () => _select(3)),
+      if (widget.shop.hasPermission(ShopPermission.reports) &&
+          widget.analyticsBuilder != null)
+        _link(
+          'التحليلات',
+          Icons.insights_outlined,
+          () {
+            final builder = widget.analyticsBuilder;
+            if (builder != null) {
+              Navigator.of(
+                context,
+              ).push<void>(MaterialPageRoute(builder: builder));
+            }
+          },
+          key: const Key('workspace-analytics'),
+        ),
       if (widget.helpGateway != null)
         _link('المساعدة', Icons.help_outline, () {
           Navigator.of(context).push(

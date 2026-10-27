@@ -1,4 +1,5 @@
 import '../domain/opening_catalog.dart';
+import '../domain/payment_method_catalog.dart';
 
 const openingStorageCopy =
     'تعذر قراءة أو حفظ الطلب على هذا الجهاز. لم يُرسل طلب جديد.';
@@ -25,12 +26,8 @@ String openingFailureCopy(String? code) => switch (code) {
   _ => 'تعذر إتمام العملية. حاول مجددًا.',
 };
 
-String cashMethodLabel(CashMethod method) => switch (method) {
-  CashMethod.cash => 'نقدي',
-  CashMethod.instantTransfer => 'انستا',
-  CashMethod.wallet => 'محفظة',
-  CashMethod.card => 'فيزا',
-};
+String cashMethodLabel(CashMethod method) =>
+    PaymentMethodCatalog.label(method);
 
 String stockCategoryLabel(StockCategory category) => switch (category) {
   StockCategory.workedJewelry => 'مشغولات',

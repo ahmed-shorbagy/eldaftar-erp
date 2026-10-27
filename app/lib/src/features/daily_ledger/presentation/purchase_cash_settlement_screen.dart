@@ -9,6 +9,7 @@ import '../application/pending_financial_command.dart';
 import '../data/pending_financial_command.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
+import '../domain/payment_method_catalog.dart';
 import '../domain/quantities.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
@@ -201,7 +202,7 @@ class _PurchaseCashSettlementScreenState
                         labelText: 'وسيلة السداد',
                       ),
                       items: [
-                        for (final method in CashMethod.canonicalOrder)
+                        for (final method in PaymentMethodCatalog.entryChoices())
                           DropdownMenuItem(
                             value: method,
                             child: Text(cashMethodLabel(method)),

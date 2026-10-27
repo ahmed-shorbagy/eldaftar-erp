@@ -1,6 +1,14 @@
-# Current task pointer — 2026-10-26
+# Current task pointer — 2026-10-27
 
-The bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed: [ADR 0033](../adr/0033-shop-staff-grants-and-profile.md), [validation](../reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](../reviews/shop-staff-2026-10-26/deployment.md). Partner/employee memberships use server grants; owner-only profile edits and `shop-staff-create` are live on development. Owner-only financial close and temporary count assignments remain under ADR 0023. Next proposed bounded feature is not selected; candidates remain HELP-02, ADM-06, DOC-04 native invoice-output harness, month/year analytics, and Milestone 4/5 acceptance.
+**SET-02 / D24** payment-method rename and archive is implemented and development-deployed: [ADR 0035](../adr/0035-payment-method-rename-archive.md), [validation](../reviews/payment-methods-2026-10-27/validation.md), [deployment](../reviews/payment-methods-2026-10-27/deployment.md). Bounded four cash methods only; custom methods deferred. Owner/device acceptance for staff/profile/inventory/traders, analytics, and payment methods remain open on the [checklist](../reviews/owner-acceptance-staff-inventory-2026-10-27/acceptance.md). Next proposed feature is not selected; candidates remain HELP-02, ADM-06, DOC-04 native invoice harness, and Milestone 4/5 acceptance.
+
+## Previous pointer — 2026-10-27 (analytics)
+
+**التحليلات** is implemented and development-deployed: [ADR 0034](../adr/0034-shop-analytics-month-year-staff.md), [validation](../reviews/analytics-2026-10-27/validation.md), [deployment](../reviews/analytics-2026-10-27/deployment.md).
+
+## Previous pointer — 2026-10-26
+
+The bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed: [ADR 0033](../adr/0033-shop-staff-grants-and-profile.md), [validation](../reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](../reviews/shop-staff-2026-10-26/deployment.md). Partner/employee memberships use server grants; owner-only profile edits and `shop-staff-create` are live on development. Owner-only financial close and temporary count assignments remain under ADR 0023. Inventory/traders Word gaps are development-deployed: [inventory-traders review](../reviews/inventory-traders-2026-10-26/deployment.md).
 
 ## Previous pointer — 2026-10-25
 

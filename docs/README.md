@@ -1,6 +1,6 @@
 # ElDafttar ERP engineering guide
 
-Current plan — 2026-10-26: the bounded shop staff grants and shop profile slice is implemented, locally verified and development-deployed. [ADR 0033](adr/0033-shop-staff-grants-and-profile.md), [validation](reviews/shop-staff-2026-10-26/validation.md), [deployment/preservation](reviews/shop-staff-2026-10-26/deployment.md), [task pointer](operations/next-slice-prompt.md). ADM-07 contact reveal and earlier admin slices remain deployed. The React source is not published; HELP-02, ADM-06, owner acceptance, DOC-04 and Milestones 4/5 remain open.
+Current plan — 2026-10-27: SET-02 / D24 payment-method rename and archive is implemented and development-deployed ([ADR 0035](adr/0035-payment-method-rename-archive.md), [deployment](reviews/payment-methods-2026-10-27/deployment.md), [task pointer](operations/next-slice-prompt.md)). Analytics and shop staff/profile remain development-deployed. The React source is not published; HELP-02, ADM-06, owner acceptance, DOC-04 and Milestones 4/5 remain open.
 
 The [2026-10-18 meeting backend is deployed and verified on development](reviews/owner-meeting-2026-10-18/deployment-2026-10-20.md) after the owner's 2026-10-20 authorization. Routine Supabase deployment/hosted verification for completed task work is now part of AGENTS.md.
 

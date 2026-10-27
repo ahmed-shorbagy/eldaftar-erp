@@ -135,12 +135,14 @@ final class LedgerCashLine {
     required this.labelAr,
     required this.piastres,
     required this.pounds,
+    this.archived = false,
   });
 
   final String method;
   final String labelAr;
   final String piastres;
   final String pounds;
+  final bool archived;
 }
 
 final class LedgerStockLine {

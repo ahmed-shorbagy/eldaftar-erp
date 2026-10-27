@@ -7,6 +7,8 @@ import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
 import '../../reports/application/report_gateway.dart';
 import '../../reports/presentation/reports_screen.dart';
+import '../../analytics/application/analytics_gateway.dart';
+import '../../analytics/presentation/analytics_screen.dart';
 import '../../closing_delegation/application/closing_delegation_gateway.dart';
 import '../../closing_delegation/presentation/closing_staff_screen.dart';
 import '../../closing_delegation/presentation/staff_count_portal.dart';
@@ -22,6 +24,8 @@ import '../../shop_profile/data/supabase_shop_profile_gateway.dart';
 import '../../shop_profile/presentation/shop_profile_screen.dart';
 import '../../shop_staff/data/supabase_shop_staff_gateway.dart';
 import '../../shop_staff/presentation/shop_staff_screen.dart';
+import '../../payment_methods/data/supabase_payment_methods_gateway.dart';
+import '../../payment_methods/presentation/payment_methods_screen.dart';
 import '../../daily_ledger/application/financial_gateway.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
@@ -754,6 +758,25 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                     _selected?.id == selected.id,
                 syncTicks: _ticks,
               ),
+        analyticsBuilder:
+            !selected.hasPermission(ShopPermission.reports) ||
+                opening is! AnalyticsGateway ||
+                opening is! ReportGateway ||
+                userId == null
+            ? null
+            : (context) => AnalyticsScreen(
+                sessions: opening as ReportGateway,
+                gateway: opening as AnalyticsGateway,
+                userId: userId,
+                shopId: selected.id,
+                isOwner: selected.isOwner,
+                canRead: () =>
+                    mounted &&
+                    !_accessLost &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
+                syncTicks: _ticks,
+              ),
         closingStaffBuilder:
             selected.isOwner &&
                 opening is ClosingDelegationGateway &&
@@ -783,6 +806,19 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             ? null
             : (context) => ShopProfileScreen(
                 gateway: SupabaseShopProfileGateway(Supabase.instance.client),
+                userId: userId,
+                canWrite: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id &&
+                    _selected?.entitlement == ShopEntitlement.active,
+              ),
+        paymentMethodsBuilder: !selected.isOwner || userId == null
+            ? null
+            : (context) => PaymentMethodsScreen(
+                gateway: SupabasePaymentMethodsGateway(
+                  Supabase.instance.client,
+                ),
                 userId: userId,
                 canWrite: () =>
                     mounted &&

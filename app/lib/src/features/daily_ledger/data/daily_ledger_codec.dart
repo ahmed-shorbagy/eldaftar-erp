@@ -3,15 +3,9 @@ import '../application/idempotency_key.dart';
 import '../application/ledger_activity.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
+import '../domain/payment_method_catalog.dart';
 import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
-
-const _cashLabels = <String, String>{
-  'cash': 'نقدي',
-  'instant_transfer': 'انستا',
-  'wallet': 'محفظة',
-  'card': 'فيزا',
-};
 
 const _stockLabels = <String, String>{
   'worked_jewelry': 'مشغولات',
@@ -131,6 +125,12 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final confirmed = state == 'confirmed';
   final businessDay = _businessDay(json['business_day'], confirmed: confirmed);
   final cash = _cash(json['cash'], confirmed: confirmed);
+  if (confirmed && cash.isNotEmpty) {
+    PaymentMethodCatalog.applyCashLines([
+      for (final line in cash)
+        (method: line.method, labelAr: line.labelAr, archived: line.archived),
+    ]);
+  }
   final stock = _stock(json['stock'], confirmed: confirmed);
   final scrap = _scrap(json['scrap'], confirmed: confirmed);
   final feed = _feed(json['feed'], confirmed: confirmed, allowEmpty: version == 3);
@@ -367,20 +367,25 @@ List<LedgerCashLine> _cash(Object? value, {required bool confirmed}) {
 
 LedgerCashLine _cashLine(Object? row) {
   if (row is! Map) throw const FormatException('cash');
-  const fields = {'method', 'label_ar', 'piastres', 'pounds'};
-  if (row.length != fields.length ||
-      row.keys.any((key) => !fields.contains(key))) {
+  const required = {'method', 'label_ar', 'piastres', 'pounds'};
+  const optional = {'archived'};
+  if (row.keys.any((key) => !required.contains(key) && !optional.contains(key)) ||
+      required.any((key) => !row.containsKey(key))) {
     throw const FormatException('cash');
   }
   final method = row['method'];
   final label = row['label_ar'];
   final piastres = row['piastres'];
   final pounds = row['pounds'];
+  final archived = row['archived'];
   if (method is! String ||
       label is! String ||
+      label.trim().isEmpty ||
+      label.length > 40 ||
       piastres is! String ||
       pounds is! String ||
-      _cashLabels[method] != label) {
+      CashMethod.byCode(method) == null ||
+      (archived != null && archived is! bool)) {
     throw const FormatException('cash');
   }
   final parsed = Piastres.parseWire(piastres);
@@ -392,6 +397,7 @@ LedgerCashLine _cashLine(Object? row) {
     labelAr: label,
     piastres: piastres,
     pounds: pounds,
+    archived: archived == true,
   );
 }
 

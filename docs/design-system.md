@@ -1,5 +1,13 @@
 # ElDafttar UI theme contract
 
+## Payment methods rename/archive — 2026-10-27
+
+Owner «المزيد ← وسائل الدفع» lists the four cash methods with editable Arabic labels and archive toggles. Keep Cairo, Arabic RTL, brown/cream/dark tokens, 48-pixel controls and the 720-pixel shop measure. Live ledger cash tiles and entry dropdowns use server labels; archived methods stay out of new entry. Historical operation detail prefers payload `label_ar` snapshots. No custom methods, no new palette. [ADR 0035](adr/0035-payment-method-rename-archive.md).
+
+## Shop analytics — 2026-10-27
+
+«المزيد ← التحليلات» (reports grant) is a separate Arabic RTL route from التقارير. Segmented week/month/year control, shop-calendar period picker, money and karat sold/bought summaries, and PDF export with in-flight disable. Owner-only «أوزان الموظفين والمستخدمين» section; partners/employees with reports see shop totals only. Cairo, semantic tokens, 720-pixel measure, 48-pixel controls, no profit card, no new palette. [ADR 0034](adr/0034-shop-analytics-month-year-staff.md).
+
 ## Instant inventory and traders (abouniyat) — 2026-10-26
 
 «الجرد الفوري» keeps the horizontal lot table and financial actions. Above the table, show confirmed cash by method (نقدي / انستا / محفظة / فيزا) beside available, pending and trader-custody totals; add shop-wide original trader weight; show jewelry-by-karat, scrap, bullion-by-denomination and coin-type summary sections from server totals. Semantic cards only—no new palette.

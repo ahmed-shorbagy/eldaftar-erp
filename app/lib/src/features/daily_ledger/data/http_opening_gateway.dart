@@ -9,6 +9,9 @@ import '../../reports/domain/financial_week_report.dart';
 import '../../reports/data/weekly_report_codec.dart';
 import '../../reports/data/report_codec.dart';
 import '../../reports/domain/financial_day_report.dart';
+import '../../analytics/application/analytics_gateway.dart';
+import '../../analytics/data/analytics_codec.dart';
+import '../../analytics/domain/period_analytics.dart';
 import '../../closing_delegation/application/closing_delegation_gateway.dart';
 import '../../closing_delegation/data/closing_delegation_codec.dart';
 import '../../customers/application/customer_contract.dart';
@@ -158,6 +161,7 @@ class HttpOpeningGateway
         OpeningGateway,
         ReportGateway,
         WeeklyReportGateway,
+        AnalyticsGateway,
         LedgerDateGateway,
         LedgerTradeChangeGateway,
         FinancialGateway,
@@ -1528,6 +1532,45 @@ class HttpOpeningGateway
       bytes,
       'confirm_financial_week_pdf_v1',
       {'p_end_date': report.endDate, 'p_fingerprint': report.fingerprint},
+    );
+  }
+
+  @override
+  Future<PeriodAnalytics> periodAnalytics(
+    String userId,
+    String shopId, {
+    required AnalyticsPeriod period,
+    String? anchorDate,
+  }) async {
+    final response = await _rpc(userId, 'get_financial_period_analytics_v1', {
+      'p_period': analyticsPeriodApi(period),
+      'p_anchor': anchorDate,
+    });
+    final report = parsePeriodAnalytics(jsonDecode(response.body));
+    if (report.shopId != shopId ||
+        report.period != analyticsPeriodApi(period) ||
+        (anchorDate != null && report.anchorDate != anchorDate)) {
+      throw const FormatException('analytics_scope');
+    }
+    return report;
+  }
+
+  @override
+  Future<Uint8List> storePeriodAnalyticsPdf(
+    String userId,
+    PeriodAnalytics report,
+    Uint8List bytes,
+  ) {
+    return _storeVerifiedReportPdf(
+      userId,
+      report.shopId,
+      bytes,
+      'confirm_financial_period_analytics_pdf_v1',
+      {
+        'p_period': report.period,
+        'p_anchor': report.anchorDate,
+        'p_fingerprint': report.fingerprint,
+      },
     );
   }
 

@@ -587,8 +587,12 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                 Text(
                                   'تحويل ${_pounds(details['amount_piastres'])}',
                                 ),
-                                Text('من ${_method(details['from_method'])}'),
-                                Text('إلى ${_method(details['to_method'])}'),
+                                Text(
+                                  'من ${_transferMethodLabel(details, 'from')}',
+                                ),
+                                Text(
+                                  'إلى ${_transferMethodLabel(details, 'to')}',
+                                ),
                                 const Text('إجمالي النقدية والذهب لم يتغيرا.'),
                               ],
                             ),
@@ -685,7 +689,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         for (final entry in tenders)
                           if (entry is Map)
                             ListTile(
-                              title: Text(_method(entry['method'])),
+                              title: Text(_tenderMethodLabel(entry)),
                               trailing: Text(_pounds(entry['piastres'])),
                             ),
                       ],
@@ -924,6 +928,19 @@ String _method(Object? value) => switch (value) {
   'card' => 'فيزا',
   _ => 'وسيلة دفع',
 };
+
+String _tenderMethodLabel(Object? entry) {
+  if (entry is! Map) return 'وسيلة دفع';
+  final snapshot = entry['label_ar'];
+  if (snapshot is String && snapshot.trim().isNotEmpty) return snapshot.trim();
+  return _method(entry['method']);
+}
+
+String _transferMethodLabel(Map details, String side) {
+  final snapshot = details['${side}_method_label_ar'];
+  if (snapshot is String && snapshot.trim().isNotEmpty) return snapshot.trim();
+  return _method(details['${side}_method']);
+}
 
 String _category(Object? value) => switch (value) {
   'worked_jewelry' => 'مشغولات',
