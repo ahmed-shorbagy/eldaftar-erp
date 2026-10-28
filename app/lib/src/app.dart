@@ -12,6 +12,7 @@ import 'features/auth/domain/password_recovery.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
+import 'features/audit_trail/domain/audit_trail.dart';
 import 'features/help/domain/help_models.dart';
 import 'features/support/domain/support_models.dart';
 import 'features/onboarding/application/onboarding_store.dart';
@@ -39,6 +40,7 @@ class ElDafttarApp extends StatelessWidget {
     this.shopImageGateway,
     this.helpGateway,
     this.supportGateway,
+    this.auditTrailGateway,
     this.appVersionGateway,
     this.appVersion = '1.0.0',
     this.appVersionPlatform,
@@ -58,6 +60,7 @@ class ElDafttarApp extends StatelessWidget {
   final ShopImageGateway? shopImageGateway;
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
+  final AuditTrailGateway? auditTrailGateway;
   final AppVersionGateway? appVersionGateway;
   final String appVersion;
   final AppVersionPlatform? appVersionPlatform;
@@ -101,6 +104,7 @@ class ElDafttarApp extends StatelessWidget {
               shopImageGateway: shopImageGateway,
               helpGateway: helpGateway,
               supportGateway: supportGateway,
+              auditTrailGateway: auditTrailGateway,
               onToggleTheme: themeController.toggle,
             ),
           ),

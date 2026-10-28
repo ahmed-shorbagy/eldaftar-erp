@@ -11,6 +11,8 @@ import '../features/invoice_appearance/data/logo_upload_store.dart';
 import '../features/help/domain/help_models.dart';
 import '../features/help/presentation/announcement_banner.dart';
 import '../features/help/presentation/help_screen.dart';
+import '../features/audit_trail/domain/audit_trail.dart';
+import '../features/audit_trail/presentation/audit_trail_screen.dart';
 import '../features/support/domain/support_models.dart';
 import '../features/support/presentation/support_screen.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
@@ -38,6 +40,7 @@ class ShopWorkspace extends StatefulWidget {
     this.onDismissPlatformAnnouncement,
     this.helpGateway,
     this.supportGateway,
+    this.auditTrailGateway,
     this.onboardingStore,
     this.inventoryBuilder,
     this.traderBuilder,
@@ -74,6 +77,7 @@ class ShopWorkspace extends StatefulWidget {
   final VoidCallback? onDismissPlatformAnnouncement;
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
+  final AuditTrailGateway? auditTrailGateway;
   final OnboardingStore? onboardingStore;
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
@@ -435,6 +439,20 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
             ).push<void>(MaterialPageRoute(builder: builder));
           }
         }, key: const Key('workspace-analytics')),
+      if (widget.shop.isOwner && widget.auditTrailGateway != null)
+        _link(
+          'سجل العمليات',
+          Icons.history_outlined,
+          () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    AuditTrailScreen(gateway: widget.auditTrailGateway!),
+              ),
+            );
+          },
+          key: const Key('workspace-audit-trail'),
+        ),
       if (widget.shop.isOwner && widget.supportGateway != null)
         _link(
           'تواصل مع الدعم',

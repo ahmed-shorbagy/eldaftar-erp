@@ -1,5 +1,9 @@
 # Database design and transaction model
 
+## Owner audit trail — 2026-10-28
+
+[20261028120000_owner_audit_trail.sql](../supabase/migrations/20261028120000_owner_audit_trail.sql) adds the shop feed index and owner-only `list_shop_audit_trail_v1` under [ADR 0037](adr/0037-owner-audit-trail.md). The function reads `financial_audit_events` only and returns a redacted Arabic page. Direct SELECT is limited to the shop owner with a started entitlement. Append-only triggers and write grants are unchanged. No financial row is written. [Validation](reviews/audit-trail-2026-10-28/validation.md) and [deployment/preservation](reviews/audit-trail-2026-10-28/deployment.md).
+
 ## Platform-admin subscriber directory — development 2026-10-22
 
 [20261022094412_admin_subscriber_directory.sql](../supabase/migrations/20261022094412_admin_subscriber_directory.sql) adds the registration-order index and five functions in [ADR 0027](adr/0027-admin-subscriber-directory.md). The two public read contracts return one allowlisted snapshot with exact count strings and live admin/session/ban checks. The three private helpers have no client execution grant. No entitlement, financial, dispatch or audit rows are rewritten. [Independent checks](reviews/admin-subscribers-2026-10-22/independent-validation.md) and [development deployment/preservation](reviews/admin-subscribers-2026-10-22/deployment.md) record the verified delivery and local-to-hosted identity mapping.

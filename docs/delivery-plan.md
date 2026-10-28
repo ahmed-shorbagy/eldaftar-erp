@@ -1,6 +1,10 @@
 # Long-term delivery plan
 
-## Current plan — 2026-10-27 (HELP-02 delivered)
+## Current plan — 2026-10-28 (AUD-01)
+
+AUD-01 owner audit trail is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: a read-only Arabic «سجل العمليات» page over existing append-only financial audit rows, owner-only including expired D13 readers, with partners, employees and count-only assignments denied at the database. [ADR 0037](adr/0037-owner-audit-trail.md), [validation](reviews/audit-trail-2026-10-28/validation.md), [deployment/preservation](reviews/audit-trail-2026-10-28/deployment.md). NTF-01, ADM-06, retention/reset, custom payment methods, D21 and owner/device acceptance stay open. No later Milestone 5 feature is selected by this delivery.
+
+## Previous plan — 2026-10-27 (HELP-02 delivered)
 
 HELP-02 support contact is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: owner-only Arabic support inquiries (expired/pending read-only owners included), Help-screen and owner more-menu entries, and a gate-checked React admin triage mailbox. The narrow audited admin path is consistent with D21's approval rule without implementing the general D21 shop-data access mechanism. [ADR 0036](adr/0036-support-inquiries.md), [validation](reviews/help-support-2026-10-27/validation.md), [deployment/preservation](reviews/help-support-2026-10-27/deployment.md). Planning remains in [the bounded plan](operations/help-support-plan-2026-10-27.md) and [prompt](operations/help-support-prompt-2026-10-27.md) as history. Owner/device acceptance and publication remain open; ADM-06 broadcasts, WhatsApp/hotline handoff, threads, attachments, retention and D21 stay separate.
 

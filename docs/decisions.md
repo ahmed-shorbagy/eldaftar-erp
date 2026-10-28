@@ -1,6 +1,10 @@
 # Architecture and product decisions
 
-## Current decision — 2026-10-27
+## Current decision — 2026-10-28
+
+AUD-01 owner audit trail is accepted for this bounded slice: [ADR 0037](adr/0037-owner-audit-trail.md) records a read-only Arabic browser «سجل العمليات» over existing append-only `financial_audit_events`. The owner, including an expired D13 reader, lists the session shop only. Pending shops stay `shop_unavailable`. Partners, employees, count-only assignments, anonymous callers, revoked memberships and cross-shop reads fail closed. Direct SELECT on that table is now owner-only. No second history, no financial post, and no new media kind. Other audit domains, NTF-01, ADM-06, retention/reset and D21 stay separate. Implemented, locally verified and [development-deployed](reviews/audit-trail-2026-10-28/deployment.md). Owner/device acceptance remains open.
+
+## Previous decision — 2026-10-27
 
 HELP-02 support contact is accepted and delivered: [ADR 0036](adr/0036-support-inquiries.md) records the confirmed contract — one text-only inquiry per submission (category enum + Arabic body 10–1000, newline the only accepted control character), owner-only submission including expired read-only owners, at most 10 non-closed inquiries per shop, admin triage `new → in_progress → answered → closed` with a required Arabic reply on `answered`, append-only audited status events, and an explicit narrow gate-checked admin path consistent with D21's approval rule — not the general D21 shop-data access mechanism. Implemented, locally verified and [development-deployed](reviews/help-support-2026-10-27/deployment.md). Staff/partner submission, attachments (new R2 kind), external hotline handoff, push notices and threads stay out of the slice.
 

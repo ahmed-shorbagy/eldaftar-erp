@@ -7,6 +7,7 @@ import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
 import '../../reports/application/report_gateway.dart';
 import '../../reports/presentation/reports_screen.dart';
+import '../../audit_trail/domain/audit_trail.dart';
 import '../../analytics/application/analytics_gateway.dart';
 import '../../analytics/presentation/analytics_screen.dart';
 import '../../closing_delegation/application/closing_delegation_gateway.dart';
@@ -70,6 +71,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.shopImageGateway,
     this.helpGateway,
     this.supportGateway,
+    this.auditTrailGateway,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -84,6 +86,7 @@ class ShopAccountsGate extends StatefulWidget {
   final ShopImageGateway? shopImageGateway;
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
+  final AuditTrailGateway? auditTrailGateway;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -861,6 +864,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             : () => setState(() => _announcementDismissed = true),
         helpGateway: widget.helpGateway,
         supportGateway: widget.supportGateway,
+        auditTrailGateway: widget.auditTrailGateway,
         onboardingStore: widget.onboardingStore,
         shopImageBuilder: !selected.isOwner || widget.shopImageGateway == null
             ? null

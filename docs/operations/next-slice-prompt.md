@@ -1,4 +1,8 @@
-# Current task pointer — 2026-10-27
+# Current task pointer — 2026-10-28
+
+**AUD-01 owner audit trail** is implemented, locally verified and development-deployed: [ADR 0037](../adr/0037-owner-audit-trail.md), [validation](../reviews/audit-trail-2026-10-28/validation.md), [deployment/preservation](../reviews/audit-trail-2026-10-28/deployment.md). The bounded slice is a read-only Arabic «سجل العمليات» browser over existing `financial_audit_events`. No next slice is selected by this pointer. NTF-01 shop-status notices, ADM-06 broadcasts, retention/reset, custom payment methods, D21 shop-data admin access, publication and owner/device acceptance stay open.
+
+## Previous pointer — 2026-10-27 (HELP-02)
 
 **HELP-02 support contact** is implemented, locally verified and development-deployed: [ADR 0036](../adr/0036-support-inquiries.md), [validation](../reviews/help-support-2026-10-27/validation.md), [deployment/preservation](../reviews/help-support-2026-10-27/deployment.md). The bounded slice delivered owner support inquiries (including expired read-only owners), Help-screen and more-menu entries, and a gate-checked React admin triage mailbox with status/reply and idempotent writes. No next slice is selected by this pointer; ADM-06 broadcasts, WhatsApp/hotline handoff, threads, attachments, retention, publication and owner/device acceptance stay open.
 

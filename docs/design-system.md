@@ -1,5 +1,9 @@
 # ElDafttar UI theme contract
 
+## Owner audit trail — 2026-10-28
+
+Owner «المزيد ← سجل العمليات» is a read-only Arabic RTL list inside the 720-pixel measure. Keep Cairo, brown/cream/dark tokens, padded 48-pixel filter chips and no new palette. Latin digits, operation ids and timestamps stay in LTR isolates. Empty, retry, access-loss and «تحميل المزيد» are the only states. No edit, delete, export, or guide card. [ADR 0037](adr/0037-owner-audit-trail.md).
+
 ## Payment methods rename/archive — 2026-10-27
 
 Owner «المزيد ← وسائل الدفع» lists the four cash methods with editable Arabic labels and archive toggles. Keep Cairo, Arabic RTL, brown/cream/dark tokens, 48-pixel controls and the 720-pixel shop measure. Live ledger cash tiles and entry dropdowns use server labels; archived methods stay out of new entry. Historical operation detail prefers payload `label_ar` snapshots. No custom methods, no new palette. [ADR 0035](adr/0035-payment-method-rename-archive.md).
