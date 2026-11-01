@@ -1,6 +1,10 @@
 # Architecture and product decisions
 
-## Current decision — 2026-10-28
+## Current decision — 2026-11-01
+
+The owner approved the retention warning on 2026-11-01. [ADR 0038](adr/0038-subscription-retention-warning.md) records four shop-local calendar months after `expires_at`, one dismissible `retention_ending` notice in the last 30 shop-local days, and renewal through the existing code redemption. Writing returns when `expires_at` moves into the future. Books are not rebuilt or deleted. The slice is locally verified and [development-deployed](reviews/subscription-retention-2026-11-01/deployment.md). D14 deletion rules and D15 reset stay open. D21 is unchanged.
+
+## Previous decision — 2026-10-28
 
 AUD-01 owner audit trail is accepted for this bounded slice: [ADR 0037](adr/0037-owner-audit-trail.md) records a read-only Arabic browser «سجل العمليات» over existing append-only `financial_audit_events`. The owner, including an expired D13 reader, lists the session shop only. Pending shops stay `shop_unavailable`. Partners, employees, count-only assignments, anonymous callers, revoked memberships and cross-shop reads fail closed. Direct SELECT on that table is now owner-only. No second history, no financial post, and no new media kind. Other audit domains, NTF-01, ADM-06, retention/reset and D21 stay separate. Implemented, locally verified and [development-deployed](reviews/audit-trail-2026-10-28/deployment.md). Owner/device acceptance remains open.
 

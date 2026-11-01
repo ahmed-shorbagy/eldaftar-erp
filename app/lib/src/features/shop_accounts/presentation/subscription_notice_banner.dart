@@ -14,6 +14,9 @@ abstract final class SubscriptionNoticeCopy {
 
   static const expiredBody =
       'انتهى الاشتراك. يمكنك إخفاء هذا التنبيه؛ العرض يبقى للقراءة فقط حتى التجديد.';
+
+  static String retentionBody(String retentionEndsOn) =>
+      'تبقّى أقل من ٣٠ يومًا على نهاية مدة الاحتفاظ في \u2066$retentionEndsOn\u2069. التجديد قبل هذا الموعد يعيد الكتابة. البيانات تبقى محفوظة، وهذا التنبيه لا يحذفها.';
 }
 
 String subscriptionNoticeExpiryText(DateTime expiresAt) {
@@ -46,23 +49,31 @@ class SubscriptionNoticeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final renewal = notice.kind == SubscriptionNoticeKind.renewalDue;
-    final title = renewal ? 'تذكير بتجديد الاشتراك' : 'انتهى الاشتراك';
+    final retention = notice.kind == SubscriptionNoticeKind.retentionEnding;
+    final title = renewal
+        ? 'تذكير بتجديد الاشتراك'
+        : retention
+        ? 'اقتراب نهاية مدة الاحتفاظ'
+        : 'انتهى الاشتراك';
     final body = renewal
         ? SubscriptionNoticeCopy.renewalBody(
             subscriptionNoticeExpiryText(notice.expiresAt),
           )
+        : retention
+        ? SubscriptionNoticeCopy.retentionBody(notice.retentionEndsOn ?? '')
         : SubscriptionNoticeCopy.expiredBody;
+    final tone = retention || renewal;
     return Semantics(
       container: true,
       label: title,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: renewal
+          color: tone
               ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.65)
               : theme.colorScheme.errorContainer.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: renewal
+            color: tone
                 ? theme.colorScheme.secondary.withValues(alpha: 0.35)
                 : theme.colorScheme.error.withValues(alpha: 0.35),
           ),
@@ -77,7 +88,7 @@ class SubscriptionNoticeBanner extends StatelessWidget {
                 key: const Key('subscription-notice-title'),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: renewal
+                  color: tone
                       ? theme.colorScheme.onSecondaryContainer
                       : theme.colorScheme.error,
                 ),

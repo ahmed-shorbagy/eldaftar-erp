@@ -496,4 +496,50 @@ void main() {
       }
     }
   });
+
+  testWidgets('retention warning names the shop date and dismisses once', (
+    tester,
+  ) async {
+    final expires = DateTime.utc(2026, 6, 16, 21);
+    final shops = FakeShops()
+      ..accounts = [account(ShopEntitlement.expired)]
+      ..notices = [
+        SubscriptionNotice(
+          shopId: shopId,
+          kind: SubscriptionNoticeKind.retentionEnding,
+          expiresAt: expires,
+          retentionEndsOn: '2026-10-16',
+        ),
+      ];
+    await pumpGate(tester, shops, size: const Size(320, 700));
+    expect(tester.takeException(), isNull);
+    final dialog = find.byType(AlertDialog);
+    if (dialog.evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('subscription-dismiss')).last);
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('اقتراب نهاية مدة الاحتفاظ'), findsOneWidget);
+    await pumpGate(
+      tester,
+      shops,
+      size: const Size(1440, 900),
+      brightness: Brightness.dark,
+    );
+    expect(tester.takeException(), isNull);
+    final darkDialog = find.byType(AlertDialog);
+    if (darkDialog.evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('subscription-dismiss')).last);
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('اقتراب نهاية مدة الاحتفاظ'), findsOneWidget);
+    expect(find.textContaining('2026-10-16'), findsOneWidget);
+    expect(find.textContaining('لا يحذفها'), findsOneWidget);
+    expect(find.byKey(const Key('subscription-notice-renew')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('subscription-notice-dismiss')));
+    await tester.pumpAndSettle();
+    expect(shops.dismissCalls, 1);
+    expect(find.byKey(const Key('subscription-notice-banner')), findsNothing);
+    expect(find.text('منتهي - للقراءة فقط'), findsWidgets);
+  });
 }

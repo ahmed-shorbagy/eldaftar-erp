@@ -1,4 +1,8 @@
-# Current task pointer — 2026-10-28
+# Current task pointer — 2026-11-01
+
+The **retention warning** is implemented, locally verified, and development-deployed under [ADR 0038](../adr/0038-subscription-retention-warning.md), [validation](../reviews/subscription-retention-2026-11-01/validation.md), and [deployment](../reviews/subscription-retention-2026-11-01/deployment.md). It adds the four-month shop-local clock and the last-30-days owner notice. It does not delete data, add a reset, or open a shop ledger to platform staff. No next slice is selected. NTF-01, ADM-06, RET-03, custom payment methods, D21, publication and owner/device acceptance stay open.
+
+## Previous pointer — 2026-10-28
 
 **AUD-01 owner audit trail** is implemented, locally verified and development-deployed: [ADR 0037](../adr/0037-owner-audit-trail.md), [validation](../reviews/audit-trail-2026-10-28/validation.md), [deployment/preservation](../reviews/audit-trail-2026-10-28/deployment.md). The bounded slice is a read-only Arabic «سجل العمليات» browser over existing `financial_audit_events`. No next slice is selected by this pointer. NTF-01 shop-status notices, ADM-06 broadcasts, retention/reset, custom payment methods, D21 shop-data admin access, publication and owner/device acceptance stay open.
 

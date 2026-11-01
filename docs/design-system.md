@@ -1,5 +1,9 @@
 # ElDafttar UI theme contract
 
+## Subscription retention warning — 2026-11-01
+
+The existing subscription banner gains one server-driven kind, «اقتراب نهاية مدة الاحتفاظ». It uses the same secondary-container role as the renewal reminder, Cairo, and the 720-pixel measure. The shop-local end date is Latin digits in an LTR isolate. The sentence states that renewal restores writing and that the notice does not delete data. «إخفاء التنبيه» and «تجديد الاشتراك» stay 48-pixel controls. No new palette and no deletion control. [ADR 0038](adr/0038-subscription-retention-warning.md).
+
 ## Owner audit trail — 2026-10-28
 
 Owner «المزيد ← سجل العمليات» is a read-only Arabic RTL list inside the 720-pixel measure. Keep Cairo, brown/cream/dark tokens, padded 48-pixel filter chips and no new palette. Latin digits, operation ids and timestamps stay in LTR isolates. Empty, retry, access-loss and «تحميل المزيد» are the only states. No edit, delete, export, or guide card. [ADR 0037](adr/0037-owner-audit-trail.md).

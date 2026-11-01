@@ -73,9 +73,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
             'dismiss_subscription_notice_v1',
             params: {
               'p_shop_id': shopId,
-              'p_kind': kind == SubscriptionNoticeKind.renewalDue
-                  ? 'renewal_due'
-                  : 'expired',
+              'p_kind': subscriptionNoticeKindToApi(kind),
               'p_expires_at': expiresAt.toUtc().toIso8601String(),
             },
           )
@@ -93,10 +91,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
       final map = Map<String, dynamic>.from(response);
       if (map['status'] != 'dismissed' ||
           map['shop_id'] != shopId ||
-          map['kind'] !=
-              (kind == SubscriptionNoticeKind.renewalDue
-                  ? 'renewal_due'
-                  : 'expired')) {
+          map['kind'] != subscriptionNoticeKindToApi(kind)) {
         throw const SubscriptionNoticeException(
           SubscriptionNoticeFailure.invalidResponse,
         );
@@ -174,26 +169,7 @@ class SupabaseShopAccountGateway implements ShopAccountGateway {
         SubscriptionNoticeFailure.invalidResponse,
       );
     }
-    final id = value['shop_id'];
-    final kind = value['kind'];
-    final expires = value['entitlement_expires_at'];
-    final expiresAt = expires is String ? DateTime.tryParse(expires) : null;
-    if (id is! String ||
-        !_uuid.hasMatch(id) ||
-        kind is! String ||
-        (kind != 'renewal_due' && kind != 'expired') ||
-        expiresAt == null) {
-      throw const SubscriptionNoticeException(
-        SubscriptionNoticeFailure.invalidResponse,
-      );
-    }
-    return SubscriptionNotice(
-      shopId: id,
-      kind: kind == 'renewal_due'
-          ? SubscriptionNoticeKind.renewalDue
-          : SubscriptionNoticeKind.expired,
-      expiresAt: expiresAt.toUtc(),
-    );
+    return subscriptionNoticeFromApi(value);
   }
 
   static SubscriptionNoticeFailure _mapNoticeError(PostgrestException error) {

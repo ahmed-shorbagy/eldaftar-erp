@@ -32,18 +32,77 @@ String shopPermissionToApi(ShopPermission value) => switch (value) {
   ShopPermission.invoiceSend => 'invoice_send',
 };
 
-enum SubscriptionNoticeKind { renewalDue, expired }
+enum SubscriptionNoticeKind { renewalDue, expired, retentionEnding }
+
+String subscriptionNoticeKindToApi(SubscriptionNoticeKind kind) =>
+    switch (kind) {
+      SubscriptionNoticeKind.renewalDue => 'renewal_due',
+      SubscriptionNoticeKind.expired => 'expired',
+      SubscriptionNoticeKind.retentionEnding => 'retention_ending',
+    };
 
 class SubscriptionNotice {
   const SubscriptionNotice({
     required this.shopId,
     required this.kind,
     required this.expiresAt,
+    this.retentionEndsOn,
   });
 
   final String shopId;
   final SubscriptionNoticeKind kind;
+
+  /// Entitlement expiry that keys the dismissal. This is not the retention end.
   final DateTime expiresAt;
+
+  /// Shop-local calendar date `YYYY-MM-DD` when [kind] is [SubscriptionNoticeKind.retentionEnding].
+  final String? retentionEndsOn;
+}
+
+final _subscriptionNoticeShopId = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+);
+final _retentionEndsOn = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
+SubscriptionNotice subscriptionNoticeFromApi(Map<String, dynamic> value) {
+  final id = value['shop_id'];
+  final kind = value['kind'];
+  final expires = value['entitlement_expires_at'];
+  final expiresAt = expires is String ? DateTime.tryParse(expires) : null;
+  if (id is! String ||
+      !_subscriptionNoticeShopId.hasMatch(id) ||
+      expiresAt == null) {
+    throw const SubscriptionNoticeException(
+      SubscriptionNoticeFailure.invalidResponse,
+    );
+  }
+  final parsedKind = switch (kind) {
+    'renewal_due' => SubscriptionNoticeKind.renewalDue,
+    'expired' => SubscriptionNoticeKind.expired,
+    'retention_ending' => SubscriptionNoticeKind.retentionEnding,
+    _ => null,
+  };
+  if (parsedKind == null) {
+    throw const SubscriptionNoticeException(
+      SubscriptionNoticeFailure.invalidResponse,
+    );
+  }
+  String? retentionEndsOn;
+  if (parsedKind == SubscriptionNoticeKind.retentionEnding) {
+    final endsOn = value['retention_ends_on'];
+    if (endsOn is! String || !_retentionEndsOn.hasMatch(endsOn)) {
+      throw const SubscriptionNoticeException(
+        SubscriptionNoticeFailure.invalidResponse,
+      );
+    }
+    retentionEndsOn = endsOn;
+  }
+  return SubscriptionNotice(
+    shopId: id,
+    kind: parsedKind,
+    expiresAt: expiresAt.toUtc(),
+    retentionEndsOn: retentionEndsOn,
+  );
 }
 
 enum SubscriptionNoticeFailure {

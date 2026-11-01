@@ -1,6 +1,10 @@
 # Long-term delivery plan
 
-## Current plan — 2026-10-28 (AUD-01)
+## Current plan — 2026-11-01 (retention warning)
+
+The owner approved the bounded retention slice, now locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: the clock starts when the subscription expires and runs four calendar months in the shop time zone; during the last 30 shop-local days the owner sees one Arabic warning that can be dismissed once for that expiry; redeeming a code before the end restores writing and does not rebuild or wipe the books. No automatic deletion, no reset, and no admin access into the shop. [ADR 0038](adr/0038-subscription-retention-warning.md), [validation](reviews/subscription-retention-2026-11-01/validation.md), [deployment](reviews/subscription-retention-2026-11-01/deployment.md). NTF-01, ADM-06, RET-03, custom payment methods, D21 and owner/device acceptance stay open.
+
+## Previous plan — 2026-10-28 (AUD-01)
 
 AUD-01 owner audit trail is implemented, locally verified and development-deployed on `xchapwvmvoefriqcxtvn`: a read-only Arabic «سجل العمليات» page over existing append-only financial audit rows, owner-only including expired D13 readers, with partners, employees and count-only assignments denied at the database. [ADR 0037](adr/0037-owner-audit-trail.md), [validation](reviews/audit-trail-2026-10-28/validation.md), [deployment/preservation](reviews/audit-trail-2026-10-28/deployment.md). NTF-01, ADM-06, retention/reset, custom payment methods, D21 and owner/device acceptance stay open. No later Milestone 5 feature is selected by this delivery.
 
