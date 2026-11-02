@@ -20,7 +20,6 @@ void main() {
               shopName: 'متجر الاختبار',
               shopImageBytes: bytes,
               topInset: 0,
-              onToggleTheme: (_) async {},
             ),
           ),
         ),

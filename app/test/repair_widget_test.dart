@@ -409,7 +409,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('المزيد').last);
+      await tester.tap(find.text('الحساب').last);
       await tester.pumpAndSettle();
     }
 
@@ -428,17 +428,10 @@ void main() {
         readOnly: false,
       ),
     );
+    await tester.tap(find.byKey(const Key('workspace-menu')));
+    await tester.pumpAndSettle();
     final repairs = find.byKey(const Key('workspace-repairs'));
-    if (repairs.evaluate().isEmpty) {
-      await tester.scrollUntilVisible(
-        repairs,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-    }
     expect(repairs, findsOneWidget);
-    await tester.ensureVisible(repairs);
     await tester.tap(repairs);
     await tester.pumpAndSettle();
     expect(find.text('استلام قطعة'), findsOneWidget);

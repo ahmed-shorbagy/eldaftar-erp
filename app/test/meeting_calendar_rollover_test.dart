@@ -69,7 +69,6 @@ void main() {
           gateway: gateway,
           store: MemoryStore(),
           userId: 'owner-1',
-          onToggleTheme: (_) async {},
         ),
       );
       await t.pumpAndSettle();

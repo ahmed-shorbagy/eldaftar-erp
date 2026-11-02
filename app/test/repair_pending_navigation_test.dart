@@ -97,7 +97,6 @@ void main() {
             gateway: gateway,
             store: ledger_fixtures.MemoryStore(),
             userId: repair.userId,
-            onToggleTheme: (_) async {},
             onOpenRepairs: () async {
               opens++;
             },
@@ -151,7 +150,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('المزيد').last);
+    await tester.tap(find.text('الحساب').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('workspace-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('workspace-repairs')));
     await tester.pumpAndSettle();

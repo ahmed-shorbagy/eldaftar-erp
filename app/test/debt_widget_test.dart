@@ -263,21 +263,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('المزيد').last);
+    await tester.tap(find.text('الحساب').last);
     await tester.pumpAndSettle();
-    // The debts link renders only when a debt gateway is provided; it can sit
-    // below the fold of the lazy more menu at narrow widths.
+    await tester.tap(find.byKey(const Key('workspace-menu')));
+    await tester.pumpAndSettle();
     final debts = find.byKey(const Key('workspace-debts'));
-    if (debts.evaluate().isEmpty) {
-      await tester.scrollUntilVisible(
-        debts,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-    }
     expect(debts, findsOneWidget);
-    await tester.ensureVisible(debts);
     await tester.tap(debts);
     await tester.pumpAndSettle();
     expect(find.text('طرف تاريخي'), findsOneWidget);

@@ -261,7 +261,6 @@ Future<void> pumpScreen(
         userId: user,
         refreshGeneration: generation,
         onboardingStore: onboardingStore,
-        onToggleTheme: (_) async {},
         newKey: () => '99999999-9999-4999-8999-999999999999',
       ),
     ),
@@ -395,7 +394,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byTooltip('تحديث الدفتر'), findsNothing);
-      expect(find.byKey(const Key('theme-toggle')), findsOneWidget);
+      expect(find.byKey(const Key('theme-toggle')), findsNothing);
       expect(find.byTooltip('المزيد'), findsNothing);
       expect(find.byTooltip('تسجيل الخروج'), findsNothing);
       expect(find.text('تسجيل الخروج'), findsNothing);

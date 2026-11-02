@@ -79,12 +79,9 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('workspace-nav-4')));
     await t.pumpAndSettle();
-    await t.scrollUntilVisible(
-      find.text('التقارير'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await t.tap(find.text('التقارير'));
+    await t.tap(find.byKey(const Key('workspace-menu')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('workspace-reports')));
     await t.pumpAndSettle();
     expect(find.text('تقرير يوم مالي'), findsOneWidget);
     expect(find.text('تصدير PDF عربي'), findsOneWidget);

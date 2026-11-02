@@ -576,7 +576,6 @@ Future<void> pumpLedger(
           store: CaptureStore(),
           userId: 'user-1',
           onboardingStore: onboardingStore,
-          onToggleTheme: (_) async {},
           onChangeShop: () {},
         ),
       ),

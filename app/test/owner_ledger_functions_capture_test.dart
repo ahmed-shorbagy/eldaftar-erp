@@ -203,7 +203,6 @@ void main() {
                 gateway: CaptureRevisionGateway(view),
                 store: MemoryStore(),
                 userId: revisionUser,
-                onToggleTheme: (_) async {},
               ),
             ),
           );

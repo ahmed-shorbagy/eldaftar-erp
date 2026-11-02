@@ -9,6 +9,11 @@ do $guard$ begin
     or has_function_privilege('anon','public.list_daily_notes_date_v1(date,text,integer,text)','execute') then
     raise exception 'anonymous function privilege';
   end if;
+  if (select provolatile from pg_catalog.pg_proc
+      where oid = 'public.get_daily_ledger_home_v1()'::regprocedure)
+      is distinct from 'v' then
+    raise exception 'home rpc is not volatile';
+  end if;
 end; $guard$;
 insert into auth.users (id, instance_id, aud, role, email, is_anonymous, created_at, updated_at)
 values

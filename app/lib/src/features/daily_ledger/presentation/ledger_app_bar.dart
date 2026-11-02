@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../shell/shell_copy.dart';
+import '../../../shell/workspace_chrome.dart';
 import '../../../theme/brand_mark.dart';
 import '../../../theme/app_tokens.dart';
 
@@ -11,11 +11,11 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LedgerAppBar({
     super.key,
     required this.shopName,
-    required this.onToggleTheme,
     required this.topInset,
     this.subtitle,
     this.shopImageBytes,
     this.onChangeShop,
+    this.onOpenMenu,
     this.compact = false,
     this.collapsed = false,
     this.textScaler = TextScaler.noScaling,
@@ -24,8 +24,8 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String shopName;
   final String? subtitle;
   final Uint8List? shopImageBytes;
-  final Future<void> Function(Brightness) onToggleTheme;
   final VoidCallback? onChangeShop;
+  final VoidCallback? onOpenMenu;
   final double topInset;
   final bool compact;
   final bool collapsed;
@@ -62,6 +62,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dark = theme.brightness == Brightness.dark;
+    final openMenu = onOpenMenu ?? WorkspaceChrome.maybeOf(context)?.openDrawer;
 
     return Material(
       color: Colors.transparent,
@@ -102,6 +103,15 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if (openMenu != null) ...[
+                _PillIconButton(
+                  key: const Key('workspace-menu'),
+                  tooltip: 'القائمة',
+                  onPressed: openMenu,
+                  icon: Icons.menu,
+                ),
+                const SizedBox(width: 4),
+              ],
               if (!collapsed) ...[
                 _ShopMark(bytes: shopImageBytes, dark: dark, scheme: scheme),
                 const SizedBox(width: 12),
@@ -152,23 +162,14 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
-              if (onChangeShop != null)
+              if (onChangeShop != null) ...[
+                const SizedBox(width: 4),
                 _PillIconButton(
                   tooltip: 'اختيار متجر آخر',
                   onPressed: onChangeShop,
                   icon: Icons.storefront_outlined,
                 ),
-              _PillIconButton(
-                key: const Key('theme-toggle'),
-                tooltip: theme.brightness == Brightness.dark
-                    ? ShellCopy.toggleToLight
-                    : ShellCopy.toggleToDark,
-                onPressed: () => onToggleTheme(theme.brightness),
-                icon: theme.brightness == Brightness.dark
-                    ? Icons.light_mode_outlined
-                    : Icons.dark_mode_outlined,
-              ),
+              ],
             ],
           ),
         ),

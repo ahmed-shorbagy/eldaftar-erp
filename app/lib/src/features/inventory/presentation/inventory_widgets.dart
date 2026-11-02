@@ -1,6 +1,7 @@
 import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
+import '../../../shell/workspace_chrome.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
 import '../../onboarding/presentation/guide_card.dart';
@@ -24,7 +25,11 @@ class InventoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title), actions: actions),
+      appBar: AppBar(
+        title: Text(title),
+        leading: WorkspaceChrome.menuButton(context),
+        actions: actions,
+      ),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -34,7 +39,12 @@ class InventoryPage extends StatelessWidget {
             ),
             child: ListView(
               controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.spaceMd,
+                AppTokens.spaceMd,
+                AppTokens.spaceMd,
+                AppTokens.spaceXl,
+              ),
               children: children,
             ),
           ),

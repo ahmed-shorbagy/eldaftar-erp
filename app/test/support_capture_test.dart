@@ -224,7 +224,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('المزيد').last);
+    await tester.tap(find.text('الحساب').last);
     await tester.pumpAndSettle();
     final supportLink = find.byKey(const Key('workspace-support'));
     for (

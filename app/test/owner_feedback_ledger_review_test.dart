@@ -128,7 +128,6 @@ void main() {
               gateway: gateway,
               store: MemoryStore(),
               userId: 'owner-1',
-              onToggleTheme: (_) async {},
               onChangeShop: () {},
             ),
           ),
@@ -144,8 +143,10 @@ void main() {
           );
           await saveReview(tester, key, 'home-$journal-$suffix');
         }
-        await tester.ensureVisible(find.byKey(const Key('ledger-book-returns')));
-        await saveReview(tester,key,'home-returns-$suffix');
+        await tester.ensureVisible(
+          find.byKey(const Key('ledger-book-returns')),
+        );
+        await saveReview(tester, key, 'home-returns-$suffix');
         await tester.ensureVisible(find.byKey(const Key('ledger-customize')));
         await tester.pumpAndSettle();
         await tester.pumpAndSettle();

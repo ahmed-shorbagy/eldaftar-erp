@@ -275,7 +275,6 @@ void main() {
                   shopName: 'متجر الذهب التجريبي',
                   collapsed: true,
                   topInset: 0,
-                  onToggleTheme: (_) async {},
                   textScaler: TextScaler.linear(scale),
                 ),
                 body: SingleChildScrollView(

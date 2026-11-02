@@ -125,7 +125,7 @@ void main() {
           if (width < 840) {
             await tap(find.byKey(const Key('workspace-nav-4')));
           } else {
-            await tap(find.text('المزيد').last);
+            await tap(find.text('الحساب').last);
           }
           await shot('more');
           await tap(find.byKey(const Key('more-inventory-scrap')));

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../shell/workspace_chrome.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
@@ -1767,7 +1768,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
               : 'ملف العميل',
         ),
         leading: _stage == 'list'
-            ? null
+            ? WorkspaceChrome.menuButton(context)
             : IconButton(
                 tooltip: 'رجوع',
                 onPressed: _busy ? null : _back,

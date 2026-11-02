@@ -93,7 +93,6 @@ void main() {
             gateway: gateway,
             store: ledger_fixtures.MemoryStore(),
             userId: userId,
-            onToggleTheme: (_) async {},
             onOpenCustomers: () async {
               opens++;
             },

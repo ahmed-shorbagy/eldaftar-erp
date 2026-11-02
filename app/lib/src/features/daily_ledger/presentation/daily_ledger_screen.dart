@@ -53,7 +53,6 @@ class DailyLedgerScreen extends StatefulWidget {
   const DailyLedgerScreen({
     super.key,
     required this.shop,
-    required this.onToggleTheme,
     this.onChangeShop,
     this.onActivateSubscription,
     this.gateway,
@@ -74,7 +73,6 @@ class DailyLedgerScreen extends StatefulWidget {
   });
 
   final ShopAccount shop;
-  final Future<void> Function(Brightness) onToggleTheme;
   final VoidCallback? onChangeShop;
   final Future<void> Function()? onActivateSubscription;
   final OpeningGateway? gateway;
@@ -958,7 +956,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         topInset: MediaQuery.paddingOf(context).top,
         compact: compact,
         collapsed: _headerCollapsed,
-        onToggleTheme: widget.onToggleTheme,
         onChangeShop: widget.onChangeShop,
       ),
       body: Align(

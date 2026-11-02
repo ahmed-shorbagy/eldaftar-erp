@@ -13,6 +13,7 @@ import '../../daily_ledger/domain/quantities.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../../onboarding/application/onboarding_store.dart';
+import '../../../theme/app_tokens.dart';
 import '../application/inventory_command_flow.dart';
 import '../application/inventory_contract.dart';
 import '../application/inventory_gateway.dart';
@@ -501,87 +502,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
           focusNode: _searchFocus,
           maxLength: 120,
           textInputAction: TextInputAction.search,
-          decoration: ledgerFieldDecoration(context, label: 'بحث في الدفعات'),
+          decoration: ledgerFieldDecoration(context, label: 'بحث في الدفعات')
+              .copyWith(
+                counterText: '',
+                suffixIcon: IconButton(
+                  key: const Key('inventory-search-go'),
+                  tooltip: 'بحث',
+                  onPressed: _load,
+                  icon: const Icon(Icons.search),
+                ),
+              ),
           onSubmitted: (_) => _load(),
         ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          key: const Key('inventory-search-go'),
-          onPressed: _load,
-          child: const Text('بحث'),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String?>(
-          key: Key('inventory-category-${_category ?? 'all'}'),
-          initialValue: _category,
-          isExpanded: true,
-          focusNode: null,
-          decoration: ledgerFieldDecoration(context, label: 'الفئة'),
-          items: [
-            const DropdownMenuItem(value: null, child: Text('كل الفئات')),
-            for (final category in const [
-              'worked_jewelry',
-              'bullion',
-              'coin',
-              'scrap',
-            ])
-              DropdownMenuItem(
-                value: category,
-                child: Text(inventoryCategoryLabel(category)),
-              ),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _category = value;
-              final allowed = value == null ? null : karatsFor(value);
-              if (allowed != null &&
-                  _karat != null &&
-                  !allowed.contains(_karat)) {
-                _karat = null;
-              }
-            });
-            _load();
-          },
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<int?>(
-          key: Key('inventory-karat-${_category ?? 'all'}-${_karat ?? 0}'),
-          initialValue: _karat,
-          isExpanded: true,
-          decoration: ledgerFieldDecoration(context, label: 'العيار'),
-          items: [
-            const DropdownMenuItem(value: null, child: Text('كل العيارات')),
-            for (final karat
-                in _category == null
-                    ? ScrapKarats.allowed
-                    : karatsFor(_category!))
-              DropdownMenuItem(value: karat, child: Text('$karat')),
-          ],
-          onChanged: (value) {
-            setState(() => _karat = value);
-            _load();
-          },
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String?>(
-          key: const Key('inventory-class'),
-          initialValue: _stockClass,
-          isExpanded: true,
-          focusNode: _classFocus,
-          decoration: ledgerFieldDecoration(context, label: 'الحيازة'),
-          items: [
-            const DropdownMenuItem(value: null, child: Text('كل الحيازات')),
-            for (final value in StockClass.values)
-              DropdownMenuItem(
-                value: value.code,
-                child: Text(stockClassLabel(value)),
-              ),
-          ],
-          onChanged: (value) {
-            setState(() => _stockClass = value);
-            _load();
-          },
-        ),
+        const SizedBox(height: 16),
+        _filterBlock(),
         const SizedBox(height: 16),
         Focus(
           focusNode: _totalsFocus,
@@ -593,71 +527,55 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 const Text('لم تُحمّل أرصدة مؤكدة في هذه القراءة.')
               else ...[
                 _cashCard(),
-                _bucketCard(
-                  'inventory-available',
-                  'المتاح للبيع',
-                  totals.availableMilligrams,
-                  totals.availableCount,
-                ),
-                _bucketCard(
-                  'inventory-pending',
-                  'مملوك بانتظار الاعتراف',
-                  totals.pendingMilligrams,
-                  totals.pendingCount,
-                ),
-                _bucketCard(
-                  'inventory-held',
-                  'أمانة تاجر (الحالي)',
-                  totals.heldMilligrams,
-                  totals.heldCount,
-                ),
-                if (_totals != null)
-                  Card(
-                    key: const Key('inventory-held-original'),
-                    child: ListTile(
-                      title: const Text('وزنة التجار الأصلية'),
-                      subtitle: Text(
-                        '${gramsOf(_totals!.originalHeldMilligrams)} جرام',
-                      ),
+                const SizedBox(height: AppTokens.spaceSm),
+                _quantityBoard(totals),
+                if (_totals != null) ...[
+                  const SizedBox(height: AppTokens.spaceSm),
+                  _metricRowCard(
+                    keyName: 'inventory-held-original',
+                    label: 'وزنة التجار الأصلية',
+                    value: '${gramsOf(_totals!.originalHeldMilligrams)} جرام',
+                  ),
+                  ..._karatBreakdown(_totals!),
+                  if (_totals!.denominationRows.isNotEmpty) ...[
+                    const SizedBox(height: AppTokens.spaceSm),
+                    _sectionCard(
+                      keyName: 'inventory-bullion-section',
+                      title: 'السبائك',
+                      children: [
+                        for (final row in _totals!.denominationRows)
+                          _factLine(
+                            key: Key(
+                              'inventory-bullion-${row.denominationId ?? 'none'}',
+                            ),
+                            title: row.label,
+                            value:
+                                '${gramsOf(row.milligrams)} جرام — ${row.count} قطعة'
+                                '${row.nominalMilligrams > BigInt.zero ? ' — اسمي ${gramsOf(row.nominalMilligrams)}' : ''}',
+                          ),
+                      ],
                     ),
-                  ),
-                if (_totals != null) ..._karatBreakdown(_totals!),
-                if (_totals != null && _totals!.denominationRows.isNotEmpty)
-                  _sectionCard(
-                    keyName: 'inventory-bullion-section',
-                    title: 'السبائك',
-                    children: [
-                      for (final row in _totals!.denominationRows)
-                        ListTile(
-                          key: Key(
-                            'inventory-bullion-${row.denominationId ?? 'none'}',
+                  ],
+                  if (_totals!.coinRows.isNotEmpty) ...[
+                    const SizedBox(height: AppTokens.spaceSm),
+                    _sectionCard(
+                      keyName: 'inventory-coin-section',
+                      title: 'الجنيهات',
+                      children: [
+                        for (final row in _totals!.coinRows)
+                          _factLine(
+                            key: Key(
+                              'inventory-coin-${row.coinTypeId ?? 'none'}',
+                            ),
+                            title: row.label,
+                            value:
+                                '${gramsOf(row.milligrams)} جرام — ${row.count} قطعة'
+                                '${row.nominalMilligrams == null ? '' : ' — اسمي ${gramsOf(row.nominalMilligrams!)}'}',
                           ),
-                          title: Text(row.label),
-                          subtitle: Text(
-                            '${gramsOf(row.milligrams)} جرام — ${row.count} قطعة'
-                            '${row.nominalMilligrams > BigInt.zero ? ' — اسمي ${gramsOf(row.nominalMilligrams)}' : ''}',
-                          ),
-                        ),
-                    ],
-                  ),
-                if (_totals != null && _totals!.coinRows.isNotEmpty)
-                  _sectionCard(
-                    keyName: 'inventory-coin-section',
-                    title: 'الجنيهات',
-                    children: [
-                      for (final row in _totals!.coinRows)
-                        ListTile(
-                          key: Key(
-                            'inventory-coin-${row.coinTypeId ?? 'none'}',
-                          ),
-                          title: Text(row.label),
-                          subtitle: Text(
-                            '${gramsOf(row.milligrams)} جرام — ${row.count} قطعة'
-                            '${row.nominalMilligrams == null ? '' : ' — اسمي ${gramsOf(row.nominalMilligrams!)}'}',
-                          ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
+                ],
               ],
             ],
           ),
@@ -669,7 +587,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
         if (_denomsMissing)
           const Text('كتالوج الفئات غير متاح. يمكن الحفظ دون وزن اسمي.'),
         const SizedBox(height: 8),
-        if (_lots.isNotEmpty)
+        Text('الدفعات', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        if (_lots.isEmpty && !_loading)
+          Text(
+            'لا توجد دفعات مطابقة.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+          )
+        else if (_lots.isNotEmpty)
           InventoryLotsTable(
             lots: _lots,
             onOpen: (lot) => _open(
@@ -680,46 +608,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
             ),
           ),
-        if (_nextCursor != null)
+        if (_nextCursor != null) ...[
+          const SizedBox(height: 8),
           OutlinedButton(
             onPressed: _moreLots,
             child: const Text('المزيد من الدفعات'),
           ),
-        const SizedBox(height: 16),
-        TextField(
-          key: const Key('inventory-catalog-search'),
-          controller: _catalogQuery,
-          maxLength: 120,
-          decoration: ledgerFieldDecoration(context, label: 'بحث في الكتالوج'),
-          onSubmitted: (_) => _load(),
-        ),
+        ],
+        const SizedBox(height: 20),
+        Text('العمليات', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        OutlinedButton(
-          key: const Key('inventory-catalog-go'),
-          onPressed: _loading ? null : _load,
-          child: const Text('بحث في الكتالوج'),
-        ),
-        OlderPageControl(
-          count: _products.length,
-          noun: 'منتجات',
-          nextCursor: _productCursor,
-          onOlder: () => _moreCatalog(_MoreCatalog.products),
-          controlKey: const Key('inventory-products-older'),
-        ),
-        OlderPageControl(
-          count: _denoms.length,
-          noun: 'فئات سبائك',
-          nextCursor: _denomCursor,
-          onOlder: () => _moreCatalog(_MoreCatalog.denominations),
-          controlKey: const Key('inventory-denoms-older'),
-        ),
-        OlderPageControl(
-          count: _coins.length,
-          noun: 'عملات',
-          nextCursor: _coinCursor,
-          onOlder: () => _moreCatalog(_MoreCatalog.coins),
-          controlKey: const Key('inventory-coins-older'),
-        ),
         _action('إضافة مخزون', const Key('inventory-add'), _addFocus, () {
           _open(
             InventoryAdditionForm(
@@ -735,160 +633,423 @@ class _InventoryScreenState extends State<InventoryScreen> {
         }),
         _action('إزالة من المتاح', const Key('inventory-remove'), null, () {
           _open(InventoryRemovalForm(scope: _scope, lots: _lots));
-        }),
-        _action('تصحيح جرد', const Key('inventory-correct'), null, () {
-          _open(
-            InventoryCorrectionForm(
-              scope: _scope,
-              lots: _lots,
-              cashBalances: _cash,
+        }, filled: false),
+        _operationGroup(
+          title: 'تعديل المخزون',
+          children: [
+            _action('تصحيح جرد', const Key('inventory-correct'), null, () {
+              _open(
+                InventoryCorrectionForm(
+                  scope: _scope,
+                  lots: _lots,
+                  cashBalances: _cash,
+                ),
+              );
+            }, filled: false),
+            _action(
+              'تحويل فئة مع بقاء العيار',
+              const Key('inventory-convert'),
+              null,
+              () {
+                _open(InventoryConversionForm(scope: _scope, lots: _lots));
+              },
+              filled: false,
             ),
-          );
-        }),
-        _action(
-          'تحويل فئة مع بقاء العيار',
-          const Key('inventory-convert'),
-          null,
-          () {
-            _open(InventoryConversionForm(scope: _scope, lots: _lots));
-          },
+            _action(
+              'بيع دفعة محددة',
+              const Key('inventory-lot-sale'),
+              null,
+              () {
+                _open(
+                  ExplicitLotSaleForm(
+                    scope: _scope,
+                    lots: _lots,
+                    nextCursor: _nextCursor,
+                  ),
+                );
+              },
+              filled: false,
+            ),
+          ],
         ),
-        _action('بيع دفعة محددة', const Key('inventory-lot-sale'), null, () {
-          _open(
-            ExplicitLotSaleForm(
-              scope: _scope,
-              lots: _lots,
-              nextCursor: _nextCursor,
+        _operationGroup(
+          title: 'التجار والأمانات',
+          children: [
+            _action('استلام ذهب', const Key('inventory-receipt'), null, () {
+              _open(
+                InventoryReceiptForm(
+                  scope: _scope,
+                  traders: _traders,
+                  denominations: _denoms,
+                  coins: _coins,
+                ),
+              );
+            }, filled: false),
+            _action(
+              'اعتراف بكمية معلقة',
+              const Key('inventory-recognize'),
+              null,
+              () {
+                _open(
+                  InventoryRecognitionForm(
+                    scope: _scope,
+                    receipts: _deferred,
+                    nextCursor: _deferredCursor,
+                    loadOlder: (cursor) => widget.gateway.receipts(
+                      callerUserId: widget.userId,
+                      ownerKind: 'shop',
+                      recognition: 'deferred',
+                      cursor: cursor,
+                    ),
+                  ),
+                );
+              },
+              enabled: _writesEnabled && !_deferredMissing,
+              filled: false,
             ),
-          );
-        }),
-        _action('استلام ذهب', const Key('inventory-receipt'), null, () {
-          _open(
-            InventoryReceiptForm(
-              scope: _scope,
-              traders: _traders,
-              denominations: _denoms,
-              coins: _coins,
-            ),
-          );
-        }),
-        _action(
-          'اعتراف بكمية معلقة',
-          const Key('inventory-recognize'),
-          null,
-          () {
-            _open(
-              InventoryRecognitionForm(
-                scope: _scope,
-                receipts: _deferred,
-                nextCursor: _deferredCursor,
-                loadOlder: (cursor) => widget.gateway.receipts(
-                  callerUserId: widget.userId,
-                  ownerKind: 'shop',
-                  recognition: 'deferred',
-                  cursor: cursor,
+            if (_deferredCursor != null)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'الاعتراف يعرض صفحة الاستلامات المعلقة فقط. استخدم استلامات أقدم داخل النموذج.',
                 ),
               ),
-            );
-          },
-          enabled: _writesEnabled && !_deferredMissing,
-        ),
-        if (_deferredCursor != null)
-          const Text(
-            'الاعتراف يعرض صفحة الاستلامات المعلقة فقط. استخدم استلامات أقدم داخل النموذج.',
-          ),
-        _action(
-          'ربط يدوي باستلام',
-          const Key('inventory-link'),
-          null,
-          () {
-            _open(
-              InventoryManualLinkForm(
-                scope: _scope,
-                receipts: _deferred,
-                lots: _lots,
-                nextCursor: _deferredCursor,
-                loadOlder: (cursor) => widget.gateway.receipts(
-                  callerUserId: widget.userId,
-                  ownerKind: 'shop',
-                  recognition: 'deferred',
-                  cursor: cursor,
-                ),
-              ),
-            );
-          },
-          enabled: _writesEnabled && !_deferredMissing,
-        ),
-        _action(
-          'نقل ملكية الأمانة',
-          const Key('inventory-transfer'),
-          null,
-          () {
-            _open(
-              OwnershipTransferForm(
-                scope: _scope,
-                receipts: _custody,
-                nextCursor: _custodyCursor,
-                loadOlder: (cursor) => widget.gateway.receipts(
-                  callerUserId: widget.userId,
-                  ownerKind: 'trader',
-                  recognition: 'custody',
-                  cursor: cursor,
-                ),
-              ),
-            );
-          },
-          enabled: _writesEnabled && !_custodyMissing,
-        ),
-        _action('شراء مقابل ذهب', const Key('inventory-gold-buy'), null, () {
-          _open(
-            GoldAcquisitionForm(
-              scope: _scope,
-              traders: _traders,
-              traderCursor: _traderCursor,
-              loadTraders: (cursor) => widget.gateway.traders(
-                callerUserId: widget.userId,
-                cursor: cursor,
-              ),
+            _action(
+              'ربط يدوي باستلام',
+              const Key('inventory-link'),
+              null,
+              () {
+                _open(
+                  InventoryManualLinkForm(
+                    scope: _scope,
+                    receipts: _deferred,
+                    lots: _lots,
+                    nextCursor: _deferredCursor,
+                    loadOlder: (cursor) => widget.gateway.receipts(
+                      callerUserId: widget.userId,
+                      ownerKind: 'shop',
+                      recognition: 'deferred',
+                      cursor: cursor,
+                    ),
+                  ),
+                );
+              },
+              enabled: _writesEnabled && !_deferredMissing,
+              filled: false,
             ),
-          );
-        }),
-        _action(
-          'تسوية مستحق ذهبي',
-          const Key('inventory-gold-settle'),
-          null,
-          () {
-            _open(
-              GoldSettlementForm(
-                scope: _scope,
-                obligations: _gold,
-                lots: _lots,
-                nextCursor: _goldCursor,
-                loadOlder: (cursor) => widget.gateway.goldObligations(
-                  callerUserId: widget.userId,
-                  cursor: cursor,
-                ),
+            _action(
+              'نقل ملكية الأمانة',
+              const Key('inventory-transfer'),
+              null,
+              () {
+                _open(
+                  OwnershipTransferForm(
+                    scope: _scope,
+                    receipts: _custody,
+                    nextCursor: _custodyCursor,
+                    loadOlder: (cursor) => widget.gateway.receipts(
+                      callerUserId: widget.userId,
+                      ownerKind: 'trader',
+                      recognition: 'custody',
+                      cursor: cursor,
+                    ),
+                  ),
+                );
+              },
+              enabled: _writesEnabled && !_custodyMissing,
+              filled: false,
+            ),
+            _action(
+              'شراء مقابل ذهب',
+              const Key('inventory-gold-buy'),
+              null,
+              () {
+                _open(
+                  GoldAcquisitionForm(
+                    scope: _scope,
+                    traders: _traders,
+                    traderCursor: _traderCursor,
+                    loadTraders: (cursor) => widget.gateway.traders(
+                      callerUserId: widget.userId,
+                      cursor: cursor,
+                    ),
+                  ),
+                );
+              },
+              filled: false,
+            ),
+            _action(
+              'تسوية مستحق ذهبي',
+              const Key('inventory-gold-settle'),
+              null,
+              () {
+                _open(
+                  GoldSettlementForm(
+                    scope: _scope,
+                    obligations: _gold,
+                    lots: _lots,
+                    nextCursor: _goldCursor,
+                    loadOlder: (cursor) => widget.gateway.goldObligations(
+                      callerUserId: widget.userId,
+                      cursor: cursor,
+                    ),
+                  ),
+                );
+              },
+              enabled: _writesEnabled && !_goldMissing,
+              filled: false,
+            ),
+            if (_goldMissing)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text('مستحقات الذهب غير متاحة في هذا الاتصال.'),
               ),
-            );
-          },
-          enabled: _writesEnabled && !_goldMissing,
+          ],
         ),
-        if (_goldMissing) const Text('مستحقات الذهب غير متاحة في هذا الاتصال.'),
-        _action('منتج في الكتالوج', const Key('inventory-product'), null, () {
-          _open(CatalogProductForm(scope: _scope));
-        }),
-        _action(
-          'فئة سبيكة اسمية',
-          const Key('inventory-denomination'),
-          null,
-          () {
-            _open(DenominationForm(scope: _scope, coin: false));
-          },
+        _operationGroup(
+          title: 'الكتالوج',
+          children: [
+            TextField(
+              key: const Key('inventory-catalog-search'),
+              controller: _catalogQuery,
+              maxLength: 120,
+              textInputAction: TextInputAction.search,
+              decoration:
+                  ledgerFieldDecoration(
+                    context,
+                    label: 'بحث في الكتالوج',
+                  ).copyWith(
+                    counterText: '',
+                    suffixIcon: IconButton(
+                      key: const Key('inventory-catalog-go'),
+                      tooltip: 'بحث في الكتالوج',
+                      onPressed: _loading ? null : _load,
+                      icon: const Icon(Icons.search),
+                    ),
+                  ),
+              onSubmitted: (_) => _load(),
+            ),
+            OlderPageControl(
+              count: _products.length,
+              noun: 'منتجات',
+              nextCursor: _productCursor,
+              onOlder: () => _moreCatalog(_MoreCatalog.products),
+              controlKey: const Key('inventory-products-older'),
+            ),
+            OlderPageControl(
+              count: _denoms.length,
+              noun: 'فئات سبائك',
+              nextCursor: _denomCursor,
+              onOlder: () => _moreCatalog(_MoreCatalog.denominations),
+              controlKey: const Key('inventory-denoms-older'),
+            ),
+            OlderPageControl(
+              count: _coins.length,
+              noun: 'عملات',
+              nextCursor: _coinCursor,
+              onOlder: () => _moreCatalog(_MoreCatalog.coins),
+              controlKey: const Key('inventory-coins-older'),
+            ),
+            const SizedBox(height: 8),
+            _action(
+              'منتج في الكتالوج',
+              const Key('inventory-product'),
+              null,
+              () {
+                _open(CatalogProductForm(scope: _scope));
+              },
+              filled: false,
+            ),
+            _action(
+              'فئة سبيكة اسمية',
+              const Key('inventory-denomination'),
+              null,
+              () {
+                _open(DenominationForm(scope: _scope, coin: false));
+              },
+              filled: false,
+            ),
+            _action('نوع عملة', const Key('inventory-coin'), null, () {
+              _open(DenominationForm(scope: _scope, coin: true));
+            }, filled: false),
+          ],
         ),
-        _action('نوع عملة', const Key('inventory-coin'), null, () {
-          _open(DenominationForm(scope: _scope, coin: true));
-        }),
       ],
+    );
+  }
+
+  Widget _filterBlock() {
+    final karats = _category == null
+        ? ScrapKarats.allowed
+        : karatsFor(_category!);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('تصفية الدفعات', style: theme.textTheme.titleMedium),
+        const SizedBox(height: AppTokens.spaceSm),
+        Text(
+          'الفئة',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _chipWrap(
+          key: Key('inventory-category-${_category ?? 'all'}'),
+          children: [
+            _choiceChip(
+              label: 'الكل',
+              selected: _category == null,
+              onSelected: () => _selectCategory(null),
+            ),
+            for (final category in const [
+              'worked_jewelry',
+              'bullion',
+              'coin',
+              'scrap',
+            ])
+              _choiceChip(
+                label: inventoryCategoryLabel(category),
+                selected: _category == category,
+                onSelected: () => _selectCategory(category),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppTokens.spaceSm),
+        Text(
+          'العيار',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _chipWrap(
+          key: Key('inventory-karat-${_category ?? 'all'}-${_karat ?? 0}'),
+          children: [
+            _choiceChip(
+              label: 'الكل',
+              selected: _karat == null,
+              onSelected: () => _selectKarat(null),
+            ),
+            for (final karat in karats)
+              _choiceChip(
+                label: '$karat',
+                selected: _karat == karat,
+                onSelected: () => _selectKarat(karat),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppTokens.spaceSm),
+        Text(
+          'الحيازة',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _chipWrap(
+          key: const Key('inventory-class'),
+          focusNode: _classFocus,
+          children: [
+            _choiceChip(
+              label: 'الكل',
+              selected: _stockClass == null,
+              onSelected: () => _selectClass(null),
+            ),
+            _choiceChip(
+              label: 'متاح',
+              selected: _stockClass == StockClass.ownedAvailable.code,
+              onSelected: () => _selectClass(StockClass.ownedAvailable.code),
+            ),
+            _choiceChip(
+              label: 'معلق',
+              selected: _stockClass == StockClass.ownedPending.code,
+              onSelected: () => _selectClass(StockClass.ownedPending.code),
+            ),
+            _choiceChip(
+              label: 'أمانة',
+              selected: _stockClass == StockClass.traderCustody.code,
+              onSelected: () => _selectClass(StockClass.traderCustody.code),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _selectCategory(String? value) {
+    setState(() {
+      _category = value;
+      final allowed = value == null ? null : karatsFor(value);
+      if (allowed != null && _karat != null && !allowed.contains(_karat)) {
+        _karat = null;
+      }
+    });
+    _load();
+  }
+
+  void _selectKarat(int? value) {
+    setState(() => _karat = value);
+    _load();
+  }
+
+  void _selectClass(String? value) {
+    setState(() => _stockClass = value);
+    _load();
+  }
+
+  Widget _chipWrap({
+    required Key key,
+    required List<Widget> children,
+    FocusNode? focusNode,
+  }) {
+    final chips = Wrap(key: key, spacing: 8, runSpacing: 8, children: children);
+    if (focusNode == null) return chips;
+    return Focus(
+      focusNode: focusNode,
+      canRequestFocus: false,
+      skipTraversal: true,
+      child: chips,
+    );
+  }
+
+  Widget _choiceChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    );
+  }
+
+  Widget _operationGroup({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: ExpansionTile(
+          title: Text(title),
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceMd,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(
+            AppTokens.spaceMd,
+            0,
+            AppTokens.spaceMd,
+            AppTokens.spaceMd,
+          ),
+          children: children,
+        ),
+      ),
     );
   }
 
@@ -960,59 +1121,235 @@ class _InventoryScreenState extends State<InventoryScreen> {
     FocusNode? focusNode,
     VoidCallback onPressed, {
     bool? enabled,
+    bool filled = true,
   }) {
+    final callback = (enabled ?? _writesEnabled) ? onPressed : null;
+    final child = Text(label);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: FilledButton(
-        key: key,
-        focusNode: focusNode,
-        onPressed: (enabled ?? _writesEnabled) ? onPressed : null,
-        child: Text(label),
-      ),
+      child: filled
+          ? FilledButton(
+              key: key,
+              focusNode: focusNode,
+              onPressed: callback,
+              child: child,
+            )
+          : OutlinedButton(
+              key: key,
+              focusNode: focusNode,
+              onPressed: callback,
+              child: child,
+            ),
     );
   }
 
   Widget _cashCard() {
+    final theme = Theme.of(context);
+    final methods = CashMethod.canonicalOrder;
     return Card(
       key: const Key('inventory-cash'),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.all(AppTokens.spaceMd),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'النقدية المتاحة',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            for (final method in CashMethod.canonicalOrder)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '${cashMethodLabel(method)}: '
-                  '${poundsOf(_cash[method.code] ?? BigInt.zero)}',
-                  key: Key('inventory-cash-${method.code}'),
-                ),
+            Text('النقدية المتاحة', style: theme.textTheme.titleMedium),
+            const SizedBox(height: AppTokens.spaceMd),
+            for (var row = 0; row < methods.length; row += 2) ...[
+              if (row > 0) const SizedBox(height: AppTokens.spaceMd),
+              Row(
+                children: [
+                  Expanded(child: _cashCell(methods[row])),
+                  const SizedBox(width: AppTokens.spaceMd),
+                  Expanded(
+                    child: row + 1 < methods.length
+                        ? _cashCell(methods[row + 1])
+                        : const SizedBox.shrink(),
+                  ),
+                ],
               ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _bucketCard(
-    String keyName,
-    String label,
-    BigInt milligrams,
-    BigInt? count,
-  ) {
+  Widget _cashCell(CashMethod method) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          cashMethodLabel(method),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          poundsOf(_cash[method.code] ?? BigInt.zero),
+          key: Key('inventory-cash-${method.code}'),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _quantityBoard(QuantityTriple totals) {
+    final theme = Theme.of(context);
+    final rows = [
+      (
+        'inventory-available',
+        'المتاح للبيع',
+        totals.availableMilligrams,
+        totals.availableCount,
+      ),
+      (
+        'inventory-pending',
+        'بانتظار الاعتراف',
+        totals.pendingMilligrams,
+        totals.pendingCount,
+      ),
+      (
+        'inventory-held',
+        'أمانة التجار الحالية',
+        totals.heldMilligrams,
+        totals.heldCount,
+      ),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTokens.spaceMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('أرصدة الذهب', style: theme.textTheme.titleMedium),
+            const SizedBox(height: AppTokens.spaceSm),
+            for (var index = 0; index < rows.length; index++) ...[
+              if (index > 0) ...[
+                const SizedBox(height: AppTokens.spaceSm),
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spaceSm),
+              ],
+              _goldMetricRow(
+                keyName: rows[index].$1,
+                label: rows[index].$2,
+                milligrams: rows[index].$3,
+                count: rows[index].$4,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _goldMetricRow({
+    required String keyName,
+    required String label,
+    required BigInt milligrams,
+    required BigInt? count,
+  }) {
+    final theme = Theme.of(context);
+    return KeyedSubtree(
+      key: Key(keyName),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyLarge?.copyWith(height: 1.35),
+            ),
+          ),
+          const SizedBox(width: AppTokens.spaceSm),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${gramsOf(milligrams)} جرام',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (count != null)
+                Text(
+                  '$count قطعة',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricRowCard({
+    required String keyName,
+    required String label,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
     return Card(
       key: Key(keyName),
-      child: ListTile(
-        title: Text(label),
-        subtitle: Text(
-          '${gramsOf(milligrams)} جرام${count == null ? '' : ' — $count قطعة'}',
+      child: Padding(
+        padding: const EdgeInsets.all(AppTokens.spaceMd),
+        child: Row(
+          children: [
+            Expanded(child: Text(label, style: theme.textTheme.bodyLarge)),
+            const SizedBox(width: AppTokens.spaceSm),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _factLine({
+    required Key key,
+    required String title,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: theme.textTheme.bodyLarge?.copyWith(height: 1.35),
+            ),
+          ),
+          const SizedBox(width: AppTokens.spaceSm),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1022,18 +1359,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
     required String title,
     required List<Widget> children,
   }) {
+    final theme = Theme.of(context);
     return Card(
       key: Key(keyName),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+        padding: const EdgeInsets.all(AppTokens.spaceMd),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            ...children,
+            const SizedBox(height: AppTokens.spaceSm),
+            for (var index = 0; index < children.length; index++) ...[
+              if (index > 0)
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+              children[index],
+            ],
           ],
         ),
       ),
@@ -1056,38 +1407,40 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ];
     if (jewelry.isEmpty && scrap.isEmpty) return const [];
     return [
-      if (jewelry.isNotEmpty)
+      if (jewelry.isNotEmpty) ...[
+        const SizedBox(height: AppTokens.spaceSm),
         _sectionCard(
           keyName: 'inventory-jewelry-section',
           title: 'المشغولات حسب العيار',
           children: [
             for (final bucket in jewelry)
-              ListTile(
+              _factLine(
                 key: Key('inventory-jewelry-${bucket.karat}'),
-                title: Text('عيار ${bucket.karat}'),
-                subtitle: Text(
-                  '${gramsOf(bucket.quantities.availableMilligrams)} جرام'
-                  '${bucket.quantities.availableCount == null ? '' : ' — ${bucket.quantities.availableCount} قطعة'}',
-                ),
+                title: 'عيار ${bucket.karat}',
+                value:
+                    '${gramsOf(bucket.quantities.availableMilligrams)} جرام'
+                    '${bucket.quantities.availableCount == null ? '' : ' — ${bucket.quantities.availableCount} قطعة'}',
               ),
           ],
         ),
-      if (scrap.isNotEmpty)
+      ],
+      if (scrap.isNotEmpty) ...[
+        const SizedBox(height: AppTokens.spaceSm),
         _sectionCard(
           keyName: 'inventory-scrap-section',
           title: 'الكسر',
           children: [
             for (final bucket in scrap)
-              ListTile(
+              _factLine(
                 key: Key('inventory-scrap-${bucket.karat}'),
-                title: Text('كسر عيار ${bucket.karat}'),
-                subtitle: Text(
-                  'متاح ${gramsOf(bucket.quantities.availableMilligrams)} جرام'
-                  '${bucket.quantities.heldMilligrams > BigInt.zero ? ' — أمانة ${gramsOf(bucket.quantities.heldMilligrams)}' : ''}',
-                ),
+                title: 'كسر عيار ${bucket.karat}',
+                value:
+                    'متاح ${gramsOf(bucket.quantities.availableMilligrams)} جرام'
+                    '${bucket.quantities.heldMilligrams > BigInt.zero ? ' — أمانة ${gramsOf(bucket.quantities.heldMilligrams)}' : ''}',
               ),
           ],
         ),
+      ],
     ];
   }
 }

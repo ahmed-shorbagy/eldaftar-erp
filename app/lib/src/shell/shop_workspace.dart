@@ -18,6 +18,7 @@ import '../features/support/presentation/support_screen.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../features/shop_accounts/presentation/subscription_notice_banner.dart';
 import '../theme/app_tokens.dart';
+import 'workspace_chrome.dart';
 
 /// Keeps the ledger as the initial workspace and exposes all Arabic destinations.
 class ShopWorkspace extends StatefulWidget {
@@ -101,6 +102,7 @@ class ShopWorkspace extends StatefulWidget {
 }
 
 class _ShopWorkspaceState extends State<ShopWorkspace> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _destination = 0;
   Route<void>? _repairRoute;
   Route<void>? _debtRoute;
@@ -109,6 +111,8 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   Route<void>? _shopImageRoute;
   Route<void>? _closingStaffRoute;
   Future<LogoUploadRecord?>? _logoDraft;
+
+  void _openDrawer() => _scaffoldKey.currentState?.openDrawer();
 
   @override
   void initState() {
@@ -149,20 +153,28 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     'الجرد الفوري',
     'العملاء',
     'التقارير',
-    'المزيد',
+    'الحساب',
   ];
   static const _icons = [
     Icons.menu_book_outlined,
     Icons.inventory_2_outlined,
     Icons.people_outline,
     Icons.assessment_outlined,
-    Icons.more_horiz,
+    Icons.person_outline,
   ];
 
   void _select(int index) => setState(() => _destination = index);
 
   Widget _page(String title, List<Widget> children) => Scaffold(
-    appBar: AppBar(title: Text(title)),
+    appBar: AppBar(
+      title: Text(title),
+      leading: IconButton(
+        key: const Key('workspace-menu'),
+        tooltip: 'القائمة',
+        icon: const Icon(Icons.menu),
+        onPressed: _openDrawer,
+      ),
+    ),
     body: SafeArea(
       child: Align(
         alignment: Alignment.topCenter,
@@ -171,7 +183,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
             maxWidth: AppTokens.contentMaxWidth,
           ),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTokens.spaceMd),
             children: children,
           ),
         ),
@@ -180,16 +192,21 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   );
 
   Widget _link(String label, IconData icon, VoidCallback onTap, {Key? key}) =>
-      Card(
-        child: ListTile(
-          key: key,
-          minVerticalPadding: 16,
-          leading: ExcludeSemantics(child: Icon(icon)),
-          title: Text(label),
-          trailing: const ExcludeSemantics(child: Icon(Icons.chevron_right)),
-          onTap: onTap,
-        ),
+      ListTile(
+        key: key,
+        minVerticalPadding: 14,
+        leading: ExcludeSemantics(child: Icon(icon)),
+        title: Text(label),
+        trailing: const ExcludeSemantics(child: Icon(Icons.chevron_left)),
+        onTap: onTap,
       );
+
+  String get _roleLabel => switch (widget.shop.memberRole) {
+    ShopMemberRole.owner => 'صاحب المتجر',
+    ShopMemberRole.partner => 'شريك',
+    ShopMemberRole.employee => 'موظف',
+    null => 'حساب المتجر',
+  };
 
   void _openTraders() {
     final builder = widget.traderBuilder;
@@ -283,7 +300,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       refreshGeneration: widget.refreshGeneration,
       syncTicks: widget.syncTicks,
       shopImageBytes: widget.shopImageBytes,
-      onToggleTheme: widget.onToggleTheme,
       onChangeShop: widget.onChangeShop,
       onActivateSubscription: widget.onActivateSubscription,
       onboardingStore: widget.onboardingStore,
@@ -343,159 +359,415 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
                 () => _select(0),
               ),
             ]),
-    _ => _page('المزيد', [
-      if (!widget.shop.isEmployee) ...[
-        LedgerMoreBalances(
-          key: ValueKey(
-            'more-${widget.shop.id}-${widget.userId}-${widget.refreshGeneration}',
-          ),
-          shop: widget.shop,
-          gateway: widget.gateway,
-          userId: widget.userId,
-          refreshGeneration: widget.refreshGeneration,
-          syncTicks: widget.syncTicks,
-        ),
-        const SizedBox(height: 12),
-      ],
-      if (widget.shop.isOwner && widget.profileBuilder != null)
-        _link(
-          'بيانات المتجر',
-          Icons.store_mall_directory_outlined,
-          _openProfile,
-          key: const Key('workspace-shop-profile'),
-        ),
-      if (widget.shop.isOwner && widget.paymentMethodsBuilder != null)
-        _link(
-          'وسائل الدفع',
-          Icons.payments_outlined,
-          _openPaymentMethods,
-          key: const Key('workspace-payment-methods'),
-        ),
-      if (widget.shop.isOwner && widget.staffBuilder != null)
-        _link(
-          'الموظفون والصلاحيات',
-          Icons.badge_outlined,
-          _openStaff,
-          key: const Key('workspace-shop-staff'),
-        ),
-      if (widget.shop.isOwner && widget.traderBuilder != null)
-        _link('التجار والأمانات', Icons.storefront_outlined, _openTraders),
-      if (widget.shop.isOwner && widget.repairBuilder != null)
-        _link(
-          'الصيانة',
-          Icons.handyman_outlined,
-          _openRepairs,
-          key: const Key('workspace-repairs'),
-        ),
-      if (widget.shop.isOwner && widget.debtBuilder != null)
-        _link(
-          'الديون',
-          Icons.account_balance_wallet_outlined,
-          _openDebts,
-          key: const Key('workspace-debts'),
-        ),
-      if (widget.shop.isOwner && widget.shopImageBuilder != null)
-        _link(
-          'صورة المتجر',
-          Icons.storefront_outlined,
-          _openShopImage,
-          key: const Key('workspace-shop-image'),
-        ),
-      if (widget.shop.isOwner && widget.appearanceBuilder != null)
-        FutureBuilder<LogoUploadRecord?>(
-          future: _logoDraft,
-          builder: (context, snapshot) => Card(
-            child: ListTile(
-              key: const Key('workspace-invoice-appearance'),
-              minVerticalPadding: 16,
-              leading: const Icon(Icons.receipt_long_outlined),
-              title: const Text('مظهر الفاتورة'),
-              subtitle: snapshot.data?.fromRegistration == true
-                  ? const Text(
-                      'مسودة شعار التسجيل بانتظار الرفع والمراجعة والحفظ.',
-                    )
-                  : null,
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _openAppearance,
-            ),
-          ),
-        ),
-      if (widget.shop.isOwner && widget.closingStaffBuilder != null)
-        _link(
-          'فريق عد التقفيل',
-          Icons.fact_check_outlined,
-          _openClosingStaff,
-          key: const Key('workspace-closing-staff'),
-        ),
-      if (widget.shop.hasPermission(ShopPermission.reports))
-        _link('التقارير', Icons.assessment_outlined, () => _select(3)),
-      if (widget.shop.hasPermission(ShopPermission.reports) &&
-          widget.analyticsBuilder != null)
-        _link('التحليلات', Icons.insights_outlined, () {
-          final builder = widget.analyticsBuilder;
-          if (builder != null) {
-            Navigator.of(
-              context,
-            ).push<void>(MaterialPageRoute(builder: builder));
-          }
-        }, key: const Key('workspace-analytics')),
-      if (widget.shop.isOwner && widget.auditTrailGateway != null)
-        _link(
-          'سجل العمليات',
-          Icons.history_outlined,
-          () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) =>
-                    AuditTrailScreen(gateway: widget.auditTrailGateway!),
-              ),
-            );
-          },
-          key: const Key('workspace-audit-trail'),
-        ),
-      if (widget.shop.isOwner && widget.supportGateway != null)
-        _link(
-          'تواصل مع الدعم',
-          Icons.support_agent_outlined,
-          () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => SupportScreen(gateway: widget.supportGateway!),
-              ),
-            );
-          },
-          key: const Key('workspace-support'),
-        ),
-      if (widget.helpGateway != null)
-        _link('المساعدة', Icons.help_outline, () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => HelpScreen(
-                gateway: widget.helpGateway!,
-                supportBuilder:
-                    widget.shop.isOwner && widget.supportGateway != null
-                    ? (_) => SupportScreen(gateway: widget.supportGateway!)
-                    : null,
-              ),
-            ),
-          );
-        }, key: const Key('workspace-help')),
-      _link(
-        Theme.of(context).brightness == Brightness.dark
-            ? 'المظهر الفاتح'
-            : 'المظهر الداكن',
-        Icons.brightness_6_outlined,
-        () => widget.onToggleTheme(Theme.of(context).brightness),
-      ),
-      if (widget.onChangeShop != null)
-        _link(
-          'العودة إلى حساب المتجر',
-          Icons.storefront_outlined,
-          widget.onChangeShop!,
-        ),
-      _link('تسجيل الخروج', Icons.logout, widget.onSignOut),
-    ]),
+    _ => _accountPage(),
   };
+
+  Widget _accountPage() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الحساب'),
+        leading: IconButton(
+          key: const Key('workspace-menu'),
+          tooltip: 'القائمة',
+          icon: const Icon(Icons.menu),
+          onPressed: _openDrawer,
+        ),
+      ),
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppTokens.contentMaxWidth,
+            ),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.spaceMd,
+                AppTokens.spaceMd,
+                AppTokens.spaceMd,
+                AppTokens.spaceXl,
+              ),
+              children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTokens.spaceMd),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: scheme.primaryContainer,
+                          foregroundColor: scheme.onPrimaryContainer,
+                          backgroundImage: widget.shopImageBytes == null
+                              ? null
+                              : MemoryImage(widget.shopImageBytes!),
+                          child: widget.shopImageBytes == null
+                              ? const Icon(Icons.storefront_outlined, size: 28)
+                              : null,
+                        ),
+                        const SizedBox(width: AppTokens.spaceMd),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.shop.name,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _roleLabel,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spaceMd),
+                Text(
+                  'افتح القائمة للتنقل إلى التجار والصيانة والديون والتقارير.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                ),
+                if (!widget.shop.isEmployee) ...[
+                  const SizedBox(height: AppTokens.spaceMd),
+                  Text('الأرقام والمخزون', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: AppTokens.spaceSm),
+                  LedgerMoreBalances(
+                    key: ValueKey(
+                      'more-${widget.shop.id}-${widget.userId}-${widget.refreshGeneration}',
+                    ),
+                    shop: widget.shop,
+                    gateway: widget.gateway,
+                    userId: widget.userId,
+                    refreshGeneration: widget.refreshGeneration,
+                    syncTicks: widget.syncTicks,
+                  ),
+                ],
+                if (widget.shop.isOwner) ...[
+                  const SizedBox(height: AppTokens.spaceLg),
+                  _settingsGroup(
+                    title: 'إعدادات المتجر',
+                    children: [
+                      if (widget.profileBuilder != null)
+                        _link(
+                          'بيانات المتجر',
+                          Icons.store_mall_directory_outlined,
+                          _openProfile,
+                          key: const Key('workspace-shop-profile'),
+                        ),
+                      if (widget.shopImageBuilder != null)
+                        _link(
+                          'صورة المتجر',
+                          Icons.photo_camera_outlined,
+                          _openShopImage,
+                          key: const Key('workspace-shop-image'),
+                        ),
+                      if (widget.paymentMethodsBuilder != null)
+                        _link(
+                          'وسائل الدفع',
+                          Icons.payments_outlined,
+                          _openPaymentMethods,
+                          key: const Key('workspace-payment-methods'),
+                        ),
+                      if (widget.staffBuilder != null)
+                        _link(
+                          'الموظفون والصلاحيات',
+                          Icons.badge_outlined,
+                          _openStaff,
+                          key: const Key('workspace-shop-staff'),
+                        ),
+                    ],
+                  ),
+                  if (widget.appearanceBuilder != null) ...[
+                    const SizedBox(height: AppTokens.spaceMd),
+                    _settingsGroup(
+                      title: 'الفاتورة',
+                      children: [
+                        FutureBuilder<LogoUploadRecord?>(
+                          future: _logoDraft,
+                          builder: (context, snapshot) => ListTile(
+                            key: const Key('workspace-invoice-appearance'),
+                            minVerticalPadding: 14,
+                            leading: const ExcludeSemantics(
+                              child: Icon(Icons.receipt_long_outlined),
+                            ),
+                            title: const Text('مظهر الفاتورة'),
+                            subtitle: snapshot.data?.fromRegistration == true
+                                ? const Text(
+                                    'مسودة شعار التسجيل بانتظار الرفع والمراجعة والحفظ.',
+                                  )
+                                : null,
+                            trailing: const ExcludeSemantics(
+                              child: Icon(Icons.chevron_left),
+                            ),
+                            onTap: _openAppearance,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+                const SizedBox(height: AppTokens.spaceMd),
+                _settingsGroup(
+                  title: 'الحساب والدعم',
+                  children: [
+                    _link(
+                      dark ? 'المظهر الفاتح' : 'المظهر الداكن',
+                      Icons.brightness_6_outlined,
+                      () => widget.onToggleTheme(theme.brightness),
+                      key: const Key('workspace-theme-toggle'),
+                    ),
+                    if (widget.helpGateway != null)
+                      _link(
+                        'المساعدة',
+                        Icons.help_outline,
+                        () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => HelpScreen(
+                                gateway: widget.helpGateway!,
+                                supportBuilder:
+                                    widget.shop.isOwner &&
+                                        widget.supportGateway != null
+                                    ? (_) => SupportScreen(
+                                        gateway: widget.supportGateway!,
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                        key: const Key('workspace-help'),
+                      ),
+                    if (widget.shop.isOwner && widget.supportGateway != null)
+                      _link(
+                        'تواصل مع الدعم',
+                        Icons.support_agent_outlined,
+                        () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => SupportScreen(
+                                gateway: widget.supportGateway!,
+                              ),
+                            ),
+                          );
+                        },
+                        key: const Key('workspace-support'),
+                      ),
+                    if (widget.onChangeShop != null)
+                      _link(
+                        'العودة إلى حساب المتجر',
+                        Icons.swap_horiz_outlined,
+                        widget.onChangeShop!,
+                        key: const Key('workspace-change-shop'),
+                      ),
+                    _link(
+                      'تسجيل الخروج',
+                      Icons.logout,
+                      widget.onSignOut,
+                      key: const Key('workspace-sign-out'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsGroup({
+    required String title,
+    required List<Widget> children,
+  }) {
+    final items = children.whereType<Widget>().toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(title, style: theme.textTheme.titleMedium),
+        const SizedBox(height: AppTokens.spaceSm),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var index = 0; index < items.length; index++) ...[
+                if (index > 0)
+                  Divider(
+                    height: 1,
+                    indent: 56,
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.7,
+                    ),
+                  ),
+                items[index],
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _workspaceDrawer() {
+    final theme = Theme.of(context);
+    return Drawer(
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppTokens.spaceSm,
+            AppTokens.spaceMd,
+            AppTokens.spaceSm,
+            AppTokens.spaceLg,
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.spaceMd,
+                0,
+                AppTokens.spaceMd,
+                AppTokens.spaceMd,
+              ),
+              child: Text('التنقل', style: theme.textTheme.titleLarge),
+            ),
+            _drawerLink(
+              label: 'الدفتر اليومي',
+              icon: Icons.menu_book_outlined,
+              onTap: () {
+                Navigator.of(context).pop();
+                _select(0);
+              },
+            ),
+            if (widget.shop.hasPermission(ShopPermission.inventory))
+              _drawerLink(
+                label: 'الجرد الفوري',
+                icon: Icons.inventory_2_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _select(1);
+                },
+              ),
+            if (widget.shop.isOwner)
+              _drawerLink(
+                label: 'العملاء',
+                icon: Icons.people_outline,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _select(2);
+                },
+              ),
+            if (widget.shop.hasPermission(ShopPermission.reports))
+              _drawerLink(
+                label: 'التقارير',
+                icon: Icons.assessment_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _select(3);
+                },
+                tileKey: const Key('workspace-reports'),
+              ),
+            if (widget.shop.hasPermission(ShopPermission.reports) &&
+                widget.analyticsBuilder != null)
+              _drawerLink(
+                label: 'التحليلات',
+                icon: Icons.insights_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  final builder = widget.analyticsBuilder;
+                  if (builder != null) {
+                    Navigator.of(
+                      context,
+                    ).push<void>(MaterialPageRoute(builder: builder));
+                  }
+                },
+                tileKey: const Key('workspace-analytics'),
+              ),
+            if (widget.shop.isOwner && widget.traderBuilder != null)
+              _drawerLink(
+                label: 'التجار والأمانات',
+                icon: Icons.storefront_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openTraders();
+                },
+                tileKey: const Key('workspace-traders'),
+              ),
+            if (widget.shop.isOwner && widget.repairBuilder != null)
+              _drawerLink(
+                label: 'الصيانة',
+                icon: Icons.handyman_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openRepairs();
+                },
+                tileKey: const Key('workspace-repairs'),
+              ),
+            if (widget.shop.isOwner && widget.debtBuilder != null)
+              _drawerLink(
+                label: 'الديون',
+                icon: Icons.account_balance_wallet_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openDebts();
+                },
+                tileKey: const Key('workspace-debts'),
+              ),
+            if (widget.shop.isOwner && widget.closingStaffBuilder != null)
+              _drawerLink(
+                label: 'فريق عد التقفيل',
+                icon: Icons.fact_check_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openClosingStaff();
+                },
+                tileKey: const Key('workspace-closing-staff'),
+              ),
+            if (widget.shop.isOwner && widget.auditTrailGateway != null)
+              _drawerLink(
+                label: 'سجل العمليات',
+                icon: Icons.history_outlined,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          AuditTrailScreen(gateway: widget.auditTrailGateway!),
+                    ),
+                  );
+                },
+                tileKey: const Key('workspace-audit-trail'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerLink({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+    Key? tileKey,
+  }) => ListTile(
+    key: tileKey,
+    leading: ExcludeSemantics(child: Icon(icon)),
+    title: Text(label),
+    onTap: onTap,
+  );
 
   Widget _withNotice(Widget child) {
     final notice = widget.subscriptionNotice;
@@ -556,55 +828,64 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, size) {
-      if (size.maxWidth >= AppTokens.wideBreakpoint) {
-        return Scaffold(
-          body: Row(
-            children: [
-              SafeArea(
-                child: NavigationRail(
-                  extended: true,
-                  minExtendedWidth: 176,
-                  selectedIndex: _destination,
-                  onDestinationSelected: _select,
-                  destinations: [
-                    for (var i = 0; i < _labels.length; i++)
-                      NavigationRailDestination(
-                        icon: Icon(_icons[i]),
-                        label: Text(_labels[i]),
-                      ),
-                  ],
+  Widget build(BuildContext context) => WorkspaceChrome(
+    openDrawer: _openDrawer,
+    child: LayoutBuilder(
+      builder: (context, size) {
+        if (size.maxWidth >= AppTokens.wideBreakpoint) {
+          return Scaffold(
+            key: _scaffoldKey,
+            drawer: _workspaceDrawer(),
+            body: Row(
+              children: [
+                SafeArea(
+                  child: NavigationRail(
+                    extended: true,
+                    minExtendedWidth: 176,
+                    selectedIndex: _destination,
+                    onDestinationSelected: _select,
+                    destinations: [
+                      for (var i = 0; i < _labels.length; i++)
+                        NavigationRailDestination(
+                          icon: Icon(_icons[i]),
+                          label: Text(_labels[i]),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(child: _withNotice(_body())),
+                const VerticalDivider(width: 1),
+                Expanded(child: _withNotice(_body())),
+              ],
+            ),
+          );
+        }
+        const indices = [0, 1, 2, 4];
+        return Scaffold(
+          key: _scaffoldKey,
+          drawer: _workspaceDrawer(),
+          body: _withNotice(_body()),
+          bottomNavigationBar: NavigationBar(
+            height:
+                80 +
+                (MediaQuery.textScalerOf(context).scale(AppTokens.detailSize) -
+                        AppTokens.detailSize)
+                    .clamp(0, 80),
+            selectedIndex: _destination == 3
+                ? 3
+                : indices.indexOf(_destination),
+            onDestinationSelected: (index) => _select(indices[index]),
+            destinations: [
+              for (final index in indices)
+                NavigationDestination(
+                  key: Key('workspace-nav-$index'),
+                  icon: Icon(_icons[index]),
+                  label: index == 0 ? 'الدفتر' : _labels[index],
+                  tooltip: 'فتح ${_labels[index]}',
+                ),
             ],
           ),
         );
-      }
-      const indices = [0, 1, 2, 4];
-      return Scaffold(
-        body: _withNotice(_body()),
-        bottomNavigationBar: NavigationBar(
-          height:
-              80 +
-              (MediaQuery.textScalerOf(context).scale(AppTokens.detailSize) -
-                      AppTokens.detailSize)
-                  .clamp(0, 80),
-          selectedIndex: _destination == 3 ? 3 : indices.indexOf(_destination),
-          onDestinationSelected: (index) => _select(indices[index]),
-          destinations: [
-            for (final index in indices)
-              NavigationDestination(
-                key: Key('workspace-nav-$index'),
-                icon: Icon(_icons[index]),
-                label: index == 0 ? 'الدفتر' : _labels[index],
-                tooltip: 'فتح ${_labels[index]}',
-              ),
-          ],
-        ),
-      );
-    },
+      },
+    ),
   );
 }
