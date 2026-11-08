@@ -398,10 +398,12 @@ begin
   end if;
 
   v_day := public.get_daily_ledger_day_state();
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'd3000000-0000-4000-8000-000000000030',
     '{"version":1,"kind":"purchase","total_piastres":"10000","tenders":[{"method":"cash","piastres":"4000"}],"items":[{"category":"worked_jewelry","karat":21,"milligrams":"2000","count":"1","item_name":"سوار أرشيف","line_price_piastres":null}],"description":"","customer_name":"تاجر الأرشيف","customer_phone":"","note":"","purchase_obligation_piastres":"6000"}'::jsonb
   );
+  execute 'set local role authenticated';
   v_history := (v_result ->> 'operation_id')::uuid;
   perform public.settle_purchase_cash_payable(
     'd3000000-0000-4000-8000-000000000031', v_history,
@@ -453,10 +455,12 @@ begin
   end if;
 
   v_day := public.get_daily_ledger_day_state();
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'd3000000-0000-4000-8000-000000000033',
     '{"version":1,"kind":"purchase","total_piastres":"8000","tenders":[],"items":[{"category":"worked_jewelry","karat":21,"milligrams":"1000","count":"1","item_name":"خاتم آجل","line_price_piastres":null}],"description":"","customer_name":"تاجر السداد","customer_phone":"01000000000","note":"","purchase_obligation_piastres":"8000"}'::jsonb
   );
+  execute 'set local role authenticated';
   v_purchase := (v_result ->> 'operation_id')::uuid;
   if (select remaining_piastres from public.purchase_cash_payables where operation_id = v_purchase) <> 8000
     or (select count(*) from public.shop_debts where id = v_purchase) <> 0 then
@@ -946,10 +950,12 @@ begin
     and account.karat = 21
     and account.account_kind in ('saleable_metal', 'saleable_count');
   v_day := public.get_daily_ledger_day_state();
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'd3000000-0000-4000-8000-000000000130',
     '{"version":1,"kind":"purchase","total_piastres":"8000","tenders":[{"method":"cash","piastres":"1000"}],"items":[{"category":"worked_jewelry","karat":21,"milligrams":"2000","count":"2","item_name":"زوج مرتجع","line_price_piastres":null}],"description":"","customer_name":"تاجر المرتجع","customer_phone":"01022222222","note":"","purchase_obligation_piastres":"7000"}'::jsonb
   );
+  execute 'set local role authenticated';
   v_return := (v_result ->> 'operation_id')::uuid;
   v_day := public.get_daily_ledger_day_state();
   perform public.settle_purchase_cash_payable(

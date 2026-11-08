@@ -119,7 +119,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   final _items = <_ItemEntry>[];
   final _tenders = <_TenderEntry>[];
   final _description = TextEditingController();
-  final _purchaseTotal = TextEditingController();
   final _customerName = TextEditingController();
   final _customerPhone = TextEditingController();
   final _phoneField = GlobalKey<CustomerPhoneFieldState>();
@@ -253,7 +252,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       }
     }
     if (_tenders.isEmpty) _tenders.add(_TenderEntry(CashMethod.cash));
-    _purchaseTotal.text = pounds(initial['total_piastres']);
     _customerName.text = initial['customer_name'] as String? ?? '';
     _customerPhone.text = initial['customer_phone'] as String? ?? '';
     _note.text = initial['note'] as String? ?? '';
@@ -337,9 +335,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   Widget _linePriceSummary(ThemeData theme) {
     final sum = _linePriceSum();
-    final compared = widget.kind == FinancialKind.purchase
-        ? Piastres.parsePounds(cashInputValue(_purchaseTotal.text))
-        : Piastres.parsePounds(_totalPounds() ?? '');
+    final compared = Piastres.parsePounds(_totalPounds() ?? '');
     final difference = compared is Accepted<Piastres>
         ? sum - compared.value.value
         : null;
@@ -385,7 +381,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       tender.dispose();
     }
     _description.dispose();
-    _purchaseTotal.dispose();
     _customerName.dispose();
     _customerPhone.dispose();
     _note.dispose();
@@ -405,10 +400,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   String? _totalPounds() {
     var sum = BigInt.zero;
     for (final tender in _tenders) {
-      if (widget.kind == FinancialKind.purchase &&
-          tender.amount.text.trim().isEmpty) {
-        continue;
-      }
       final parsed = Piastres.parsePounds(cashInputValue(tender.amount.text));
       if (parsed is! Accepted<Piastres>) return null;
       sum += parsed.value.value;
@@ -474,11 +465,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     final result = FinancialDraft.compose(
       kind: widget.kind,
       pricing: pricing,
-      totalPounds:
-          pricing?.total.poundsText ??
-          (widget.kind == FinancialKind.purchase
-              ? cashInputValue(_purchaseTotal.text)
-              : _totalPounds() ?? ''),
+      totalPounds: pricing?.total.poundsText ?? _totalPounds() ?? '',
       items: [
         for (final item in _items)
           FinancialItemInput(
@@ -492,12 +479,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       ],
       tenders: [
         for (final tender in _tenders)
-          if (widget.kind != FinancialKind.purchase ||
-              tender.amount.text.trim().isNotEmpty)
-            FinancialTenderInput(
-              method: tender.method,
-              pounds: cashInputValue(tender.amount.text),
-            ),
+          FinancialTenderInput(
+            method: tender.method,
+            pounds: cashInputValue(tender.amount.text),
+          ),
       ],
       description: _description.text,
       customerName: _customerName.text,
@@ -1052,18 +1037,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         ],
         if (widget.kind == FinancialKind.purchase) ...[
           TextField(
-            key: const Key('trade-purchase-price'),
-            controller: _purchaseTotal,
-            inputFormatters: const [CashInputFormatter()],
-            textDirection: TextDirection.ltr,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: ledgerFieldDecoration(
-              context,
-              label: 'سعر الشراء الكلي ',
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
             key: const Key('trade-seller-name'),
             controller: _customerName,
             decoration: ledgerFieldDecoration(
@@ -1222,6 +1195,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             key: const Key('trade-note'),
             controller: _note,
             maxLines: 3,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
+            onTapOutside: (_) => FocusScope.of(context).unfocus(),
             decoration: ledgerFieldDecoration(context, label: 'ملاحظات'),
           ),
         ],
@@ -1236,35 +1212,22 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             key: const Key('trade-note'),
             controller: _note,
             maxLines: 3,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
+            onTapOutside: (_) => FocusScope.of(context).unfocus(),
             decoration: ledgerFieldDecoration(context, label: 'ملاحظات'),
           ),
         ],
       ),
   ];
 
-  static const _otherJewelry = <(String, String)>[
-    ('دبلة', 'worked_jewelry'),
-    ('محبس', 'worked_jewelry'),
-    ('غويشة', 'worked_jewelry'),
-    ('إسورة', 'worked_jewelry'),
-    ('انسيال', 'worked_jewelry'),
-    ('خلخال', 'worked_jewelry'),
-    ('كوليه', 'worked_jewelry'),
-    ('طقم', 'worked_jewelry'),
-    ('نص طقم', 'worked_jewelry'),
-    ('بروش', 'worked_jewelry'),
-    ('توينز', 'worked_jewelry'),
-    ('كف', 'worked_jewelry'),
-    ('ميدالية', 'worked_jewelry'),
-  ];
-
   List<(String, String)> get _otherChoices {
     final seen = <String>{'خاتم', 'حلق', 'سلسلة', 'تعليقة'};
     return [
-      ..._otherJewelry,
+      for (final name in tradeOtherJewelryNames) (name, 'worked_jewelry'),
       for (final product in _products)
         if (product.category == 'worked_jewelry' &&
-            !_otherJewelry.any((choice) => choice.$1 == product.name) &&
+            !tradeOtherJewelryNames.contains(product.name) &&
             seen.add(product.name))
           (product.name, product.category),
     ];
@@ -1733,23 +1696,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   List<Widget> _paymentFields(ThemeData theme) => [
     Text('الدفع', style: theme.textTheme.titleLarge),
     const SizedBox(height: 12),
-    if (widget.kind == FinancialKind.purchase) ...[
-      TextField(
-        key: const Key('trade-purchase-price'),
-        controller: _purchaseTotal,
-        inputFormatters: const [CashInputFormatter()],
-        textDirection: TextDirection.ltr,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        onChanged: (_) => setState(() {}),
-        decoration: ledgerFieldDecoration(context, label: 'سعر الشراء الكلي '),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        'يمكن ترك المدفوع فارغاً أو أقل من سعر الشراء. يبقى الفرق مستحقاً للعميل.',
-        style: theme.textTheme.bodySmall,
-      ),
-      const SizedBox(height: 12),
-    ],
     for (var index = 0; index < _tenders.length; index++) ...[
       _tenderCard(index),
       const SizedBox(height: 12),
@@ -1775,7 +1721,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     const SizedBox(height: 12),
     Text(
       widget.kind == FinancialKind.purchase
-          ? 'المدفوع الآن: ${displayPounds(_totalPounds() ?? '—')}'
+          ? 'الإجمالي المدفوع: ${displayPounds(_totalPounds() ?? '—')}'
           : 'الإجمالي: ${displayPounds(_totalPounds() ?? '—')}',
       key: const Key('trade-paid-total'),
       style: theme.textTheme.titleLarge,
@@ -2282,30 +2228,30 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                widget.kind == FinancialKind.sale ||
-                        widget.kind == FinancialKind.scrapSale
-                    ? 'يزيد النقد'
-                    : 'ينقص النقد الآن',
-                style: theme.textTheme.titleSmall,
-              ),
-              Text(
-                displayPounds(draft.cashPaid.poundsText),
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              if (draft.purchasePayable != null) ...[
+              if (widget.kind == FinancialKind.purchase) ...[
                 Text(
-                  'يبقى مستحقاً للعميل: ${displayPounds(draft.purchasePayable!.poundsText)}',
+                  'تنقص النقدية: ${displayPounds(draft.total.poundsText)}',
+                  style: theme.textTheme.titleSmall,
+                ),
+                for (final tender in draft.tenders)
+                  Text(
+                    '${cashMethodLabel(CashMethod.canonicalOrder.firstWhere((method) => method.code == tender['method']))}: ${_poundsText(tender['piastres'] as String)}',
+                  ),
+              ] else ...[
+                Text(
+                  widget.kind == FinancialKind.sale ||
+                          widget.kind == FinancialKind.scrapSale
+                      ? 'يزيد النقد'
+                      : 'ينقص النقد الآن',
+                  style: theme.textTheme.titleSmall,
                 ),
                 Text(
-                  'سعر الشراء الكلي: ${displayPounds(draft.total.poundsText)}',
+                  displayPounds(draft.cashPaid.poundsText),
+                  textDirection: TextDirection.ltr,
+                  style: theme.textTheme.headlineSmall,
                 ),
-                if (draft.customerName.isNotEmpty)
-                  Text('العميل: ${draft.customerName}'),
-                const SizedBox(height: 8),
               ],
+              const SizedBox(height: 8),
               Column(
                 key: const Key('trade-review-net'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2438,6 +2384,10 @@ String _serverCopy(String code) => switch (code) {
   'day_closed' => 'أُغلق يوم العمل. افتح يوماً جديداً قبل تسجيل عملية.',
   'shop_not_active' || 'forbidden' => 'لا يُسمح بتسجيل العملية لهذا المتجر.',
   'tender_mismatch' => 'المبلغ المدفوع أكبر من السعر أو لا يساوي المطلوب.',
+  'purchase_must_be_paid' =>
+    'يجب دفع سعر الشراء كاملًا. تأكد أن مجموع طرق الدفع يساوي الإجمالي.',
+  'purchase_jewelry_is_scrap' =>
+    'المشغولات المشتراة تُسجَّل كسرًا. حدّث التطبيق وأعد المحاولة.',
   'line_price_mismatch' => 'أسعار الأصناف لا تساوي الإجمالي.',
   _ => 'تعذر تأكيد العملية. راجع البيانات والاتصال ثم حاول مرة أخرى.',
 };

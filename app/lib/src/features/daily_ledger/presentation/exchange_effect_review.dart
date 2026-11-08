@@ -94,10 +94,6 @@ class ExchangeEffectReview extends StatelessWidget {
               'البديل: مقابل ${money(replacement.total.value)} · أثر النقد ${money(review.replacementCash)}',
             ),
             for (final line in review.replacementLines) Text(metal(line)),
-            if (replacement.purchasePayable != null)
-              Text(
-                'مستحق البديل: ${money(replacement.purchasePayable!.value)}',
-              ),
             const Divider(),
             Text(
               'صافي النقد: ${money(review.netCash)}',

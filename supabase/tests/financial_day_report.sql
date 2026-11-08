@@ -1,5 +1,25 @@
 -- Synthetic report fixture; every mutation rolls back, including R2 metadata.
 begin;
+-- Historic payable and worked-jewelry purchase fixtures. ADR 0041 makes the
+-- public writers refuse them. This fixture restores the pre-2026-11-10
+-- writer under its public name inside this rolled-back transaction only.
+-- It is not a production grant. purchase_paid_and_scrap_routing.sql tests
+-- the guarded writers.
+alter function public.post_daily_ledger_trade(uuid, jsonb)
+  rename to post_daily_ledger_trade_paid_guard;
+alter function public.post_daily_ledger_trade_before_paid_purchase(uuid, jsonb)
+  rename to post_daily_ledger_trade;
+grant execute on function public.post_daily_ledger_trade(uuid, jsonb) to authenticated;
+alter function public.review_ledger_trade_change_v1(uuid, text, jsonb)
+  rename to review_ledger_trade_change_v1_paid_guard;
+alter function public.review_ledger_trade_change_v1_before_paid_purchase(uuid, text, jsonb)
+  rename to review_ledger_trade_change_v1;
+grant execute on function public.review_ledger_trade_change_v1(uuid, text, jsonb) to authenticated;
+alter function public.post_ledger_trade_change_v1(uuid, uuid, text, jsonb, uuid, bigint, text, text)
+  rename to post_ledger_trade_change_v1_paid_guard;
+alter function public.post_ledger_trade_change_v1_before_paid_purchase(uuid, uuid, text, jsonb, uuid, bigint, text, text)
+  rename to post_ledger_trade_change_v1;
+grant execute on function public.post_ledger_trade_change_v1(uuid, uuid, text, jsonb, uuid, bigint, text, text) to authenticated;
 set local time zone 'UTC';
 create function pg_temp.report_error(q text) returns text language plpgsql as $$
 begin execute q; return 'ok'; exception when others then return sqlerrm; end; $$;

@@ -83,13 +83,6 @@ void main() {
       );
       await chooseTradeItem(tester, 'خاتم');
       await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
-      if (kind == FinancialKind.purchase) {
-        await enterTradeField(
-          tester,
-          const Key('trade-purchase-price'),
-          '1040.02',
-        );
-      }
       await enterTradeField(
         tester,
         const Key('trade-tender-amount-0'),
@@ -108,7 +101,7 @@ void main() {
     });
   }
 
-  testWidgets('purchase omits customer entry for partial and zero payment', (
+  testWidgets('purchase is paid in full and keeps the seller name optional', (
     tester,
   ) async {
     final partial = Batch2TradeGateway();
@@ -118,42 +111,35 @@ void main() {
       statusGateway: partial,
       kind: FinancialKind.purchase,
     );
-    expect(find.byKey(const Key('trade-seller-name')), findsNothing);
     expect(find.byKey(const Key('trade-customer-disclosure')), findsNothing);
+    expect(find.byKey(const Key('trade-purchase-price')), findsNothing);
     await chooseTradeItem(tester, 'خاتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '10.000');
-    await enterTradeField(tester, const Key('trade-purchase-price'), '60000');
-    await enterTradeField(tester, const Key('trade-tender-amount-0'), '20000');
     await reviewTrade(tester);
-    expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
+    expect(find.text('أدخل مبلغاً صحيحاً أكبر من صفر.'), findsOneWidget);
+    expect(partial.payloads, isEmpty);
+
+    final paid = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: paid,
+      statusGateway: paid,
+      kind: FinancialKind.purchase,
+    );
+    await chooseTradeItem(tester, 'خاتم');
+    await enterTradeField(tester, const Key('trade-grams-0'), '10.000');
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '60000');
+    await reviewTrade(tester);
     expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
     expect(find.textContaining('يزيد كسر'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
-    expect(partial.payloads.single['purchase_obligation_piastres'], '4000000');
-    expect(partial.payloads.single['total_piastres'], '6000000');
-    expect(partial.payloads.single['customer_name'], '');
-
-    final unpaid = Batch2TradeGateway();
-    await pumpTradeScreen(
-      tester,
-      gateway: unpaid,
-      statusGateway: unpaid,
-      kind: FinancialKind.purchase,
+    expect(
+      paid.payloads.single.containsKey('purchase_obligation_piastres'),
+      isFalse,
     );
-    await chooseTradeItem(tester, 'كسر');
-    expect(find.byKey(const Key('trade-count-0')), findsNothing);
-    await enterTradeField(tester, const Key('trade-grams-0'), '2.500');
-    await enterTradeField(tester, const Key('trade-purchase-price'), '1500');
-    await reviewTrade(tester);
-    expect(find.textContaining('يبقى مستحقاً للعميل: 1,500'), findsOneWidget);
-    expect(find.text('0'), findsWidgets);
-    await tester.tap(find.byKey(const Key('trade-confirm')));
-    await tester.pumpAndSettle();
-    expect(unpaid.payloads.single['tenders'], isEmpty);
-    expect(unpaid.payloads.single['customer_name'], '');
-    expect(unpaid.payloads.single['purchase_obligation_piastres'], '150000');
-    expect(unpaid.payloads.single['total_piastres'], '150000');
+    expect(paid.payloads.single['total_piastres'], '6000000');
+    expect(paid.payloads.single['customer_name'], '');
   });
 
   testWidgets(
@@ -613,7 +599,6 @@ void main() {
     );
     await chooseTradeItem(tester, 'خاتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
-    await enterTradeField(tester, const Key('trade-purchase-price'), '100');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     await reviewTrade(tester);
     await tester.tap(find.byKey(const Key('trade-confirm')));

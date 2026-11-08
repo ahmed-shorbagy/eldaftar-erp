@@ -7,6 +7,7 @@ import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.
 import 'package:eldafttar/src/features/daily_ledger/application/pending_opening_store.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/daily_ledger_codec.dart';
+import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/opening_balances.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -109,6 +110,41 @@ void expectHeaders(http.Request request) {
 }
 
 void main() {
+  // Regression: the gateway drops server codes it does not know, so the
+  // purchase rules of ADR 0041 must be on its list to reach the screen copy.
+  for (final code in ['purchase_must_be_paid', 'purchase_jewelry_is_scrap']) {
+    test('purchase rejection $code reaches the screen through HTTP', () async {
+      final draft = FinancialDraft.compose(
+        kind: FinancialKind.purchase,
+        totalPounds: '100',
+        items: const [
+          FinancialItemInput(
+            category: 'scrap',
+            karat: 21,
+            grams: '1',
+            count: '',
+            name: 'كسر',
+          ),
+        ],
+        tenders: const [
+          FinancialTenderInput(method: CashMethod.cash, pounds: '100'),
+        ],
+      ).draft!;
+      final api = gateway(
+        MockClient((_) async => http.Response('{"message":"$code"}', 400)),
+      );
+      final result = await api.postTrade(
+        callerUserId: 'owner-a',
+        idempotencyKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        draft: draft,
+      );
+      expect(
+        result,
+        isA<FinancialRejected>().having((r) => r.code, 'code', code),
+      );
+    });
+  }
+
   test(
     'a delayed ledger response is discarded after the owner changes',
     () async {

@@ -178,6 +178,67 @@ class LedgerFieldPair extends StatelessWidget {
   }
 }
 
+/// Compact closing count. The column header is the label, so the field has none.
+class ClosingCountCell extends StatelessWidget {
+  const ClosingCountCell({
+    super.key,
+    required this.controller,
+    required this.semanticsLabel,
+    this.fieldKey,
+    this.readOnly = false,
+    this.weight = false,
+    this.textInputAction = TextInputAction.next,
+    this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String semanticsLabel;
+  final Key? fieldKey;
+  final bool readOnly;
+  final bool weight;
+  final TextInputAction textInputAction;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticsLabel,
+      child: SizedBox(
+        width: weight ? 80 : 64,
+        child: TextField(
+          key: fieldKey,
+          controller: controller,
+          readOnly: readOnly,
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr,
+          textInputAction: textInputAction,
+          keyboardType: weight
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.number,
+          inputFormatters: weight
+              ? const [GramInputFormatter(decimalPlaces: 3)]
+              // Converts Arabic-Indic digits to ASCII first, then caps at 9999.
+              : [
+                  const GramInputFormatter(decimalPlaces: 0),
+                  LengthLimitingTextInputFormatter(4),
+                ],
+          onSubmitted: onSubmitted,
+          decoration: ledgerFieldDecoration(context, label: ' ').copyWith(
+            labelText: null,
+            floatingLabelBehavior: FloatingLabelBehavior.never,
+            isDense: true,
+            hintText: weight ? 'جم' : null,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 8,
+              horizontal: 4,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Type / count / optional weight for a closing-count row.
 ///
 /// One line of three fields when the row is at least [oneLineBreakpoint]

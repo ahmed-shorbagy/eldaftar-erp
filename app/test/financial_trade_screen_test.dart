@@ -220,10 +220,75 @@ void main() {
     expect((gateway.closeCounts.single['cash'] as Map)['cash'], '100');
   });
 
+  testWidgets('named close counts pieces on the item grid', (tester) async {
+    tester.view.physicalSize = const Size(700, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final gateway = _NamedCloseGateway();
+    const day = FinancialDayState(
+      state: 'open',
+      dayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      businessDate: '2026-09-28',
+      dayVersion: 2,
+      counts: {
+        'cash': {
+          'cash': '100',
+          'instant_transfer': '0',
+          'wallet': '0',
+          'card': '0',
+        },
+        'stock': [
+          {
+            'category': 'worked_jewelry',
+            'karat': 21,
+            'count': '2',
+            'milligrams': '2000',
+          },
+        ],
+        'scrap': [
+          {'karat': 21, 'milligrams': '0'},
+        ],
+      },
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        theme: AppTheme.light(),
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: DailyCloseScreen(
+            gateway: gateway,
+            statusGateway: gateway,
+            userId: 'owner-close',
+            shopId: 'shop-close',
+            day: day,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final method in ['cash', 'instant_transfer', 'wallet', 'card']) {
+      await tester.enterText(
+        find.byKey(Key('close-cash-$method')),
+        method == 'cash' ? '1.00' : '0',
+      );
+    }
+    await tester.enterText(find.byKey(const Key('close-scrap-21')), '٠');
+    expect(find.text('مشغولات'), findsNothing);
+    expect(find.text('18'), findsNothing);
+    expect(find.text('21'), findsWidgets);
+    await tester.enterText(find.byKey(const Key('close-count-0-21')), '2');
+    await tester.tap(find.byKey(const Key('close-review')));
+    await tester.pump();
+    expect(find.byKey(const Key('close-confirm')), findsOneWidget);
+    expect(find.textContaining('يوجد فرق'), findsNothing);
+  });
+
   testWidgets(
-    'named close rejects duplicate types and preserves rows after removal',
+    'closing grid keeps four digits and requires a count before weight',
     (tester) async {
-      tester.view.physicalSize = const Size(700, 1400);
+      tester.view.physicalSize = const Size(375, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -235,7 +300,7 @@ void main() {
         dayVersion: 2,
         counts: {
           'cash': {
-            'cash': '100',
+            'cash': '0',
             'instant_transfer': '0',
             'wallet': '0',
             'card': '0',
@@ -244,13 +309,17 @@ void main() {
             {
               'category': 'worked_jewelry',
               'karat': 21,
+              'count': '3',
+              'milligrams': '3000',
+            },
+            {
+              'category': 'worked_jewelry',
+              'karat': 18,
               'count': '2',
               'milligrams': '2000',
             },
           ],
-          'scrap': [
-            {'karat': 21, 'milligrams': '0'},
-          ],
+          'scrap': <Map<String, Object?>>[],
         },
       );
       await tester.pumpWidget(
@@ -270,56 +339,38 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      final headers = find.text('18').evaluate().toList();
+      expect(headers, isNotEmpty);
+      expect(find.text('21'), findsWidgets);
+      expect(find.text('22'), findsNothing);
+      expect(find.text('14'), findsNothing);
+      expect(find.text('مشغولات'), findsNothing);
       for (final method in ['cash', 'instant_transfer', 'wallet', 'card']) {
-        await tester.enterText(
-          find.byKey(Key('close-cash-$method')),
-          method == 'cash' ? '1.00' : '0',
-        );
+        await tester.enterText(find.byKey(Key('close-cash-$method')), '0');
       }
-      await tester.enterText(find.byKey(const Key('close-scrap-21')), '٠');
-      await tester.tap(find.byKey(const Key('close-name-0')));
+      await tester.ensureVisible(find.byKey(const Key('close-weights-toggle')));
+      await tester.tap(find.byKey(const Key('close-weights-toggle')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('خاتم').last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('close-count-0')), '1');
-      await tester.tap(find.text('إضافة نوع من هذا العيار'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('close-name-1')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('خاتم').last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('close-count-1')), '1');
+      await tester.ensureVisible(find.byKey(const Key('close-weight-0-18')));
+      await tester.enterText(
+        find.byKey(const Key('close-weight-0-18')),
+        '1.000',
+      );
       await tester.tap(find.byKey(const Key('close-review')));
       await tester.pump();
-      expect(find.textContaining('نوعاً مختلفاً'), findsOneWidget);
-      expect(find.textContaining('يوجد فرق'), findsNothing);
-      expect(find.byKey(const Key('close-confirm')), findsNothing);
-      expect(gateway.closeCounts, isEmpty);
-      await tester.tap(find.byKey(const Key('close-name-1')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('حلق').last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('close-count-1')), '2');
-      await tester.tap(find.text('حذف الصف').first);
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('close-name-0')), findsNothing);
+      expect(find.text('اكتب العدد قبل الوزن.'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('close-count-0-21')), '10000');
       expect(
         tester
-            .widget<DropdownButtonFormField<String>>(
-              find.byKey(const Key('close-name-1')),
-            )
-            .initialValue,
-        'حلق',
-      );
-      expect(
-        tester
-            .widget<TextField>(find.byKey(const Key('close-count-1')))
+            .widget<TextField>(find.byKey(const Key('close-count-0-21')))
             .controller!
-            .text,
-        '2',
+            .text
+            .length,
+        lessThan(5),
       );
     },
   );
+
   testWidgets('sale reviews exact cash and gold before one server post', (
     tester,
   ) async {
@@ -356,23 +407,15 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('partial purchase reviews paid cash, payable, and owned gold', (
+  testWidgets('a purchase reviews the full cash decrease and owned scrap', (
     tester,
   ) async {
     final gateway = FakeFinancialGateway();
     await pumpTrade(tester, gateway, FinancialKind.purchase);
+    expect(find.byKey(const Key('trade-purchase-price')), findsNothing);
     await beginTrade(tester);
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '10.000');
     await nextTrade(tester);
-    await tester.dragUntilVisible(
-      find.byKey(const Key('trade-purchase-price')),
-      find.byType(ListView),
-      const Offset(0, -250),
-    );
-    await tester.enterText(
-      find.byKey(const Key('trade-purchase-price')),
-      '60000',
-    );
     expect(find.byKey(const Key('trade-customer-disclosure')), findsNothing);
     await tester.dragUntilVisible(
       find.byKey(const Key('trade-tender-amount-0')),
@@ -381,7 +424,7 @@ void main() {
     );
     await tester.enterText(
       find.byKey(const Key('trade-tender-amount-0')),
-      '20000',
+      '60000',
     );
     if (find.byKey(const Key('trade-next')).evaluate().isNotEmpty) {
       await nextTrade(tester);
@@ -389,16 +432,14 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.textContaining('يبقى مستحقاً للعميل: 40,000'),
-      200,
-    );
-    await tester.pumpAndSettle();
-    expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
+    expect(find.textContaining('تنقص النقدية: 60,000'), findsOneWidget);
     expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
-    expect(gateway.payloads.single['purchase_obligation_piastres'], '4000000');
+    expect(
+      gateway.payloads.single.containsKey('purchase_obligation_piastres'),
+      isFalse,
+    );
     expect(gateway.payloads.single['total_piastres'], '6000000');
   });
 

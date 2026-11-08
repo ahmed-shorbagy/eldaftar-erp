@@ -459,19 +459,23 @@ class _MessageSettingsScreenState extends State<MessageSettingsScreen>
                           spacing: 8,
                           runSpacing: 8,
                           children: [
+                            // ADR 0041: new purchases are paid in full, so the
+                            // payable token is not offered. It stays valid for
+                            // saved templates and renders empty when unused.
                             for (final token in messageTokens.entries)
-                              OutlinedButton(
-                                onPressed: _editable
-                                    ? () => _insert(token.key)
-                                    : null,
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(
-                                    48,
-                                    AppTokens.minControlSize,
+                              if (token.key != 'obligation')
+                                OutlinedButton(
+                                  onPressed: _editable
+                                      ? () => _insert(token.key)
+                                      : null,
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size(
+                                      48,
+                                      AppTokens.minControlSize,
+                                    ),
                                   ),
+                                  child: Text(token.value),
                                 ),
-                                child: Text(token.value),
-                              ),
                           ],
                         ),
                       ],

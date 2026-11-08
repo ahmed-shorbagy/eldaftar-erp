@@ -283,10 +283,12 @@ begin
     raise exception 'legacy remainder replay failed';
   end if;
 
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'c1000000-0000-4000-8000-000000000020',
     '{"version":1,"kind":"purchase","total_piastres":"10000","tenders":[{"method":"cash","piastres":"4000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"2000","count":"1","item_name":"سوار","line_price_piastres":null}],"description":"","customer_name":"تاجر","customer_phone":"","note":"","purchase_obligation_piastres":"6000"}'::jsonb);
   v_purchase := (v_result ->> 'operation_id')::uuid;
+  execute 'set local role authenticated';
   perform public.settle_purchase_cash_payable(
     'c1000000-0000-4000-8000-000000000021', v_purchase,
     '[{"method":"cash","piastres":"2000"}]'::jsonb);
@@ -441,10 +443,12 @@ begin
   perform public.post_daily_ledger_trade(
     'c2000000-0000-4000-8000-000000000002',
     '{"version":1,"kind":"sale","total_piastres":"5000","tenders":[{"method":"cash","piastres":"5000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"2000","count":"2","item_name":"كل الرصيد","line_price_piastres":null}],"description":"","customer_name":"","customer_phone":"","note":""}'::jsonb);
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'c2000000-0000-4000-8000-000000000003',
     '{"version":1,"kind":"purchase","total_piastres":"4000","tenders":[{"method":"cash","piastres":"4000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"2000","count":"1","item_name":"وارد","line_price_piastres":null}],"description":"","customer_name":"","customer_phone":"","note":""}'::jsonb);
   v_purchase := (v_result ->> 'operation_id')::uuid;
+  execute 'set local role authenticated';
   perform public.post_daily_ledger_trade(
     'c2000000-0000-4000-8000-000000000004',
     '{"version":1,"kind":"sale","total_piastres":"5000","tenders":[{"method":"cash","piastres":"5000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"2000","count":"1","item_name":"بيع الوارد","line_price_piastres":null}],"description":"","customer_name":"","customer_phone":"","note":""}'::jsonb);

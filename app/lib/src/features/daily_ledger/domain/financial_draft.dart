@@ -61,7 +61,6 @@ final class FinancialDraft {
     required this.customerPhone,
     required this.note,
     required this.cashPaid,
-    required this.purchasePayable,
     this.pricing,
   });
 
@@ -74,7 +73,6 @@ final class FinancialDraft {
   final String customerPhone;
   final String note;
   final Piastres cashPaid;
-  final Piastres? purchasePayable;
   final InvoicePricing? pricing;
 
   static FinancialDraftResult compose({
@@ -112,8 +110,7 @@ final class FinancialDraft {
             !RegExp(r'^\+?[0-9]{7,15}$').hasMatch(customerPhone))) {
       return const FinancialDraftResult._(null, FinancialIssue.invalidCustomer);
     }
-    if ((tenders.isEmpty && kind != FinancialKind.purchase) ||
-        tenders.length > 4) {
+    if (tenders.isEmpty || tenders.length > 4) {
       return const FinancialDraftResult._(null, FinancialIssue.invalidTender);
     }
     final tenderRows = <Map<String, Object?>>[];
@@ -132,18 +129,11 @@ final class FinancialDraft {
         'piastres': amount.value.wire,
       });
     }
-    if (tenderSum > parsedTotal.value.value ||
-        (kind != FinancialKind.purchase &&
-            tenderSum != parsedTotal.value.value)) {
+    if (tenderSum != parsedTotal.value.value) {
       return const FinancialDraftResult._(null, FinancialIssue.tenderMismatch);
     }
-    final payableValue = parsedTotal.value.value - tenderSum;
     final parsedCashPaid = Piastres.parseWire(tenderSum.toString());
-    final parsedPayable = payableValue == BigInt.zero
-        ? null
-        : Piastres.parseWire(payableValue.toString());
-    if (parsedCashPaid is! Accepted<Piastres> ||
-        (parsedPayable != null && parsedPayable is! Accepted<Piastres>)) {
+    if (parsedCashPaid is! Accepted<Piastres>) {
       return const FinancialDraftResult._(null, FinancialIssue.invalidTender);
     }
     if ((kind == FinancialKind.expense && items.isNotEmpty) ||
@@ -215,9 +205,6 @@ final class FinancialDraft {
         customerPhone: customerPhone.trim(),
         note: note.trim(),
         cashPaid: parsedCashPaid.value,
-        purchasePayable: parsedPayable == null
-            ? null
-            : (parsedPayable as Accepted<Piastres>).value,
         pricing: pricing,
       ),
       null,
@@ -235,7 +222,5 @@ final class FinancialDraft {
     'customer_phone': customerPhone,
     'note': note,
     if (pricing != null) 'pricing': pricing!.toJson(),
-    if (purchasePayable != null)
-      'purchase_obligation_piastres': purchasePayable!.wire,
   };
 }

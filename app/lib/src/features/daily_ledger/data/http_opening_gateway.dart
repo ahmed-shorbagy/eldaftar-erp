@@ -90,6 +90,8 @@ const _errorCodes = <String>{
   'unauthenticated',
   'forbidden',
   'tender_mismatch',
+  'purchase_must_be_paid',
+  'purchase_jewelry_is_scrap',
   'line_price_mismatch',
   'pricing_mismatch',
   'insufficient_stock',

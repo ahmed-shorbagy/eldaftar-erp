@@ -11,24 +11,13 @@ import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import '../domain/closing_count_observation.dart';
+import '../domain/closing_item_grid.dart';
 import '../../inventory/application/inventory_gateway.dart';
+import 'closing_item_grid_view.dart';
 import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 import 'ledger_correction_screen.dart';
-
-class _StockObservationEntry {
-  _StockObservationEntry(this.category, this.karat, this.id);
-  final String category;
-  final int karat;
-  final int id;
-  String? name;
-  final count = TextEditingController();
-  final grams = TextEditingController();
-  void dispose() {
-    count.dispose();
-    grams.dispose();
-  }
-}
+import 'trade_item_picker.dart';
 
 class DailyCloseScreen extends StatefulWidget {
   const DailyCloseScreen({
@@ -54,8 +43,11 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
   final _cash = <String, TextEditingController>{};
   final _stock = <String, List<TextEditingController>>{};
   final _scrap = <int, TextEditingController>{};
-  final _observations = <_StockObservationEntry>[];
-  int _nextObservationId = 0;
+  ClosingItemGrid _grid = const ClosingItemGrid(jewelryKarats: [], rows: []);
+  final _cellCounts = <String, TextEditingController>{};
+  final _cellGrams = <String, TextEditingController>{};
+  final _extraNames = <({String name, String category, int karat})>[];
+  bool _showWeights = false;
   List<CatalogProduct> _products = const [];
   bool get _namedCounts => widget.gateway is ClosingObservationGateway;
   Map<String, Object?>? _review;
@@ -80,16 +72,8 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
         TextEditingController(),
         TextEditingController(),
       ];
-      if (_namedCounts) {
-        _observations.add(
-          _StockObservationEntry(
-            item['category'] as String,
-            item['karat'] as int,
-            _nextObservationId++,
-          ),
-        );
-      }
     }
+    if (_namedCounts) _rebuildGrid();
     for (final row in counts['scrap'] as List) {
       _scrap[(row as Map)['karat'] as int] = TextEditingController();
     }
@@ -103,7 +87,12 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
       final page = await (gateway as InventoryGateway).products(
         callerUserId: widget.userId,
       );
-      if (mounted && page.available) setState(() => _products = page.items!);
+      if (mounted && page.available) {
+        setState(() {
+          _products = page.items!;
+          _rebuildGrid();
+        });
+      }
     } catch (_) {
       /* Built-in names remain available; no financial read is invented. */
     }
@@ -111,8 +100,11 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
 
   @override
   void dispose() {
-    for (final row in _observations) {
-      row.dispose();
+    for (final field in _cellCounts.values) {
+      field.dispose();
+    }
+    for (final field in _cellGrams.values) {
+      field.dispose();
     }
     for (final field in _cash.values) {
       field.dispose();
@@ -144,47 +136,30 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     }
     final stock = <Map<String, Object?>>[];
     if (_namedCounts) {
-      final names = <String>{};
-      for (final row in _observations) {
-        final countText = canonicalNumericEntry(
-          row.count.text,
-          decimalPlaces: 0,
-        );
-        final count = countText == null || countText.isEmpty
-            ? null
-            : PieceCount.parseWire(countText);
-        final weightText = row.grams.text.trim();
-        final normalizedWeight = canonicalNumericEntry(
-          weightText,
-          decimalPlaces: 3,
-        );
-        final grams = weightText.isEmpty
-            ? null
-            : normalizedWeight == null || normalizedWeight.isEmpty
-            ? const Rejected<Milligrams>(OpeningIssueCode.invalidInput)
-            : Milligrams.parseGrams(normalizedWeight);
-        final identity = '${row.category}:${row.karat}:${row.name}';
-        if (row.name == null ||
-            count is! Accepted<PieceCount> ||
-            !names.add(identity) ||
-            (grams != null && grams is! Accepted<Milligrams>) ||
-            (grams is Accepted<Milligrams> &&
-                (count.value.value == BigInt.zero) !=
-                    (grams.value.value == BigInt.zero))) {
-          setState(
-            () => _error =
-                'اختر نوعاً مختلفاً وعدداً صحيحاً لكل صف. الوزن اختياري للمخزون فقط.',
+      final cells = <(String, int), (String, String)>{};
+      for (final row in _grid.rows) {
+        for (final karat in row.karats) {
+          final key = ClosingItemGridView.cellKey(row.name, karat);
+          // ASCII digits and no trailing point; an unreadable entry stays as
+          // typed so the domain reports it instead of silently dropping it.
+          String normalized(String text, int places) =>
+              canonicalNumericEntry(text, decimalPlaces: places) ?? text;
+          cells[(row.name, karat)] = (
+            normalized(_cellCounts[key]?.text ?? '', 0),
+            _showWeights ? normalized(_cellGrams[key]?.text ?? '', 3) : '',
           );
-          return;
         }
-        stock.add({
-          'item_name': row.name,
-          'category': row.category,
-          'karat': row.karat,
-          'count': count.value.wire,
-          'milligrams': grams is Accepted<Milligrams> ? grams.value.wire : null,
-        });
       }
+      final draft = _grid.toObservations(cells);
+      if (draft is ClosingGridRejected) {
+        setState(
+          () => _error = draft.issue == ClosingGridIssue.weightWithoutCount
+              ? 'اكتب العدد قبل الوزن.'
+              : 'أدخل عدداً صحيحاً لكل خانة.',
+        );
+        return;
+      }
+      stock.addAll((draft as ClosingGridReady).stock);
     } else {
       for (final row in expected['stock'] as List) {
         final item = row as Map;
@@ -254,147 +229,62 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     });
   }
 
-  String _stockBucketTitle(Map bucket) {
-    final category = StockCategory.byCode(bucket['category'] as String)!;
-    final karat = bucket['karat'];
-    if (category == StockCategory.workedJewelry) return 'عيار $karat';
-    return '${stockCategoryLabel(category)} · عيار $karat';
+  void _rebuildGrid() {
+    final stock = [
+      for (final row in widget.day.counts!['stock'] as List)
+        Map<String, Object?>.from(row as Map),
+    ];
+    _grid = ClosingItemGrid.build(
+      bookStock: stock,
+      shopNames: [
+        for (final product in _products)
+          (
+            name: product.name,
+            category: product.category,
+            karat: product.karat,
+          ),
+        ..._extraNames,
+      ],
+    );
+    for (final row in _grid.rows) {
+      for (final karat in row.karats) {
+        final key = ClosingItemGridView.cellKey(row.name, karat);
+        _cellCounts.putIfAbsent(key, TextEditingController.new);
+        _cellGrams.putIfAbsent(key, TextEditingController.new);
+      }
+    }
   }
 
-  List<Widget> _namedStockFields() => [
-    const Text(
-      'النوع · العدد المطلوب · الوزن اختياري. الوزن الفارغ يُسجّل «لم يُوزن»؛ يظل وزن الدفتر مرجعاً منفصلاً.',
-    ),
-    for (final bucket in widget.day.counts!['stock'] as List) ...[
-      const SizedBox(height: 12),
-      Text(_stockBucketTitle(bucket as Map)),
-      for (final row in _observations.where(
-        (row) =>
-            row.category == bucket['category'] && row.karat == bucket['karat'],
-      ))
-        Padding(
-          key: ValueKey(row.id),
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LedgerCountFields(
-                type: DropdownButtonFormField<String>(
-                  key: Key('close-name-${row.id}'),
-                  initialValue: row.name,
-                  isExpanded: true,
-                  decoration: ledgerFieldDecoration(context, label: 'النوع'),
-                  items: [
-                    for (final name in {
-                      if (row.category == 'worked_jewelry') ...[
-                        'خاتم',
-                        'حلق',
-                        'سلسلة',
-                        'تعليقة',
-                        'دبلة',
-                        'غويشة',
-                        'إسورة',
-                        'خلخال',
-                        'طقم',
-                      ],
-                      if (row.category == 'coin') ...[
-                        'ثمن جنيه',
-                        'ربع جنيه',
-                        'نصف جنيه',
-                        'جنيه',
-                        'خمسة جنيهات',
-                      ],
-                      if (row.category == 'bullion') ...[
-                        'سبيكة ربع جرام',
-                        'سبيكة نصف جرام',
-                        'سبيكة 1 جرام',
-                        'سبيكة 2.5 جرام',
-                        'سبيكة 5 جرام',
-                        'سبيكة 10 جرام',
-                        'سبيكة 20 جرام',
-                        'سبيكة 25 جرام',
-                        'سبيكة أونصة',
-                      ],
-                      for (final product in _products)
-                        if (product.category == row.category &&
-                            product.karat == row.karat)
-                          product.name,
-                    })
-                      DropdownMenuItem(value: name, child: Text(name)),
-                  ],
-                  onChanged: _busy || _unknown || _review != null
-                      ? null
-                      : (name) => setState(() => row.name = name),
-                ),
-                count: TextField(
-                  controller: row.count,
-                  key: Key('close-count-${row.id}'),
-                  readOnly: _busy || _unknown || _review != null,
-                  keyboardType: TextInputType.number,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  inputFormatters: const [GramInputFormatter(decimalPlaces: 0)],
-                  textDirection: TextDirection.ltr,
-                  decoration: ledgerFieldDecoration(context, label: 'العدد'),
-                ),
-                weight: TextField(
-                  controller: row.grams,
-                  key: Key('close-weight-${row.id}'),
-                  readOnly: _busy || _unknown || _review != null,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  inputFormatters: const [GramInputFormatter(decimalPlaces: 3)],
-                  textDirection: TextDirection.ltr,
-                  decoration: ledgerFieldDecoration(
-                    context,
-                    label: 'الوزن (اختياري)',
-                  ),
-                ),
-              ),
-              if (_observations
-                      .where(
-                        (other) =>
-                            other.category == row.category &&
-                            other.karat == row.karat,
-                      )
-                      .length >
-                  1)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    onPressed: _busy || _unknown || _review != null
-                        ? null
-                        : () => setState(() {
-                            _observations.remove(row);
-                            row.dispose();
-                          }),
-                    child: const Text('حذف الصف'),
-                  ),
-                ),
-            ],
-          ),
+  Future<void> _addClosingItem() async {
+    if (_grid.jewelryKarats.isEmpty) return;
+    final choice = await showTradeItemPicker(
+      context,
+      title: 'إضافة صنف',
+      mainChoices: const [],
+      others: ValueNotifier(
+        TradeOtherCatalog(
+          choices: [
+            for (final name in tradeOtherJewelryNames)
+              TradeItemChoice(name, 'worked_jewelry'),
+            for (final product in _products)
+              if (product.category == 'worked_jewelry')
+                TradeItemChoice(product.name, product.category),
+          ],
         ),
-      OutlinedButton.icon(
-        onPressed:
-            _busy || _unknown || _review != null || _observations.length >= 200
-            ? null
-            : () => setState(
-                () => _observations.add(
-                  _StockObservationEntry(
-                    bucket['category'] as String,
-                    bucket['karat'] as int,
-                    _nextObservationId++,
-                  ),
-                ),
-              ),
-        icon: const Icon(Icons.add),
-        label: const Text('إضافة نوع من هذا العيار'),
       ),
-    ],
-  ];
+      reservedNames: {for (final row in _grid.rows) row.name},
+    );
+    if (!mounted || choice == null) return;
+    if (_grid.rows.any((row) => row.name == choice.label)) return;
+    setState(() {
+      _extraNames.add((
+        name: choice.label,
+        category: 'worked_jewelry',
+        karat: _grid.jewelryKarats.first,
+      ));
+      _rebuildGrid();
+    });
+  }
 
   Future<void> _correct() async {
     if (_busy ||
@@ -549,6 +439,8 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text('عدّ يوم العمل', style: theme.textTheme.headlineSmall),
@@ -581,7 +473,19 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   if ((counts['stock'] as List).isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text('المخزون', style: theme.textTheme.titleMedium),
-                    if (_namedCounts) ..._namedStockFields(),
+                    if (_namedCounts)
+                      ClosingItemGridView(
+                        grid: _grid,
+                        counts: _cellCounts,
+                        weights: _cellGrams,
+                        showWeights: _showWeights,
+                        readOnly: _busy || _unknown || _review != null,
+                        onShowWeights: (value) =>
+                            setState(() => _showWeights = value),
+                        onAddItem: _grid.jewelryKarats.isEmpty
+                            ? null
+                            : _addClosingItem,
+                      ),
                     if (!_namedCounts)
                       for (final row in counts['stock'] as List) ...[
                         const SizedBox(height: 8),
@@ -630,13 +534,16 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                   if ((counts['scrap'] as List).isNotEmpty) ...[
                     const SizedBox(height: 16),
                     Text('الكسر', style: theme.textTheme.titleMedium),
-                    for (final row in counts['scrap'] as List) ...[
+                    for (final karat in orderedKarats([
+                      for (final row in counts['scrap'] as List)
+                        (row as Map)['karat'] as int,
+                    ])) ...[
                       const SizedBox(height: 8),
-                      Text('عيار ${(row as Map)['karat']}'),
+                      Text('عيار $karat'),
                       const SizedBox(height: 8),
                       TextField(
-                        key: Key('close-scrap-${row['karat']}'),
-                        controller: _scrap[row['karat']],
+                        key: Key('close-scrap-$karat'),
+                        controller: _scrap[karat],
                         readOnly: _review != null,
                         textDirection: TextDirection.ltr,
                         autocorrect: false,

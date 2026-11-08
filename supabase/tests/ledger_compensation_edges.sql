@@ -104,13 +104,15 @@ begin
   if public.get_return_remainder_v1(v_sale) ->> 'fully_returned' is distinct from 'true' then raise exception 'zero consideration remainder failed'; end if;
   -- Purchase exchange: return would cancel a payable, but failing replacement must
   -- roll back payable, original bounds, keys, operations, audit and all postings.
-  v_result := public.post_daily_ledger_trade('c2000000-0000-4000-8000-000000000007',
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase('c2000000-0000-4000-8000-000000000007',
     '{"version":1,"kind":"purchase","total_piastres":"10000","purchase_obligation_piastres":"8000","tenders":[{"method":"cash","piastres":"2000"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"4000","count":"2","item_name":"سوار","line_price_piastres":null}],"description":"","customer_name":"","customer_phone":"","note":""}');
+  execute 'set local role authenticated';
   v_purchase := (v_result ->> 'operation_id')::uuid;
   v_return := jsonb_build_object('kind','purchase_return','original_operation_id',v_purchase,'note','استبدال',
     'items',jsonb_build_array(jsonb_build_object('item_index','0','milligrams','2000','count','1')),
     'consideration_piastres','5000','tenders','[]'::jsonb);
-  v_replacement := '{"version":1,"kind":"purchase","total_piastres":"999999999","tenders":[{"method":"cash","piastres":"999999999"}],"items":[{"category":"worked_jewelry","karat":18,"milligrams":"3000","count":"1","item_name":"بديل","line_price_piastres":null}],"description":"","customer_name":"","customer_phone":"","note":""}';
+  v_replacement := '{"version":1,"kind":"purchase","total_piastres":"999999999","tenders":[{"method":"cash","piastres":"999999999"}],"items":[{"category":"scrap","karat":18,"milligrams":"3000","count":null,"item_name":"بديل","line_price_piastres":null}],"description":"","customer_name":"","customer_phone":"","note":""}';
   v_version := (public.get_daily_ledger_day_state() ->> 'day_version')::bigint;
   v_exchange := jsonb_build_object('version',1,'kind','exchange','expected_day_id',v_day,'expected_day_version',v_version::text,
     'note','استبدال','return',v_return,'replacement',v_replacement);
@@ -126,13 +128,16 @@ begin
   -- First-side over-return fails before any replacement is recorded.
   perform pg_temp.expect_comp(format('select public.post_exchange_v1(%L::uuid,%L::jsonb)',
     'c2000000-0000-4000-8000-000000000008',jsonb_set(v_exchange,'{return,items,0,milligrams}','"4001"')),'return_exceeds_original');
-  -- Valid replacement purchase can remain unpaid; its payable is independent.
-  v_replacement := jsonb_set(jsonb_set(v_replacement,'{total_piastres}','"3000"'),'{tenders}','[]') || jsonb_build_object('purchase_obligation_piastres','3000');
+  -- A replacement purchase is paid in full and opens no seller payable.
+  v_replacement := (jsonb_set(jsonb_set(v_replacement,'{total_piastres}','"3000"'),'{tenders}','[{"method":"cash","piastres":"3000"}]') - 'purchase_obligation_piastres');
   v_exchange := jsonb_set(v_exchange,'{replacement}',v_replacement);
   v_result := public.post_exchange_v1('c2000000-0000-4000-8000-000000000008',v_exchange);
-  if v_result -> 'net_effects' ->> 'cash_piastres' <> '0'
+  if v_result ->> 'replacement_operation_id' is null
     or (select remaining_piastres from public.purchase_cash_payables where operation_id=v_purchase) <> 3000
-    or (select remaining_piastres from public.purchase_cash_payables where operation_id=(v_result ->> 'replacement_operation_id')::uuid) <> 3000 then raise exception 'purchase exchange payable failed'; end if;
+    or exists (
+      select 1 from public.purchase_cash_payables
+      where operation_id = (v_result ->> 'replacement_operation_id')::uuid
+    ) then raise exception 'purchase exchange payable failed'; end if;
   perform pg_temp.expect_comp(format('select public.post_exchange_v1(%L::uuid,%L::jsonb)',
     'c2000000-0000-4000-8000-000000000008',jsonb_set(v_exchange,'{note}','"تغيير"')),'payload_mismatch');
   if public.post_exchange_v1('c2000000-0000-4000-8000-000000000008',v_exchange) ->> 'replayed' <> 'true' then raise exception 'exchange replay failed'; end if;

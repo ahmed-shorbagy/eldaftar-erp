@@ -273,7 +273,7 @@ void main() {
     },
   );
   testWidgets(
-    'standard item selection and anonymous unpaid purchase reach server confirmation',
+    'standard item selection and an anonymous fully paid purchase reach server confirmation',
     (tester) async {
       final gateway = FakeFinancialGateway();
       await pumpTrade(tester, gateway, FinancialKind.purchase);
@@ -289,20 +289,13 @@ void main() {
       await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
       await nextTrade(tester);
       await tester.dragUntilVisible(
-        find.byKey(const Key('trade-purchase-price')),
+        find.byKey(const Key('trade-tender-amount-0')),
         find.byType(ListView),
         const Offset(0, -200),
       );
       await tester.enterText(
-        find.byKey(const Key('trade-purchase-price')),
+        find.byKey(const Key('trade-tender-amount-0')),
         '60000.25',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('trade-tender-amount-0')),
-      );
-      await tester.enterText(
-        find.byKey(const Key('trade-tender-amount-0')),
-        '',
       );
       await nextTrade(tester);
       await tapVisible(tester, find.byKey(const Key('trade-review')));
@@ -310,9 +303,10 @@ void main() {
       await tapVisible(tester, find.byKey(const Key('trade-confirm')));
       expect(gateway.payloads.single['customer_name'], '');
       expect(
-        gateway.payloads.single['purchase_obligation_piastres'],
-        '6000025',
+        gateway.payloads.single.containsKey('purchase_obligation_piastres'),
+        isFalse,
       );
+      expect(gateway.payloads.single['total_piastres'], '6000025');
       expect(find.byKey(const Key('trade-success')), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

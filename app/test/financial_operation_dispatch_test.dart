@@ -120,7 +120,22 @@ void main() {
     expect(find.text('لم يؤكد الإرسال'), findsOneWidget);
     expect(find.text('تأكيد الإرسال بعد إرساله'), findsNothing);
     expect(find.text('فتح رسالة واتساب'), findsNothing);
-    expect(find.text('مشاركة مستند PDF عبر واتساب'), findsOneWidget);
+    expect(find.text('إرسال الفاتورة PDF على واتساب'), findsOneWidget);
+    expect(find.text('تحديث حالة الإرسال'), findsNothing);
+    expect(find.text('وقت التأكيد'), findsNothing);
+    for (final absent in const [
+      'نسخ الفاتورة',
+      'معاينة المستند الأصلي الثابت',
+      'حفظ المستند الأصلي الثابت',
+      'عرض النسخ الموسومة',
+      'تحديث النسخ الموسومة',
+      'تسجيل مرتجع أو استبدال',
+    ]) {
+      expect(find.text(absent), findsNothing);
+    }
+    expect(find.byKey(const Key('operation-create-return')), findsNothing);
+    expect(find.text('تعديل'), findsOneWidget);
+    expect(find.text('مسح العملية'), findsOneWidget);
     for (final width in [320.0, 1440.0]) {
       for (final dark in [false, true]) {
         tester.view.physicalSize = Size(width, 820);

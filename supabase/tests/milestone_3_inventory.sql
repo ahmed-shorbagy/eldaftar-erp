@@ -466,10 +466,12 @@ begin
   ) then
     raise exception 'trader_cash_obligation_list_mismatch';
   end if;
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'a1700013-0013-4013-8013-000000000013',
     '{"version":1,"kind":"purchase","total_piastres":"5000","tenders":[],"items":[{"category":"scrap","karat":14,"milligrams":"100","count":null,"item_name":"كسر","line_price_piastres":null}],"description":"","customer_name":"تاجر تجريبي","customer_phone":"","note":"","purchase_obligation_piastres":"5000"}'::jsonb
   );
+  execute 'set local role authenticated';
   if (select trader_id from public.purchase_cash_payables
       where operation_id = (v_result ->> 'operation_id')::uuid) is not null then
     raise exception 'named_seller_guessed_as_trader';

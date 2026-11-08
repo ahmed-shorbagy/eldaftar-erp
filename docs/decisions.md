@@ -1,6 +1,10 @@
 # Architecture and product decisions
 
-## Current decision — 2026-11-08, trade and WhatsApp
+## Current decision — 2026-11-08, voice notes
+
+The 2026-11-08 voice notes are accepted in [ADR 0041](adr/0041-owner-feedback-2026-11-08-voice-notes.md). Scrap moves into a named item, closing is an item grid with compact counts, the invoice copy panel and the linked return button leave the operation screen, a purchase is paid in full and jewelry is booked as scrap on the server, a standalone customer return posts cash out and named stock in, and expenses, returns, and notes can be edited or deleted under the windows in that ADR. It amends ADR 0007, ADR 0021, and ADR 0040. Not committed and not deployed. [Plan](operations/owner-feedback-2026-11-08-voice-notes-plan.md).
+
+## Previous decision — 2026-11-08, trade and WhatsApp
 
 The 2026-11-06 owner notes are implemented in the Flutter client only. [ADR 0040](adr/0040-owner-feedback-2026-11-06-trade-invoice-whatsapp.md) records purchased jewelry booked as scrap, karat order 18/21/24/22/14, optional per-line prices, invoices that keep the shop name and omit the internal note, a PDF-and-message WhatsApp handoff, international customer phones with Egypt as the default, the locked coin and bar count, the dense «أخرى» list, and «صنف جديد» only in الجرد الفوري. It amends ADR 0022 and keeps ADR 0006. No schema or R2 change. Not committed and not deployed. Android, iOS, and Windows device acceptance remain open. [Validation](operations/owner-feedback-2026-11-06-validation.md).
 

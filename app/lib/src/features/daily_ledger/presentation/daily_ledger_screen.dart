@@ -720,6 +720,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       return;
     }
     final scrapGateway = gateway as ScrapToStockGateway;
+    final catalog = gateway is InventoryGateway
+        ? gateway as InventoryGateway
+        : null;
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => ScrapToStockScreen(
@@ -728,6 +731,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           userId: userId,
           shopId: widget.shop.id,
           scrap: scrap,
+          catalog: catalog,
         ),
       ),
     );

@@ -111,8 +111,8 @@ void main() {
     expect(valid.isValid, isTrue);
   });
 
-  test('partially paid purchase keeps one exact cash payable and seller', () {
-    final purchase = FinancialDraft.compose(
+  test('a purchase is rejected unless tenders equal the total', () {
+    final partial = FinancialDraft.compose(
       kind: FinancialKind.purchase,
       totalPounds: '60000',
       items: [ring],
@@ -121,29 +121,14 @@ void main() {
       ],
       customerName: 'تاجر تجريبي',
     );
-    expect(purchase.isValid, isTrue);
-    expect(purchase.draft!.cashPaid.wire, '2000000');
-    expect(purchase.draft!.purchasePayable?.wire, '4000000');
-    expect(purchase.draft!.toJson()['purchase_obligation_piastres'], '4000000');
-    final anonymous = FinancialDraft.compose(
-      kind: FinancialKind.purchase,
-      totalPounds: '60000',
-      items: [ring],
-      tenders: const [],
-    );
-    expect(anonymous.isValid, isTrue);
-    expect(anonymous.draft!.customerName, isEmpty);
-    expect(anonymous.draft!.purchasePayable?.wire, '6000000');
+    expect(partial.issue, FinancialIssue.tenderMismatch);
     final unpaid = FinancialDraft.compose(
       kind: FinancialKind.purchase,
       totalPounds: '60000',
       items: [ring],
       tenders: const [],
-      customerName: 'تاجر تجريبي',
     );
-    expect(unpaid.isValid, isTrue);
-    expect(unpaid.draft!.cashPaid.wire, '0');
-    expect(unpaid.draft!.purchasePayable?.wire, '6000000');
+    expect(unpaid.issue, FinancialIssue.invalidTender);
   });
 
   test('scrap quick sale accepts only scrap and exact split cash', () {

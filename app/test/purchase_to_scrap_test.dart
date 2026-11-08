@@ -27,7 +27,6 @@ void main() {
     await chooseTradeItem(tester, 'خاتم');
     expect(find.byKey(const Key('trade-count-0')), findsNothing);
     await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
-    await enterTradeField(tester, const Key('trade-purchase-price'), '1000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '1000');
     await reviewTrade(tester);
     expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
@@ -56,7 +55,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('nominal-apply')));
     await tester.pumpAndSettle();
-    await enterTradeField(tester, const Key('trade-purchase-price'), '500');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '500');
     await reviewTrade(tester);
     await tester.tap(find.byKey(const Key('trade-confirm')));
@@ -67,6 +65,79 @@ void main() {
     expect(line['category'], 'bullion');
     expect(line['karat'], 24);
     expect(line['count'], isNotNull);
+  });
+
+  testWidgets('purchased jewelry at 21 and 18 is scrap, coins stay coins', (
+    tester,
+  ) async {
+    final ring = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: ring,
+      statusGateway: ring,
+      kind: FinancialKind.purchase,
+    );
+    await chooseTradeItem(tester, 'خاتم');
+    await tester.tap(find.byKey(const Key('trade-karat-0-scrap-18')));
+    await tester.pumpAndSettle();
+    final karatValues = tester
+        .widgetList<DropdownMenuItem<int>>(find.byType(DropdownMenuItem<int>))
+        .map((item) => item.value)
+        .toList();
+    expect(karatValues.sublist(karatValues.length - 5), [18, 21, 24, 22, 14]);
+    await tester.tap(find.text('21').last);
+    await tester.pumpAndSettle();
+    await enterTradeField(tester, const Key('trade-grams-0'), '2.000');
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '1000');
+    await reviewTrade(tester);
+    expect(find.textContaining('يزيد كسر عيار 21'), findsOneWidget);
+    expect(find.textContaining('مخزون خاتم'), findsNothing);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    final ringLine =
+        (ring.payloads.single['items'] as List).single as Map<String, Object?>;
+    expect(ringLine['category'], 'scrap');
+    expect(ringLine['karat'], 21);
+
+    final chain = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: chain,
+      statusGateway: chain,
+      kind: FinancialKind.purchase,
+    );
+    await chooseTradeItem(tester, 'سلسلة');
+    await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '500');
+    await reviewTrade(tester);
+    expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    final chainLine =
+        (chain.payloads.single['items'] as List).single as Map<String, Object?>;
+    expect(chainLine['category'], 'scrap');
+    expect(chainLine['karat'], 18);
+
+    final coin = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: coin,
+      statusGateway: coin,
+      kind: FinancialKind.purchase,
+    );
+    await chooseTradeItem(tester, 'جنيهات');
+    await tester.tap(find.byKey(const Key('nominal-select-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('nominal-apply')));
+    await tester.pumpAndSettle();
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '7000');
+    await reviewTrade(tester);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    final coinLine =
+        (coin.payloads.single['items'] as List).single as Map<String, Object?>;
+    expect(coinLine['category'], 'coin');
+    expect(coinLine['karat'], 21);
   });
 
   testWidgets('a sold ring stays worked jewelry', (tester) async {

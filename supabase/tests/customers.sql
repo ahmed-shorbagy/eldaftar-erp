@@ -294,11 +294,13 @@ select 'sale_new', (public.post_daily_ledger_trade(
 ) ->> 'operation_id')::uuid,
   '{"version":1,"kind":"sale","total_piastres":"5000","tenders":[{"method":"cash","piastres":"5000"}],"items":[{"category":"worked_jewelry","karat":21,"milligrams":"1000","count":"1","item_name":"خاتم جديد","line_price_piastres":null}],"description":"","customer_name":"طرف قديم","customer_phone":"01033333335","note":"الأحدث"}'::jsonb;
 
+reset role;
 insert into customer_ops (name, operation_id, payload)
-select 'purchase', (public.post_daily_ledger_trade(
+select 'purchase', (public.post_daily_ledger_trade_before_paid_purchase(
   'c3000000-0000-4000-8000-000000000014',
   '{"version":1,"kind":"purchase","total_piastres":"4000","tenders":[{"method":"cash","piastres":"4000"}],"items":[{"category":"worked_jewelry","karat":21,"milligrams":"1000","count":"1","item_name":"سوار الاختبار","line_price_piastres":null}],"description":"","customer_name":"تاجر اللقطة","customer_phone":"01022222222","note":"شراء"}'::jsonb
 ) ->> 'operation_id')::uuid, null;
+set local role authenticated;
 
 insert into customer_ops (name, operation_id, payload)
 select 'expense', (public.post_daily_ledger_trade(

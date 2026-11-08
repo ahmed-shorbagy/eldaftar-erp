@@ -154,7 +154,7 @@ void main() {
         );
         await _save(tester, 'close-entry-$suffix');
       });
-      testWidgets('captures partial purchase review $suffix', (tester) async {
+      testWidgets('captures paid purchase review $suffix', (tester) async {
         tester.view.physicalSize = Size(width, 820);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -187,29 +187,22 @@ void main() {
         );
         await nextTrade(tester);
         await tester.dragUntilVisible(
-          find.byKey(const Key('trade-purchase-price')),
+          find.byKey(const Key('trade-tender-amount-0')),
           find.byType(ListView),
           const Offset(0, -250),
         );
         await tester.enterText(
-          find.byKey(const Key('trade-purchase-price')),
+          find.byKey(const Key('trade-tender-amount-0')),
           '60000',
-        );
-        await tester.dragUntilVisible(
-          find.byKey(const Key('trade-tender-amount-0')),
-          find.byType(ListView),
-          const Offset(0, -250),
-        );
-        await tester.enterText(
-          find.byKey(const Key('trade-tender-amount-0')),
-          '20000',
         );
         await _save(tester, 'payment-$suffix');
         await tester.ensureVisible(find.byKey(const Key('trade-review')));
         await tester.tap(find.byKey(const Key('trade-review')));
         await tester.pumpAndSettle();
-        expect(find.textContaining('يبقى مستحقاً للعميل'), findsOneWidget);
-        await _save(tester, 'partial-purchase-review-$suffix');
+        // ADR 0041: a purchase is paid in full and cash goes down at once.
+        expect(find.textContaining('تنقص النقدية'), findsOneWidget);
+        expect(find.textContaining('يبقى مستحقاً للعميل'), findsNothing);
+        await _save(tester, 'paid-purchase-review-$suffix');
       });
       testWidgets('captures scrap cash review $suffix', (tester) async {
         tester.view.physicalSize = Size(width, 820);

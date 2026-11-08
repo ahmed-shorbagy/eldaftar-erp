@@ -124,7 +124,9 @@ begin
   exception when others then
     if sqlerrm is distinct from 'payload_mismatch' then raise; end if;
   end;
-  v_result := public.post_daily_ledger_trade('c3838383-8383-4383-8383-838383838383', v_purchase);
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase('c3838383-8383-4383-8383-838383838383', v_purchase);
+  execute 'set local role authenticated';
   if v_result ->> 'ok' is distinct from 'true' then raise exception 'purchase did not commit'; end if;
   v_result := public.post_daily_ledger_trade('c4848484-8484-4484-8484-848484848484', v_expense);
   if v_result ->> 'ok' is distinct from 'true' then raise exception 'expense did not commit'; end if;
@@ -237,10 +239,12 @@ begin
       v_partial - 'purchase_obligation_piastres');
     raise exception 'unrecorded partial payable accepted';
   exception when others then
-    if sqlerrm is distinct from 'invalid_input' then raise; end if;
+    if sqlerrm is distinct from 'purchase_must_be_paid' then raise; end if;
   end;
-  v_result := public.post_daily_ledger_trade('d3232323-3232-4323-8323-323232323232',
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase('d3232323-3232-4323-8323-323232323232',
     v_partial);
+  execute 'set local role authenticated';
   v_purchase_op := (v_result ->> 'operation_id')::uuid;
   insert into ledger_test_payable (id) values (v_purchase_op);
   if not exists (
@@ -299,8 +303,10 @@ begin
   v_anonymous_payload := jsonb_set(jsonb_set(jsonb_set(v_partial,
     '{customer_name}', '""'::jsonb), '{tenders}', '[]'::jsonb),
     '{purchase_obligation_piastres}', '"5000"'::jsonb);
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'd3535353-3535-4353-8353-353535353535', v_anonymous_payload);
+  execute 'set local role authenticated';
   v_anonymous_op := (v_result ->> 'operation_id')::uuid;
   if (select remaining_piastres from public.purchase_cash_payables
       where operation_id = (v_result ->> 'operation_id')::uuid) <> 5000 then
@@ -319,8 +325,10 @@ begin
         where operation_id = v_anonymous_op) <> 1 then
     raise exception 'anonymous purchase duplicated its obligation on retry';
   end if;
-  v_result := public.post_daily_ledger_trade(
+  execute 'reset role';
+  v_result := public.post_daily_ledger_trade_before_paid_purchase(
     'e3535353-3535-4353-8353-353535353535', v_anonymous_payload);
+  execute 'set local role authenticated';
   if (v_result ->> 'operation_id')::uuid = v_anonymous_op
     or (select remaining_piastres from public.purchase_cash_payables
         where operation_id = (v_result ->> 'operation_id')::uuid) <> 5000 then

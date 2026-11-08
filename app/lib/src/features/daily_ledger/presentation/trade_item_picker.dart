@@ -6,6 +6,23 @@ import '../application/idempotency_key.dart';
 import '../domain/opening_catalog.dart';
 import 'ledger_form_fields.dart';
 
+/// The thirteen built-in «أخرى» jewelry names, shared by sale, purchase, and scrap.
+const tradeOtherJewelryNames = <String>[
+  'دبلة',
+  'محبس',
+  'غويشة',
+  'إسورة',
+  'انسيال',
+  'خلخال',
+  'كوليه',
+  'طقم',
+  'نص طقم',
+  'بروش',
+  'توينز',
+  'كف',
+  'ميدالية',
+];
+
 /// A selectable trade item name and its stock category.
 final class TradeItemChoice {
   const TradeItemChoice(this.label, this.category, {this.icon});
@@ -59,6 +76,7 @@ Future<TradeItemChoice?> showTradeItemPicker(
   VoidCallback? onMore,
   TradeCreateItem? onCreate,
   bool createOnly = false,
+  String? shopLoadFailureLabel,
 }) {
   final body = TradeItemPicker(
     title: title,
@@ -69,6 +87,7 @@ Future<TradeItemChoice?> showTradeItemPicker(
     onMore: onMore,
     onCreate: onCreate,
     createOnly: createOnly,
+    shopLoadFailureLabel: shopLoadFailureLabel,
   );
   final size = MediaQuery.sizeOf(context);
   if (size.width >= AppTokens.wideBreakpoint) {
@@ -110,6 +129,7 @@ class TradeItemPicker extends StatefulWidget {
     this.onMore,
     this.onCreate,
     this.createOnly = false,
+    this.shopLoadFailureLabel,
   });
 
   final String title;
@@ -118,6 +138,7 @@ class TradeItemPicker extends StatefulWidget {
   final Set<String> reservedNames;
   final VoidCallback? onRetry;
   final VoidCallback? onMore;
+  final String? shopLoadFailureLabel;
   final TradeCreateItem? onCreate;
   final bool createOnly;
 
@@ -336,14 +357,20 @@ class _TradeItemPickerState extends State<TradeItemPicker> {
             if (catalog.failed && widget.onRetry != null)
               Padding(
                 padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                child: _InlineNotice(
-                  message: 'تعذر تحميل أصناف المتجر.',
-                  error: true,
-                  action: TextButton(
-                    onPressed: catalog.loading ? null : widget.onRetry,
-                    child: const Text('إعادة المحاولة'),
-                  ),
-                ),
+                child: widget.shopLoadFailureLabel == null
+                    ? _InlineNotice(
+                        message: 'تعذر تحميل أصناف المتجر.',
+                        error: true,
+                        action: TextButton(
+                          onPressed: catalog.loading ? null : widget.onRetry,
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      )
+                    : TextButton(
+                        key: const Key('trade-picker-shop-retry'),
+                        onPressed: catalog.loading ? null : widget.onRetry,
+                        child: Text(widget.shopLoadFailureLabel!),
+                      ),
               ),
             if (catalog.hasMore && widget.onMore != null)
               Padding(

@@ -133,15 +133,13 @@ Future<Uint8List> buildConfirmedOperationPdf(
             ink,
           ),
         ),
-        if (kind == 'purchase') ...[
-          _row('المدفوع عند الشراء', _paidPounds(tenders), ink),
-          if (payload['purchase_obligation_piastres'] is String)
-            _row(
-              'المستحق عند الشراء',
-              _pounds(payload['purchase_obligation_piastres']),
-              ink,
-            ),
-        ],
+        if (kind == 'purchase' &&
+            payload['purchase_obligation_piastres'] is String)
+          _row(
+            'المستحق عند الشراء',
+            _pounds(payload['purchase_obligation_piastres']),
+            ink,
+          ),
         pw.SizedBox(height: 14),
         pdfText(
           'وسائل الدفع',
@@ -184,22 +182,6 @@ String _pounds(Object? value) {
   final parsed = Piastres.parseWire(value);
   if (parsed is! Accepted<Piastres>) throw const FormatException('pdf_amount');
   return displayPounds(parsed.value.poundsText);
-}
-
-String _paidPounds(Object? tenders) {
-  if (tenders is! List) throw const FormatException('pdf_tenders');
-  var total = BigInt.zero;
-  for (final raw in tenders) {
-    if (raw is! Map || raw['piastres'] is! String) {
-      throw const FormatException('pdf_tenders');
-    }
-    final parsed = Piastres.parseWire(raw['piastres'] as String);
-    if (parsed is! Accepted<Piastres>) {
-      throw const FormatException('pdf_tenders');
-    }
-    total += parsed.value.value;
-  }
-  return _pounds(total.toString());
 }
 
 String _grams(Object? value) {

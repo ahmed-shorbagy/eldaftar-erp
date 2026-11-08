@@ -8,8 +8,6 @@ import '../../invoice_message/application/message_gateway.dart';
 import '../../invoice_message/data/url_message_launcher.dart';
 import '../../invoice_message/domain/message_template.dart';
 
-import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
-import '../../invoice_appearance/presentation/invoice_copy_panel.dart';
 import 'invoice_pdf_share_dialog.dart';
 import '../application/financial_gateway.dart';
 import '../application/daily_ledger_view.dart';
@@ -17,14 +15,11 @@ import '../application/opening_gateway.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import 'opening_copy.dart';
-import 'purchase_cash_settlement_screen.dart';
 import '../application/ledger_trade_change.dart';
 import '../domain/financial_draft.dart';
+import 'exchange_effect_review.dart';
 import 'financial_trade_screen.dart';
 import 'ledger_trade_change_screen.dart';
-import 'linked_return_screen.dart';
-import 'partial_return_screen.dart';
-import 'exchange_effect_review.dart';
 
 class FinancialOperationScreen extends StatefulWidget {
   const FinancialOperationScreen({
@@ -65,11 +60,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
   bool _dispatchLoading = false;
   bool _dispatchBusy = false;
   String? _dispatchMessage;
-
-  String get _copyKind {
-    final loaded = _operation?['kind'];
-    return loaded is String ? loaded : widget.line.kind;
-  }
 
   @override
   void initState() {
@@ -197,107 +187,9 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
     }
   }
 
-  Future<void> _settlePurchase() async {
-    final gateway = widget.gateway;
-    final operation = _operation;
-    final shopId = operation?['shop_id'];
-    final amount = operation?['purchase_payable_remaining_piastres'];
-    if (gateway is! PurchaseSettlementGateway ||
-        gateway is! OpeningGateway ||
-        shopId is! String ||
-        amount is! String) {
-      return;
-    }
-    final parsed = Piastres.parseWire(amount);
-    if (parsed is! Accepted<Piastres> || parsed.value.value == BigInt.zero) {
-      return;
-    }
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => PurchaseCashSettlementScreen(
-          gateway: gateway as PurchaseSettlementGateway,
-          statusGateway: gateway as OpeningGateway,
-          userId: widget.userId,
-          shopId: shopId,
-          purchaseOperationId: widget.line.operationId,
-          remaining: parsed.value,
-        ),
-      ),
-    );
-    if (saved == true && mounted) await _load();
-  }
-
   bool _changeBusy = false;
-  bool _returnBusy = false;
   String? _changeError;
   bool get _active => _operation?['trade_change'] == null;
-
-  Future<void> _returnOperation() async {
-    final gateway = widget.gateway;
-    final operation = _operation;
-    final shopId = widget.shopId ?? operation?['shop_id'];
-    if (_returnBusy ||
-        !_active ||
-        _loading ||
-        gateway is! LinkedReturnGateway ||
-        gateway is! OpeningGateway ||
-        operation == null ||
-        shopId is! String ||
-        widget.canWrite?.call() == false) {
-      return;
-    }
-    setState(() => _returnBusy = true);
-    try {
-      if (gateway is PartialReturnGateway) {
-        try {
-          final remainder = await (gateway as PartialReturnGateway).remainder(
-            callerUserId: widget.userId,
-            operationId: widget.line.operationId,
-          );
-          if (!mounted || widget.canWrite?.call() == false) return;
-          final saved = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder: (_) => PartialReturnScreen(
-                gateway: gateway as PartialReturnGateway,
-                statusGateway: gateway as OpeningGateway,
-                dayGateway: gateway,
-                userId: widget.userId,
-                shopId: shopId,
-                remainder: remainder,
-                writesEnabled: widget.canWrite?.call() != false,
-              ),
-            ),
-          );
-          if (saved == true && mounted) await _load();
-        } catch (_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'تعذر قراءة المتبقي من العملية. حدّث الدفتر وأعد المحاولة.',
-                ),
-              ),
-            );
-          }
-        }
-        return;
-      }
-      final saved = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (_) => LinkedReturnScreen(
-            gateway: gateway as LinkedReturnGateway,
-            statusGateway: gateway as OpeningGateway,
-            userId: widget.userId,
-            shopId: shopId,
-            operation: operation,
-          ),
-        ),
-      );
-      if (saved == true && mounted) await _load();
-    } finally {
-      if (mounted) setState(() => _returnBusy = false);
-    }
-  }
 
   Future<bool> _reviewChange(
     String action, {
@@ -621,25 +513,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           ),
                         ),
                       ],
-                      if (widget.line.kind == 'purchase') ...[
-                        Text('المدفوع عند الشراء: ${_paidPounds(tenders)}'),
-                        if (operation?['purchase_payable_remaining_piastres']
-                            is String)
-                          Text(
-                            'المستحق للبائع الآن: ${_pounds(operation?['purchase_payable_remaining_piastres'])}',
-                          ),
-                        if (widget.gateway is PurchaseSettlementGateway &&
-                            widget.gateway is OpeningGateway &&
-                            operation?['shop_id'] is String &&
-                            _hasPositivePiastres(
-                              operation?['purchase_payable_remaining_piastres'],
-                            ))
-                          OutlinedButton.icon(
-                            onPressed: _settlePurchase,
-                            icon: const Icon(Icons.payments_outlined),
-                            label: const Text('سداد مبلغ مستحق'),
-                          ),
-                      ],
                       if ((widget.line.kind == 'sale_return' ||
                               widget.line.kind == 'purchase_return') &&
                           details['cash_returned_piastres'] is String) ...[
@@ -703,31 +576,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                       if (_active &&
                           (widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase') &&
-                          widget.gateway is LinkedReturnGateway &&
-                          widget.gateway is OpeningGateway &&
-                          widget.canWrite?.call() != false) ...[
-                        const SizedBox(height: 16),
-                        if (operation?['returned_by_operation_id'] is String)
-                          const Text('سُجل مرتجع كامل لهذه العملية.')
-                        else ...[
-                          if (_returnBusy) const LinearProgressIndicator(),
-                          OutlinedButton.icon(
-                            key: const Key('operation-create-return'),
-                            onPressed: _returnBusy || _changeBusy || _loading
-                                ? null
-                                : _returnOperation,
-                            icon: const Icon(Icons.assignment_return_outlined),
-                            label: Text(
-                              widget.gateway is PartialReturnGateway
-                                  ? 'تسجيل مرتجع أو استبدال'
-                                  : 'تسجيل مرتجع كامل',
-                            ),
-                          ),
-                        ],
-                      ],
-                      if (_active &&
-                          (widget.line.kind == 'sale' ||
-                              widget.line.kind == 'purchase') &&
                           widget.gateway is LedgerTradeChangeGateway &&
                           widget.gateway is OpeningGateway &&
                           widget.canWrite?.call() != false) ...[
@@ -738,7 +586,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         if (_changeBusy) const LinearProgressIndicator(),
                         OutlinedButton.icon(
                           key: const Key('operation-edit'),
-                          onPressed: _changeBusy || _returnBusy || _loading
+                          onPressed: _changeBusy || _loading
                               ? null
                               : () => _changeTrade('edit'),
                           icon: const Icon(Icons.edit_outlined),
@@ -746,7 +594,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         ),
                         OutlinedButton.icon(
                           key: const Key('operation-delete'),
-                          onPressed: _changeBusy || _returnBusy || _loading
+                          onPressed: _changeBusy || _loading
                               ? null
                               : () => _changeTrade('delete'),
                           icon: const Icon(Icons.delete_outline),
@@ -758,24 +606,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                             key: const Key('operation-change-error'),
                           ),
                       ],
-                      if (_active &&
-                          (_copyKind == 'sale' || _copyKind == 'purchase'))
-                        InvoiceCopyPanel(
-                          operations: widget.gateway,
-                          appearance: widget.gateway is InvoiceAppearanceGateway
-                              ? widget.gateway as InvoiceAppearanceGateway
-                              : null,
-                          userId: widget.userId,
-                          shopId:
-                              widget.shopId ??
-                              (_operation?['shop_id'] as String?),
-                          operationId: widget.line.operationId,
-                          kind: _copyKind,
-                          operation: _operation,
-                          canRead: widget.canRead ?? () => true,
-                          canWrite: widget.canWrite ?? () => true,
-                          syncTicks: widget.syncTicks,
-                        ),
                       if (_active &&
                           widget.gateway is InvoiceDispatchGateway &&
                           (widget.line.kind == 'sale' ||
@@ -792,31 +622,16 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               ? null
                               : _sharePdf,
                           icon: const WhatsappIcon(),
-                          label: const Text('مشاركة مستند PDF عبر واتساب'),
+                          label: const Text('إرسال الفاتورة PDF على واتساب'),
                         ),
                         if (_dispatch?.ownerConfirmed == true)
                           const Text('أكد المالك الإرسال عبر واتساب')
-                        else ...[
+                        else
                           const Text('لم يؤكد الإرسال'),
-                          const SizedBox(height: 8),
-                        ],
                         if (_dispatchMessage != null)
                           Text(
                             _dispatchMessage!,
                             style: theme.textTheme.bodySmall,
-                          ),
-                        TextButton.icon(
-                          onPressed: _dispatchLoading || _dispatchBusy
-                              ? null
-                              : _loadDispatch,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('تحديث حالة الإرسال'),
-                        ),
-                        if (_dispatch?.confirmedAt != null)
-                          Text(
-                            'وقت التأكيد: '
-                            '${MaterialLocalizations.of(context).formatMediumDate(_dispatch!.confirmedAt!.toLocal())} '
-                            '${TimeOfDay.fromDateTime(_dispatch!.confirmedAt!.toLocal()).format(context)}',
                           ),
                       ],
                     ],
@@ -893,18 +708,6 @@ String _pounds(Object? value) {
   return result is Accepted<Piastres>
       ? displayPounds(result.value.poundsText)
       : '—';
-}
-
-String _paidPounds(Object? tenders) {
-  if (tenders is! List) return '—';
-  var total = BigInt.zero;
-  for (final raw in tenders) {
-    if (raw is! Map || raw['piastres'] is! String) return '—';
-    final parsed = Piastres.parseWire(raw['piastres'] as String);
-    if (parsed is! Accepted<Piastres>) return '—';
-    total += parsed.value.value;
-  }
-  return _pounds(total.toString());
 }
 
 bool _hasPositivePiastres(Object? value) {

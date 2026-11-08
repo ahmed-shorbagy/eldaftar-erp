@@ -1,5 +1,7 @@
 import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/ledger_trade_change.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/financial_operation_screen.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -139,35 +141,100 @@ void main() {
     expect(find.text('تسليم مساءً'), findsOneWidget);
   });
 
-  testWidgets('sale details offer linked return or exchange', (tester) async {
-    final gateway = ReturnCapableDetailsGateway(const {
-      'customer_name': '',
-      'customer_phone': '',
-      'note': '',
-      'total_piastres': '10000',
-      'items': <Object?>[],
-      'tenders': <Object?>[],
-    });
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('ar'),
-        theme: AppTheme.dark(),
-        home: FinancialOperationScreen(
-          gateway: gateway,
-          userId: 'owner-1',
-          shopId: 'shop-1',
-          line: line(),
-          canWrite: () => true,
+  for (final kind in ['sale', 'purchase']) {
+    testWidgets('$kind keeps edit, delete, and WhatsApp only', (tester) async {
+      final gateway = ActionDetailsGateway(const {
+        'customer_name': '',
+        'customer_phone': '',
+        'note': '',
+        'total_piastres': '10000',
+        'items': <Object?>[],
+        'tenders': <Object?>[],
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          theme: AppTheme.dark(),
+          home: FinancialOperationScreen(
+            gateway: gateway,
+            userId: 'owner-1',
+            shopId: 'shop-1',
+            line: LedgerFeedLine(
+              kind: kind,
+              labelAr: kind == 'sale' ? 'بيع' : 'شراء',
+              operationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+              actorDisplayName: 'بائع المحل',
+              occurredAt: '2026-09-26T12:30:00Z',
+              occurredAtCairo: '2026-09-26T15:30:00',
+            ),
+            canWrite: () => true,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('operation-create-return')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('تسجيل مرتجع أو استبدال'), findsOneWidget);
-    expect(find.byKey(const Key('operation-create-return')), findsOneWidget);
-  });
+      );
+      await tester.pumpAndSettle();
+      for (final absent in const [
+        'نسخ الفاتورة',
+        'معاينة المستند الأصلي الثابت',
+        'حفظ المستند الأصلي الثابت',
+        'عرض النسخ الموسومة',
+        'تحديث النسخ الموسومة',
+        'تحديث حالة الإرسال',
+        'تسجيل مرتجع أو استبدال',
+        'تسجيل مرتجع كامل',
+        'المدفوع عند الشراء',
+        'المستحق للبائع الآن',
+        'سداد مبلغ مستحق',
+      ]) {
+        expect(find.text(absent), findsNothing);
+      }
+      expect(find.byKey(const Key('operation-create-return')), findsNothing);
+      await tester.scrollUntilVisible(
+        find.text('تعديل'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('تعديل'), findsOneWidget);
+      expect(find.text('مسح العملية'), findsOneWidget);
+      expect(find.text('إرسال الفاتورة PDF على واتساب'), findsOneWidget);
+    });
+  }
+}
+
+class ActionDetailsGateway extends DetailsGateway
+    implements LedgerTradeChangeGateway, InvoiceDispatchGateway {
+  ActionDetailsGateway(super.payload);
+
+  @override
+  Future<InvoiceDispatchState> dispatchState({
+    required String callerUserId,
+    required String operationId,
+  }) async => const InvoiceDispatchState(ownerConfirmed: false);
+
+  @override
+  Future<PendingInvoicePage> pendingInvoiceSends({
+    required String callerUserId,
+    int? beforeSequence,
+  }) async => const PendingInvoicePage([], null);
+
+  @override
+  Future<FinancialCommandResult> confirmWhatsappSend({
+    required String callerUserId,
+    required String operationId,
+    required String idempotencyKey,
+  }) async => result;
+
+  @override
+  Future<LedgerTradeChangeReview> reviewTradeChange({
+    required String userId,
+    required String shopId,
+    required String operationId,
+    required String action,
+    Map<String, Object?>? replacement,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<FinancialCommandResult> postTradeChange({
+    required String userId,
+    required PendingFinancialCommand command,
+  }) async => result;
 }

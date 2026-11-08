@@ -102,7 +102,7 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('فتح رسالة واتساب'), findsNothing);
       expect(find.text('تأكيد الإرسال بعد إرساله'), findsNothing);
-      await tapMessage(t, find.text('مشاركة مستند PDF عبر واتساب'));
+      await tapMessage(t, find.text('إرسال الفاتورة PDF على واتساب'));
       expect(find.text('إرسال الفاتورة'), findsOneWidget);
       expect(confirmed, isFalse);
       expect(launcher.uris, isEmpty);
@@ -138,7 +138,10 @@ void main() {
         calls.every((r) => !r.url.pathSegments.last.startsWith('post_')),
         isTrue,
       );
-      expect(find.text('مشاركة مستند PDF عبر واتساب'), findsOneWidget);
+      expect(
+        find.byKey(const Key('operation-whatsapp-share')),
+        findsOneWidget,
+      );
     },
   );
 }

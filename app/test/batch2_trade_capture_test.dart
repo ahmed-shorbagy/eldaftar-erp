@@ -110,17 +110,10 @@ void main() {
             await saveTradeCapture(tester, '$label-entry');
             await chooseTradeItem(tester, 'خاتم');
             await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
-            if (kind == FinancialKind.purchase) {
-              await enterTradeField(
-                tester,
-                const Key('trade-purchase-price'),
-                '60000',
-              );
-            }
             await enterTradeField(
               tester,
               const Key('trade-tender-amount-0'),
-              kind == FinancialKind.sale ? '4200.25' : '20000',
+              kind == FinancialKind.sale ? '4200.25' : '60000',
             );
             tester.view.viewInsets = FakeViewPadding(
               bottom: size.width < 840 ? 240 : 0,

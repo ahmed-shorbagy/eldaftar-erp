@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:eldafttar/src/features/inventory/application/inventory_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
@@ -18,6 +19,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'batch2_trade_support.dart';
 
 const _scrap = [
   LedgerScrapLine(
@@ -154,7 +157,8 @@ void main() {
         ),
       ),
     );
-    await tester.enterText(find.byKey(const Key('scrap-stock-name')), 'خاتم');
+    await tester.tap(find.byKey(const Key('scrap-stock-item-خاتم')));
+    await tester.pump();
     await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '0.501');
     await tester.ensureVisible(find.byKey(const Key('scrap-stock-review')));
     tester
@@ -172,13 +176,10 @@ void main() {
         .onPressed!();
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('ينقص الكسر: 0.38 جرام (375 ملليجرام)'),
+      find.textContaining('ينقص الكسر: 0.38 جرام (375 ملليجرام) · عيار 21'),
       findsOneWidget,
     );
-    expect(
-      find.textContaining('يزيد المخزون: 0.38 جرام (375 ملليجرام)'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('يزيد مخزون خاتم عيار 21:'), findsOneWidget);
     expect(find.text('النقدية لا تتغير.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('scrap-stock-confirm')));
     await tester.pumpAndSettle();
@@ -186,6 +187,127 @@ void main() {
     expect(gateway.payload?['milligrams'], '375');
     expect(gateway.payload?['count'], '2');
     expect(gateway.payload?['karat'], 21);
+    expect(gateway.payload?['note'], '');
+    expect(gateway.payload?['item_name'], 'خاتم');
+    expect(gateway.payload?['category'], 'worked_jewelry');
+    expect(find.text('ملاحظة اختيارية'), findsNothing);
+    expect(find.text('مشغولات'), findsNothing);
+  });
+
+  testWidgets('karat 21 lists jewelry, coins, and other without مشغولات', (
+    tester,
+  ) async {
+    await _pumpScrap(tester, scrap: _scrap);
+    for (final label in ['خاتم', 'حلق', 'سلسلة', 'تعليقة', 'جنيهات', 'أخرى']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('سبائك'), findsNothing);
+    expect(find.text('مشغولات'), findsNothing);
+    expect(find.text('ملاحظة اختيارية'), findsNothing);
+  });
+
+  testWidgets('karat 24 lists only bullion', (tester) async {
+    await _pumpScrap(
+      tester,
+      scrap: const [
+        LedgerScrapLine(
+          karat: 24,
+          labelAr: 'كسر عيار 24',
+          milligrams: '8000',
+          grams: '8.000',
+        ),
+      ],
+    );
+    expect(find.text('سبائك'), findsOneWidget);
+    expect(find.text('خاتم'), findsNothing);
+    expect(find.text('أخرى'), findsNothing);
+    expect(find.text('جنيهات'), findsNothing);
+    expect(find.text('مشغولات'), findsNothing);
+  });
+
+  testWidgets('review without an item asks for one', (tester) async {
+    await _pumpScrap(tester, scrap: _scrap);
+    tester
+        .widget<FilledButton>(find.byKey(const Key('scrap-stock-review')))
+        .onPressed!();
+    await tester.pump();
+    expect(find.text('اختر الصنف.'), findsOneWidget);
+  });
+
+  testWidgets('خاتم at 21 sends worked jewelry and an empty note', (
+    tester,
+  ) async {
+    final gateway = _Gateway();
+    await _pumpScrap(
+      tester,
+      gateway: gateway,
+      scrap: const [
+        LedgerScrapLine(
+          karat: 21,
+          labelAr: 'كسر عيار 21',
+          milligrams: '5000',
+          grams: '5.000',
+        ),
+      ],
+    );
+    await tester.tap(find.byKey(const Key('scrap-stock-item-خاتم')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '2.000');
+    await tester.ensureVisible(find.byKey(const Key('scrap-stock-review')));
+    tester
+        .widget<FilledButton>(find.byKey(const Key('scrap-stock-review')))
+        .onPressed!();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('scrap-stock-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.payload?['category'], 'worked_jewelry');
+    expect(gateway.payload?['karat'], 21);
+    expect(gateway.payload?['milligrams'], '2000');
+    expect(gateway.payload?['item_name'], 'خاتم');
+    expect(gateway.payload?['note'], '');
+  });
+
+  testWidgets('a shop product chosen from أخرى keeps its name', (tester) async {
+    final gateway = _Gateway();
+    final catalog = Batch2Catalog(
+      productsPage: const ReadPage.ready([
+        CatalogProduct(
+          id: 'product-1',
+          name: 'دبلة خاصة',
+          category: 'worked_jewelry',
+          karat: 21,
+          createdAt: '2026-11-08T00:00:00Z',
+        ),
+      ], null),
+    );
+    await _pumpScrap(
+      tester,
+      gateway: gateway,
+      catalog: catalog,
+      scrap: const [
+        LedgerScrapLine(
+          karat: 21,
+          labelAr: 'كسر عيار 21',
+          milligrams: '5000',
+          grams: '5.000',
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('scrap-stock-item-other')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('trade-new-category-دبلة خاصة')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '1.000');
+    tester
+        .widget<FilledButton>(find.byKey(const Key('scrap-stock-review')))
+        .onPressed!();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('scrap-stock-confirm')));
+    await tester.pumpAndSettle();
+    expect(gateway.payload?['item_name'], 'دبلة خاصة');
+    expect(gateway.payload?['category'], 'worked_jewelry');
+    expect(gateway.payload?['note'], '');
   });
 
   for (final width in [320.0, 1440.0]) {
@@ -220,10 +342,8 @@ void main() {
             ),
           ),
         );
-        await tester.enterText(
-          find.byKey(const Key('scrap-stock-name')),
-          'خاتم',
-        );
+        await tester.tap(find.byKey(const Key('scrap-stock-item-خاتم')));
+        await tester.pump();
         await tester.enterText(
           find.byKey(const Key('scrap-stock-grams')),
           '0.125',
@@ -251,4 +371,31 @@ void main() {
       });
     }
   }
+}
+
+Future<void> _pumpScrap(
+  WidgetTester tester, {
+  required List<LedgerScrapLine> scrap,
+  _Gateway? gateway,
+  InventoryGateway? catalog,
+}) async {
+  final resolved = gateway ?? _Gateway();
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('ar'),
+      theme: AppTheme.light(),
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: ScrapToStockScreen(
+          gateway: resolved,
+          statusGateway: resolved,
+          userId: 'owner-a',
+          shopId: 'shop-a',
+          scrap: scrap,
+          catalog: catalog,
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
 }

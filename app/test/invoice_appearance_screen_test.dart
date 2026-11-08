@@ -173,27 +173,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('معاينة المستند الأصلي الثابت'),
+      find.text('إرسال الفاتورة PDF على واتساب'),
       200,
     );
-    expect(find.text('معاينة المستند الأصلي الثابت'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('مشاركة مستند PDF عبر واتساب'),
-      200,
-    );
-    expect(find.text('مشاركة مستند PDF عبر واتساب'), findsOneWidget);
+    expect(find.text('إرسال الفاتورة PDF على واتساب'), findsOneWidget);
+    expect(find.text('معاينة المستند الأصلي الثابت'), findsNothing);
+    expect(find.text('نسخ الفاتورة'), findsNothing);
+    expect(find.byKey(const Key('invoice-branded-open')), findsNothing);
     expect(calls.any((path) => path.contains('presentation')), isFalse);
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('invoice-branded-open')),
-      200,
-    );
-    await tester.tap(find.byKey(const Key('invoice-branded-open')));
-    await tester.pumpAndSettle();
-    expect(
-      calls.any((path) => path.endsWith('/get_invoice_presentations_v1')),
-      isTrue,
-    );
-    expect(find.text('لا توجد نسخة موسومة بعد.'), findsOneWidget);
     expect(find.text('أكد المالك الإرسال عبر واتساب'), findsNothing);
   });
 

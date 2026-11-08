@@ -1,6 +1,10 @@
-import '../../../theme/amount_format.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../../theme/amount_format.dart';
+import '../../../theme/app_tokens.dart';
+import '../../inventory/application/inventory_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
 import '../application/idempotency_key.dart';
@@ -10,8 +14,9 @@ import '../data/pending_financial_command.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
+import 'jewelry_icons.dart';
 import 'ledger_form_fields.dart';
-import 'opening_copy.dart';
+import 'trade_item_picker.dart';
 
 class ScrapToStockScreen extends StatefulWidget {
   const ScrapToStockScreen({
@@ -21,6 +26,7 @@ class ScrapToStockScreen extends StatefulWidget {
     required this.userId,
     required this.shopId,
     required this.scrap,
+    this.catalog,
   });
 
   final ScrapToStockGateway gateway;
@@ -28,19 +34,34 @@ class ScrapToStockScreen extends StatefulWidget {
   final String userId;
   final String shopId;
   final List<LedgerScrapLine> scrap;
+  final InventoryGateway? catalog;
 
   @override
   State<ScrapToStockScreen> createState() => _ScrapToStockScreenState();
 }
 
+class _ScrapItem {
+  const _ScrapItem(this.label, this.category, {this.icon, this.other = false});
+
+  final String label;
+  final String category;
+  final Widget? icon;
+  final bool other;
+}
+
 class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   final _grams = TextEditingController();
   final _count = TextEditingController(text: '1');
-  final _name = TextEditingController();
-  final _note = TextEditingController();
   final _pending = const PendingFinancialCommands();
+  final _otherCatalog = ValueNotifier(const TradeOtherCatalog(choices: []));
   late int _karat;
-  late StockCategory _category;
+  String? _itemName;
+  String? _itemCategory;
+  List<CatalogProduct> _products = const [];
+  String? _productCursor;
+  bool _productsLoading = false;
+  bool _productsFailed = false;
+  int _productGeneration = 0;
   Milligrams? _reviewWeight;
   PieceCount? _reviewCount;
   String? _key;
@@ -48,29 +69,47 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   bool _busy = false;
   bool _unknown = false;
 
+  static const _jewelry = <_ScrapItem>[
+    _ScrapItem('خاتم', 'worked_jewelry', icon: JewelryGlyph(JewelryKind.ring)),
+    _ScrapItem(
+      'حلق',
+      'worked_jewelry',
+      icon: JewelryGlyph(JewelryKind.earrings),
+    ),
+    _ScrapItem(
+      'سلسلة',
+      'worked_jewelry',
+      icon: JewelryGlyph(JewelryKind.necklace),
+    ),
+    _ScrapItem(
+      'تعليقة',
+      'worked_jewelry',
+      icon: JewelryGlyph(JewelryKind.pendant),
+    ),
+  ];
+
   List<int> get _availableKarats => orderedKarats([
     for (final line in widget.scrap)
       if (_wireWeight(line) > BigInt.zero) line.karat,
   ]);
 
-  List<StockCategory> get _categories => [
-    for (final category in StockCategory.canonicalOrder)
-      if (category.allowsKarat(_karat)) category,
-  ];
-
   @override
   void initState() {
     super.initState();
     _karat = _availableKarats.isEmpty ? 21 : _availableKarats.first;
-    _category = _categories.first;
+    if (widget.catalog == null) {
+      _productsFailed = true;
+      _publishOthers();
+    } else {
+      unawaited(_loadProducts(reset: true));
+    }
   }
 
   @override
   void dispose() {
     _grams.dispose();
     _count.dispose();
-    _name.dispose();
-    _note.dispose();
+    _otherCatalog.dispose();
     super.dispose();
   }
 
@@ -81,7 +120,138 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
     return BigInt.zero;
   }
 
+  List<_ScrapItem> get _choices {
+    final items = <_ScrapItem>[];
+    if (StockCategory.workedJewelry.allowsKarat(_karat)) {
+      items.addAll(_jewelry);
+    }
+    if (StockCategory.coin.allowsKarat(_karat)) {
+      items.add(
+        const _ScrapItem(
+          'جنيهات',
+          'coin',
+          icon: JewelryGlyph(JewelryKind.coin),
+        ),
+      );
+    }
+    if (StockCategory.bullion.allowsKarat(_karat)) {
+      items.add(
+        const _ScrapItem(
+          'سبائك',
+          'bullion',
+          icon: JewelryGlyph(JewelryKind.bullion),
+        ),
+      );
+    }
+    if (StockCategory.workedJewelry.allowsKarat(_karat)) {
+      items.add(const _ScrapItem('أخرى', 'worked_jewelry', other: true));
+    }
+    return items;
+  }
+
+  void _publishOthers() {
+    const reserved = {'خاتم', 'حلق', 'سلسلة', 'تعليقة'};
+    _otherCatalog.value = TradeOtherCatalog(
+      choices: [
+        for (final name in tradeOtherJewelryNames)
+          TradeItemChoice(name, 'worked_jewelry'),
+        for (final product in _products)
+          if (product.category == 'worked_jewelry' &&
+              product.karat == _karat &&
+              !tradeOtherJewelryNames.contains(product.name) &&
+              !reserved.contains(product.name))
+            TradeItemChoice(product.name, product.category),
+      ],
+      loading: _productsLoading,
+      failed: widget.catalog == null || _productsFailed,
+      hasMore: _productCursor != null,
+    );
+  }
+
+  Future<void> _loadProducts({required bool reset}) async {
+    final gateway = widget.catalog;
+    if (gateway == null) {
+      setState(() => _productsFailed = true);
+      _publishOthers();
+      return;
+    }
+    if (_productsLoading && !reset) return;
+    final generation = ++_productGeneration;
+    setState(() => _productsLoading = true);
+    _publishOthers();
+    try {
+      final page = await gateway.products(
+        callerUserId: widget.userId,
+        cursor: reset ? null : _productCursor,
+      );
+      if (!mounted || generation != _productGeneration) return;
+      setState(() {
+        _productsFailed = !page.available;
+        if (page.available) {
+          _products = reset
+              ? List.of(page.items!)
+              : [..._products, ...page.items!];
+          _productCursor = page.nextCursor;
+        }
+      });
+    } catch (_) {
+      if (mounted && generation == _productGeneration) {
+        setState(() => _productsFailed = true);
+      }
+    } finally {
+      if (mounted && generation == _productGeneration) {
+        setState(() => _productsLoading = false);
+        _publishOthers();
+      }
+    }
+  }
+
+  Future<void> _pickOther() async {
+    _publishOthers();
+    final choice = await showTradeItemPicker(
+      context,
+      title: 'اختر الصنف',
+      mainChoices: const [],
+      others: _otherCatalog,
+      reservedNames: const {
+        'خاتم',
+        'حلق',
+        'سلسلة',
+        'تعليقة',
+        'جنيهات',
+        'سبائك',
+        'أخرى',
+      },
+      onRetry: () => _loadProducts(reset: true),
+      onMore: widget.catalog == null ? null : () => _loadProducts(reset: false),
+      shopLoadFailureLabel: 'تعذر تحميل أصناف المتجر. إعادة المحاولة',
+    );
+    if (!mounted || choice == null) return;
+    setState(() {
+      _itemName = choice.label;
+      _itemCategory = choice.category;
+      _message = null;
+    });
+  }
+
+  void _choose(_ScrapItem item) {
+    if (item.other) {
+      unawaited(_pickOther());
+      return;
+    }
+    setState(() {
+      _itemName = item.label;
+      _itemCategory = item.category;
+      _message = null;
+    });
+  }
+
   void _startReview() {
+    final name = _itemName?.trim() ?? '';
+    if (name.isEmpty || _itemCategory == null) {
+      setState(() => _message = 'اختر الصنف.');
+      return;
+    }
     final weight = Milligrams.parseGrams(_grams.text.trim());
     final count = PieceCount.parseWire(_count.text.trim());
     if (weight is! Accepted<Milligrams> ||
@@ -89,9 +259,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
         weight.value.value == BigInt.zero ||
         count.value.value == BigInt.zero ||
         weight.value.value > _availableWeight(_karat) ||
-        _name.text.trim().isEmpty ||
-        _name.text.trim().length > 120 ||
-        _note.text.trim().length > 1000) {
+        name.length > 120) {
       setState(() => _message = 'راجع الوزن المتاح والعدد واسم الصنف.');
       return;
     }
@@ -105,12 +273,12 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   Map<String, Object?> _payload() => {
     'version': 1,
     'kind': 'scrap_to_stock',
-    'category': _category.code,
+    'category': _itemCategory,
     'karat': _karat,
     'milligrams': _reviewWeight!.wire,
     'count': _reviewCount!.wire,
-    'item_name': _name.text.trim(),
-    'note': _note.text.trim(),
+    'item_name': _itemName!.trim(),
+    'note': '',
   };
 
   Future<void> _submit() async {
@@ -210,6 +378,9 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final reviewing = _reviewWeight != null;
+    final grams = _reviewWeight == null
+        ? ''
+        : displayGoldEffect(_reviewWeight!.value);
     return PopScope(
       canPop: !_busy && !_unknown,
       child: Scaffold(
@@ -220,6 +391,8 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text(
@@ -240,7 +413,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                             : theme.colorScheme.error,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppTokens.spaceSm + 4),
                   ],
                   if (!reviewing) ...[
                     DropdownButtonFormField<int>(
@@ -262,44 +435,48 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                         if (value == null) return;
                         setState(() {
                           _karat = value;
-                          _category = _categories.first;
+                          _itemName = null;
+                          _itemCategory = null;
                         });
+                        _publishOthers();
                       },
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'المتاح: ${_gramsText(_availableWeight(_karat).toString())} جرام',
                     ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<StockCategory>(
-                      key: ValueKey('scrap-stock-category-$_karat'),
-                      initialValue: _category,
-                      isExpanded: true,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'فئة المخزون الجديدة',
-                      ),
-                      items: [
-                        for (final category in _categories)
-                          DropdownMenuItem(
-                            value: category,
-                            child: Text(stockCategoryLabel(category)),
+                    const SizedBox(height: AppTokens.spaceSm + 4),
+                    Text('الصنف', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: AppTokens.spaceSm),
+                    TradeChoiceGrid(
+                      columns: 4,
+                      compactColumns: 3,
+                      children: [
+                        for (final item in _choices)
+                          TradeChoiceTile(
+                            key: Key(
+                              item.other
+                                  ? 'scrap-stock-item-other'
+                                  : 'scrap-stock-item-${item.label}',
+                            ),
+                            label: item.label,
+                            icon: item.icon,
+                            selected:
+                                !item.other &&
+                                _itemName == item.label &&
+                                _itemCategory == item.category,
+                            onTap: () => _choose(item),
                           ),
                       ],
-                      onChanged: (value) =>
-                          setState(() => _category = value ?? _category),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('scrap-stock-name'),
-                      controller: _name,
-                      textInputAction: TextInputAction.next,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'اسم الصنف الجديد',
+                    if (_itemCategory == 'worked_jewelry' &&
+                        _itemName != null &&
+                        !_jewelry.any((item) => item.label == _itemName))
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+                        child: Text('الصنف المختار: $_itemName'),
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppTokens.spaceSm + 4),
                     LedgerFieldPair(
                       first: ledgerGramsField(
                         key: const Key('scrap-stock-grams'),
@@ -313,18 +490,9 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                         key: const Key('scrap-stock-count'),
                         context: context,
                         controller: _count,
-                        label: 'عدد القطع الجديدة',
-                        textInputAction: TextInputAction.next,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _note,
-                      maxLength: 1000,
-                      maxLines: 3,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'ملاحظة اختيارية',
+                        label: 'عدد القطع',
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => FocusScope.of(context).unfocus(),
                       ),
                     ),
                   ] else ...[
@@ -335,14 +503,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            Text('ينقص الكسر: $grams · عيار $_karat'),
                             Text(
-                              'ينقص الكسر: ${displayGoldEffect(_reviewWeight!.value)} · عيار $_karat',
+                              'يزيد مخزون $_itemName عيار $_karat: $grams · ${_reviewCount!.wire} قطعة',
                             ),
-                            Text(
-                              'يزيد المخزون: ${displayGoldEffect(_reviewWeight!.value)} · '
-                              '${_reviewCount!.wire} قطعة · ${stockCategoryLabel(_category)}',
-                            ),
-                            Text('الصنف: ${_name.text.trim()}'),
                             const Text('النقدية لا تتغير.'),
                           ],
                         ),
