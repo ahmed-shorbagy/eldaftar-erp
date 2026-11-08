@@ -97,7 +97,6 @@ class _AuthScreenState extends State<AuthScreen> {
   Uint8List? _shopImageBytes;
   String? _shopImageAlert;
   bool _pickingShopImage = false;
-  bool _useImageForInvoices = false;
 
   @override
   void initState() {
@@ -527,15 +526,15 @@ class _AuthScreenState extends State<AuthScreen> {
           // Account exists; image can be added later from More.
         }
       }
-      if (image != null && _useImageForInvoices) {
+      if (image != null && widget.saveRegistrationInvoiceLogo != null) {
         try {
-          await widget.saveRegistrationInvoiceLogo?.call(image);
+          await widget.saveRegistrationInvoiceLogo!(image);
         } catch (_) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'تم إنشاء الحساب، وتعذر حفظ مسودة الشعار. أضفه من المزيد ← مظهر الفاتورة.',
+                  'تم إنشاء الحساب، وتعذر تجهيز اللوجو للفاتورة. سيُعاد المحاولة تلقائياً.',
                 ),
               ),
             );
@@ -1261,10 +1260,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   width: 64,
                   height: 64,
                   child: _shopImageBytes == null
-                      ? Icon(
-                          Icons.storefront_outlined,
-                          color: scheme.onSurfaceVariant,
-                        )
+                      ? const BrandMark(size: 48)
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: Image.memory(
@@ -1301,7 +1297,6 @@ class _AuthScreenState extends State<AuthScreen> {
                             : () => setState(() {
                                 _shopImageBytes = null;
                                 _shopImageAlert = null;
-                                _useImageForInvoices = false;
                               }),
                         child: const Text(ShopImageCopy.clear),
                       ),
@@ -1310,21 +1305,6 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ],
           ),
-          if (_shopImageBytes != null &&
-              widget.saveRegistrationInvoiceLogo != null)
-            CheckboxListTile(
-              key: const Key('signup-invoice-logo'),
-              contentPadding: EdgeInsets.zero,
-              value: _useImageForInvoices,
-              onChanged: _locked
-                  ? null
-                  : (value) =>
-                        setState(() => _useImageForInvoices = value ?? false),
-              title: const Text('اختيار الصورة أيضاً كشعار للفواتير'),
-              subtitle: const Text(
-                'تُحفظ كمسودة. أكمل رفعها وراجع مظهر الفاتورة من المزيد بعد تفعيل المتجر.',
-              ),
-            ),
           if (_shopImageAlert != null) ...[
             const SizedBox(height: 8),
             Text(

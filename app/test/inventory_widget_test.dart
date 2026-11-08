@@ -648,7 +648,12 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('trader-row-$traderId')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('trader-receipt-dddddddd-dddd-4ddd-8ddd-dddddddddddd')), findsOneWidget);
+    expect(
+      find.byKey(
+        const Key('trader-receipt-dddddddd-dddd-4ddd-8ddd-dddddddddddd'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('لم تتم إضافتها للمخزون'), findsWidgets);
     await tester.scrollUntilVisible(
       find.byKey(const Key('trader-obligation-$operationId')),

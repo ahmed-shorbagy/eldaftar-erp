@@ -233,7 +233,8 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                         label: 'من وسيلة الدفع',
                       ),
                       items: [
-                        for (final method in PaymentMethodCatalog.entryChoices())
+                        for (final method
+                            in PaymentMethodCatalog.entryChoices())
                           DropdownMenuItem(
                             value: method,
                             child: Text(cashMethodLabel(method)),
@@ -256,7 +257,8 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                         label: 'إلى وسيلة الدفع',
                       ),
                       items: [
-                        for (final method in PaymentMethodCatalog.entryChoices())
+                        for (final method
+                            in PaymentMethodCatalog.entryChoices())
                           DropdownMenuItem(
                             value: method,
                             child: Text(cashMethodLabel(method)),

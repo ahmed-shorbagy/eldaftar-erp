@@ -8,9 +8,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeSupportGateway implements SupportGateway {
-  FakeSupportGateway({List<SupportInquiry>? initial, List<SupportInquiry>? older})
-    : inquiries = initial ?? <SupportInquiry>[],
-      older = older ?? const <SupportInquiry>[];
+  FakeSupportGateway({
+    List<SupportInquiry>? initial,
+    List<SupportInquiry>? older,
+  }) : inquiries = initial ?? <SupportInquiry>[],
+       older = older ?? const <SupportInquiry>[];
 
   List<SupportInquiry> inquiries;
   List<SupportInquiry> older;
@@ -328,7 +330,9 @@ void main() {
     expect(find.text(SupportCopy.openCount(10, 10)), findsOneWidget);
   });
 
-  testWidgets('shows the access-loss state and blocks the form', (tester) async {
+  testWidgets('shows the access-loss state and blocks the form', (
+    tester,
+  ) async {
     final gateway = FakeSupportGateway()
       ..createFailure = SupportFailure.unauthorized;
     await tester.pumpWidget(harness(gateway));

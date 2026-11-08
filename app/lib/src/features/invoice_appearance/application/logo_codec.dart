@@ -46,12 +46,10 @@ Future<PreparedLogo> prepareLogo(Uint8List source) async {
   }
   // Prefer JPEG for photos after resize; keep PNG only when the source was PNG
   // and stayed small enough. Camera shots are almost always JPEG.
-  final preferPng = _looksLikePng(source) &&
-      decoded.width * decoded.height <= 512 * 512;
+  final preferPng =
+      _looksLikePng(source) && decoded.width * decoded.height <= 512 * 512;
   var encoded = Uint8List.fromList(
-    preferPng
-        ? img.encodePng(decoded)
-        : img.encodeJpg(decoded, quality: 88),
+    preferPng ? img.encodePng(decoded) : img.encodeJpg(decoded, quality: 88),
   );
   if (preferPng) {
     encoded = pngAllowedChunks(encoded);

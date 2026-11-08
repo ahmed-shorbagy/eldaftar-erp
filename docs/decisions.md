@@ -1,6 +1,10 @@
 # Architecture and product decisions
 
-## Current decision — 2026-11-01
+## Current decision — 2026-11-08
+
+The 2026-11-08 owner notes are implemented in the Flutter client only. [ADR 0039](adr/0039-owner-feedback-2026-11-08-ledger-and-navigation.md) records the home labels «وزن مباع» and «وزن مشترى», money tiles without the normalized gold line, per-karat purchase weights including scrap, removal of the extra metrics sheet, three item rows with a price column, the note dot, the «أهلاً» header, the drawer’s removal into «المزيد», the «لوجو المحل» name, and automatic invoice-logo application. That last step amends ADR 0021’s manual shop-image opt-in. Review, versioning, the active-entitlement write, and immutable issued copies stay. No schema or R2 change. Not committed and not deployed. Owner and device acceptance remain open. [Validation](operations/owner-feedback-2026-11-08-validation.md).
+
+## Previous decision — 2026-11-01
 
 The owner approved the retention warning on 2026-11-01. [ADR 0038](adr/0038-subscription-retention-warning.md) records four shop-local calendar months after `expires_at`, one dismissible `retention_ending` notice in the last 30 shop-local days, and renewal through the existing code redemption. Writing returns when `expires_at` moves into the future. Books are not rebuilt or deleted. The slice is locally verified and [development-deployed](reviews/subscription-retention-2026-11-01/deployment.md). D14 deletion rules and D15 reset stay open. D21 is unchanged.
 

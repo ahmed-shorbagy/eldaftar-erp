@@ -114,39 +114,29 @@ void main() {
   );
 
   testWidgets(
-    'collapsed legacy card is numbered, opens details, and reads items only on expansion',
+    'operation card is numbered, opens details, and shows items without a toggle',
     (t) async {
       var reads = 0, opens = 0;
-      Future<void> pump(bool expanded) async {
-        await t.pumpWidget(
-          host(
-            LedgerOperationTable(
-              line: line('legacy'),
-              position: 3,
-              showDetails: expanded,
-              loadItems: (_) async {
-                reads++;
-                return items;
-              },
-              onOpen: () => opens++,
-            ),
+      await t.pumpWidget(
+        host(
+          LedgerOperationTable(
+            line: line('legacy'),
+            position: 3,
+            loadItems: (_) async {
+              reads++;
+              return items;
+            },
+            onOpen: () => opens++,
           ),
-        );
-        await t.pumpAndSettle();
-      }
-
-      await pump(false);
+        ),
+      );
+      await t.pumpAndSettle();
       expect(find.text('3'), findsOneWidget);
-      expect(find.byType(Table), findsNothing);
-      expect(reads, 0);
+      expect(find.byType(Table), findsOneWidget);
+      expect(reads, 1);
+      expect(find.text('خاتم اختبار'), findsOneWidget);
       await t.tap(find.byKey(const Key('ledger-open-sale-legacy')));
       expect(opens, 1);
-      await pump(true);
-      expect(reads, 1);
-      expect(find.byType(Table), findsOneWidget);
-      expect(find.text('خاتم اختبار'), findsOneWidget);
-      await pump(false);
-      expect(find.byType(Table), findsNothing);
       expect(t.takeException(), isNull);
     },
   );

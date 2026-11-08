@@ -431,7 +431,6 @@ void main() {
           await fillSignup(t);
           await tap(find.byKey(const Key('signup-back')));
           await tap(find.byKey(const Key('signup-shop-image')));
-          await tap(find.byKey(const Key('signup-invoice-logo')));
           await shot('signup-invoice-logo');
           await t.pumpWidget(
             host(

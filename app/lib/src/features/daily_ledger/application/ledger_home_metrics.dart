@@ -172,8 +172,8 @@ String ledgerMetricLabel(String id) {
     'total_cash' => 'إجمالي النقدية',
     'sale' => 'إجمالي البيع',
     'purchase' => 'إجمالي الشراء',
-    'sale_gold' => 'ذهب مباع',
-    'purchase_gold' => 'ذهب مشترى',
+    'sale_gold' => 'وزن مباع',
+    'purchase_gold' => 'وزن مشترى',
     'expense' => 'المصروفات',
     _ => id,
   };

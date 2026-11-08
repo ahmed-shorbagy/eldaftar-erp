@@ -41,7 +41,9 @@ import '../../customers/presentation/customer_screen.dart';
 import '../../debts/presentation/debt_screen.dart';
 import '../../repairs/application/repair_gateway.dart';
 import '../../repairs/presentation/repair_screen.dart';
+import '../../invoice_appearance/application/apply_shop_logo_to_invoice.dart';
 import '../../invoice_appearance/application/invoice_appearance_gateway.dart';
+import '../../invoice_appearance/data/logo_upload_store.dart';
 import '../../invoice_appearance/application/invoice_copy_files.dart';
 import '../../invoice_appearance/presentation/invoice_appearance_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
@@ -737,6 +739,16 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
           ? opening as InventoryGateway
           : null;
       final readOnly = selected.entitlement != ShopEntitlement.active;
+      final applyShopLogo =
+          !selected.isOwner ||
+              opening is! InvoiceAppearanceGateway ||
+              userId == null
+          ? null
+          : ApplyShopLogoToInvoice(
+              gateway: opening as InvoiceAppearanceGateway,
+              store: const PendingFinancialCommands(),
+              logoStore: const FileLogoUploadStore(),
+            );
       return ShopWorkspace(
         key: ValueKey('${widget.currentUserId?.call()}:${selected.id}'),
         shop: selected,
@@ -748,6 +760,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         shopImageBytes: _shopImageShopId == selected.id
             ? _shopImageBytes
             : null,
+        applyShopLogo: applyShopLogo,
         reportsBuilder:
             !selected.hasPermission(ShopPermission.reports) ||
                 opening is! ReportGateway ||
@@ -871,6 +884,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             : (context) => ShopImageScreen(
                 shop: selected,
                 gateway: widget.shopImageGateway!,
+                userId: userId,
+                applyShopLogo: applyShopLogo,
                 initialBytes: _shopImageShopId == selected.id
                     ? _shopImageBytes
                     : null,

@@ -7,7 +7,8 @@ void main() {
   tearDown(PaymentMethodCatalog.resetDefaults);
 
   test('parseDailyLedger accepts renamed cash labels and archived flag', () {
-    final pounds = (Piastres.parseWire('0') as Accepted<Piastres>).value.poundsText;
+    final pounds =
+        (Piastres.parseWire('0') as Accepted<Piastres>).value.poundsText;
     final view = parseDailyLedger({
       'read_model_version': 1,
       'state': 'confirmed',
@@ -61,9 +62,14 @@ void main() {
       ],
     });
 
-    expect(view.cash.singleWhere((line) => line.method == 'cash').labelAr,
-        'صندوق المحل');
-    expect(view.cash.singleWhere((line) => line.method == 'wallet').archived, isTrue);
+    expect(
+      view.cash.singleWhere((line) => line.method == 'cash').labelAr,
+      'صندوق المحل',
+    );
+    expect(
+      view.cash.singleWhere((line) => line.method == 'wallet').archived,
+      isTrue,
+    );
     expect(PaymentMethodCatalog.label(CashMethod.cash), 'صندوق المحل');
     expect(PaymentMethodCatalog.isArchived(CashMethod.wallet), isTrue);
     expect(

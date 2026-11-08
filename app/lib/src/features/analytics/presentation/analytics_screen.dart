@@ -192,7 +192,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     setState(() {
       _exporting = false;
       _message = switch (code) {
-        'opened' || 'shared' || 'saved' => 'أُعد ملف التحليلات من الأرقام المؤكدة.',
+        'opened' ||
+        'shared' ||
+        'saved' => 'أُعد ملف التحليلات من الأرقام المؤكدة.',
         'busy' => 'التصدير جارٍ بالفعل.',
         'stale' => 'تغيّرت الأرقام. حدّث ثم صدّر مجددًا.',
         'denied' => 'انتهت صلاحية الجلسة. لم يُصدَّر الملف.',
@@ -207,7 +209,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     final report = _report;
     if (report == null) return;
     final initial = DateTime.tryParse(report.anchorDate) ?? DateTime.now();
-    final first = DateTime.tryParse(report.firstBusinessDate ?? report.serverDate);
+    final first = DateTime.tryParse(
+      report.firstBusinessDate ?? report.serverDate,
+    );
     final last = DateTime.tryParse(report.lastSelectableDate);
     final picked = await showDatePicker(
       context: context,
@@ -246,7 +250,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 if (_loading) const LinearProgressIndicator(),
-                Text(analyticsScope, style: Theme.of(context).textTheme.bodyLarge),
+                Text(
+                  analyticsScope,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
                 const SizedBox(height: 12),
                 SegmentedButton<AnalyticsPeriod>(
                   key: const Key('analytics-period'),
@@ -286,7 +293,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   Text(
                     _error!,
                     key: const Key('analytics-error'),
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
                 if (_message != null) ...[
@@ -351,7 +360,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     key: const Key('analytics-export'),
                     onPressed: _exporting || !_allowed ? null : _exportPdf,
                     child: Text(
-                      _exporting ? 'جارٍ إعداد الملف' : 'PDF للطباعة أو المشاركة',
+                      _exporting
+                          ? 'جارٍ إعداد الملف'
+                          : 'PDF للطباعة أو المشاركة',
                     ),
                   ),
                 ],

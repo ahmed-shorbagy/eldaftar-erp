@@ -52,7 +52,10 @@ class SupabaseHelpGateway implements HelpGateway {
     final title = map['title_ar'];
     final sort = map['sort_order'];
     final articlesRaw = map['articles'];
-    if (id is! String || title is! String || sort is! num || articlesRaw is! List) {
+    if (id is! String ||
+        title is! String ||
+        sort is! num ||
+        articlesRaw is! List) {
       throw const HelpException(HelpFailure.unavailable);
     }
     return HelpTopic(
@@ -70,10 +73,7 @@ class SupabaseHelpGateway implements HelpGateway {
     final title = map['title_ar'];
     final body = map['body_ar'];
     final sort = map['sort_order'];
-    if (id is! String ||
-        title is! String ||
-        body is! String ||
-        sort is! num) {
+    if (id is! String || title is! String || body is! String || sort is! num) {
       throw const HelpException(HelpFailure.unavailable);
     }
     return HelpArticle(

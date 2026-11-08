@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../invoice_appearance/application/apply_shop_logo_to_invoice.dart';
 import '../../invoice_appearance/domain/logo_bytes.dart';
 import '../domain/shop_account.dart';
 import '../domain/shop_image.dart';
@@ -15,12 +16,16 @@ class ShopImageScreen extends StatefulWidget {
     required this.gateway,
     this.initialBytes,
     this.onChanged,
+    this.applyShopLogo,
+    this.userId,
   });
 
   final ShopAccount shop;
   final ShopImageGateway gateway;
   final Uint8List? initialBytes;
   final ValueChanged<Uint8List?>? onChanged;
+  final ApplyShopLogoToInvoice? applyShopLogo;
+  final String? userId;
 
   @override
   State<ShopImageScreen> createState() => _ShopImageScreenState();
@@ -93,11 +98,11 @@ class _ShopImageScreenState extends State<ShopImageScreen> {
       setState(() {
         _bytes = saved.bytes;
         _sha = saved.sha256;
-        _busy = false;
         _statusError = false;
         _status = ShopImageCopy.success;
       });
       widget.onChanged?.call(_bytes);
+      await _applyToInvoice(saved.bytes);
     } on LogoByteRejection catch (error) {
       if (!mounted) return;
       setState(() {
@@ -122,6 +127,48 @@ class _ShopImageScreenState extends State<ShopImageScreen> {
         _status = ShopImageCopy.unavailable;
       });
     }
+  }
+
+  Future<void> _applyToInvoice(Uint8List bytes) async {
+    final apply = widget.applyShopLogo;
+    final userId = widget.userId;
+    if (apply == null ||
+        userId == null ||
+        !widget.shop.isOwner ||
+        widget.shop.entitlement != ShopEntitlement.active) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      return;
+    }
+    setState(() => _status = 'جارٍ إضافة اللوجو إلى الفاتورة…');
+    final ApplyLogoOutcome outcome;
+    try {
+      outcome = await apply.call(
+        userId: userId,
+        shopId: widget.shop.id,
+        logoBytes: bytes,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _statusError = true;
+        _status =
+            'تم حفظ اللوجو، وتعذر إضافته إلى الفاتورة. أعد المحاولة من المزيد ← مظهر الفاتورة.';
+      });
+      return;
+    }
+    if (!mounted) return;
+    final added =
+        outcome == ApplyLogoOutcome.applied ||
+        outcome == ApplyLogoOutcome.alreadyApplied;
+    setState(() {
+      _busy = false;
+      _statusError = !added;
+      _status = added
+          ? 'تم حفظ اللوجو وإضافته إلى الفاتورة.'
+          : 'تم حفظ اللوجو، وتعذر إضافته إلى الفاتورة. أعد المحاولة من المزيد ← مظهر الفاتورة.';
+    });
   }
 
   Future<void> _clear() async {

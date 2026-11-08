@@ -176,7 +176,7 @@ void main() {
             capture,
             'home-${width.toInt()}-${brightness.name}',
           );
-          await tester.tap(find.text('الحساب').last);
+          await tester.tap(find.text('المزيد').last);
           await tester.pumpAndSettle();
           await _capture(
             tester,

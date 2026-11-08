@@ -150,12 +150,6 @@ void main() {
           find.byKey(const Key('ledger-new-purchase')),
         );
         await capture(tester, 'ledger-purchase-$label');
-        await tester.ensureVisible(
-          find.byKey(const Key('ledger-journal-details-purchase')),
-        );
-        await tester.tap(
-          find.byKey(const Key('ledger-journal-details-purchase')),
-        );
         await capture(tester, 'ledger-details-$label');
         await tester.pumpWidget(const SizedBox.shrink());
       });

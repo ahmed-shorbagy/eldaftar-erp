@@ -154,7 +154,7 @@ void main() {
       await t.pumpWidget(const SizedBox());
       await t.pumpWidget(host(screen(), true));
       await t.pumpAndSettle();
-      expect(find.textContaining('شعار التسجيل مؤكد'), findsOneWidget);
+      expect(find.textContaining('لوجو المحل مؤكد'), findsOneWidget);
       expect(gateway.uploads, 1);
     },
   );

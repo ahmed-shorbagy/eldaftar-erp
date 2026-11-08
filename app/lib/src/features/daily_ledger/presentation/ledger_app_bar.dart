@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../shell/workspace_chrome.dart';
 import '../../../theme/brand_mark.dart';
 import '../../../theme/app_tokens.dart';
 
@@ -15,7 +14,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.subtitle,
     this.shopImageBytes,
     this.onChangeShop,
-    this.onOpenMenu,
     this.compact = false,
     this.collapsed = false,
     this.textScaler = TextScaler.noScaling,
@@ -25,7 +23,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? subtitle;
   final Uint8List? shopImageBytes;
   final VoidCallback? onChangeShop;
-  final VoidCallback? onOpenMenu;
   final double topInset;
   final bool compact;
   final bool collapsed;
@@ -62,7 +59,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dark = theme.brightness == Brightness.dark;
-    final openMenu = onOpenMenu ?? WorkspaceChrome.maybeOf(context)?.openDrawer;
 
     return Material(
       color: Colors.transparent,
@@ -103,15 +99,6 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (openMenu != null) ...[
-                _PillIconButton(
-                  key: const Key('workspace-menu'),
-                  tooltip: 'القائمة',
-                  onPressed: openMenu,
-                  icon: Icons.menu,
-                ),
-                const SizedBox(width: 4),
-              ],
               if (!collapsed) ...[
                 _ShopMark(bytes: shopImageBytes, dark: dark, scheme: scheme),
                 const SizedBox(width: 12),
@@ -122,7 +109,7 @@ class LedgerAppBar extends StatelessWidget implements PreferredSizeWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      collapsed ? shopName : 'أهلاً $shopName',
+                      'أهلاً $shopName',
                       key: const Key('ledger-title'),
                       maxLines: collapsed ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
@@ -198,7 +185,7 @@ class _ShopMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'صورة المتجر',
+      label: 'لوجو المحل',
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scheme.surface.withValues(alpha: dark ? 0.4 : 0.75),
@@ -218,18 +205,15 @@ class _ShopMark extends StatelessWidget {
             width: 48,
             height: 48,
             child: bytes == null
-                ? const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: BrandMark(size: 28),
-                  )
+                ? const BrandMark(key: Key('ledger-default-logo'), size: 48)
                 : Image.memory(
                     bytes!,
                     key: const Key('ledger-shop-image'),
                     fit: BoxFit.cover,
                     gaplessPlayback: true,
-                    errorBuilder: (_, _, _) => const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: BrandMark(size: 28),
+                    errorBuilder: (_, _, _) => const BrandMark(
+                      key: Key('ledger-default-logo'),
+                      size: 48,
                     ),
                   ),
           ),
@@ -241,7 +225,6 @@ class _ShopMark extends StatelessWidget {
 
 class _PillIconButton extends StatelessWidget {
   const _PillIconButton({
-    super.key,
     required this.tooltip,
     required this.onPressed,
     required this.icon,

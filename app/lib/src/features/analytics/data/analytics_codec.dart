@@ -49,7 +49,11 @@ PeriodAnalytics parsePeriodAnalytics(Object? raw) {
   }
   final gold = (m['gold'] as List).map((v) {
     final g = map(v);
-    return ReportGold(g['karat'] as int, integer(g['sold']), integer(g['bought']));
+    return ReportGold(
+      g['karat'] as int,
+      integer(g['sold']),
+      integer(g['bought']),
+    );
   }).toList();
   if (gold.map((g) => g.karat).toSet().length != gold.length) {
     throw const FormatException('analytics_gold');

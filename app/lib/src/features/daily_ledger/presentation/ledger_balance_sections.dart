@@ -58,11 +58,16 @@ class LedgerCashBreakdown extends StatelessWidget {
   }
 }
 
-/// Actual sold weights by category and karat. Karats stay separate.
-class LedgerSoldGoldBreakdown extends StatelessWidget {
-  const LedgerSoldGoldBreakdown({super.key, required this.view});
+/// Actual sold or purchased weights by category and karat. Karats stay separate.
+class LedgerTradeWeightBreakdown extends StatelessWidget {
+  const LedgerTradeWeightBreakdown({
+    super.key,
+    required this.view,
+    required this.kind,
+  });
 
   final DailyLedgerView view;
+  final String kind;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +75,7 @@ class LedgerSoldGoldBreakdown extends StatelessWidget {
     final groups = <String, List<LedgerGoldMovement>>{};
     for (final row
         in view.daySummary?.goldByBucket ?? const <LedgerGoldMovement>[]) {
-      if (row.kind != 'sale') continue;
+      if (row.kind != kind) continue;
       groups.putIfAbsent(row.category, () => []).add(row);
     }
     for (final rows in groups.values) {
@@ -83,10 +88,11 @@ class LedgerSoldGoldBreakdown extends StatelessWidget {
       for (final category in groups.keys)
         if (!preferred.contains(category)) category,
     ];
+    final title = kind == 'sale' ? 'وزن مباع' : 'وزن مشترى';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('ذهب مباع', style: theme.textTheme.titleMedium),
+        Text(title, style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
           'الوزن الفعلي لكل صنف وعيار.',
@@ -97,7 +103,10 @@ class LedgerSoldGoldBreakdown extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (categories.isEmpty)
-          const Text('لا يوجد ذهب مباع.', key: Key('ledger-sale-gold-empty'))
+          Text(
+            kind == 'sale' ? 'لا يوجد وزن مباع.' : 'لا يوجد وزن مشترى.',
+            key: Key('ledger-$kind-gold-empty'),
+          )
         else
           for (final category in categories)
             _InventoryCategoryBlock(
@@ -105,11 +114,7 @@ class LedgerSoldGoldBreakdown extends StatelessWidget {
               label: goldCategoryLabel(category),
               items: [
                 for (final row in groups[category]!)
-                  (
-                    karat: row.karat,
-                    grams: row.milligrams,
-                    count: category == 'scrap' ? null : row.count,
-                  ),
+                  (karat: row.karat, grams: row.milligrams, count: null),
               ],
             ),
       ],

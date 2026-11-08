@@ -549,297 +549,299 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                  Text('مرتجع مرتبط', style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 8),
-                  Text(
-                    'المقابل يكتبه المالك كما اتُفق عليه. العملية الأصلية تبقى دون تعديل.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.45,
-                    ),
-                  ),
-                  if (!widget.writesEnabled) ...[
-                    const SizedBox(height: 12),
+                    Text('مرتجع مرتبط', style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 8),
                     Text(
-                      'الاشتراك منتهٍ. العرض للقراءة فقط.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  ],
-                  if (_parseError != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_parseError!),
-                  ],
-                  if (_message != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _message!,
-                      key: const Key('partial-message'),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
-                    ),
-                  ],
-                  if (bounds != null) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'المتبقي من المقابل: ${displayPounds(signedPoundsText(bounds.remainderConsideration))}',
-                              style: theme.textTheme.titleSmall,
-                            ),
-                            if (purchase) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                'المستحق للبائع: ${displayPounds(signedPoundsText(bounds.payableRemaining))}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: OutlinedButton(
-                                onPressed: locked ? null : _fillRemaining,
-                                child: const Text('إرجاع كامل المتبقي'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('الأصناف', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 10),
-                    for (var index = 0; index < _lines.length; index++) ...[
-                      if (index > 0) const SizedBox(height: 12),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              CheckboxListTile(
-                                value: _lines[index].include,
-                                onChanged: locked
-                                    ? null
-                                    : (value) => setState(
-                                        () => _lines[index].include =
-                                            value ?? false,
-                                      ),
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                                contentPadding: EdgeInsets.zero,
-                                title: Text(
-                                  _lines[index].item.itemName,
-                                  style: theme.textTheme.titleSmall,
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    'عيار ${_lines[index].item.karat} · المتبقي ${displayGrams(_lines[index].item.remainderMilligrams.toString())} جرام',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color:
-                                          theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              ledgerGramsField(
-                                key: Key('partial-grams-$index'),
-                                context: context,
-                                controller: _lines[index].grams,
-                                readOnly: locked,
-                                label: 'الوزن المرتجع بالجرام',
-                              ),
-                              if (!_lines[index].item.scrap) ...[
-                                const SizedBox(height: 12),
-                                ledgerCountField(
-                                  key: Key('partial-count-$index'),
-                                  context: context,
-                                  controller: _lines[index].count,
-                                  readOnly: locked,
-                                  label: 'عدد القطع المرتجعة',
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    Text(
-                      'المقابل والنقد',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 10),
-                    ledgerMoneyField(
-                      key: const Key('partial-consideration'),
-                      context: context,
-                      controller: _consideration,
-                      readOnly: locked,
-                      label: 'المقابل المتفق عليه',
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'وزّع النقد المرتجع صراحة على وسائل الدفع. أدخل صفرًا عند إلغاء المستحق فقط.',
+                      'المقابل يكتبه المالك كما اتُفق عليه. العملية الأصلية تبقى دون تعديل.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         height: 1.45,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    for (final method in CashMethod.canonicalOrder) ...[
-                      ledgerMoneyField(
-                        key: Key(
-                          method == CashMethod.cash
-                              ? 'partial-tender'
-                              : 'partial-tender-${method.code}',
-                        ),
-                        context: context,
-                        controller: method == CashMethod.cash
-                            ? _tender
-                            : _extraTenders[method.code]!,
-                        readOnly: locked,
-                        label: 'النقد المرتجع · ${_methodLabel(method.code)}',
-                      ),
+                    if (!widget.writesEnabled) ...[
                       const SizedBox(height: 12),
-                    ],
-                    if (bounds.hasPricing) ...[
                       Text(
-                        'تفاصيل التسعير',
+                        'الاشتراك منتهٍ. العرض للقراءة فقط.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    if (_parseError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(_parseError!),
+                    ],
+                    if (_message != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _message!,
+                        key: const Key('partial-message'),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    if (bounds != null) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'المتبقي من المقابل: ${displayPounds(signedPoundsText(bounds.remainderConsideration))}',
+                                style: theme.textTheme.titleSmall,
+                              ),
+                              if (purchase) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'المستحق للبائع: ${displayPounds(signedPoundsText(bounds.payableRemaining))}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: OutlinedButton(
+                                  onPressed: locked ? null : _fillRemaining,
+                                  child: const Text('إرجاع كامل المتبقي'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text('الأصناف', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 10),
+                      for (var index = 0; index < _lines.length; index++) ...[
+                        if (index > 0) const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                CheckboxListTile(
+                                  value: _lines[index].include,
+                                  onChanged: locked
+                                      ? null
+                                      : (value) => setState(
+                                          () => _lines[index].include =
+                                              value ?? false,
+                                        ),
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(
+                                    _lines[index].item.itemName,
+                                    style: theme.textTheme.titleSmall,
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'عيار ${_lines[index].item.karat} · المتبقي ${displayGrams(_lines[index].item.remainderMilligrams.toString())} جرام',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ledgerGramsField(
+                                  key: Key('partial-grams-$index'),
+                                  context: context,
+                                  controller: _lines[index].grams,
+                                  readOnly: locked,
+                                  label: 'الوزن المرتجع بالجرام',
+                                ),
+                                if (!_lines[index].item.scrap) ...[
+                                  const SizedBox(height: 12),
+                                  ledgerCountField(
+                                    key: Key('partial-count-$index'),
+                                    context: context,
+                                    controller: _lines[index].count,
+                                    readOnly: locked,
+                                    label: 'عدد القطع المرتجعة',
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Text(
+                        'المقابل والنقد',
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
                       ledgerMoneyField(
-                        key: const Key('partial-base'),
+                        key: const Key('partial-consideration'),
                         context: context,
-                        controller: _base,
+                        controller: _consideration,
                         readOnly: locked,
-                        label: 'السعر الأساسي المرتجع',
+                        label: 'المقابل المتفق عليه',
                       ),
                       const SizedBox(height: 12),
-                      ledgerMoneyField(
-                        key: const Key('partial-work'),
-                        context: context,
-                        controller: _work,
-                        readOnly: locked,
-                        label: 'المصنعية المرتجعة',
+                      Text(
+                        'وزّع النقد المرتجع صراحة على وسائل الدفع. أدخل صفرًا عند إلغاء المستحق فقط.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.45,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      ledgerMoneyField(
-                        key: const Key('partial-other'),
-                        context: context,
-                        controller: _other,
+                      for (final method in CashMethod.canonicalOrder) ...[
+                        ledgerMoneyField(
+                          key: Key(
+                            method == CashMethod.cash
+                                ? 'partial-tender'
+                                : 'partial-tender-${method.code}',
+                          ),
+                          context: context,
+                          controller: method == CashMethod.cash
+                              ? _tender
+                              : _extraTenders[method.code]!,
+                          readOnly: locked,
+                          label: 'النقد المرتجع · ${_methodLabel(method.code)}',
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (bounds.hasPricing) ...[
+                        Text(
+                          'تفاصيل التسعير',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 10),
+                        ledgerMoneyField(
+                          key: const Key('partial-base'),
+                          context: context,
+                          controller: _base,
+                          readOnly: locked,
+                          label: 'السعر الأساسي المرتجع',
+                        ),
+                        const SizedBox(height: 12),
+                        ledgerMoneyField(
+                          key: const Key('partial-work'),
+                          context: context,
+                          controller: _work,
+                          readOnly: locked,
+                          label: 'المصنعية المرتجعة',
+                        ),
+                        const SizedBox(height: 12),
+                        ledgerMoneyField(
+                          key: const Key('partial-other'),
+                          context: context,
+                          controller: _other,
+                          readOnly: locked,
+                          label: 'الرسوم الأخرى المرتجعة',
+                        ),
+                        const SizedBox(height: 12),
+                        ledgerMoneyField(
+                          key: const Key('partial-discount'),
+                          context: context,
+                          controller: _discount,
+                          readOnly: locked,
+                          label: 'الخصم المرتجع',
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      TextField(
+                        key: const Key('partial-note'),
+                        controller: _note,
                         readOnly: locked,
-                        label: 'الرسوم الأخرى المرتجعة',
+                        maxLength: 1000,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration: ledgerFieldDecoration(
+                          context,
+                          label: 'ملاحظة',
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      ledgerMoneyField(
-                        key: const Key('partial-discount'),
-                        context: context,
-                        controller: _discount,
-                        readOnly: locked,
-                        label: 'الخصم المرتجع',
-                      ),
-                      const SizedBox(height: 12),
                     ],
-                    TextField(
-                      key: const Key('partial-note'),
-                      controller: _note,
-                      readOnly: locked,
-                      maxLength: 1000,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'ملاحظة',
-                      ),
-                    ),
-                  ],
-                  if (review != null) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      color: theme.colorScheme.primaryContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'مراجعة المرتجع',
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'المقابل: ${displayPounds(signedPoundsText(review.consideration))}',
-                            ),
-                            if (purchase) ...[
-                              const SizedBox(height: 6),
+                    if (review != null) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: theme.colorScheme.primaryContainer,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
                               Text(
-                                'يُلغى من المستحق: ${displayPounds(signedPoundsText(review.cancelledPayable))}',
+                                'مراجعة المرتجع',
+                                style: theme.textTheme.titleMedium,
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 10),
                               Text(
-                                'نقد من البائع: ${displayPounds(signedPoundsText(review.cashRefund))}',
+                                'المقابل: ${displayPounds(signedPoundsText(review.consideration))}',
                               ),
-                            ] else ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                'نقد للعميل: ${displayPounds(signedPoundsText(review.cashRefund))}',
-                              ),
-                            ],
-                            for (final line in review.lines) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                '${line.category == 'scrap' ? 'الكسر' : 'المخزون'} عيار ${line.karat}: ${displayGoldEffect(review.kind == 'sale_return' ? line.milligrams : -line.milligrams)}${line.scrap ? '' : ' · ${review.kind == 'sale_return' ? line.count : -line.count} قطعة'}',
-                              ),
-                            ],
-                            for (final entry in review.tenders.entries) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                '${_methodLabel(entry.key)}: ${_signedCashLabel(review.kind == 'sale_return' ? -entry.value : entry.value)}',
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: _busy || _unknown || _key != null
-                                  ? null
-                                  : () => setState(() => _review = null),
-                              child: const Text('رجوع للتعديل'),
-                            ),
-                            if (widget.dayGateway is ExchangeGateway) ...[
-                              const SizedBox(height: 4),
-                              OutlinedButton(
-                                key: const Key('partial-exchange'),
+                              if (purchase) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'يُلغى من المستحق: ${displayPounds(signedPoundsText(review.cancelledPayable))}',
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'نقد من البائع: ${displayPounds(signedPoundsText(review.cashRefund))}',
+                                ),
+                              ] else ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'نقد للعميل: ${displayPounds(signedPoundsText(review.cashRefund))}',
+                                ),
+                              ],
+                              for (final line in review.lines) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${line.category == 'scrap' ? 'الكسر' : 'المخزون'} عيار ${line.karat}: ${displayGoldEffect(review.kind == 'sale_return' ? line.milligrams : -line.milligrams)}${line.scrap ? '' : ' · ${review.kind == 'sale_return' ? line.count : -line.count} قطعة'}',
+                                ),
+                              ],
+                              for (final entry in review.tenders.entries) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${_methodLabel(entry.key)}: ${_signedCashLabel(review.kind == 'sale_return' ? -entry.value : entry.value)}',
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              TextButton(
                                 onPressed: _busy || _unknown || _key != null
                                     ? null
-                                    : _exchange,
-                                child: const Text(
-                                  'إضافة البديل ومراجعة الاستبدال',
+                                    : () => setState(() => _review = null),
+                                child: const Text('رجوع للتعديل'),
+                              ),
+                              if (widget.dayGateway is ExchangeGateway) ...[
+                                const SizedBox(height: 4),
+                                OutlinedButton(
+                                  key: const Key('partial-exchange'),
+                                  onPressed: _busy || _unknown || _key != null
+                                      ? null
+                                      : _exchange,
+                                  child: const Text(
+                                    'إضافة البديل ومراجعة الاستبدال',
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              Text(
+                                'المقابل متفق عليه صراحة وليس نسبة من الوزن.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 8),
-                            Text(
-                              'المقابل متفق عليه صراحة وليس نسبة من الوزن.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
                 ),
               ),
             ),

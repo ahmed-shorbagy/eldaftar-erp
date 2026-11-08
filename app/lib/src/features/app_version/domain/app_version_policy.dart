@@ -63,8 +63,9 @@ AppVersionPlatform? appVersionPlatformFromName(String name) => switch (name) {
   _ => null,
 };
 
-String appVersionPlatformName(AppVersionPlatform platform) => switch (platform) {
-  AppVersionPlatform.android => 'android',
-  AppVersionPlatform.ios => 'ios',
-  AppVersionPlatform.windows => 'windows',
-};
+String appVersionPlatformName(AppVersionPlatform platform) =>
+    switch (platform) {
+      AppVersionPlatform.android => 'android',
+      AppVersionPlatform.ios => 'ios',
+      AppVersionPlatform.windows => 'windows',
+    };

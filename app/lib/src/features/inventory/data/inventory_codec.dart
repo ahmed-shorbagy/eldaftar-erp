@@ -92,7 +92,8 @@ InventoryTotals parseInventoryTotals(Object? raw) {
               InventoryCoinRow(
                 coinTypeId: _optionalUuid(_map(item)['coin_type_id']),
                 label: _text(_map(item)['label']),
-                nominalMilligrams: _map(item)['nominal_milligrams'] == null ||
+                nominalMilligrams:
+                    _map(item)['nominal_milligrams'] == null ||
                         _map(item)['nominal_milligrams'] == 'null'
                     ? null
                     : _positive(_map(item)['nominal_milligrams']),

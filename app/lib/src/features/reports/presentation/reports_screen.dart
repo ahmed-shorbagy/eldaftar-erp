@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../shell/workspace_chrome.dart';
 import '../../../theme/app_tokens.dart';
 import '../application/report_gateway.dart';
 import '../application/weekly_report_gateway.dart';
@@ -298,10 +297,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('التقارير'),
-          leading: WorkspaceChrome.menuButton(context),
-        ),
+        appBar: AppBar(title: const Text('التقارير')),
         body: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,

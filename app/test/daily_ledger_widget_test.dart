@@ -4,7 +4,10 @@ import 'package:eldafttar/src/config/supabase_startup.dart';
 import 'package:eldafttar/src/features/auth/domain/auth_gateway.dart';
 import 'package:eldafttar/src/features/auth/presentation/auth_gate.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
+import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/pending_opening_store.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/opening_balances.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/confirmed_ledger_dashboard.dart';
@@ -16,6 +19,7 @@ import 'package:eldafttar/src/features/shop_accounts/presentation/shop_accounts_
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -175,6 +179,83 @@ class ScriptGateway implements OpeningGateway {
   Future<DailyLedgerView> ledger({required String callerUserId}) async {
     ledgerCalls++;
     return ledgerView;
+  }
+}
+
+class ItemCacheGateway implements OpeningGateway, FinancialGateway {
+  ItemCacheGateway(this.ledgerView);
+  final DailyLedgerView ledgerView;
+  int operationCalls = 0;
+  final operationIds = <String>[];
+
+  @override
+  Future<ConfirmResult> confirm({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) async => const ConfirmUnknown();
+
+  @override
+  Future<StatusResult> status({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async => const StatusAbsent();
+
+  @override
+  Future<DailyLedgerView> ledger({required String callerUserId}) async =>
+      ledgerView;
+
+  @override
+  Future<FinancialCommandResult> retryPending({
+    required String callerUserId,
+    required PendingFinancialCommand command,
+  }) async => const FinancialUnknown();
+
+  @override
+  Future<FinancialCommandResult> postTrade({
+    required String callerUserId,
+    required String idempotencyKey,
+    required FinancialDraft draft,
+  }) async => const FinancialUnknown();
+
+  @override
+  Future<FinancialDayState> dayState({required String callerUserId}) async =>
+      const FinancialDayState(state: 'closed');
+
+  @override
+  Future<FinancialCommandResult> closeDay({
+    required String callerUserId,
+    required String idempotencyKey,
+    required FinancialDayState expected,
+    required Map<String, Object?> counted,
+  }) async => const FinancialUnknown();
+
+  @override
+  Future<FinancialCommandResult> openDay({
+    required String callerUserId,
+    required String idempotencyKey,
+  }) async => const FinancialUnknown();
+
+  @override
+  Future<Map<String, Object?>> operation({
+    required String callerUserId,
+    required String operationId,
+  }) async {
+    operationCalls++;
+    operationIds.add(operationId);
+    return {
+      'payload': {
+        'items': [
+          {
+            'item_name': 'خاتم',
+            'milligrams': '1000',
+            'karat': 21,
+            'category': 'worked_jewelry',
+            'line_price_piastres': '1000',
+          },
+        ],
+      },
+    };
   }
 }
 
@@ -362,7 +443,7 @@ void main() {
           expect(tester.takeException(), isNull);
           await tester.pumpAndSettle();
           expect(find.text('حركة الذهب'), findsNothing);
-          expect(find.byKey(const Key('ledger-more-metrics')), findsOneWidget);
+          expect(find.byKey(const Key('ledger-more-metrics')), findsNothing);
           expect(find.byKey(const Key('ledger-metric-strip')), findsOneWidget);
           expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
           expect(
@@ -1203,6 +1284,72 @@ void main() {
     expect(find.text('الاشتراك منتهٍ. العرض للقراءة فقط.'), findsOneWidget);
     expect(store.saved?.idempotencyKey, '44444444-4444-4444-8444-444444444444');
   });
+
+  testWidgets(
+    'operation items are read once per id across rebuilds and again after refresh',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      FlutterSecureStorage.setMockInitialValues({});
+      const operationId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+      final base = confirmedLedger();
+      final store = MemoryStore();
+      final gateway = ItemCacheGateway(
+        DailyLedgerView(
+          state: base.state,
+          entitlementStatus: base.entitlementStatus,
+          canConfirm: false,
+          businessDay: base.businessDay,
+          cash: base.cash,
+          stock: base.stock,
+          scrap: base.scrap,
+          feed: [
+            LedgerFeedLine(
+              kind: 'sale',
+              labelAr: 'بيع',
+              operationId: operationId,
+              actorDisplayName: 'منى حسن',
+              occurredAt: '2026-09-26T01:00:00+00:00',
+              occurredAtCairo: '2026-09-26T04:00:00',
+            ),
+          ],
+        ),
+      );
+      Future<void> pump({int generation = 0}) {
+        return tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: AppTheme.light(),
+            home: DailyLedgerScreen(
+              shop: shop(ShopEntitlement.active),
+              gateway: gateway,
+              store: store,
+              userId: user,
+              refreshGeneration: generation,
+              newKey: () => '99999999-9999-4999-8999-999999999999',
+            ),
+          ),
+        );
+      }
+
+      await pump();
+      await tester.pumpAndSettle();
+      expect(find.text('خاتم'), findsOneWidget);
+      expect(gateway.operationCalls, 1);
+      await pump();
+      await tester.pumpAndSettle();
+      expect(gateway.operationCalls, 1);
+      await pump(generation: 1);
+      await tester.pumpAndSettle();
+      expect(gateway.operationCalls, 2);
+      expect(gateway.operationIds, [operationId, operationId]);
+    },
+  );
 }
 
 extension on DailyLedgerView {

@@ -79,8 +79,6 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('workspace-nav-4')));
     await t.pumpAndSettle();
-    await t.tap(find.byKey(const Key('workspace-menu')));
-    await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('workspace-reports')));
     await t.pumpAndSettle();
     expect(find.text('تقرير يوم مالي'), findsOneWidget);

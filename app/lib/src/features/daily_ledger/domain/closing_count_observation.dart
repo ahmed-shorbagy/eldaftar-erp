@@ -63,7 +63,8 @@ bool closingObservationsMatch(
         count == null ||
         counts[key] != count ||
         (weights[key] ?? BigInt.zero) > weight ||
-        (!unmeasured.contains(key) && (weights[key] ?? BigInt.zero) != weight)) {
+        (!unmeasured.contains(key) &&
+            (weights[key] ?? BigInt.zero) != weight)) {
       return false;
     }
   }

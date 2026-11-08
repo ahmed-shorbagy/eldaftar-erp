@@ -220,18 +220,15 @@ void main() {
       findsNothing,
     );
     expect(
+      find.descendant(of: sales, matching: find.text('خاتم')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('عدد القطع'), findsNothing);
+    expect(
       find.descendant(of: sales, matching: find.textContaining('كاش')),
       findsNothing,
     );
     expect(find.textContaining('1.830'), findsNothing);
-    await tapVisible(
-      tester,
-      find.byKey(const Key('ledger-journal-details-sale')),
-    );
-    expect(
-      find.descendant(of: sales, matching: find.text('خاتم · عدد القطع: 1')),
-      findsOneWidget,
-    );
     await tapVisible(
       tester,
       find.byKey(const Key('ledger-journal-all-purchase')),

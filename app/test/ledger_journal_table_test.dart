@@ -80,7 +80,6 @@ void main() {
           surface(
             LedgerOperationTable(
               line: line('sale'),
-              showDetails: true,
               loadItems: (_) async => items,
             ),
             dark: dark,
@@ -90,16 +89,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('خاتم اختبار'), findsOneWidget);
         expect(find.text('سلسلة اختبار'), findsOneWidget);
-        expect(find.text('تعليقة اختبار'), findsNothing);
+        expect(find.text('تعليقة اختبار'), findsOneWidget);
+        expect(find.text('إظهار المزيد'), findsNothing);
         expect(find.text('1,200,000.25'), findsOneWidget);
         expect(find.text('العميل: عميل اختبار'), findsOneWidget);
         expect(find.textContaining('الجوال:'), findsOneWidget);
         expect(find.textContaining('01012345678'), findsOneWidget);
         expect(find.textContaining('اسم البائع: مالك اختبار'), findsOneWidget);
         expect(find.textContaining('كاش'), findsNothing);
-        await tester.tap(find.text('عرض المزيد'));
-        await tester.pumpAndSettle();
-        expect(find.text('تعليقة اختبار'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );
@@ -113,22 +110,10 @@ void main() {
     Future<List<LedgerLineItem>?> read(String id) =>
         id == 'old' ? oldResponse.future : newResponse.future;
     await tester.pumpWidget(
-      surface(
-        LedgerOperationTable(
-          line: line('old'),
-          showDetails: true,
-          loadItems: read,
-        ),
-      ),
+      surface(LedgerOperationTable(line: line('old'), loadItems: read)),
     );
     await tester.pumpWidget(
-      surface(
-        LedgerOperationTable(
-          line: line('new'),
-          showDetails: true,
-          loadItems: read,
-        ),
-      ),
+      surface(LedgerOperationTable(line: line('new'), loadItems: read)),
     );
     newResponse.complete([items[1]]);
     await tester.pumpAndSettle();
@@ -145,7 +130,6 @@ void main() {
       surface(
         LedgerOperationTable(
           line: line('sale', partyName: null, partyPhone: null),
-          showDetails: false,
         ),
       ),
     );
@@ -163,7 +147,6 @@ void main() {
       surface(
         LedgerOperationTable(
           line: line('sale'),
-          showDetails: true,
           loadItems: (_) async {
             if (++reads == 1) throw StateError('offline');
             return items;
@@ -178,5 +161,78 @@ void main() {
     await tester.tap(find.text('تعذر تحميل الأصناف. إعادة المحاولة'));
     await tester.pumpAndSettle();
     expect(find.text('خاتم اختبار'), findsOneWidget);
+  });
+
+  testWidgets('price column appears only when the invoice has item prices', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      surface(
+        LedgerOperationTable(
+          line: line('unpriced'),
+          loadItems: (_) async => items,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('خاتم اختبار'), findsOneWidget);
+    expect(find.text('السعر'), findsNothing);
+    expect(find.text('عدد القطع'), findsNothing);
+
+    await tester.pumpWidget(
+      surface(
+        LedgerOperationTable(
+          line: line('priced'),
+          loadItems: (_) async => const [
+            LedgerLineItem(
+              name: 'خاتم اختبار',
+              grams: '3.000',
+              karat: 18,
+              linePricePounds: '12500.00',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('السعر'), findsOneWidget);
+    expect(find.text(displayPounds('12500.00')), findsOneWidget);
+  });
+
+  testWidgets('a ledger refresh re-reads items without blanking the rows', (
+    tester,
+  ) async {
+    final second = Completer<List<LedgerLineItem>?>();
+    var reads = 0;
+    Future<List<LedgerLineItem>?> first(String _) async {
+      reads++;
+      return items;
+    }
+
+    Future<List<LedgerLineItem>?> refreshed(String _) {
+      reads++;
+      return second.future;
+    }
+
+    await tester.pumpWidget(
+      surface(LedgerOperationTable(line: line('same'), loadItems: first)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('سلسلة اختبار'), findsOneWidget);
+
+    await tester.pumpWidget(
+      surface(LedgerOperationTable(line: line('same'), loadItems: refreshed)),
+    );
+    await tester.pump();
+    expect(reads, 2);
+    expect(find.text('سلسلة اختبار'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+
+    second.complete(const [
+      LedgerLineItem(name: 'حلق بعد التعديل', grams: '2.000', karat: 21),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.text('حلق بعد التعديل'), findsOneWidget);
+    expect(find.text('سلسلة اختبار'), findsNothing);
   });
 }

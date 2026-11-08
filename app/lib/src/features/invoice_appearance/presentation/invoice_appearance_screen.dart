@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
@@ -9,12 +8,12 @@ import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../../shop_accounts/domain/shop_image.dart';
+import '../application/apply_shop_logo_to_invoice.dart';
 import '../application/branded_invoice_pdf.dart';
 import '../application/invoice_appearance_contract.dart';
 import '../application/invoice_copy_files.dart';
 import '../application/invoice_appearance_flow.dart';
 import '../application/invoice_appearance_gateway.dart';
-import '../application/logo_codec.dart';
 import '../data/logo_upload_store.dart';
 import '../domain/appearance_rules.dart';
 import '../domain/branded_invoice_document.dart';
@@ -219,7 +218,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
           _logoSha256 = upload.sha256;
           _dirty = true;
         }
-        message = 'شعار التسجيل مؤكد. راجع المظهر واحفظه ليظهر في الفواتير.';
+        message = 'لوجو المحل مؤكد. راجع المظهر واحفظه ليظهر في الفواتير.';
       } else if (upload?.phase == LogoUploadPhase.failed) {
         phase = _AppearancePhase.uploadFailure;
         message = upload?.message ?? 'تعذر حفظ الشعار.';
@@ -480,111 +479,42 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
     final generation = ++_logoGeneration;
     setState(() => _busy = true);
     try {
-      final prior = await widget.logoStore.read(widget.userId, widget.shopId);
-      if (!_alive || generation != _logoGeneration) return;
-      final prepared = await prepareLogo(selected);
-      if (!_alive || generation != _logoGeneration) return;
-      final record = LogoUploadRecord(
-        phase: LogoUploadPhase.uploadPending,
-        sha256: prepared.sha256,
-        mime: prepared.facts.mime,
-        objectName: prepared.objectName(widget.shopId),
-        fromRegistration: prior?.fromRegistration == true,
-      );
-      await widget.logoStore.save(
-        widget.userId,
-        widget.shopId,
-        record,
-        prepared.bytes,
-      );
-      if (!_alive || generation != _logoGeneration) return;
-      setState(() {
-        _phase = _AppearancePhase.uploadPending;
-        _message = 'رفع الشعار لم يكتمل. لم يُحفظ.';
-        _dirty = true;
-      });
-      final upload = await widget.gateway.uploadInvoiceLogo(
+      final outcome = await uploadShopLogoForInvoice(
+        gateway: widget.gateway,
+        logoStore: widget.logoStore,
         userId: widget.userId,
         shopId: widget.shopId,
-        objectName: record.objectName,
-        mimeType: prepared.facts.mime,
-        bytes: prepared.bytes,
+        selected: selected,
+        cancelled: () => !_alive || generation != _logoGeneration,
       );
       if (!_alive || generation != _logoGeneration) return;
-      if (upload.disposition == LogoUploadDisposition.unknown) {
-        setState(() => _message = 'رفع الشعار لم يكتمل. لم يُحفظ.');
-        return;
+      switch (outcome) {
+        case ShopLogoLinked(:final assetId, :final sha256):
+          setState(() {
+            _logoAssetId = assetId;
+            _logoSha256 = sha256;
+            _showShopImage = true;
+            _phase = _AppearancePhase.draft;
+            _reviewPayload = null;
+            _dirty = true;
+            _message =
+                'تم ربط الصورة بالفاتورة. راجع المظهر واحفظه لتظهر في النسخ الجديدة.';
+          });
+        case ShopLogoUnconfirmed():
+          setState(() {
+            _phase = _AppearancePhase.uploadPending;
+            _dirty = true;
+            _message = 'رفع الشعار لم يكتمل. لم يُحفظ.';
+          });
+        case ShopLogoRejected() || ShopLogoMismatch():
+          setState(() {
+            _phase = _AppearancePhase.uploadFailure;
+            _dirty = true;
+            _message = 'تعذر حفظ الشعار.';
+          });
+        case ShopLogoCancelled():
+          break;
       }
-      if (upload.disposition == LogoUploadDisposition.rejected) {
-        await widget.logoStore.save(
-          widget.userId,
-          widget.shopId,
-          LogoUploadRecord(
-            phase: LogoUploadPhase.failed,
-            sha256: prepared.sha256,
-            mime: prepared.facts.mime,
-            objectName: record.objectName,
-            message: 'تعذر حفظ الشعار.',
-            fromRegistration: record.fromRegistration,
-          ),
-          prepared.bytes,
-        );
-        setState(() {
-          _phase = _AppearancePhase.uploadFailure;
-          _message = 'تعذر حفظ الشعار.';
-        });
-        return;
-      }
-      await widget.logoStore.save(
-        widget.userId,
-        widget.shopId,
-        LogoUploadRecord(
-          phase: LogoUploadPhase.confirmPending,
-          sha256: prepared.sha256,
-          mime: prepared.facts.mime,
-          objectName: record.objectName,
-          fromRegistration: record.fromRegistration,
-        ),
-        prepared.bytes,
-      );
-      setState(() => _message = 'رُفع الملف ولم يؤكد الخادم الشعار بعد.');
-      final confirmed = await widget.gateway.confirmInvoiceLogo(
-        userId: widget.userId,
-        shopId: widget.shopId,
-        base64Bytes: base64Encode(prepared.bytes),
-        sha256: prepared.sha256,
-      );
-      if (!_alive || generation != _logoGeneration) return;
-      if (confirmed.shopId != widget.shopId ||
-          confirmed.sha256 != prepared.sha256) {
-        setState(() {
-          _phase = _AppearancePhase.uploadFailure;
-          _message = 'تعذر حفظ الشعار.';
-        });
-        return;
-      }
-      await widget.logoStore.save(
-        widget.userId,
-        widget.shopId,
-        LogoUploadRecord(
-          phase: LogoUploadPhase.confirmed,
-          sha256: confirmed.sha256,
-          mime: confirmed.mime,
-          objectName: record.objectName,
-          assetId: confirmed.assetId,
-          fromRegistration: record.fromRegistration,
-        ),
-        prepared.bytes,
-      );
-      setState(() {
-        _logoAssetId = confirmed.assetId;
-        _logoSha256 = confirmed.sha256;
-        _showShopImage = true;
-        _phase = _AppearancePhase.draft;
-        _reviewPayload = null;
-        _message =
-            'تم ربط الصورة بالفاتورة. راجع المظهر واحفظه لتظهر في النسخ الجديدة.';
-      });
     } on LogoByteRejection {
       if (!_alive || generation != _logoGeneration) return;
       setState(() {
@@ -642,7 +572,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
           ? _AppearancePhase.draft
           : _AppearancePhase.expired;
       _message =
-          'ستُزال الصورة من المظهر الجديد دون حذف النسخ أو صورة المتجر المحفوظة.';
+          'ستُزال الصورة من المظهر الجديد دون حذف النسخ أو لوجو المحل المحفوظة.';
     });
   }
 
@@ -656,7 +586,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
     if (image == null) {
       setState(
         () => _message =
-            'أضف صورة المتجر من المزيد ← صورة المتجر أولاً، ثم فعّل هذا الخيار.',
+            'أضف لوجو المحل من المزيد ← لوجو المحل أولاً، ثم فعّل هذا الخيار.',
       );
       return;
     }
@@ -664,7 +594,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       setState(() {
         _dirty = true;
         _reviewPayload = null;
-        _message = 'صورة المتجر مربوطة. راجع المظهر واحفظه إن لم تحفظ بعد.';
+        _message = 'لوجو المحل مربوطة. راجع المظهر واحفظه إن لم تحفظ بعد.';
       });
       return;
     }
@@ -744,8 +674,8 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
               Text(_address.text.trim().isEmpty ? 'بلا عنوان' : _address.text),
               Text(
                 previewLogo == null
-                    ? 'بلا صورة متجر على المعاينة'
-                    : 'تشمل المعاينة صورة المتجر الحالية',
+                    ? 'بلا لوجو للمحل على المعاينة'
+                    : 'تشمل المعاينة لوجو المحل الحالية',
               ),
               Text(
                 bytes == null
@@ -888,7 +818,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                   else
                     Text(
                       key: const Key('appearance-shop-image-missing'),
-                      'لا توجد صورة متجر محفوظة. أضفها من المزيد ← صورة المتجر.',
+                      'لا يوجد لوجو للمحل محفوظ. أضفه من المزيد ← لوجو المحل.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -897,7 +827,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                   SwitchListTile(
                     key: const Key('appearance-shop-image-toggle'),
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('إظهار صورة المتجر على الفاتورة'),
+                    title: const Text('إظهار لوجو المحل على الفاتورة'),
                     subtitle: Text(
                       _showShopImage && _hasInvoiceImage
                           ? 'ستظهر الصورة في النسخ الجديدة بعد حفظ المظهر.'

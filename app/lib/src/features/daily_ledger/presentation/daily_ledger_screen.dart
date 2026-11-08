@@ -121,6 +121,15 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   bool _loadingOlder = false;
   bool _caughtUp = false;
   final _activity = LedgerActivityController();
+  final Map<String, Future<List<LedgerLineItem>?>> _itemCache = {};
+  Future<List<LedgerLineItem>?> Function(String operationId)? _itemsLoader;
+
+  /// Trades can be edited or deleted, so every confirmed refresh re-reads
+  /// items. A new callback identity tells each card to re-read quietly.
+  void _dropItemCache() {
+    _itemCache.clear();
+    _itemsLoader = (operationId) => _loadOperationItems(operationId);
+  }
 
   FinancialGateway? get _financialGateway => widget.gateway is FinancialGateway
       ? widget.gateway! as FinancialGateway
@@ -223,6 +232,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     }
     _syncing = true;
     try {
+      _dropItemCache();
       await _controller?.refresh();
       if (mounted) {
         await _catchUpFeed();
@@ -294,7 +304,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     if (gateway == null || userId == null) return;
     _adoptFeed();
     final added = await _activity.catchUp(gateway: gateway, userId: userId);
-    if (added > 0) await _controller?.refresh();
+    if (added > 0) {
+      _dropItemCache();
+      await _controller?.refresh();
+    }
     if (mounted) setState(() {});
   }
 
@@ -306,6 +319,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     try {
       await _activity.loadOlder(gateway: gateway, userId: userId);
     } on CalendarLedgerChanged {
+      _dropItemCache();
       await _controller?.refresh();
     } catch (_) {
       if (mounted) {
@@ -388,6 +402,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
             pending.key,
           );
           if (mounted) setState(() => _financialPending = null);
+          _dropItemCache();
           await controller!.refresh();
         } else if (mounted) {
           setState(() {
@@ -442,6 +457,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       final open = widget.onOpenInvoiceMessage;
       if (open != null) await open();
       if (!mounted) return;
+      _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
       return;
@@ -468,6 +484,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         }
       }
       if (!mounted) return;
+      _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
       return;
@@ -497,6 +514,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       }
       await open();
       if (!mounted) return;
+      _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
       return;
@@ -512,6 +530,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         await _financialPendingStore.clear(userId, widget.shop.id, pending.key);
         if (!mounted) return;
         setState(() => _financialPending = null);
+        _dropItemCache();
         await _controller?.refresh();
         await _maybeLoadFinancialDay(force: true);
       } else if (status is StatusAbsent && retry) {
@@ -528,6 +547,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           );
           if (!mounted) return;
           setState(() => _financialPending = null);
+          _dropItemCache();
           await _controller?.refresh();
           await _maybeLoadFinancialDay(force: true);
         } else if (result is FinancialRejected) {
@@ -617,6 +637,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         context,
       ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
     }
+    _dropItemCache();
     await _controller?.refresh();
     await _maybeLoadFinancialDay(force: true);
   }
@@ -647,6 +668,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
+      _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
@@ -679,6 +701,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
+      _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
@@ -713,21 +736,37 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
+      _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
     }
   }
 
-  Future<List<LedgerLineItem>?> _loadOperationItems(String operationId) async {
-    final gateway = _financialGateway;
-    final userId = widget.userId;
-    if (gateway == null || userId == null) return null;
-    final operation = await gateway.operation(
-      callerUserId: userId,
-      operationId: operationId,
-    );
-    final payload = operation['payload'];
-    return ledgerLineItemsFromPayload(payload);
+  Future<List<LedgerLineItem>?> _loadOperationItems(String operationId) {
+    return _itemCache.putIfAbsent(operationId, () {
+      final pending = () async {
+        final gateway = _financialGateway;
+        final userId = widget.userId;
+        if (gateway == null || userId == null) return null;
+        final operation = await gateway.operation(
+          callerUserId: userId,
+          operationId: operationId,
+        );
+        final payload = operation['payload'];
+        return ledgerLineItemsFromPayload(payload);
+      }();
+      unawaited(
+        pending.then(
+          (items) {
+            if (items == null) _itemCache.remove(operationId);
+          },
+          onError: (Object _, StackTrace _) {
+            _itemCache.remove(operationId);
+          },
+        ),
+      );
+      return pending;
+    });
   }
 
   Future<bool> _openPendingPresentation(PendingFinancialCommand pending) async {
@@ -789,6 +828,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       ),
     );
     if (!mounted) return;
+    _dropItemCache();
     await _controller?.refresh();
     await _maybeLoadFinancialDay(force: true);
   }
@@ -854,6 +894,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       if (result is FinancialCommitted) {
         await _financialPendingStore.clear(userId, widget.shop.id, key);
         if (!mounted) return;
+        _dropItemCache();
         await _controller?.refresh();
         await _maybeLoadFinancialDay(force: true);
       } else if (result is FinancialRejected) {
@@ -914,6 +955,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (widget.syncTicks == null &&
         oldWidget.refreshGeneration != widget.refreshGeneration) {
+      _dropItemCache();
       _controller?.refresh();
       _maybeLoadFinancialDay(force: true);
     }
@@ -1195,7 +1237,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       _feedGateway == null || _activity.state.userId.isEmpty
                       ? null
                       : _activity.state.lines,
-                  loadItems: _loadOperationItems,
+                  loadItems: _itemsLoader ??= _loadOperationItems,
                 ),
               ],
             ],

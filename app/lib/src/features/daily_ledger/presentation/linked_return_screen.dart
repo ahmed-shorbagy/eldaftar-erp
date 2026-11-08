@@ -327,5 +327,7 @@ String _pounds(BigInt value) => displayPounds(
 String _grams(Object? value) {
   if (value is! String) return '—';
   final parsed = Milligrams.parseWire(value);
-  return parsed is Accepted<Milligrams> ? displayGoldEffect(parsed.value.value) : '—';
+  return parsed is Accepted<Milligrams>
+      ? displayGoldEffect(parsed.value.value)
+      : '—';
 }

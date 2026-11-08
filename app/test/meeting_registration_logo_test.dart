@@ -38,65 +38,57 @@ class RegistrationImageGateway implements ShopImageGateway {
 }
 
 void main() {
-  for (final useLogo in [false, true]) {
-    testWidgets(
-      'registration invoice logo requires explicit selection $useLogo',
-      (t) async {
-        t.view.physicalSize = const Size(390, 1000);
-        t.view.devicePixelRatio = 1;
-        addTearDown(t.view.resetPhysicalSize);
-        addTearDown(t.view.resetDevicePixelRatio);
-        final auth = ScriptedAuth()
-          ..registration = Completer<OwnerRegistrationResult>();
-        addTearDown(auth.close);
-        final images = RegistrationImageGateway();
-        var logoDrafts = 0, settled = 0;
-        await t.pumpWidget(
-          MaterialApp(
-            theme: AppTheme.light(),
-            locale: const Locale('ar'),
-            supportedLocales: const [Locale('ar')],
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            home: AuthScreen(
-              gateway: auth,
-              onToggleTheme: (_) async {},
-              onHold: (_) {},
-              onSessionSettled: () => settled++,
-              shopImageGateway: images,
-              pickShopImage: () async => registrationLogoBytes(),
-              saveRegistrationInvoiceLogo: (bytes) async {
-                logoDrafts++;
-              },
-            ),
-          ),
-        );
-        await t.pumpAndSettle();
-        await openSignup(t);
-        await fillSignup(t);
-        await t.ensureVisible(find.byKey(const Key('signup-back')));
-        await t.tap(find.byKey(const Key('signup-back')));
-        await t.pumpAndSettle();
-        await t.ensureVisible(find.byKey(const Key('signup-shop-image')));
-        await t.tap(find.byKey(const Key('signup-shop-image')));
-        await t.pumpAndSettle();
-        final choice = find.byKey(const Key('signup-invoice-logo'));
-        await t.ensureVisible(choice);
-        expect(t.widget<CheckboxListTile>(choice).value, isFalse);
-        if (useLogo) {
-          await t.tap(choice);
-          await t.pumpAndSettle();
-        }
-        await nextSignup(t);
-        await nextSignup(t);
-        auth.registration!.complete(
-          const OwnerRegistrationResult(userId: 'owner-1', shopId: 'shop-1'),
-        );
-        await t.pumpAndSettle();
-        expect(auth.registrations.length, 1);
-        expect(images.saves, 1);
-        expect(logoDrafts, useLogo ? 1 : 0);
-        expect(settled, 1);
-      },
+  testWidgets('registration always saves the chosen logo as an invoice draft', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(390, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final auth = ScriptedAuth()
+      ..registration = Completer<OwnerRegistrationResult>();
+    addTearDown(auth.close);
+    final images = RegistrationImageGateway();
+    var logoDrafts = 0, settled = 0;
+    await t.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: AuthScreen(
+          gateway: auth,
+          onToggleTheme: (_) async {},
+          onHold: (_) {},
+          onSessionSettled: () => settled++,
+          shopImageGateway: images,
+          pickShopImage: () async => registrationLogoBytes(),
+          saveRegistrationInvoiceLogo: (bytes) async {
+            logoDrafts++;
+          },
+        ),
+      ),
     );
-  }
+    await t.pumpAndSettle();
+    await openSignup(t);
+    await fillSignup(t);
+    await t.ensureVisible(find.byKey(const Key('signup-back')));
+    await t.tap(find.byKey(const Key('signup-back')));
+    await t.pumpAndSettle();
+    expect(find.text('لوجو المحل (اختياري)'), findsOneWidget);
+    expect(find.byKey(const Key('signup-invoice-logo')), findsNothing);
+    await t.ensureVisible(find.byKey(const Key('signup-shop-image')));
+    await t.tap(find.byKey(const Key('signup-shop-image')));
+    await t.pumpAndSettle();
+    await nextSignup(t);
+    await nextSignup(t);
+    auth.registration!.complete(
+      const OwnerRegistrationResult(userId: 'owner-1', shopId: 'shop-1'),
+    );
+    await t.pumpAndSettle();
+    expect(auth.registrations.length, 1);
+    expect(images.saves, 1);
+    expect(logoDrafts, 1);
+    expect(settled, 1);
+  });
 }

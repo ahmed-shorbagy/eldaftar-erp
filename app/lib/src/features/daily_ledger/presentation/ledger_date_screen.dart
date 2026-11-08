@@ -260,7 +260,6 @@ class _LedgerDateScreenState extends State<LedgerDateScreen> {
                       key: ValueKey('dated-${line.operationId}'),
                       line: line,
                       position: index + 1,
-                      showDetails: false,
                       loadItems: widget.loadItems,
                       onOpen: () async {
                         await widget.onOperation(line);

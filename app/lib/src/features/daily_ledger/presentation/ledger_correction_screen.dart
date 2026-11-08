@@ -151,7 +151,9 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
     try {
       final countedCash = <String, BigInt>{};
       for (final method in CashMethod.canonicalOrder) {
-        final parsed = Piastres.parsePounds(cashInputValue(_cash[method.code]!.text));
+        final parsed = Piastres.parsePounds(
+          cashInputValue(_cash[method.code]!.text),
+        );
         if (parsed is! Accepted<Piastres>) {
           setState(() => _message = 'أدخل النقد المعدود لكل وسيلة .');
           return;

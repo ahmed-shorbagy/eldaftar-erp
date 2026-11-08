@@ -213,53 +213,10 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   void _showCashMethods() =>
       _details('وسائل الدفع', (_) => LedgerCashBreakdown(view: widget.ledger!));
 
-  void _showSoldGold() => _details(
-    'ذهب مباع',
-    (_) => LedgerSoldGoldBreakdown(view: widget.ledger!),
+  void _showTradeWeight(String kind) => _details(
+    kind == 'sale' ? 'وزن مباع' : 'وزن مشترى',
+    (_) => LedgerTradeWeightBreakdown(view: widget.ledger!, kind: kind),
   );
-
-  void _showAllMetrics() =>
-      _details('ملخص الأرقام', (_) => _allMetrics(widget.ledger!));
-
-  Widget _allMetrics(DailyLedgerView view) {
-    final values = ledgerMetricValues(view, _metricLayout.normalizationKarat);
-    final ids = _metricLayout.availableIds;
-    return LayoutBuilder(
-      builder: (context, size) {
-        final columns = size.maxWidth >= 520
-            ? 3
-            : size.maxWidth >= 340
-            ? 2
-            : 1;
-        const gap = 10.0;
-        final width = columns == 1
-            ? size.maxWidth
-            : (size.maxWidth - gap * (columns - 1)) / columns;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'كل خانات ملخص اليوم.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              key: const Key('ledger-all-metrics'),
-              spacing: gap,
-              runSpacing: gap,
-              children: [
-                for (final id in ids)
-                  SizedBox(width: width, child: _metricTile(id, values[id]!)),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _showHistory([String filter = 'all']) => _details(
     'حركة الدفتر',
@@ -300,7 +257,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
         const SizedBox(height: 16),
         Text('الأرقام الظاهرة', style: theme.textTheme.titleMedium),
         Text(
-          'اختر ست خانات للملخص. تظهر بقية الأرقام في المزيد.',
+          'اختر ست خانات تظهر في ملخص اليوم.',
           style: theme.textTheme.bodySmall,
         ),
         for (final (slot, id) in _metricLayout.homeIds.indexed) ...[
@@ -394,7 +351,10 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
             values[id]!.value,
             minimum,
             label: values[id]!.label,
-            hasAction: id == 'total_cash' || id == 'sale_gold',
+            hasAction:
+                id == 'total_cash' ||
+                id == 'sale_gold' ||
+                id == 'purchase_gold',
           );
           if (needed > width) width = needed;
         }
@@ -429,9 +389,14 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
         key: const Key('ledger-cash-methods'),
       ),
       'sale_gold' => (
-        onOpen: _showSoldGold,
-        tooltip: 'أوزان الذهب المباع',
+        onOpen: () => _showTradeWeight('sale'),
+        tooltip: 'تفاصيل الوزن المباع',
         key: const Key('ledger-sale-gold-weights'),
+      ),
+      'purchase_gold' => (
+        onOpen: () => _showTradeWeight('purchase'),
+        tooltip: 'تفاصيل الوزن المشترى',
+        key: const Key('ledger-purchase-gold-weights'),
       ),
       _ => null,
     };
@@ -532,26 +497,13 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                 ),
                 Row(
                   children: [
-                    Expanded(
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton.icon(
-                          key: const Key('ledger-more-metrics'),
-                          onPressed: _showAllMetrics,
-                          icon: const Icon(Icons.grid_view_rounded, size: 18),
-                          label: const Text('عرض المزيد'),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                        ),
-                      ),
-                    ),
+                    const Spacer(),
                     IconButton(
                       key: const Key('ledger-customize'),
                       tooltip: 'إعدادات الملخص',
                       visualDensity: VisualDensity.compact,
                       iconSize: 20,
+                      alignment: AlignmentDirectional.centerEnd,
                       onPressed: () =>
                           _details('إعدادات الملخص', _customization),
                       icon: const Icon(Icons.settings_outlined),
@@ -704,7 +656,6 @@ class _JournalPreview extends StatefulWidget {
 
 class _JournalPreviewState extends State<_JournalPreview> {
   bool _newestFirst = true;
-  final _details = <String, bool>{};
 
   @override
   Widget build(BuildContext context) {
@@ -776,24 +727,6 @@ class _JournalPreviewState extends State<_JournalPreview> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
-                    if (journal.$3.isNotEmpty)
-                      IconButton(
-                        key: Key('ledger-journal-details-${journal.$1}'),
-                        tooltip: (_details[journal.$1] ?? false)
-                            ? 'إخفاء التفاصيل'
-                            : 'عرض التفاصيل',
-                        visualDensity: VisualDensity.compact,
-                        iconSize: 20,
-                        onPressed: () => setState(
-                          () => _details[journal.$1] =
-                              !(_details[journal.$1] ?? false),
-                        ),
-                        icon: Icon(
-                          (_details[journal.$1] ?? false)
-                              ? Icons.unfold_less_rounded
-                              : Icons.unfold_more_rounded,
-                        ),
-                      ),
                     TextButton(
                       key: Key('ledger-journal-all-${journal.$1}'),
                       onPressed: () => widget.onViewAll(journal.$1),
@@ -830,7 +763,6 @@ class _JournalPreviewState extends State<_JournalPreview> {
                       key: ValueKey('${line.kind}-${line.operationId}'),
                       line: line,
                       position: row + 1,
-                      showDetails: _details[journal.$1] ?? false,
                       loadItems: widget.loadItems,
                       onOpen: widget.onOperation == null
                           ? null
@@ -1088,7 +1020,6 @@ class _ActivitySection extends StatefulWidget {
 class _ActivitySectionState extends State<_ActivitySection> {
   late String _filter = widget.initialFilter;
   bool _newestFirst = true;
-  bool _showDetails = false;
   @override
   Widget build(BuildContext context) {
     final rows = widget.lines ?? widget.view.feed;
@@ -1145,18 +1076,6 @@ class _ActivitySectionState extends State<_ActivitySection> {
               selected: !_newestFirst,
               onSelected: () => setState(() => _newestFirst = false),
             ),
-            IconButton(
-              key: const Key('ledger-history-details'),
-              tooltip: _showDetails ? 'إخفاء التفاصيل' : 'عرض التفاصيل',
-              visualDensity: VisualDensity.compact,
-              iconSize: 20,
-              onPressed: () => setState(() => _showDetails = !_showDetails),
-              icon: Icon(
-                _showDetails
-                    ? Icons.unfold_less_rounded
-                    : Icons.unfold_more_rounded,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -1177,7 +1096,6 @@ class _ActivitySectionState extends State<_ActivitySection> {
             key: ValueKey('${line.kind}-${line.operationId}'),
             line: line,
             position: index + 1,
-            showDetails: _showDetails,
             loadItems: widget.loadItems,
             onOpen: widget.onOperation == null
                 ? null

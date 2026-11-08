@@ -150,9 +150,7 @@ class _ForcedUpdateScreenState extends State<ForcedUpdateScreen> {
                 OutlinedButton(
                   key: const Key('forced-update-retry'),
                   onPressed: _busy ? null : _retry,
-                  child: Text(
-                    _busy ? 'جارٍ التحقق…' : ForcedUpdateCopy.retry,
-                  ),
+                  child: Text(_busy ? 'جارٍ التحقق…' : ForcedUpdateCopy.retry),
                 ),
               ],
             ),

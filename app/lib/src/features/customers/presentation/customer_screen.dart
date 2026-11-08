@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../shell/workspace_chrome.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
@@ -605,6 +604,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             label: Text(label),
           );
   }
+
   Widget _heading(String label) => Padding(
     padding: const EdgeInsets.only(top: 24, bottom: 8),
     child: Text(label, style: Theme.of(context).textTheme.titleLarge),
@@ -1768,7 +1768,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
               : 'ملف العميل',
         ),
         leading: _stage == 'list'
-            ? WorkspaceChrome.menuButton(context)
+            ? null
             : IconButton(
                 tooltip: 'رجوع',
                 onPressed: _busy ? null : _back,

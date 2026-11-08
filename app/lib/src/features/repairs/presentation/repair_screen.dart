@@ -1030,7 +1030,9 @@ class _RepairScreenState extends State<RepairScreen> {
                         item.estimatedFeePiastres.toString(),
                       );
                       if (parsed is Accepted<Piastres>) {
-                        _finalFee.text = editableCashText(parsed.value.poundsText);
+                        _finalFee.text = editableCashText(
+                          parsed.value.poundsText,
+                        );
                       }
                     }
                     _go(_Stage.handover);
@@ -1356,7 +1358,9 @@ class _RepairScreenState extends State<RepairScreen> {
       inputFormatters: identical(controller, _estimate)
           ? const [CashInputFormatter()]
           : null,
-      textDirection: identical(controller, _estimate) ? TextDirection.ltr : null,
+      textDirection: identical(controller, _estimate)
+          ? TextDirection.ltr
+          : null,
       maxLines: maxLines,
       decoration: InputDecoration(labelText: label, hintText: hint),
       validator: (value) {

@@ -73,10 +73,7 @@ void main() {
     // Without an appearance gateway the link stays hidden; the unavailable
     // row was removed with the builder-gated more menu.
     expect(find.text('مظهر الفاتورة غير متاح في هذا الاتصال.'), findsNothing);
-    expect(
-      find.byKey(const Key('workspace-invoice-appearance')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('workspace-invoice-appearance')), findsNothing);
 
     final gateway = AppearanceTestGateway();
     await tester.pumpWidget(
@@ -381,7 +378,7 @@ void main() {
       find.byKey(const Key('appearance-shop-image-preview')),
       findsOneWidget,
     );
-    expect(find.text('إظهار صورة المتجر على الفاتورة'), findsOneWidget);
+    expect(find.text('إظهار لوجو المحل على الفاتورة'), findsOneWidget);
     final toggle = find.byKey(const Key('appearance-shop-image-toggle'));
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     await tester.ensureVisible(toggle);
@@ -422,7 +419,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('appearance-shop-image-toggle')));
     await _pumpIdle(tester);
-    expect(find.textContaining('أضف صورة المتجر من المزيد'), findsOneWidget);
+    expect(find.textContaining('أضف لوجو المحل من المزيد'), findsOneWidget);
   });
 }
 

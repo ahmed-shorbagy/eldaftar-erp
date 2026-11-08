@@ -90,14 +90,14 @@ Map<String, LedgerMetricSpec> ledgerMetricValues(
     'sale': LedgerMetricSpec(
       ledgerMetricLabel('sale'),
       money(summary?.salePiastres),
-      '${normalized('sale')} $equivalent',
+      '',
       Icons.trending_up,
       LedgerMetricTone.positive,
     ),
     'purchase': LedgerMetricSpec(
       ledgerMetricLabel('purchase'),
       money(summary?.purchasePiastres),
-      '${normalized('purchase')} $equivalent',
+      '',
       Icons.trending_down,
       LedgerMetricTone.negative,
     ),

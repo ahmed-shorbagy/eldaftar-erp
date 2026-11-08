@@ -65,8 +65,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           _loading = false;
           _empty = true;
           _error = false;
-          _message =
-              'أكد الأرصدة الافتتاحية أولاً لإنشاء وسائل الدفع الأربع.';
+          _message = 'أكد الأرصدة الافتتاحية أولاً لإنشاء وسائل الدفع الأربع.';
         });
         return;
       }
@@ -115,11 +114,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         return;
       }
       if (!archived) active += 1;
-      payload.add((
-        method: method.code,
-        labelAr: label,
-        archived: archived,
-      ));
+      payload.add((method: method.code, labelAr: label, archived: archived));
     }
     if (active < 1) {
       setState(() {
@@ -166,8 +161,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
             'انتهت الجلسة. سجّل الدخول مجددًا.',
           PaymentMethodsFailure.invalidInput =>
             'تحقق من الأسماء وحالة الأرشفة.',
-          PaymentMethodsFailure.rejected =>
-            'الاشتراك لا يسمح بالتعديل الآن.',
+          PaymentMethodsFailure.rejected => 'الاشتراك لا يسمح بالتعديل الآن.',
           _ => 'تعذر الحفظ. حاول مجددًا.',
         };
       });

@@ -692,7 +692,8 @@ class _TraderScreenState extends State<TraderScreen> {
                   trailing: _StockStatusChip(
                     pending: receipt.remainingMilligrams > BigInt.zero,
                   ),
-                  onTap: receipt.remainingMilligrams > BigInt.zero &&
+                  onTap:
+                      receipt.remainingMilligrams > BigInt.zero &&
                           !widget.readOnly &&
                           _day != null
                       ? () => _openReceiptAction(receipt)
@@ -739,7 +740,9 @@ class _TraderScreenState extends State<TraderScreen> {
           for (final line in _activity)
             ListTile(
               key: Key('trader-activity-${line.operationId}'),
-              title: Text('${_activityKindLabel(line.kind)} — ${line.shopSequence}'),
+              title: Text(
+                '${_activityKindLabel(line.kind)} — ${line.shopSequence}',
+              ),
               subtitle: Text(line.createdAt),
             ),
           if (_activity.isEmpty) const Text('لا يوجد نشاط مؤكد في هذه الصفحة.'),

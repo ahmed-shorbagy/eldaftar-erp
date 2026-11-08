@@ -70,13 +70,17 @@ class SupabasePaymentMethodsGateway implements PaymentMethodsGateway {
 
   static ShopPaymentMethodsDirectory _parse(Object? value) {
     if (value is! Map) {
-      throw const PaymentMethodsException(PaymentMethodsFailure.invalidResponse);
+      throw const PaymentMethodsException(
+        PaymentMethodsFailure.invalidResponse,
+      );
     }
     final map = Map<String, dynamic>.from(value);
     final shopId = map['shop_id'];
     final methods = map['methods'];
     if (shopId is! String || methods is! List) {
-      throw const PaymentMethodsException(PaymentMethodsFailure.invalidResponse);
+      throw const PaymentMethodsException(
+        PaymentMethodsFailure.invalidResponse,
+      );
     }
     final parsed = <ShopPaymentMethod>[];
     for (final raw in methods) {

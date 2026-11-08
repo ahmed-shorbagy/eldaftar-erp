@@ -133,7 +133,11 @@ DailyLedgerView parseDailyLedger(Object? json) {
   }
   final stock = _stock(json['stock'], confirmed: confirmed);
   final scrap = _scrap(json['scrap'], confirmed: confirmed);
-  final feed = _feed(json['feed'], confirmed: confirmed, allowEmpty: version == 3);
+  final feed = _feed(
+    json['feed'],
+    confirmed: confirmed,
+    allowEmpty: version == 3,
+  );
   final daySummary = version >= 2
       ? parseLedgerDaySummary(json['day_summary'])
       : null;
@@ -369,7 +373,9 @@ LedgerCashLine _cashLine(Object? row) {
   if (row is! Map) throw const FormatException('cash');
   const required = {'method', 'label_ar', 'piastres', 'pounds'};
   const optional = {'archived'};
-  if (row.keys.any((key) => !required.contains(key) && !optional.contains(key)) ||
+  if (row.keys.any(
+        (key) => !required.contains(key) && !optional.contains(key),
+      ) ||
       required.any((key) => !row.containsKey(key))) {
     throw const FormatException('cash');
   }
@@ -511,7 +517,11 @@ LedgerScrapLine _scrapLine(Object? row) {
 }
 
 /// One ledger response holds at most 200 lines. That bound is not the history.
-List<LedgerFeedLine> _feed(Object? value, {required bool confirmed, bool allowEmpty = false}) {
+List<LedgerFeedLine> _feed(
+  Object? value, {
+  required bool confirmed,
+  bool allowEmpty = false,
+}) {
   if (value is! List) throw const FormatException('feed');
   if (confirmed) {
     if ((!allowEmpty && value.isEmpty) || value.length > 200) {

@@ -52,10 +52,7 @@ List<String> _fieldsMissingNumericKeyboard(Directory lib) {
           block.contains('ledgerSignedDecimalKeyboard');
       if (!hasKeyboard) {
         final line = text.substring(0, match.start).split('\n').length;
-        final rel = file.path
-            .replaceAll('\\', '/')
-            .split('/lib/')
-            .last;
+        final rel = file.path.replaceAll('\\', '/').split('/lib/').last;
         missing.add('$rel:$line');
       }
     }

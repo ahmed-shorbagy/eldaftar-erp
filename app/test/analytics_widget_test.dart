@@ -26,9 +26,7 @@ PeriodAnalytics _sample({required bool isOwner}) => PeriodAnalytics(
   containsOpenDay: false,
   isOwner: isOwner,
   dayCount: 2,
-  summary: {
-    for (final key in reportSummaryLabels.keys) key: BigInt.zero,
-  },
+  summary: {for (final key in reportSummaryLabels.keys) key: BigInt.zero},
   gold: [
     for (final k in [14, 18, 21, 22, 24])
       ReportGold(k, BigInt.zero, BigInt.zero),

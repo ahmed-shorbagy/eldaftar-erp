@@ -27,6 +27,22 @@ void main() {
       );
       expect(tile.unit, 'جرام محيف عيار 24');
       expect(
+        t
+            .widget<LedgerMetricTile>(
+              find.byKey(const Key('ledger-metric-sale')),
+            )
+            .unit,
+        '',
+      );
+      expect(
+        t
+            .widget<LedgerMetricTile>(
+              find.byKey(const Key('ledger-metric-purchase')),
+            )
+            .unit,
+        '',
+      );
+      expect(
         (await SharedPreferences.getInstance()).getStringList(
           'ledger_layout_feedback-shop',
         ),

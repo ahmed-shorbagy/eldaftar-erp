@@ -9,6 +9,7 @@ final class LedgerLineItem {
     this.category,
     this.karat,
     this.count,
+    this.linePricePounds,
   });
 
   final String name;
@@ -18,6 +19,7 @@ final class LedgerLineItem {
   final String? category;
   final int? karat;
   final String? count;
+  final String? linePricePounds;
 }
 
 /// Reads structured `items` from a confirmed operation payload.
@@ -40,6 +42,14 @@ List<LedgerLineItem>? ledgerLineItemsFromPayload(Object? payload) {
     if (weight is! Accepted<Milligrams>) continue;
     final karat = entry['karat'];
     final count = entry['count'];
+    final price = entry['line_price_piastres'];
+    String? linePricePounds;
+    if (price is String && price.isNotEmpty) {
+      final parsed = Piastres.parseWire(price);
+      if (parsed is Accepted<Piastres>) {
+        linePricePounds = parsed.value.poundsText;
+      }
+    }
     parsed.add(
       LedgerLineItem(
         name: name.trim(),
@@ -49,6 +59,7 @@ List<LedgerLineItem>? ledgerLineItemsFromPayload(Object? payload) {
             : null,
         karat: karat is int ? karat : int.tryParse('$karat'),
         count: count == null ? null : '$count',
+        linePricePounds: linePricePounds,
       ),
     );
   }

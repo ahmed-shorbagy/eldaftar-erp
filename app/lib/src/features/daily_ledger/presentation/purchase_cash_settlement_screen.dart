@@ -202,7 +202,8 @@ class _PurchaseCashSettlementScreenState
                         labelText: 'وسيلة السداد',
                       ),
                       items: [
-                        for (final method in PaymentMethodCatalog.entryChoices())
+                        for (final method
+                            in PaymentMethodCatalog.entryChoices())
                           DropdownMenuItem(
                             value: method,
                             child: Text(cashMethodLabel(method)),

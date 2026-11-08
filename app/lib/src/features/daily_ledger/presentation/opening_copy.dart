@@ -26,8 +26,7 @@ String openingFailureCopy(String? code) => switch (code) {
   _ => 'تعذر إتمام العملية. حاول مجددًا.',
 };
 
-String cashMethodLabel(CashMethod method) =>
-    PaymentMethodCatalog.label(method);
+String cashMethodLabel(CashMethod method) => PaymentMethodCatalog.label(method);
 
 String stockCategoryLabel(StockCategory category) => switch (category) {
   StockCategory.workedJewelry => 'مشغولات',

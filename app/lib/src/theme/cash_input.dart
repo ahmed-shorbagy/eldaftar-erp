@@ -5,8 +5,9 @@ import 'package:flutter/services.dart';
 String cashInputValue(String input) {
   final text = _cashDigits(input.trim());
   if (!text.contains(',')) return text;
-  if (!RegExp(r'^-?[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{0,2})?$')
-      .hasMatch(text)) {
+  if (!RegExp(
+    r'^-?[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{0,2})?$',
+  ).hasMatch(text)) {
     return text;
   }
   return text.replaceAll(',', '');
@@ -69,7 +70,8 @@ class CashInputFormatter extends TextInputFormatter {
           oldValue.text[removedAt] == ',' &&
           text == oldValue.text.replaceRange(removedAt, removedAt + 1, '')) {
         final digitAt = backspace ? removedAt - 1 : removedAt;
-        if (digitAt >= 0 && digitAt < text.length &&
+        if (digitAt >= 0 &&
+            digitAt < text.length &&
             RegExp(r'[0-9]').hasMatch(text[digitAt])) {
           text = text.replaceRange(digitAt, digitAt + 1, '');
           selection = TextSelection.collapsed(offset: digitAt);
@@ -77,7 +79,8 @@ class CashInputFormatter extends TextInputFormatter {
       }
     }
     // Reject malformed grouped pastes rather than silently changing their value.
-    if (text.length > oldValue.text.length + 1 && text.contains(',') &&
+    if (text.length > oldValue.text.length + 1 &&
+        text.contains(',') &&
         cashInputValue(text).contains(',')) {
       return oldValue;
     }
@@ -99,10 +102,13 @@ class CashInputFormatter extends TextInputFormatter {
     int mapOffset(int offset) {
       if (offset < 0) return offset;
       final bounded = offset.clamp(0, text.length).toInt();
-      final originalCount =
-          text.substring(0, bounded).replaceAll(',', '').length;
-      final zerosBeforeCaret =
-          (originalCount - signLength).clamp(0, removedZeros).toInt();
+      final originalCount = text
+          .substring(0, bounded)
+          .replaceAll(',', '')
+          .length;
+      final zerosBeforeCaret = (originalCount - signLength)
+          .clamp(0, removedZeros)
+          .toInt();
       final count = originalCount - zerosBeforeCaret;
       if (count == 0) return 0;
       var seen = 0;
@@ -112,6 +118,7 @@ class CashInputFormatter extends TextInputFormatter {
       }
       return formatted.length;
     }
+
     return TextEditingValue(
       text: formatted,
       selection: TextSelection(

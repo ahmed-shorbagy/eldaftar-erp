@@ -263,9 +263,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('الحساب').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('workspace-menu')));
+    await tester.tap(find.byKey(const Key('workspace-nav-4')));
     await tester.pumpAndSettle();
     final debts = find.byKey(const Key('workspace-debts'));
     expect(debts, findsOneWidget);
