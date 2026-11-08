@@ -557,6 +557,9 @@ LedgerFeedLine _feedLine(Object? row) {
     'payment_label',
     'item_summary',
     'piece_count',
+    'text',
+    'edited',
+    'edited_at',
   };
   if (required.any((key) => !row.containsKey(key)) ||
       row.keys.any(
@@ -583,6 +586,7 @@ LedgerFeedLine _feedLine(Object? row) {
     'scrap_to_stock': 'تحويل كسر إلى مخزون',
     'sale_return': 'مرتجع بيع',
     'purchase_return': 'مرتجع شراء',
+    'customer_return': 'مرتجع',
     'ledger_correction': 'تسوية فرق الجرد',
     'exchange': 'استبدال',
     'close_day': 'تقفيل اليومية',
@@ -604,6 +608,16 @@ LedgerFeedLine _feedLine(Object? row) {
   final payment = row['payment_label'];
   final itemSummary = row['item_summary'];
   final pieceCount = row['piece_count'];
+  final noteText = row['text'];
+  final edited = row['edited'];
+  final editedAt = row['edited_at'];
+  if ((row.containsKey('text') && noteText != null && noteText is! String) ||
+      (row.containsKey('edited') && edited is! bool) ||
+      (row.containsKey('edited_at') &&
+          editedAt != null &&
+          editedAt is! String)) {
+    throw const FormatException('feed');
+  }
   if ((itemSummary != null &&
           (itemSummary is! String || !_plainText(itemSummary))) ||
       (pieceCount != null &&
@@ -639,7 +653,10 @@ LedgerFeedLine _feedLine(Object? row) {
       (shopSequence != null && shopSequence is! String) ||
       (shopTime != null && shopTime is! String) ||
       (dailyNote && kind != 'daily_note') ||
-      (isReturn && kind != 'sale_return' && kind != 'purchase_return') ||
+      (isReturn &&
+          kind != 'sale_return' &&
+          kind != 'purchase_return' &&
+          kind != 'customer_return') ||
       !isUuid(operationId) ||
       !_plainText(actor) ||
       !_utcTimestamp(occurredAt) ||

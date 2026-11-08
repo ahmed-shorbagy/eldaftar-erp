@@ -122,8 +122,10 @@ Deno.serve((request) => {
 
   const admin = createClient(credentials.url, credentials.serviceKey, options);
 
+  let bearer = "";
   const ports: R2MediaPorts = {
     async owner(token) {
+      bearer = token;
       const caller = createClient(credentials.url, keys.publishable[0], {
         ...options,
         global: {
@@ -190,6 +192,19 @@ Deno.serve((request) => {
         return { ok: false, code: "unavailable" };
       }
       return { ok: true, facts: data as Record<string, unknown> };
+    },
+    async noteImageReadable(objectKey) {
+      const caller = createClient(credentials.url, keys.publishable[0], {
+        ...options,
+        global: {
+          ...options.global,
+          headers: { Authorization: `Bearer ${bearer}` },
+        },
+      });
+      const { data, error } = await caller.rpc("note_image_readable_v1", {
+        p_object_key: objectKey,
+      });
+      return error == null && data === true;
     },
   };
 

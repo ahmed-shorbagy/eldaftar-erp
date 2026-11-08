@@ -163,7 +163,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   bool get _fastEntry =>
       widget.exchangeReturnPayload == null &&
       (widget.kind == FinancialKind.sale ||
-          widget.kind == FinancialKind.purchase);
+          widget.kind == FinancialKind.purchase ||
+          widget.kind == FinancialKind.customerReturn);
 
   /// Owner rule 2026-11-06: purchased jewelry is booked as scrap at its karat.
   /// Coins and bars keep their own stock (owner question Q3).
@@ -187,6 +188,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           FinancialKind.purchase => 'إضافة شراء',
           FinancialKind.expense => 'إضافة مصروف',
           FinancialKind.scrapSale => 'بيع كسر وإضافة نقد',
+          FinancialKind.customerReturn => 'إضافة مرتجع',
         };
 
   @override
@@ -600,12 +602,22 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               ? 'exchange'
               : widget.kind == FinancialKind.scrapSale
               ? 'scrap_sale'
+              : widget.kind == FinancialKind.customerReturn
+              ? 'customer_return'
               : widget.kind.name,
           body: _frozenBody!,
         ),
       );
       commandSaved = true;
-      final result = exchange != null
+      final result = widget.kind == FinancialKind.customerReturn
+          ? await (widget.gateway as CustomerReturnGateway).postCustomerReturn(
+              callerUserId: widget.userId,
+              idempotencyKey: _key!,
+              payload: Map<String, Object?>.from(
+                _frozenBody!['p_payload']! as Map,
+              ),
+            )
+          : exchange != null
           ? await (widget.gateway as ExchangeGateway).postExchange(
               callerUserId: widget.userId,
               idempotencyKey: _key!,
@@ -635,7 +647,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         if (!mounted) return;
         setState(() {
           _unknown = false;
-          _error = _serverCopy(result.code);
+          _error =
+              widget.kind == FinancialKind.customerReturn &&
+                  result.code == 'negative_owned_balance'
+              ? 'الرصيد النقدي في وسيلة الدفع لا يكفي لرد المبلغ.'
+              : _serverCopy(result.code);
           _key = null;
           _frozenBody = null;
           if (widget.exchangeReturnPayload != null) _review = null;
@@ -844,6 +860,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                                       : 'التالي')
                                 : widget.practice
                                 ? 'إنهاء التدريب دون حفظ'
+                                : widget.kind == FinancialKind.customerReturn
+                                ? 'تأكيد المرتجع'
                                 : widget.exchangeReturnPayload != null
                                 ? 'تأكيد الاستبدال'
                                 : 'تأكيد $_title',
@@ -1161,7 +1179,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     const SizedBox(height: 16),
     ..._paymentFields(theme),
     if (widget.initialPayload?['pricing'] is Map) ..._pricingFields(theme),
-    if (widget.kind == FinancialKind.sale)
+    if (widget.kind == FinancialKind.sale ||
+        widget.kind == FinancialKind.customerReturn)
       ExpansionTile(
         key: const Key('trade-customer-disclosure'),
         childrenPadding: const EdgeInsetsDirectional.only(top: 12, bottom: 8),
@@ -1202,7 +1221,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           ),
         ],
       ),
-    if (widget.kind != FinancialKind.sale)
+    if (widget.kind != FinancialKind.sale &&
+        widget.kind != FinancialKind.customerReturn)
       ExpansionTile(
         key: const Key('trade-notes-disclosure'),
         childrenPadding: const EdgeInsetsDirectional.only(top: 12, bottom: 8),
@@ -1694,7 +1714,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   List<Widget> _paymentFields(ThemeData theme) => [
-    Text('الدفع', style: theme.textTheme.titleLarge),
+    Text(
+      widget.kind == FinancialKind.customerReturn ? 'طريقة رد المبلغ' : 'الدفع',
+      style: theme.textTheme.titleLarge,
+    ),
     const SizedBox(height: 12),
     for (var index = 0; index < _tenders.length; index++) ...[
       _tenderCard(index),
@@ -1720,7 +1743,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       ),
     const SizedBox(height: 12),
     Text(
-      widget.kind == FinancialKind.purchase
+      widget.kind == FinancialKind.customerReturn
+          ? 'إجمالي المبلغ المرتجع: ${displayPounds(_totalPounds() ?? '—')}'
+          : widget.kind == FinancialKind.purchase
           ? 'الإجمالي المدفوع: ${displayPounds(_totalPounds() ?? '—')}'
           : 'الإجمالي: ${displayPounds(_totalPounds() ?? '—')}',
       key: const Key('trade-paid-total'),
@@ -2228,7 +2253,22 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (widget.kind == FinancialKind.purchase) ...[
+              if (widget.kind == FinancialKind.customerReturn) ...[
+                Text(
+                  'تنقص النقدية: ${displayPounds(draft.total.poundsText)}',
+                  style: theme.textTheme.titleSmall,
+                ),
+                for (final tender in draft.tenders)
+                  Text(
+                    '${cashMethodLabel(CashMethod.canonicalOrder.firstWhere((method) => method.code == tender['method']))}: ${_poundsText(tender['piastres'] as String)}',
+                  ),
+                for (final item in draft.items)
+                  Text(
+                    'يزيد مخزون ${item['item_name']} عيار ${item['karat']}: '
+                    '${displayGoldEffect(BigInt.parse(item['milligrams'] as String))}'
+                    ' · ${item['count']} قطعة',
+                  ),
+              ] else if (widget.kind == FinancialKind.purchase) ...[
                 Text(
                   'تنقص النقدية: ${displayPounds(draft.total.poundsText)}',
                   style: theme.textTheme.titleSmall,
@@ -2251,24 +2291,26 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   style: theme.textTheme.headlineSmall,
                 ),
               ],
-              const SizedBox(height: 8),
-              Column(
-                key: const Key('trade-review-net'),
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (widget.kind == FinancialKind.purchase)
-                    const Text('تنتقل الملكية إلى المتجر للأصناف المذكورة.'),
-                  if (draft.items.isEmpty) const Text('لا يتغير الذهب'),
-                  for (final item in draft.items)
-                    Text(
-                      '${widget.kind == FinancialKind.purchase ? 'يزيد' : 'ينقص'} '
-                      '${item['category'] == 'scrap' ? 'كسر' : 'مخزون ${item['item_name']}'} '
-                      'عيار ${item['karat']}: '
-                      '${displayGoldEffect(BigInt.parse(item['milligrams'] as String))}'
-                      '${item['category'] == 'scrap' ? '' : ' · ${item['count']} قطعة'}',
-                    ),
-                ],
-              ),
+              if (widget.kind != FinancialKind.customerReturn) ...[
+                const SizedBox(height: 8),
+                Column(
+                  key: const Key('trade-review-net'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (widget.kind == FinancialKind.purchase)
+                      const Text('تنتقل الملكية إلى المتجر للأصناف المذكورة.'),
+                    if (draft.items.isEmpty) const Text('لا يتغير الذهب'),
+                    for (final item in draft.items)
+                      Text(
+                        '${widget.kind == FinancialKind.purchase ? 'يزيد' : 'ينقص'} '
+                        '${item['category'] == 'scrap' ? 'كسر' : 'مخزون ${item['item_name']}'} '
+                        'عيار ${item['karat']}: '
+                        '${displayGoldEffect(BigInt.parse(item['milligrams'] as String))}'
+                        '${item['category'] == 'scrap' ? '' : ' · ${item['count']} قطعة'}',
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

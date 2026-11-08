@@ -48,6 +48,8 @@ export type R2MediaPorts = {
   fetchObject(objectKey: string, maxBytes: number): Promise<FetchedObject>;
   // Records verified facts with the service role.
   recordObject(input: RecordInput): Promise<RecordResult>;
+  // Note images of a deleted note must not be signed. Other kinds omit this.
+  noteImageReadable?(objectKey: string): Promise<boolean>;
 };
 
 const headers: Record<string, string> = {
@@ -237,6 +239,10 @@ export async function handleR2Media(
         objectKey.includes("//")
       ) {
         return reply(403, { code: "forbidden" });
+      }
+      if (kind === "note_image" && ports.noteImageReadable) {
+        const readable = await ports.noteImageReadable(objectKey);
+        if (!readable) return reply(403, { code: "forbidden" });
       }
       const url = await ports.presign({
         method: "GET",

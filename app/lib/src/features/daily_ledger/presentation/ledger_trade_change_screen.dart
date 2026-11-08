@@ -231,6 +231,7 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
                           ? 'سيُلغى أثر العملية وتختفي من الدفتر والفواتير النشطة. يبقى سجل التدقيق محفوظًا.'
                           : 'سيُستبدل القيد بالبيانات المعدّلة. يبقى الأصل في سجل التدقيق.',
                     ),
+                    ..._kindSummaries(widget.review),
                     const SizedBox(height: 16),
                     Text(
                       'الأثر الصافي على أرصدة المحل',
@@ -346,6 +347,42 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _kindSummaries(LedgerTradeChangeReview review) {
+    if (review.action != 'delete') return const [];
+    final kind = review.source['kind'];
+    final payload = Map<String, Object?>.from(review.source['payload'] as Map);
+    final cash = review.effects['cash'] as List? ?? const [];
+    if (kind == 'expense' && cash.isNotEmpty) {
+      final row = cash.first as Map;
+      return [
+        const SizedBox(height: 12),
+        Text(
+          'حذف المصروف يعيد \u2066${_money(BigInt.parse(row['delta_piastres'] as String).abs().toString())}\u2069 إلى ${_method(row['method'])}.',
+        ),
+      ];
+    }
+    if (kind == 'customer_return' && cash.isNotEmpty) {
+      final row = cash.first as Map;
+      final items = payload['items'] as List? ?? const [];
+      final item = items.isNotEmpty && items.first is Map
+          ? Map<String, Object?>.from(items.first as Map)
+          : null;
+      final grams = item == null
+          ? ''
+          : displayGoldEffect(BigInt.parse(item['milligrams'] as String));
+      final name = item?['item_name'] as String? ?? 'الصنف';
+      final karat = item?['karat'];
+      return [
+        const SizedBox(height: 12),
+        Text(
+          'حذف المرتجع يعيد \u2066${_money(BigInt.parse(row['delta_piastres'] as String).abs().toString())}\u2069 إلى ${_method(row['method'])}'
+          '${item == null ? '.' : ' ويُنقص مخزون $name عيار $karat: $grams.'}',
+        ),
+      ];
+    }
+    return const [];
   }
 
   List<Widget> _record(Map<String, Object?> payload) => [

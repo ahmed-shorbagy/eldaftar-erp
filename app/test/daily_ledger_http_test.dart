@@ -112,6 +112,28 @@ void expectHeaders(http.Request request) {
 void main() {
   // Regression: the gateway drops server codes it does not know, so the
   // purchase rules of ADR 0041 must be on its list to reach the screen copy.
+  for (final code in ['trade_has_followups', 'trade_not_editable']) {
+    test(
+      'trade-change rejection $code reaches the gateway through HTTP',
+      () async {
+        final api = gateway(
+          MockClient((_) async => http.Response('{"message":"$code"}', 400)),
+        );
+        await expectLater(
+          api.reviewTradeChange(
+            userId: 'owner-a',
+            shopId: '22222222-2222-4222-8222-222222222222',
+            operationId: '44444444-4444-4444-8444-444444444444',
+            action: 'delete',
+          ),
+          throwsA(
+            isA<LedgerReadException>().having((e) => e.code, 'code', code),
+          ),
+        );
+      },
+    );
+  }
+
   for (final code in ['purchase_must_be_paid', 'purchase_jewelry_is_scrap']) {
     test('purchase rejection $code reaches the screen through HTTP', () async {
       final draft = FinancialDraft.compose(
@@ -719,6 +741,29 @@ void main() {
       expect(store.saved?.disposition, PendingDisposition.unresolved);
     },
   );
+
+  test('a customer return feed row is a return labeled مرتجع', () {
+    final body = confirmedBody();
+    body['feed'] = [
+      {
+        'kind': 'customer_return',
+        'label_ar': 'مرتجع',
+        'operation_id': operationId,
+        'actor_display_name': 'منى',
+        'occurred_at': '2026-09-26T00:30:00+00:00',
+        'occurred_at_cairo': '2026-09-26T03:30:00',
+        'is_return': true,
+        'total_pounds': '5000.00',
+        'item_summary': 'خاتم',
+      },
+    ];
+    final line = parseDailyLedger(body).feed.single;
+    expect(line.kind, 'customer_return');
+    expect(line.isReturn, isTrue);
+    expect(line.labelAr, 'مرتجع');
+    expect(line.totalPounds, '5000.00');
+    expect(line.itemSummary, 'خاتم');
+  });
 }
 
 class _Memory implements PendingOpeningStore {

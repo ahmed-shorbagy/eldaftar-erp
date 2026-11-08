@@ -209,6 +209,8 @@ class NoteScript implements NotesGateway {
   Completer<NoteCommandResult>? gate;
   NoteCommandResult? command;
   NoteStatusResult statusResult = const NoteStatusAbsent();
+  NoteChangeResult changeResult = const NoteChangeUnknown();
+  final changes = <({String key, String action, String? text})>[];
   Map<String, Object?>? postedPayload;
   bool holdLists = false;
   final listGates = <Completer<DailyNotePage>>[];
@@ -258,6 +260,40 @@ class NoteScript implements NotesGateway {
     required String callerUserId,
     required String idempotencyKey,
   }) async => statusResult;
+
+  @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) async {
+    changes.add((key: idempotencyKey, action: action, text: text));
+    final result = changeResult;
+    if (result is NoteChangeCommitted && action == 'delete') {
+      notes.removeWhere((note) => note.noteId == noteOperationId);
+    }
+    if (result is NoteChangeCommitted && action == 'edit') {
+      final index = notes.indexWhere((note) => note.noteId == noteOperationId);
+      if (index >= 0) {
+        final old = notes[index];
+        notes[index] = DailyNoteView(
+          noteId: old.noteId,
+          shopSequence: old.shopSequence,
+          businessDayId: old.businessDayId,
+          text: text ?? '',
+          actorDisplayName: old.actorDisplayName,
+          createdAt: old.createdAt,
+          occurredAtShop: old.occurredAtShop,
+          attachment: old.attachment,
+          edited: true,
+          editedAt: old.createdAt,
+        );
+      }
+    }
+    return result;
+  }
 
   @override
   Future<NoteCommandResult> postNote({
@@ -476,6 +512,21 @@ class LedgerScript
   }) => notes.noteStatus(
     callerUserId: callerUserId,
     idempotencyKey: idempotencyKey,
+  );
+
+  @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) => notes.changeNote(
+    callerUserId: callerUserId,
+    idempotencyKey: idempotencyKey,
+    noteOperationId: noteOperationId,
+    action: action,
+    text: text,
   );
 
   @override
@@ -1048,6 +1099,107 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('the owner edits a note and the card shows it was edited', (
+    tester,
+  ) async {
+    final notes = NoteScript()
+      ..notes.add(_sampleNote())
+      ..changeResult = const NoteChangeCommitted(replayed: false);
+    await pumpApp(tester, _notesScreen(notes));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(Key('note-menu-$noteId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تعديل'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('note-edit-text')), 'نص جديد');
+    await tester.tap(find.byKey(const Key('note-edit-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('تم حفظ التعديل.'), findsOneWidget);
+    expect(find.text('نص جديد'), findsOneWidget);
+    expect(find.text('معدّلة'), findsOneWidget);
+    expect(notes.changes.single.action, 'edit');
+    expect(notes.changes.single.text, 'نص جديد');
+  });
+
+  testWidgets('the owner deletes a note and it leaves the list', (
+    tester,
+  ) async {
+    final notes = NoteScript()
+      ..notes.add(_sampleNote())
+      ..changeResult = const NoteChangeCommitted(replayed: false);
+    await pumpApp(tester, _notesScreen(notes));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(Key('note-menu-$noteId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('مسح'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('ستختفي الملاحظة من الدفتر. يبقى سجل التدقيق محفوظًا.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('note-delete-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('تم مسح الملاحظة.'), findsOneWidget);
+    expect(find.byKey(Key('daily-note-$noteId')), findsNothing);
+    expect(notes.changes.single.action, 'delete');
+  });
+
+  testWidgets('an unknown note change keeps the key and offers retry', (
+    tester,
+  ) async {
+    final notes = NoteScript()
+      ..notes.add(_sampleNote())
+      ..changeResult = const NoteChangeUnknown();
+    await pumpApp(tester, _notesScreen(notes));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(Key('note-menu-$noteId')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تعديل'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('note-edit-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('إعادة المحاولة'), findsOneWidget);
+    final key = notes.changes.single.key;
+    notes.changeResult = const NoteChangeCommitted(replayed: false);
+    await tester.tap(find.text('إعادة المحاولة'));
+    await tester.pumpAndSettle();
+    expect(notes.changes, hasLength(2));
+    expect(notes.changes[1].key, key);
+    expect(find.text('تم حفظ التعديل.'), findsOneWidget);
+  });
+
+  testWidgets('a partner does not see the note menu', (tester) async {
+    final notes = NoteScript()..notes.add(_sampleNote());
+    await pumpApp(tester, _notesScreen(notes, canManageNotes: false));
+    await tester.pumpAndSettle();
+    expect(find.byKey(Key('note-menu-$noteId')), findsNothing);
+    expect(find.text('خيارات الملاحظة'), findsNothing);
+  });
+}
+
+DailyNoteView _sampleNote() => const DailyNoteView(
+  noteId: noteId,
+  shopSequence: '4',
+  businessDayId: dayId,
+  text: 'ملاحظة اليوم',
+  actorDisplayName: 'منى',
+  createdAt: '2026-01-01T22:30:00Z',
+  occurredAtShop: '2026-01-02T00:30:00',
+);
+
+Widget _notesScreen(NoteScript notes, {bool canManageNotes = true}) {
+  return DailyNotesScreen(
+    gateway: notes,
+    userId: userId,
+    shopId: shopId,
+    businessDayId: dayId,
+    drafts: MemoryDrafts(),
+    files: MemoryFiles(),
+    images: ScriptImages(),
+    canManageNotes: canManageNotes,
+    newKey: () => pendingKey,
+  );
 }
 
 void navigatorPop(WidgetTester tester) {

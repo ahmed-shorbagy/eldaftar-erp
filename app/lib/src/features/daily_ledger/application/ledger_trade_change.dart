@@ -81,7 +81,12 @@ bool matchesTradeChangeEnvelope(
       ((body['p_action'] == 'delete' && replacement == null) ||
           (body['p_action'] == 'edit' &&
               replacement is Map &&
-              const {'sale', 'purchase'}.contains(replacement['kind']) &&
+              const {
+                'sale',
+                'purchase',
+                'expense',
+                'customer_return',
+              }.contains(replacement['kind']) &&
               const {1, 2}.contains(replacement['version'])));
 }
 
@@ -89,7 +94,7 @@ String tradeChangeFailure(String? code) => switch (code) {
   'day_closed' ||
   'trade_not_editable' => 'التعديل والمسح متاحان لعمليات اليوم المفتوح فقط.',
   'trade_has_followups' =>
-    'لهذه العملية معاملات أو حركات مخزون مرتبطة. لا يمكن تعديلها أو مسحها.',
+    'لا يمكن تعديل أو مسح هذه العملية لأن عمليات لاحقة اعتمدت عليها.',
   'trade_inactive' || 'operation_replaced' =>
     'سُبق تعديل هذه العملية أو مسحها. افتح النسخة الحالية من الدفتر.',
   'stale_trade_review' ||

@@ -40,6 +40,15 @@ class FullActionReviewGateway extends ItemReviewGateway
   }) async => throw StateError('Visual fixtures cannot post inventory changes');
 
   @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) async => throw StateError('Visual fixtures cannot change notes');
+
+  @override
   Future<NoteCommandResult> postNote({
     required String callerUserId,
     required String idempotencyKey,

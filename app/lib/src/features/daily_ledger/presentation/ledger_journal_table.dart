@@ -69,6 +69,7 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
           'purchase',
           'sale_return',
           'purchase_return',
+          'customer_return',
           'scrap_sale',
         }.contains(widget.line.kind)) {
       _loading = false;

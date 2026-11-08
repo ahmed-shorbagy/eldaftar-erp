@@ -46,12 +46,16 @@ final class StaffCountAssignment {
     this.expiresAt,
     this.stock = const [],
     this.scrapKarats = const [],
+    this.itemNames = const [],
   });
   final String state;
   final String? id, shopName, staffName, businessDate;
   final DateTime? serverNow, expiresAt;
   final List<ClosingCountBucket> stock;
   final List<int> scrapKarats;
+
+  /// Shop item names for the task's stock buckets. Never balances.
+  final List<({String name, String category, int karat})> itemNames;
   bool get assigned => state == 'assigned';
   Duration? get remaining => expiresAt?.difference(serverNow!);
 }

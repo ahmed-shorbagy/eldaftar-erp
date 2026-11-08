@@ -84,6 +84,15 @@ do $reassign$ declare v_result jsonb; begin
   v_result := public.mutate_closing_delegation_v1('a4100000-0000-4000-8000-000000000105','assign',(select staff_id from staff_test_ids),(select day_id from staff_test_ids),2);
   update staff_test_ids set task_id=(v_result->>'task_id')::uuid;
 end; $reassign$;
+reset role;
+insert into public.inventory_products (shop_id, name, category_code, karat, created_at) values
+  ('c2900000-0000-4000-8000-000000000001', 'دبلة', 'worked_jewelry', 21, clock_timestamp() - interval '1 day'),
+  ('c2900000-0000-4000-8000-000000000001', 'جنيه خارج الدلو', 'coin', 21, clock_timestamp()),
+  ('c2900000-0000-4000-8000-000000000002', 'صنف المحل الآخر', 'worked_jewelry', 21, clock_timestamp());
+insert into public.inventory_products (shop_id, name, category_code, karat)
+select 'c2900000-0000-4000-8000-000000000001', 'زائد ' || g, 'worked_jewelry', 21
+from generate_series(1, 210) as g;
+set local role authenticated;
 select set_config('request.jwt.claim.sub',(select user_id::text from staff_test_ids),true);
 do $staff_boundary$ declare v_task jsonb; v_result jsonb; v_replay jsonb; v_id uuid;
 begin
@@ -92,6 +101,22 @@ begin
   if v_task->>'state'<>'assigned' or v_task->>'task_id'<>v_id::text or
     v_task ?| array['cash','counts','balances','day_summary','stock_weights'] or
     v_task::text like '%"count"%' or v_task::text like '%"milligrams"%' then raise exception 'staff task leaked book values %',v_task; end if;
+  if jsonb_typeof(v_task->'item_names') is distinct from 'array'
+    or jsonb_array_length(v_task->'item_names')<>200
+    or exists (
+      select 1 from jsonb_array_elements(v_task->'item_names') item
+      where (select count(*) from jsonb_object_keys(item))<>3
+        or not item ?& array['name','category','karat']
+        or item ?| array['count','milligrams','cash']
+    )
+    or not exists (
+      select 1 from jsonb_array_elements(v_task->'item_names') item
+      where item->>'name'='دبلة' and item->>'category'='worked_jewelry' and (item->>'karat')='21'
+    )
+    or exists (
+      select 1 from jsonb_array_elements(v_task->'item_names') item
+      where item->>'name' in ('جنيه خارج الدلو','صنف المحل الآخر')
+    ) then raise exception 'item names leaked or were not limited %', v_task->'item_names'; end if;
   begin perform public.get_daily_ledger_home_v1(); raise exception 'staff read financial ledger';
   exception when others then if sqlerrm not in ('forbidden','shop_unavailable') then raise; end if; end;
   begin perform public.list_closing_staff_v1(); raise exception 'staff read staff directory';
@@ -106,7 +131,8 @@ begin
     '{"stock":[{"item_name":"خاتم","category":"worked_jewelry","karat":21,"count":"4","milligrams":null}],"scrap":[{"karat":21,"milligrams":"1000"}]}'::jsonb);
   v_replay := public.submit_closing_count_v1('a4100000-0000-4000-8000-000000000003',v_id,
     '{"stock":[{"item_name":"خاتم","category":"worked_jewelry","karat":21,"count":"4","milligrams":null}],"scrap":[{"karat":21,"milligrams":"1000"}]}'::jsonb);
-  if v_result->>'ok'<>'true' or v_replay->>'replayed'<>'true' or (public.get_my_closing_task_v1())->>'state'<>'unassigned' then raise exception 'submission did not revoke form or replay'; end if;
+  if v_result->>'ok'<>'true' or v_replay->>'replayed'<>'true' or (public.get_my_closing_task_v1())->>'state'<>'unassigned'
+    or (public.get_my_closing_task_v1()) ? 'item_names' then raise exception 'submission did not revoke form or replay'; end if;
   if (public.get_closing_delegation_status_v1('a4100000-0000-4000-8000-000000000003'))->>'status'<>'confirmed' then raise exception 'staff reconciliation missing'; end if;
   begin perform public.submit_closing_count_v1('a4100000-0000-4000-8000-000000000004',v_id,
     '{"stock":[],"scrap":[]}'::jsonb); raise exception 'submitted form remained writable';

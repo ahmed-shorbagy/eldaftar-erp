@@ -87,6 +87,15 @@ class RestoreNotes extends fixtures.NoteScript {
   }
 
   @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) async => throw StateError('unused');
+
+  @override
   Future<NoteCommandResult> postNote({
     required String callerUserId,
     required String idempotencyKey,

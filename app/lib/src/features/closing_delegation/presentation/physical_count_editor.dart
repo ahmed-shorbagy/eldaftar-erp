@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+
+import '../../../theme/app_tokens.dart';
 import '../../../theme/gram_input.dart';
+import '../../daily_ledger/domain/closing_item_grid.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
+import '../../daily_ledger/presentation/closing_item_grid_view.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
 import '../application/closing_delegation_gateway.dart';
 
@@ -19,32 +23,43 @@ class PhysicalCountEditor extends StatefulWidget {
   State<PhysicalCountEditor> createState() => _PhysicalCountEditorState();
 }
 
-class _CountLine {
-  _CountLine(this.bucket);
-  final ClosingCountBucket bucket;
-  final name = TextEditingController(),
-      count = TextEditingController(),
-      grams = TextEditingController();
-  void dispose() {
-    name.dispose();
-    count.dispose();
-    grams.dispose();
-  }
-}
-
 class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
-  late final _rows = [
-    for (final bucket in widget.assignment.stock) _CountLine(bucket),
-  ];
+  late final ClosingItemGrid _grid = ClosingItemGrid.build(
+    // The task lists every book bucket, including zeros, and never the
+    // quantities. An untouched bucket is submitted as a zero count.
+    bookStock: [
+      for (final bucket in widget.assignment.stock)
+        {'category': bucket.category, 'karat': bucket.karat, 'count': '0'},
+    ],
+    shopNames: [
+      for (final item in widget.assignment.itemNames)
+        (name: item.name, category: item.category, karat: item.karat),
+    ],
+  );
+  late final _counts = {
+    for (final row in _grid.rows)
+      for (final karat in row.karats)
+        ClosingItemGridView.cellKey(row.name, karat): TextEditingController(),
+  };
+  late final _grams = {
+    for (final row in _grid.rows)
+      for (final karat in row.karats)
+        ClosingItemGridView.cellKey(row.name, karat): TextEditingController(),
+  };
   late final _scrap = {
     for (final karat in widget.assignment.scrapKarats)
       karat: TextEditingController(),
   };
+  var _showWeights = false;
   String? _error;
+
   @override
   void dispose() {
-    for (final row in _rows) {
-      row.dispose();
+    for (final controller in _counts.values) {
+      controller.dispose();
+    }
+    for (final controller in _grams.values) {
+      controller.dispose();
     }
     for (final controller in _scrap.values) {
       controller.dispose();
@@ -54,45 +69,28 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
 
   void _review() {
     if (!widget.enabled) return;
-    final stock = <Map<String, Object?>>[],
-        scrap = <Map<String, Object?>>[],
-        names = <String>{};
-    for (final row in _rows) {
-      final name = row.name.text.trim();
-      final countText = canonicalNumericEntry(row.count.text, decimalPlaces: 0);
-      final count = countText == null || countText.isEmpty
-          ? null
-          : PieceCount.parseWire(countText);
-      final weight = row.grams.text.trim();
-      final weightText = canonicalNumericEntry(weight, decimalPlaces: 3);
-      final grams = weight.isEmpty
-          ? null
-          : weightText == null || weightText.isEmpty
-          ? const Rejected<Milligrams>(OpeningIssueCode.invalidInput)
-          : Milligrams.parseGrams(weightText);
-      final identity = '${row.bucket.category}:${row.bucket.karat}:$name';
-      if (name.isEmpty ||
-          name.runes.length > 120 ||
-          count is! Accepted<PieceCount> ||
-          !names.add(identity) ||
-          (grams != null && grams is! Accepted<Milligrams>) ||
-          (grams is Accepted<Milligrams> &&
-              (count.value.value == BigInt.zero) !=
-                  (grams.value.value == BigInt.zero))) {
-        setState(
-          () => _error =
-              'أدخل نوعاً مختلفاً وعدداً صحيحاً لكل صف. وزن المخزون اختياري.',
+    final cells = <(String, int), (String, String)>{};
+    for (final row in _grid.rows) {
+      for (final karat in row.karats) {
+        final key = ClosingItemGridView.cellKey(row.name, karat);
+        String normalized(String text, int places) =>
+            canonicalNumericEntry(text, decimalPlaces: places) ?? text;
+        cells[(row.name, karat)] = (
+          normalized(_counts[key]?.text ?? '', 0),
+          _showWeights ? normalized(_grams[key]?.text ?? '', 3) : '',
         );
-        return;
       }
-      stock.add({
-        'item_name': name,
-        'category': row.bucket.category,
-        'karat': row.bucket.karat,
-        'count': count.value.wire,
-        'milligrams': grams is Accepted<Milligrams> ? grams.value.wire : null,
-      });
     }
+    final draft = _grid.toObservations(cells);
+    if (draft is ClosingGridRejected) {
+      setState(
+        () => _error = draft.issue == ClosingGridIssue.weightWithoutCount
+            ? 'اكتب العدد قبل الوزن.'
+            : 'أدخل عدداً صحيحاً لكل خانة.',
+      );
+      return;
+    }
+    final scrap = <Map<String, Object?>>[];
     for (final entry in _scrap.entries) {
       final scrapText = canonicalNumericEntry(
         entry.value.text,
@@ -107,111 +105,33 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
       }
       scrap.add({'karat': entry.key, 'milligrams': grams.value.wire});
     }
-    widget.onReview({'stock': stock, 'scrap': scrap});
+    widget.onReview({
+      'stock': (draft as ClosingGridReady).stock,
+      'scrap': scrap,
+    });
   }
-
-  String _bucketTitle(ClosingCountBucket bucket) => switch (bucket.category) {
-    'coin' => 'جنيهات · عيار ${bucket.karat}',
-    'bullion' => 'سبائك · عيار ${bucket.karat}',
-    _ => 'عيار ${bucket.karat}',
-  };
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const Text(
-        'أدخل ما عُدّ فعلياً. العدد مطلوب ووزن المخزون اختياري. لا تظهر أرصدة الدفتر في هذه المهمة.',
+      const Text('لا تظهر أرصدة الدفتر في هذه المهمة.'),
+      const SizedBox(height: AppTokens.spaceSm),
+      ClosingItemGridView(
+        grid: _grid,
+        counts: _counts,
+        weights: _grams,
+        showWeights: _showWeights,
+        readOnly: !widget.enabled,
+        onShowWeights: (value) => setState(() => _showWeights = value),
       ),
-      for (final bucket in widget.assignment.stock) ...[
-        const SizedBox(height: 12),
-        Text(
-          _bucketTitle(bucket),
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        for (final row in _rows.where((row) => identical(row.bucket, bucket)))
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                LedgerCountFields(
-                  type: TextField(
-                    key: Key('staff-item-name-${_rows.indexOf(row)}'),
-                    controller: row.name,
-                    enabled: widget.enabled,
-                    maxLength: 120,
-                    decoration: ledgerFieldDecoration(
-                      context,
-                      label: 'النوع',
-                    ).copyWith(counterText: ''),
-                  ),
-                  count: TextField(
-                    key: Key('staff-item-count-${_rows.indexOf(row)}'),
-                    controller: row.count,
-                    enabled: widget.enabled,
-                    keyboardType: TextInputType.number,
-                    textDirection: TextDirection.ltr,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    inputFormatters: const [
-                      GramInputFormatter(decimalPlaces: 0),
-                    ],
-                    decoration: ledgerFieldDecoration(context, label: 'العدد'),
-                  ),
-                  weight: TextField(
-                    key: Key('staff-item-weight-${_rows.indexOf(row)}'),
-                    controller: row.grams,
-                    enabled: widget.enabled,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    textDirection: TextDirection.ltr,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    inputFormatters: const [
-                      GramInputFormatter(decimalPlaces: 3),
-                    ],
-                    decoration: ledgerFieldDecoration(
-                      context,
-                      label: 'الوزن (اختياري)',
-                    ),
-                  ),
-                ),
-                if (_rows
-                        .where((other) => identical(other.bucket, bucket))
-                        .length >
-                    1)
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: TextButton(
-                      onPressed: widget.enabled
-                          ? () => setState(() {
-                              _rows.remove(row);
-                              row.dispose();
-                            })
-                          : null,
-                      child: const Text('حذف الصف'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        OutlinedButton.icon(
-          onPressed: widget.enabled && _rows.length < 200
-              ? () => setState(() => _rows.add(_CountLine(bucket)))
-              : null,
-          icon: const Icon(Icons.add),
-          label: const Text('إضافة نوع من هذا العيار'),
-        ),
-      ],
       if (_scrap.isNotEmpty) ...[
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTokens.spaceMd),
         Text('الكسر', style: Theme.of(context).textTheme.titleMedium),
       ],
       for (final entry in _scrap.entries)
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

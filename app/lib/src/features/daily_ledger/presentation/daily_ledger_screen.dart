@@ -353,6 +353,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           writesStillAllowed: () => _canStartEntry(userId),
           invalidations: _formInvalidations,
           canWrite: canWrite,
+          canManageNotes: widget.shop.isOwner,
           drafts: const SecureNoteDraftStore(),
           files: ApplicationNoteImageFileStore(),
           images: const PlatformNoteImageSource(),
@@ -601,7 +602,9 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         ? gateway as InventoryGateway
         : null;
     final bool? saved;
-    if (kind == FinancialKind.sale || kind == FinancialKind.purchase) {
+    if (kind == FinancialKind.sale ||
+        kind == FinancialKind.purchase ||
+        kind == FinancialKind.customerReturn) {
       saved = await showFinancialTradeSheet(
         context: context,
         kind: kind,
@@ -1174,6 +1177,15 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       _financialPending == null,
                   onSale: () => _requestTrade(FinancialKind.sale),
                   onPurchase: () => _requestTrade(FinancialKind.purchase),
+                  onAddReturn:
+                      _financialGateway is CustomerReturnGateway &&
+                          widget.shop.hasPermission(ShopPermission.sale) &&
+                          _financialDay?.isOpen == true &&
+                          !_expired &&
+                          !controller.readOnly &&
+                          _financialPending == null
+                      ? () => _startTrade(FinancialKind.customerReturn)
+                      : null,
                   onExpense:
                       _financialDay?.isOpen == true &&
                           !_expired &&
@@ -1270,6 +1282,7 @@ class _LedgerBody extends StatelessWidget {
     this.onOperation,
     this.onPendingInvoices,
     this.onDailyNotes,
+    this.onAddReturn,
     this.onLoadOlder,
     this.loadingOlder = false,
     this.activityLines,
@@ -1292,6 +1305,7 @@ class _LedgerBody extends StatelessWidget {
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onPendingInvoices;
   final VoidCallback? onDailyNotes;
+  final VoidCallback? onAddReturn;
   final VoidCallback? onLoadOlder;
   final bool loadingOlder;
   final List<LedgerFeedLine>? activityLines;
@@ -1351,6 +1365,7 @@ class _LedgerBody extends StatelessWidget {
             onOperation: onOperation,
             onPendingInvoices: onPendingInvoices,
             onDailyNotes: onDailyNotes,
+            onAddReturn: onAddReturn,
             onLoadOlder: onLoadOlder,
             loadingOlder: loadingOlder,
             activityLines: activityLines,

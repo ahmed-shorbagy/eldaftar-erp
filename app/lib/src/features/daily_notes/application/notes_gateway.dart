@@ -73,6 +73,26 @@ final class DailyNoteAttachmentView {
   final String byteSize;
 }
 
+final class NoteChangeResult {
+  const NoteChangeResult();
+}
+
+final class NoteChangeCommitted extends NoteChangeResult {
+  const NoteChangeCommitted({required this.replayed});
+
+  final bool replayed;
+}
+
+final class NoteChangeRejected extends NoteChangeResult {
+  const NoteChangeRejected(this.code);
+
+  final String code;
+}
+
+final class NoteChangeUnknown extends NoteChangeResult {
+  const NoteChangeUnknown();
+}
+
 final class DailyNoteView {
   const DailyNoteView({
     required this.noteId,
@@ -83,6 +103,8 @@ final class DailyNoteView {
     required this.createdAt,
     required this.occurredAtShop,
     this.attachment,
+    this.edited = false,
+    this.editedAt,
   });
 
   final String noteId;
@@ -93,6 +115,8 @@ final class DailyNoteView {
   final String createdAt;
   final String occurredAtShop;
   final DailyNoteAttachmentView? attachment;
+  final bool edited;
+  final String? editedAt;
 }
 
 final class DailyNotePage {
@@ -124,6 +148,14 @@ class NoteReadException implements Exception {
 
 /// Server commands for notes. Upload success is not note confirmation.
 abstract class NotesGateway {
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  });
+
   Future<NoteCommandResult> postNote({
     required String callerUserId,
     required String idempotencyKey,

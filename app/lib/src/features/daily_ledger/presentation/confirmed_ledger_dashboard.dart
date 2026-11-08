@@ -29,6 +29,7 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
     this.onOperation,
     this.onPendingInvoices,
     this.onDailyNotes,
+    this.onAddReturn,
     this.onLoadOlder,
     this.loadingOlder = false,
     this.activityLines,
@@ -50,6 +51,7 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onPendingInvoices;
   final VoidCallback? onDailyNotes;
+  final VoidCallback? onAddReturn;
   final VoidCallback? onLoadOlder;
   final bool loadingOlder;
   final List<LedgerFeedLine>? activityLines;
@@ -235,6 +237,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
               Navigator.of(surface).pop();
               widget.onOperation!(line);
             },
+      onAddReturn: widget.onAddReturn,
     ),
   );
 
@@ -542,6 +545,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                             : view.feed.where((line) => line.isReturn).length),
                     alert: true,
                     onTap: () => _showHistory('return'),
+                    onAdd: widget.onAddReturn,
                   ),
                 _CompactBookRow(
                   label: 'المصروفات',
@@ -582,11 +586,13 @@ class _CompactBookRow extends StatelessWidget {
     required this.count,
     this.alert = false,
     this.onTap,
+    this.onAdd,
   });
   final String label, book;
   final int? count;
   final bool alert;
   final VoidCallback? onTap;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -601,32 +607,51 @@ class _CompactBookRow extends StatelessWidget {
           side: BorderSide(color: scheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          key: Key('ledger-book-$book'),
-          title: Text(label),
-          leading: Semantics(
-            label: count == null ? 'العدد غير متاح' : '$count',
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 36),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: attention
-                    ? scheme.errorContainer
-                    : scheme.primaryContainer,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                count?.toString() ?? '—',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: attention
-                      ? scheme.onErrorContainer
-                      : scheme.onPrimaryContainer,
+        child: Row(
+          children: [
+            Expanded(
+              child: ListTile(
+                key: Key('ledger-book-$book'),
+                title: Text(label),
+                leading: Semantics(
+                  label: count == null ? 'العدد غير متاح' : '$count',
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 36),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: attention
+                          ? scheme.errorContainer
+                          : scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      count?.toString() ?? '—',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: attention
+                            ? scheme.onErrorContainer
+                            : scheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
                 ),
+                onTap: onTap,
               ),
             ),
-          ),
-          onTap: onTap,
+            if (onAdd != null)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: FilledButton.tonalIcon(
+                  key: const Key('ledger-add-return'),
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة مرتجع'),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -1004,8 +1029,10 @@ class _ActivitySection extends StatefulWidget {
     this.showReturns = true,
     this.initialFilter = 'all',
     this.loadItems,
+    this.onAddReturn,
   });
   final String initialFilter;
+  final VoidCallback? onAddReturn;
   final bool showReturns;
   final DailyLedgerView view;
   final List<LedgerFeedLine>? lines;
@@ -1086,6 +1113,16 @@ class _ActivitySectionState extends State<_ActivitySection> {
           key: const Key('ledger-history-order-note'),
         ),
         const SizedBox(height: 16),
+        if (selected == 'return' && widget.onAddReturn != null)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilledButton.tonalIcon(
+              key: const Key('ledger-add-return'),
+              onPressed: widget.onAddReturn,
+              icon: const Icon(Icons.add),
+              label: const Text('إضافة مرتجع'),
+            ),
+          ),
         if (shown.isEmpty)
           const Padding(
             padding: EdgeInsets.all(16),

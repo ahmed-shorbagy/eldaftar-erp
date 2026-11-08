@@ -3,6 +3,7 @@ import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_vie
 import 'package:eldafttar/src/features/daily_ledger/application/ledger_date_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/ledger_trade_change.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/pending_financial_command.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/ledger_date_codec.dart';
 import 'package:eldafttar/src/features/daily_ledger/data/ledger_trade_change_codec.dart';
@@ -19,64 +20,114 @@ const revisionUser = 'owner-a';
 Map<String, Object?> sourceTrade({
   String kind = 'sale',
   String milligrams = '1255',
-}) => {
-  'version': 1,
-  'kind': kind,
-  'total_piastres': '10000',
-  'tenders': [
-    {'method': 'cash', 'piastres': '10000'},
-  ],
-  'items': [
-    {
-      'category': 'worked_jewelry',
-      'karat': 21,
-      'milligrams': milligrams,
-      'count': '1',
-      'item_name': 'خاتم',
-      'line_price_piastres': null,
-    },
-  ],
-  'description': 'وصف محفوظ',
-  'customer_name': 'عميل تجريبي',
-  'customer_phone': '01011111111',
-  'note': 'ملاحظة محفوظة',
-};
-Map<String, Object?> reviewJson({
-  String action = 'delete',
-  String kind = 'sale',
-}) => {
-  'version': 1,
-  'shop_id': revisionShop,
-  'operation_id': revisionOperation,
-  'action': action,
-  'expected_day_id': revisionDay,
-  'expected_day_version': 7,
-  'source_sha256': 'a' * 64,
-  'review_token': 'b' * 64,
-  'source': {'kind': kind, 'payload': sourceTrade(kind: kind)},
-  'effects': {
-    'cash': [
-      {'method': 'cash', 'delta_piastres': kind == 'sale' ? '-10000' : '10000'},
+}) {
+  if (kind == 'expense') {
+    return {
+      'version': 1,
+      'kind': 'expense',
+      'total_piastres': '10000',
+      'tenders': [
+        {'method': 'cash', 'piastres': '10000'},
+      ],
+      'items': <Object?>[],
+      'description': 'إيجار المحل',
+      'customer_name': '',
+      'customer_phone': '',
+      'note': '',
+    };
+  }
+  if (kind == 'customer_return') {
+    return {
+      'version': 1,
+      'kind': 'customer_return',
+      'total_piastres': '10000',
+      'tenders': [
+        {'method': 'cash', 'piastres': '10000'},
+      ],
+      'items': [
+        {
+          'category': 'worked_jewelry',
+          'karat': 21,
+          'milligrams': milligrams,
+          'count': '1',
+          'item_name': 'خاتم',
+          'line_price_piastres': null,
+        },
+      ],
+      'customer_name': 'عميل تجريبي',
+      'customer_phone': '01011111111',
+      'note': 'ملاحظة محفوظة',
+    };
+  }
+  return {
+    'version': 1,
+    'kind': kind,
+    'total_piastres': '10000',
+    'tenders': [
+      {'method': 'cash', 'piastres': '10000'},
     ],
-    'stock': [
+    'items': [
       {
         'category': 'worked_jewelry',
         'karat': 21,
-        'delta_milligrams': kind == 'sale' ? '1255' : '-1255',
-        'delta_count': kind == 'sale' ? '1' : '-1',
+        'milligrams': milligrams,
+        'count': '1',
+        'item_name': 'خاتم',
+        'line_price_piastres': null,
       },
     ],
-    'scrap': <Object?>[],
-    'payable_delta_piastres': '0',
-  },
-};
-LedgerTradeChangeReview changeReview({String action = 'delete'}) =>
-    parseTradeChangeReview(
-      reviewJson(action: action),
-      shopId: revisionShop,
-      operationId: revisionOperation,
-      action: action,
-    );
+    'description': 'وصف محفوظ',
+    'customer_name': 'عميل تجريبي',
+    'customer_phone': '01011111111',
+    'note': 'ملاحظة محفوظة',
+  };
+}
+
+Map<String, Object?> reviewJson({
+  String action = 'delete',
+  String kind = 'sale',
+}) {
+  final cashIn = kind == 'sale';
+  final stockEffects = kind == 'expense'
+      ? <Object?>[]
+      : [
+          {
+            'category': 'worked_jewelry',
+            'karat': 21,
+            'delta_milligrams': cashIn ? '1255' : '-1255',
+            'delta_count': cashIn ? '1' : '-1',
+          },
+        ];
+  return {
+    'version': 1,
+    'shop_id': revisionShop,
+    'operation_id': revisionOperation,
+    'action': action,
+    'expected_day_id': revisionDay,
+    'expected_day_version': 7,
+    'source_sha256': 'a' * 64,
+    'review_token': 'b' * 64,
+    'source': {'kind': kind, 'payload': sourceTrade(kind: kind)},
+    'effects': {
+      'cash': [
+        {'method': 'cash', 'delta_piastres': cashIn ? '-10000' : '10000'},
+      ],
+      'stock': stockEffects,
+      'scrap': <Object?>[],
+      'payable_delta_piastres': '0',
+    },
+  };
+}
+
+LedgerTradeChangeReview changeReview({
+  String action = 'delete',
+  String kind = 'sale',
+}) => parseTradeChangeReview(
+  reviewJson(action: action, kind: kind),
+  shopId: revisionShop,
+  operationId: revisionOperation,
+  action: action,
+);
 
 Map<String, Object?> dateJson({
   String date = '2026-10-18',
@@ -118,17 +169,19 @@ class RevisionGateway extends FakeFinancialGateway
   final cursors = <String?>[];
   bool pendingAtPost = false;
   Map<String, Object?> operationPayload = sourceTrade();
+  String operationKind = 'sale';
   Map<String, Object?>? tradeChange;
   LedgerDateSnapshot dateValue = parseLedgerDate(dateJson(), revisionShop);
   Completer<LedgerDateSnapshot>? heldDate;
   Completer<FinancialCommandResult>? heldPost;
   String? reviewFailure;
+  String reviewKind = 'sale';
   @override
   Future<Map<String, Object?>> operation({
     required String callerUserId,
     required String operationId,
   }) async => {
-    'kind': 'sale',
+    'kind': operationKind,
     'shop_id': revisionShop,
     'shop_sequence': '2',
     'payload': operationPayload,
@@ -143,8 +196,10 @@ class RevisionGateway extends FakeFinancialGateway
     Map<String, Object?>? replacement,
   }) async {
     reviews.add({'action': action, 'replacement': replacement});
-    if (reviewFailure != null) throw StateError(reviewFailure!);
-    return changeReview(action: action);
+    if (reviewFailure != null) {
+      throw LedgerReadException(reviewFailure!);
+    }
+    return changeReview(action: action, kind: reviewKind);
   }
 
   @override

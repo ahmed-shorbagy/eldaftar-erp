@@ -61,6 +61,24 @@ NoteStatusResult parseNoteStatus(Object? json) {
   return NoteStatusCompleted(noteId);
 }
 
+NoteChangeResult parseNoteChange(Object? json) {
+  if (json is! Map) throw const FormatException('note_change');
+  const fields = {'ok', 'replayed', 'note_id', 'action'};
+  final noteId = json['note_id'];
+  final action = json['action'];
+  final replayed = json['replayed'];
+  if (json.length != fields.length ||
+      json.keys.any((key) => !fields.contains(key)) ||
+      json['ok'] != true ||
+      replayed is! bool ||
+      noteId is! String ||
+      !isUuid(noteId) ||
+      (action != 'edit' && action != 'delete')) {
+    throw const FormatException('note_change');
+  }
+  return NoteChangeCommitted(replayed: replayed);
+}
+
 DailyNotePage parseDailyNotePage(
   Object? json, {
   required String expectedShopId,
@@ -135,8 +153,17 @@ DailyNoteView parseDailyNote(Object? json, {required String expectedShopId}) {
     'occurred_at_shop',
     'attachment',
   };
-  if (json.length != fields.length ||
-      json.keys.any((key) => !fields.contains(key))) {
+  const optional = {'edited', 'edited_at'};
+  if (fields.any((key) => !json.containsKey(key)) ||
+      json.keys.any(
+        (key) => !fields.contains(key) && !optional.contains(key),
+      )) {
+    throw const FormatException('note');
+  }
+  final edited = json.containsKey('edited') ? json['edited'] : false;
+  final editedAt = json['edited_at'];
+  if (edited is! bool ||
+      (editedAt != null && (editedAt is! String || !_utcNote(editedAt)))) {
     throw const FormatException('note');
   }
   final noteId = json['note_id'];
@@ -175,6 +202,8 @@ DailyNoteView parseDailyNote(Object? json, {required String expectedShopId}) {
     createdAt: createdAt,
     occurredAtShop: shopTime,
     attachment: _attachment(json['attachment'], expectedShopId, dayId),
+    edited: edited,
+    editedAt: editedAt is String ? editedAt : null,
   );
 }
 

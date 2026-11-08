@@ -24,13 +24,21 @@ LedgerTradeChangeReview parseTradeChangeReview(
     throw const FormatException('change_review');
   }
   final source = Map<String, Object?>.from(raw['source'] as Map);
-  if (!const {'sale', 'purchase'}.contains(source['kind']) ||
+  final kind = source['kind'];
+  if (!const {
+        'sale',
+        'purchase',
+        'expense',
+        'customer_return',
+      }.contains(kind) ||
       source['payload'] is! Map ||
-      (source['payload'] as Map)['kind'] != source['kind'] ||
+      (source['payload'] as Map)['kind'] != kind ||
       !const {1, 2}.contains((source['payload'] as Map)['version']) ||
+      (kind == 'customer_return' &&
+          (source['payload'] as Map)['version'] != 1) ||
       (source['payload'] as Map)['items'] is! List ||
       ((source['payload'] as Map)['tenders'] is! List &&
-          !(source['kind'] == 'purchase' &&
+          !(kind == 'purchase' &&
               (source['payload'] as Map)['tenders'] == null))) {
     throw const FormatException('change_source');
   }

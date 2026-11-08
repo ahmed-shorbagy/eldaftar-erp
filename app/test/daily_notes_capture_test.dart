@@ -243,6 +243,15 @@ class CaptureNotes implements OpeningGateway, NotesGateway, LedgerFeedGateway {
   }) async => const NoteStatusAbsent();
 
   @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) async => throw StateError('unused');
+
+  @override
   Future<NoteCommandResult> postNote({
     required String callerUserId,
     required String idempotencyKey,
@@ -618,6 +627,15 @@ class _FormNotes implements NotesGateway {
     required String callerUserId,
     required String idempotencyKey,
   }) async => const NoteStatusAbsent();
+
+  @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) async => throw StateError('unused');
 
   @override
   Future<NoteCommandResult> postNote({

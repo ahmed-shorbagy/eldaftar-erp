@@ -162,4 +162,82 @@ void main() {
     );
     expect(wrongStock.issue, FinancialIssue.invalidItem);
   });
+
+  test('a standalone return keeps the sale contract and rejects scrap', () {
+    final result = FinancialDraft.compose(
+      kind: FinancialKind.customerReturn,
+      totalPounds: '5000',
+      items: const [
+        FinancialItemInput(
+          category: 'worked_jewelry',
+          karat: 21,
+          grams: '2.000',
+          count: '1',
+          name: 'خاتم',
+        ),
+      ],
+      tenders: const [
+        FinancialTenderInput(method: CashMethod.cash, pounds: '5000'),
+      ],
+      customerName: 'منى',
+      note: 'مرتجع',
+    );
+    expect(result.isValid, isTrue);
+    expect(result.draft!.toJson(), {
+      'version': 1,
+      'kind': 'customer_return',
+      'total_piastres': '500000',
+      'tenders': [
+        {'method': 'cash', 'piastres': '500000'},
+      ],
+      'items': [
+        {
+          'category': 'worked_jewelry',
+          'karat': 21,
+          'milligrams': '2000',
+          'count': '1',
+          'item_name': 'خاتم',
+          'line_price_piastres': null,
+        },
+      ],
+      'customer_name': 'منى',
+      'customer_phone': '',
+      'note': 'مرتجع',
+    });
+    expect(result.draft!.toJson().containsKey('description'), isFalse);
+    final scrap = FinancialDraft.compose(
+      kind: FinancialKind.customerReturn,
+      totalPounds: '5000',
+      items: const [
+        FinancialItemInput(
+          category: 'scrap',
+          karat: 21,
+          grams: '2.000',
+          count: '1',
+          name: 'كسر',
+        ),
+      ],
+      tenders: const [
+        FinancialTenderInput(method: CashMethod.cash, pounds: '5000'),
+      ],
+    );
+    expect(scrap.issue, FinancialIssue.invalidItem);
+    final mismatch = FinancialDraft.compose(
+      kind: FinancialKind.customerReturn,
+      totalPounds: '5000',
+      items: const [
+        FinancialItemInput(
+          category: 'worked_jewelry',
+          karat: 21,
+          grams: '2.000',
+          count: '1',
+          name: 'خاتم',
+        ),
+      ],
+      tenders: const [
+        FinancialTenderInput(method: CashMethod.cash, pounds: '1'),
+      ],
+    );
+    expect(mismatch.issue, FinancialIssue.tenderMismatch);
+  });
 }

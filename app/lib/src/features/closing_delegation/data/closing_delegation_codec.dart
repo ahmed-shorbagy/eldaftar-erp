@@ -67,6 +67,22 @@ ClosingCountBucket _bucket(Object? value) {
   return ClosingCountBucket(category as String, karat);
 }
 
+({String name, String category, int karat}) _itemName(Object? value) {
+  final row = _map(value);
+  final name = row['name'], category = row['category'], karat = row['karat'];
+  if (row.length != 3 ||
+      name is! String ||
+      name.isEmpty ||
+      name.runes.length > 120 ||
+      name.runes.any((rune) => rune < 32 || rune == 127) ||
+      !const ['worked_jewelry', 'bullion', 'coin'].contains(category) ||
+      karat is! int ||
+      !const [14, 18, 21, 22, 24].contains(karat)) {
+    throw const FormatException('item_names');
+  }
+  return (name: name, category: category as String, karat: karat);
+}
+
 Map<String, Object?> parsePhysicalObservations(Object? raw) {
   final value = _map(raw);
   if (value.length != 2 ||
@@ -191,5 +207,8 @@ StaffCountAssignment parseStaffCountAssignment(Object? raw) {
     expiresAt: expiry,
     stock: [for (final bucket in _list(value['stock'], 15)) _bucket(bucket)],
     scrapKarats: karats.cast<int>(),
+    itemNames: value.containsKey('item_names')
+        ? [for (final row in _list(value['item_names'], 200)) _itemName(row)]
+        : const [],
   );
 }

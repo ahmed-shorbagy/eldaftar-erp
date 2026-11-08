@@ -134,9 +134,33 @@ void main() {
       final assignment = parseStaffCountAssignment(assignmentJson());
       expect(assignment.remaining, const Duration(seconds: 10));
       expect(assignment.stock.single.karat, 21);
+      expect(assignment.itemNames, isEmpty);
       for (final field in ['cash', 'counts', 'customer', 'milligrams']) {
         expect(assignmentJson().containsKey(field), isFalse);
       }
+      final named = parseStaffCountAssignment({
+        ...assignmentJson(),
+        'item_names': [
+          {'name': 'دبلة', 'category': 'worked_jewelry', 'karat': 21},
+        ],
+      });
+      expect(named.itemNames.single.name, 'دبلة');
+      expect(named.itemNames.single.category, 'worked_jewelry');
+      expect(named.itemNames.single.karat, 21);
+      expect(
+        () => parseStaffCountAssignment({
+          ...assignmentJson(),
+          'item_names': [
+            {
+              'name': 'دبلة',
+              'category': 'worked_jewelry',
+              'karat': 21,
+              'count': '4',
+            },
+          ],
+        }),
+        throwsFormatException,
+      );
       final malformed = assignmentJson()
         ..['expires_at'] = '2026-10-20T09:59:59Z';
       expect(() => parseStaffCountAssignment(malformed), throwsFormatException);
@@ -272,12 +296,16 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.enterText(find.byKey(const Key('staff-item-name-0')), 'خاتم');
-      await t.enterText(find.byKey(const Key('staff-item-count-0')), '5');
-      await t.enterText(find.byKey(const Key('staff-item-count-0')), '2.5');
+      expect(find.text('خاتم'), findsOneWidget);
+      expect(find.text('حلق'), findsOneWidget);
+      expect(find.text('سلسلة'), findsOneWidget);
+      expect(find.text('تعليقة'), findsOneWidget);
+      expect(find.text('مشغولات'), findsNothing);
+      await t.enterText(find.byKey(const Key('close-count-0-21')), '5');
+      await t.enterText(find.byKey(const Key('close-count-0-21')), '2.5');
       expect(
         t
-            .widget<TextField>(find.byKey(const Key('staff-item-count-0')))
+            .widget<TextField>(find.byKey(const Key('close-count-0-21')))
             .controller!
             .text,
         '5',
@@ -289,7 +317,7 @@ void main() {
       await delegateTap(t, find.text('رجوع للتعديل'));
       expect(
         t
-            .widget<TextField>(find.byKey(const Key('staff-item-count-0')))
+            .widget<TextField>(find.byKey(const Key('close-count-0-21')))
             .controller!
             .text,
         '5',
@@ -297,8 +325,9 @@ void main() {
       await delegateTap(t, find.byKey(const Key('staff-count-review')));
       await delegateTap(t, find.byKey(const Key('staff-count-submit')));
       expect(g.keys, hasLength(1));
+      expect((g.bodies.single['stock'] as List).single['item_name'], 'خاتم');
       expect((g.bodies.single['stock'] as List).single['milligrams'], isNull);
-      expect(find.byKey(const Key('staff-item-name-0')), findsNothing);
+      expect(find.byKey(const Key('close-count-0-21')), findsNothing);
       expect(find.textContaining('تم إرسال العد إلى المالك'), findsOneWidget);
       await t.pumpWidget(const SizedBox());
     },
@@ -318,19 +347,19 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      await t.enterText(find.byKey(const Key('staff-item-name-0')), 'خاتم');
-      await t.enterText(find.byKey(const Key('staff-item-count-0')), '٥');
+      await t.enterText(find.byKey(const Key('close-count-0-21')), '٥');
       expect(
         t
-            .widget<TextField>(find.byKey(const Key('staff-item-count-0')))
+            .widget<TextField>(find.byKey(const Key('close-count-0-21')))
             .controller!
             .text,
         '5',
       );
-      await t.enterText(find.byKey(const Key('staff-item-weight-0')), '١٫٥٠٠');
+      await delegateTap(t, find.byKey(const Key('close-weights-toggle')));
+      await t.enterText(find.byKey(const Key('close-weight-0-21')), '١٫٥٠٠');
       expect(
         t
-            .widget<TextField>(find.byKey(const Key('staff-item-weight-0')))
+            .widget<TextField>(find.byKey(const Key('close-weight-0-21')))
             .controller!
             .text,
         '1.500',
@@ -367,13 +396,104 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      expect(find.byKey(const Key('staff-item-name-0')), findsOneWidget);
+      expect(find.byKey(const Key('close-count-0-21')), findsOneWidget);
       g.assignment = const StaffCountAssignment(state: 'unassigned');
       await t.pump(const Duration(seconds: 11));
       await t.pumpAndSettle();
-      expect(find.byKey(const Key('staff-item-name-0')), findsNothing);
+      expect(find.byKey(const Key('close-count-0-21')), findsNothing);
       expect(g.keys, isEmpty);
       await t.pumpWidget(const SizedBox());
     },
   );
+  testWidgets(
+    'staff grid lists built-in names plus server names and caps a count at four digits',
+    (t) async {
+      final g = DelegateFake()
+        ..assignment = parseStaffCountAssignment({
+          ...assignmentJson(),
+          'item_names': [
+            {'name': 'دبلة', 'category': 'worked_jewelry', 'karat': 21},
+            {'name': 'جنيه خارج المهمة', 'category': 'coin', 'karat': 21},
+          ],
+        });
+      await t.pumpWidget(
+        delegateHost(
+          StaffCountPortal(
+            gateway: g,
+            userId: 'staff-1',
+            onSignOut: () async {},
+            onToggleTheme: (_) async {},
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      for (final name in ['خاتم', 'حلق', 'سلسلة', 'تعليقة', 'دبلة']) {
+        expect(find.text(name), findsOneWidget);
+      }
+      expect(find.text('جنيه خارج المهمة'), findsNothing);
+      expect(find.text('مشغولات'), findsNothing);
+      expect(find.byKey(const Key('close-add-item')), findsNothing);
+      await t.enterText(find.byKey(const Key('close-count-4-21')), '12345');
+      expect(
+        t
+            .widget<TextField>(find.byKey(const Key('close-count-4-21')))
+            .controller!
+            .text,
+        '1234',
+      );
+      await t.enterText(find.byKey(const Key('close-count-4-21')), '05');
+      await t.enterText(find.byKey(const Key('staff-scrap-21')), '1');
+      await delegateTap(t, find.byKey(const Key('staff-count-review')));
+      await delegateTap(t, find.byKey(const Key('staff-count-submit')));
+      final stock = g.bodies.single['stock'] as List;
+      expect(stock, hasLength(1));
+      expect(stock.single['item_name'], 'دبلة');
+      expect(stock.single['category'], 'worked_jewelry');
+      expect(stock.single['karat'], 21);
+      expect(stock.single['count'], '5');
+      await t.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('an untouched zero bucket is sent as a zero count', (t) async {
+    final g = DelegateFake()
+      ..assignment = parseStaffCountAssignment({
+        ...assignmentJson(),
+        'stock': [
+          {'category': 'worked_jewelry', 'karat': 18},
+          {'category': 'worked_jewelry', 'karat': 21},
+        ],
+      });
+    await t.pumpWidget(
+      delegateHost(
+        StaffCountPortal(
+          gateway: g,
+          userId: 'staff-1',
+          onSignOut: () async {},
+          onToggleTheme: (_) async {},
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('18'), findsOneWidget);
+    expect(find.text('21'), findsOneWidget);
+    await t.enterText(find.byKey(const Key('close-count-0-21')), '2');
+    await t.enterText(find.byKey(const Key('staff-scrap-21')), '1.000');
+    await delegateTap(t, find.byKey(const Key('staff-count-review')));
+    await delegateTap(t, find.byKey(const Key('staff-count-submit')));
+    final stock = (g.bodies.single['stock'] as List).cast<Map>();
+    expect(stock, hasLength(2));
+    expect(
+      stock.singleWhere((row) => row['karat'] == 21),
+      containsPair('item_name', 'خاتم'),
+    );
+    expect(stock.singleWhere((row) => row['karat'] == 21)['count'], '2');
+    expect(stock.singleWhere((row) => row['karat'] == 18), {
+      'item_name': 'خاتم',
+      'category': 'worked_jewelry',
+      'karat': 18,
+      'count': '0',
+      'milligrams': null,
+    });
+    await t.pumpWidget(const SizedBox());
+  });
 }

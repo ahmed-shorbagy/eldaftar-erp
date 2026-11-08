@@ -25,6 +25,7 @@ class DailyNotesScreen extends StatefulWidget {
     this.writesStillAllowed,
     this.invalidations,
     this.canWrite = true,
+    this.canManageNotes = true,
     this.newKey,
   });
 
@@ -36,6 +37,9 @@ class DailyNotesScreen extends StatefulWidget {
   final bool Function()? writesStillAllowed;
   final Listenable? invalidations;
   final bool canWrite;
+
+  /// Edit and delete stay with the owner. Partners and employees do not see them.
+  final bool canManageNotes;
   final NoteDraftStore drafts;
   final NoteImageFileStore files;
   final NoteImageSource images;
@@ -72,6 +76,8 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
   int _screenGeneration = 0;
   bool _choosingImageSource = false;
   BuildContext? _imageDialogContext;
+  String? _changingId;
+  final _changeKeys = <String, String>{};
 
   @override
   void initState() {
@@ -927,6 +933,101 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     _imageDialogContext = null;
   }
 
+  Future<void> _edit(DailyNoteView note) async {
+    final wide = MediaQuery.sizeOf(context).width >= 840;
+    final Future<String?> pending = wide
+        ? showDialog<String>(
+            context: context,
+            builder: (context) => _NoteEditForm(initial: note.text, wide: true),
+          )
+        : showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) =>
+                _NoteEditForm(initial: note.text, wide: false),
+          );
+    final saved = await pending;
+    if (saved != null && mounted) {
+      await _submitChange(note, 'edit', saved);
+    }
+  }
+
+  Future<void> _delete(DailyNoteView note) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('مسح الملاحظة؟'),
+        content: const Text(
+          'ستختفي الملاحظة من الدفتر. يبقى سجل التدقيق محفوظًا.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            key: const Key('note-delete-confirm'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('مسح'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _submitChange(note, 'delete', null);
+    }
+  }
+
+  Future<void> _submitChange(
+    DailyNoteView note,
+    String action,
+    String? text,
+  ) async {
+    final key = _changeKeys.putIfAbsent(note.noteId, newIdempotencyKey);
+    setState(() => _changingId = note.noteId);
+    try {
+      final result = await widget.gateway.changeNote(
+        callerUserId: widget.userId,
+        idempotencyKey: key,
+        noteOperationId: note.noteId,
+        action: action,
+        text: text,
+      );
+      if (!mounted) return;
+      if (result is NoteChangeCommitted) {
+        _changeKeys.remove(note.noteId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              action == 'edit' ? 'تم حفظ التعديل.' : 'تم مسح الملاحظة.',
+            ),
+          ),
+        );
+        await _load();
+      } else if (result is NoteChangeRejected) {
+        _changeKeys.remove(note.noteId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر حفظ التغيير. أعد المحاولة.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('تعذر حفظ التغيير. أعد المحاولة.'),
+            action: SnackBarAction(
+              label: 'إعادة المحاولة',
+              onPressed: () => _submitChange(note, action, text),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _changingId = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1116,9 +1217,37 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
                         color: theme.colorScheme.primary,
                       ),
                 title: Text(note.text.isEmpty ? 'صورة' : note.text),
-                subtitle: Text(
-                  '${note.actorDisplayName} · ${formatServerCairoTimestamp(note.occurredAtShop)} · ${note.shopSequence}',
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${note.actorDisplayName} · ${formatServerCairoTimestamp(note.occurredAtShop)} · ${note.shopSequence}',
+                    ),
+                    if (note.edited)
+                      Text('معدّلة', style: theme.textTheme.labelSmall),
+                  ],
                 ),
+                trailing: !widget.canManageNotes
+                    ? null
+                    : _changingId == note.noteId
+                    ? const SizedBox(
+                        key: Key('note-change-progress'),
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : PopupMenuButton<String>(
+                        key: Key('note-menu-${note.noteId}'),
+                        tooltip: 'خيارات الملاحظة',
+                        onSelected: (value) {
+                          if (value == 'edit') _edit(note);
+                          if (value == 'delete') _delete(note);
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'edit', child: Text('تعديل')),
+                          PopupMenuItem(value: 'delete', child: Text('مسح')),
+                        ],
+                      ),
                 onTap: note.attachment == null ? null : () => _preview(note),
               ),
           if (_previewUrl != null && _previewFor != null) ...[
@@ -1184,6 +1313,73 @@ bool _sameBytes(List<int> left, List<int> right) {
     if (left[index] != right[index]) return false;
   }
   return true;
+}
+
+class _NoteEditForm extends StatefulWidget {
+  const _NoteEditForm({required this.initial, required this.wide});
+
+  final String initial;
+  final bool wide;
+
+  @override
+  State<_NoteEditForm> createState() => _NoteEditFormState();
+}
+
+class _NoteEditFormState extends State<_NoteEditForm> {
+  late final TextEditingController _text = TextEditingController(
+    text: widget.initial,
+  );
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final field = TextField(
+      key: const Key('note-edit-text'),
+      controller: _text,
+      maxLines: 5,
+      textInputAction: TextInputAction.done,
+      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+    );
+    final save = FilledButton(
+      key: const Key('note-edit-save'),
+      onPressed: () => Navigator.pop(context, _text.text),
+      child: const Text('حفظ التعديل'),
+    );
+    final cancel = TextButton(
+      onPressed: () => Navigator.pop(context),
+      child: const Text('إلغاء'),
+    );
+    if (widget.wide) {
+      return AlertDialog(
+        title: const Text('تعديل'),
+        content: field,
+        actions: [cancel, save],
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.only(
+        left: AppTokens.spaceMd,
+        right: AppTokens.spaceMd,
+        top: AppTokens.spaceMd,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + AppTokens.spaceMd,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          field,
+          const SizedBox(height: AppTokens.spaceSm),
+          save,
+          cancel,
+        ],
+      ),
+    );
+  }
 }
 
 bool _sameBody(DailyNoteDraft left, DailyNoteDraft right) {

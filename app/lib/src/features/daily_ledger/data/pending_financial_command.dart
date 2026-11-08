@@ -81,6 +81,7 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
       'scrap_to_stock',
       'sale_return',
       'purchase_return',
+      'customer_return',
       'ledger_correction',
       'linked_return',
       'exchange',
@@ -186,7 +187,13 @@ final class PendingFinancialCommands implements FinancialCommandLocker {
             r'^[1-9][0-9]*$',
           ).hasMatch(payload['expected_day_version'] as String);
     }
-    if (const {'sale', 'purchase', 'expense', 'scrap_sale'}.contains(kind)) {
+    if (const {
+      'sale',
+      'purchase',
+      'expense',
+      'scrap_sale',
+      'customer_return',
+    }.contains(kind)) {
       final payload = body['p_payload'];
       return payload is Map && payload['kind'] == kind;
     }

@@ -1,6 +1,6 @@
 # ADR 0041: Owner voice notes of 2026-11-08
 
-Status: accepted on 2026-11-08 and partly implemented. Done: M1, M2, and the owner closing grid of M3. The purchase rules, and a fix that lets a new shop confirm opening balances again, are deployed to the development project only ([validation](../operations/owner-feedback-2026-11-08-voice-notes-validation.md)). Not committed.
+Status: accepted on 2026-11-08 and implemented on the development project `xchapwvmvoefriqcxtvn` (M1–M7). Not committed. See [validation](../operations/owner-feedback-2026-11-08-voice-notes-validation.md).
 Date: 2026-11-08
 Owners: product owner and engineering reviewer
 Related requirement IDs: LED-01, PUR-01, CAT-01, SALE-01. Amends [ADR 0007](0007-purchase-ownership-and-custody.md) (a new purchase is paid in full; a seller payable is no longer offered), [ADR 0021](0021-invoice-appearance-and-presentation-copies.md) (the presentation-copy panel is no longer shown on the operation screen), and [ADR 0040](0040-owner-feedback-2026-11-06-trade-invoice-whatsapp.md) (the server enforces purchase-to-scrap). Keeps the WhatsApp PDF send and owner confirmation from ADR 0040.

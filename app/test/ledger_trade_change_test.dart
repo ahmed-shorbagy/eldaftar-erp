@@ -415,9 +415,134 @@ void main() {
       await t.tap(find.byKey(const Key('operation-delete')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('operation-change-error')), findsOneWidget);
+      expect(
+        t.widget<Text>(find.byKey(const Key('operation-change-error'))).data,
+        'لا يمكن تعديل أو مسح هذه العملية لأن عمليات لاحقة اعتمدت عليها.',
+      );
       expect(gateway.posts, isEmpty);
     },
   );
+  testWidgets(
+    'expense and customer_return show edit and delete; linked sale_return does not',
+    (t) async {
+      LedgerFeedLine feedLine(String kind, String label) => LedgerFeedLine(
+        kind: kind,
+        labelAr: label,
+        operationId: revisionOperation,
+        actorDisplayName: 'بائع المحل',
+        occurredAt: '2026-09-26T12:30:00Z',
+        occurredAtCairo: '2026-09-26T15:30:00',
+        isReturn: kind == 'customer_return' || kind == 'sale_return',
+      );
+      for (final entry in [
+        ('expense', 'مصروف'),
+        ('customer_return', 'مرتجع'),
+      ]) {
+        final gateway = RevisionGateway()
+          ..operationKind = entry.$1
+          ..operationPayload = sourceTrade(kind: entry.$1)
+          ..reviewKind = entry.$1;
+        await t.pumpWidget(
+          revisionHost(
+            FinancialOperationScreen(
+              gateway: gateway,
+              userId: revisionUser,
+              shopId: revisionShop,
+              line: feedLine(entry.$1, entry.$2),
+            ),
+          ),
+        );
+        await t.pumpAndSettle();
+        await t.scrollUntilVisible(
+          find.byKey(const Key('operation-edit')),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.byKey(const Key('operation-edit')), findsOneWidget);
+        expect(find.byKey(const Key('operation-delete')), findsOneWidget);
+      }
+      final linked = RevisionGateway()
+        ..operationKind = 'sale_return'
+        ..operationPayload = sourceTrade();
+      await t.pumpWidget(
+        revisionHost(
+          FinancialOperationScreen(
+            gateway: linked,
+            userId: revisionUser,
+            shopId: revisionShop,
+            line: feedLine('sale_return', 'مرتجع بيع'),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('operation-edit')), findsNothing);
+      expect(find.byKey(const Key('operation-delete')), findsNothing);
+    },
+  );
+  testWidgets('delete expense review shows cash restore copy then confirms', (
+    t,
+  ) async {
+    final gateway = RevisionGateway()
+      ..reviewKind = 'expense'
+      ..heldPost = Completer<FinancialCommandResult>();
+    await t.pumpWidget(
+      revisionHost(
+        LedgerTradeChangeScreen(
+          review: changeReview(kind: 'expense'),
+          gateway: gateway,
+          statusGateway: gateway,
+          userId: revisionUser,
+          canRead: () => true,
+          canWrite: () => true,
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.textContaining('حذف المصروف يعيد'), findsOneWidget);
+    await t.ensureVisible(find.byKey(const Key('trade-change-confirm')));
+    await t.tap(find.byKey(const Key('trade-change-confirm')));
+    await t.pump();
+    gateway.heldPost!.complete(
+      const FinancialCommitted(revisionOperation, replayed: false),
+    );
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('trade-change-done')), findsOneWidget);
+  });
+  testWidgets('edit expense prefills description and tender amount', (t) async {
+    final gateway = RevisionGateway();
+    Map<String, Object?>? replacement;
+    await t.pumpWidget(
+      revisionHost(
+        FinancialTradeScreen(
+          kind: FinancialKind.expense,
+          gateway: gateway,
+          statusGateway: gateway,
+          userId: revisionUser,
+          shopId: revisionShop,
+          initialPayload: sourceTrade(kind: 'expense'),
+          onDraftReviewed: (draft) async {
+            replacement = draft.toJson();
+            return false;
+          },
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(
+      t
+          .widget<TextField>(find.byKey(const Key('trade-description')))
+          .controller!
+          .text,
+      'إيجار المحل',
+    );
+    await t.ensureVisible(find.byKey(const Key('trade-review')));
+    await t.tap(find.byKey(const Key('trade-review')));
+    await t.pumpAndSettle();
+    expect(replacement?['kind'], 'expense');
+    expect(replacement?['description'], 'إيجار المحل');
+    expect(replacement?['total_piastres'], '10000');
+    expect(gateway.keys, isEmpty);
+  });
   testWidgets(
     'prefilled edit preserves original three-decimal gold and details without posting a new trade',
     (t) async {

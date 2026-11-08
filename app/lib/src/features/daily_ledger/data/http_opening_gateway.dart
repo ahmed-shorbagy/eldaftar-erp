@@ -105,6 +105,7 @@ const _errorCodes = <String>{
   'already_settled',
   'settlement_exceeds_obligation',
   'not_found',
+  'note_deleted',
   'already_allocated',
   'custody_requires_transfer',
   'insufficient_lot',
@@ -177,6 +178,7 @@ class HttpOpeningGateway
         LedgerCorrectionGateway,
         PartialReturnGateway,
         ExchangeGateway,
+        CustomerReturnGateway,
         InventoryGateway,
         NotesGateway,
         CalendarNotesGateway,
@@ -558,6 +560,7 @@ class HttpOpeningGateway
       'cash_transfer' => 'post_daily_ledger_cash_transfer',
       'scrap_to_stock' => 'post_daily_ledger_scrap_to_stock',
       'sale_return' || 'purchase_return' => 'post_daily_ledger_return',
+      'customer_return' => 'post_customer_return_v1',
       'linked_return' => 'post_linked_return_v1',
       'ledger_correction' => 'post_ledger_correction_v1',
       'exchange' => 'post_exchange_v1',
@@ -668,6 +671,16 @@ class HttpOpeningGateway
   }) => _financialCommand(callerUserId, 'post_daily_ledger_trade', {
     'p_idempotency_key': idempotencyKey,
     'p_payload': draft.toJson(),
+  });
+
+  @override
+  Future<FinancialCommandResult> postCustomerReturn({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) => _financialCommand(callerUserId, 'post_customer_return_v1', {
+    'p_idempotency_key': idempotencyKey,
+    'p_payload': payload,
   });
 
   @override
@@ -1756,6 +1769,34 @@ class HttpOpeningGateway
       return NoteRejected(error.code);
     } catch (_) {
       return const NoteUnknown();
+    }
+  }
+
+  @override
+  Future<NoteChangeResult> changeNote({
+    required String callerUserId,
+    required String idempotencyKey,
+    required String noteOperationId,
+    required String action,
+    String? text,
+  }) async {
+    try {
+      final response = await _post(callerUserId, 'post_daily_note_change_v1', {
+        'p_idempotency_key': idempotencyKey,
+        'p_note_operation_id': noteOperationId,
+        'p_action': action,
+        'p_text': text,
+      });
+      if (!_callerStill(callerUserId)) return const NoteChangeUnknown();
+      if (response.statusCode >= 500) return const NoteChangeUnknown();
+      if (response.statusCode >= 400) {
+        return NoteChangeRejected(_errorCode(response.body) ?? 'unavailable');
+      }
+      return parseNoteChange(jsonDecode(response.body));
+    } on _CallerRejected catch (error) {
+      return NoteChangeRejected(error.code);
+    } catch (_) {
+      return const NoteChangeUnknown();
     }
   }
 

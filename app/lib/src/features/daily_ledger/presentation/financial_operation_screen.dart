@@ -293,13 +293,19 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
             widget.canWrite?.call() == false) {
           return;
         }
+        final editKind = switch (source.source['kind']) {
+          'sale' => FinancialKind.sale,
+          'purchase' => FinancialKind.purchase,
+          'expense' => FinancialKind.expense,
+          'customer_return' => FinancialKind.customerReturn,
+          _ => null,
+        };
+        if (editKind == null) return;
         saved =
             await Navigator.of(context).push<bool>(
               MaterialPageRoute(
                 builder: (_) => FinancialTradeScreen(
-                  kind: source.source['kind'] == 'sale'
-                      ? FinancialKind.sale
-                      : FinancialKind.purchase,
+                  kind: editKind,
                   gateway: widget.gateway,
                   statusGateway: gateway as OpeningGateway,
                   userId: widget.userId,
@@ -413,6 +419,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                   'scrap_sale' ||
                                   'repair_fee' => 'النقد المحصّل',
                                   'purchase' => 'سعر الشراء الكلي',
+                                  'customer_return' => 'المبلغ المرتجع',
                                   'sale_return' || 'purchase_return' =>
                                     details['consideration_piastres'] is String
                                         ? 'المقابل المرتجع المتفق عليه'
@@ -575,7 +582,9 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                         ),
                       if (_active &&
                           (widget.line.kind == 'sale' ||
-                              widget.line.kind == 'purchase') &&
+                              widget.line.kind == 'purchase' ||
+                              widget.line.kind == 'expense' ||
+                              widget.line.kind == 'customer_return') &&
                           widget.gateway is LedgerTradeChangeGateway &&
                           widget.gateway is OpeningGateway &&
                           widget.canWrite?.call() != false) ...[

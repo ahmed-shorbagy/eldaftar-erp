@@ -81,6 +81,60 @@ void main() {
       () => parseDailyNote(wrongShop, expectedShopId: shop),
       throwsFormatException,
     );
+    final edited = noteBody()
+      ..['edited'] = true
+      ..['edited_at'] = '2026-01-02T01:00:00Z';
+    final parsed = parseDailyNote(edited, expectedShopId: shop);
+    expect(parsed.edited, isTrue);
+    expect(parsed.editedAt, '2026-01-02T01:00:00Z');
+    expect(parseDailyNote(noteBody(), expectedShopId: shop).edited, isFalse);
+    final extra = noteBody()..['surprise'] = true;
+    expect(
+      () => parseDailyNote(extra, expectedShopId: shop),
+      throwsFormatException,
+    );
+  });
+
+  test('note_deleted reaches the screen through HTTP', () async {
+    final requests = <String>[];
+    final api = gateway(
+      MockClient((request) async {
+        requests.add(request.url.path);
+        return http.Response('{"message":"note_deleted"}', 400);
+      }),
+    );
+    final result = await api.changeNote(
+      callerUserId: 'owner-a',
+      idempotencyKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      noteOperationId: note,
+      action: 'delete',
+    );
+    expect(requests.single, '/rest/v1/rpc/post_daily_note_change_v1');
+    expect((result as NoteChangeRejected).code, 'note_deleted');
+  });
+
+  test('a committed note change parses the RPC body', () async {
+    final api = gateway(
+      MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'ok': true,
+            'replayed': false,
+            'note_id': note,
+            'action': 'edit',
+          }),
+          200,
+        ),
+      ),
+    );
+    final result = await api.changeNote(
+      callerUserId: 'owner-a',
+      idempotencyKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      noteOperationId: note,
+      action: 'edit',
+      text: 'نص',
+    );
+    expect((result as NoteChangeCommitted).replayed, isFalse);
   });
 
   test(

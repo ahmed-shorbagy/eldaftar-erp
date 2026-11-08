@@ -1,6 +1,6 @@
 # Owner voice-note feedback (2026-11-08): implementation plan
 
-Status: plan only. Nothing here is implemented yet.
+Status: implemented on development `xchapwvmvoefriqcxtvn` (2026-11-08). Not committed.
 Scope: the Flutter app (Android, iOS, Windows) and the Supabase backend it calls. The React admin dashboard is out of scope.
 Source: 10 owner voice notes, translated into 11 items (FB-001 … FB-011).
 Decision record to write: [ADR 0041](../adr/) (task T0.1).

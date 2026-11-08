@@ -231,6 +231,22 @@ Deno.test("read refuses a key from another shop", async () => {
   assertEquals(response.status, 403);
 });
 
+Deno.test("read refuses a deleted note image and signs a live one", async () => {
+  const key = `note-image/${shop}/${day}/${client}.jpg`;
+  const refused = await handleR2Media(
+    post({ kind: "note_image", op: "read", object_key: key }),
+    ports({ noteImageReadable: () => Promise.resolve(false) }),
+  );
+  assertEquals(refused.status, 403);
+  assertEquals((await refused.json()).code, "forbidden");
+  const signed = await handleR2Media(
+    post({ kind: "note_image", op: "read", object_key: key }),
+    ports({ noteImageReadable: () => Promise.resolve(true) }),
+  );
+  assertEquals(signed.status, 200);
+  assertEquals(typeof (await signed.json()).url, "string");
+});
+
 Deno.test("read signs an owned key", async () => {
   const response = await handleR2Media(
     post({

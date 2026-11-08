@@ -3,7 +3,7 @@ import 'opening_issue.dart';
 import 'quantities.dart';
 import 'invoice_pricing.dart';
 
-enum FinancialKind { sale, purchase, expense, scrapSale }
+enum FinancialKind { sale, purchase, expense, scrapSale, customerReturn }
 
 enum FinancialIssue {
   invalidTotal,
@@ -147,7 +147,9 @@ final class FinancialDraft {
     for (final item in items) {
       final isScrap = item.category == 'scrap';
       final category = StockCategory.byCode(item.category);
-      if ((isScrap && kind == FinancialKind.sale) ||
+      if ((isScrap &&
+              (kind == FinancialKind.sale ||
+                  kind == FinancialKind.customerReturn)) ||
           (kind == FinancialKind.scrapSale && !isScrap) ||
           (!isScrap &&
               (category == null || !category.allowsKarat(item.karat))) ||
@@ -211,16 +213,30 @@ final class FinancialDraft {
     );
   }
 
-  Map<String, Object?> toJson() => {
-    'version': pricing == null ? 1 : 2,
-    'kind': kind == FinancialKind.scrapSale ? 'scrap_sale' : kind.name,
-    'total_piastres': total.wire,
-    'tenders': tenders,
-    'items': items,
-    'description': description,
-    'customer_name': customerName,
-    'customer_phone': customerPhone,
-    'note': note,
-    if (pricing != null) 'pricing': pricing!.toJson(),
-  };
+  Map<String, Object?> toJson() {
+    if (kind == FinancialKind.customerReturn) {
+      return {
+        'version': 1,
+        'kind': 'customer_return',
+        'total_piastres': total.wire,
+        'tenders': tenders,
+        'items': items,
+        'customer_name': customerName,
+        'customer_phone': customerPhone,
+        'note': note,
+      };
+    }
+    return {
+      'version': pricing == null ? 1 : 2,
+      'kind': kind == FinancialKind.scrapSale ? 'scrap_sale' : kind.name,
+      'total_piastres': total.wire,
+      'tenders': tenders,
+      'items': items,
+      'description': description,
+      'customer_name': customerName,
+      'customer_phone': customerPhone,
+      'note': note,
+      if (pricing != null) 'pricing': pricing!.toJson(),
+    };
+  }
 }

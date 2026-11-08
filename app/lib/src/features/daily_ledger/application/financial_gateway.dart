@@ -79,6 +79,15 @@ abstract class FinancialGateway {
   });
 }
 
+/// Standalone customer return. Separate from a linked sale return.
+abstract interface class CustomerReturnGateway {
+  Future<FinancialCommandResult> postCustomerReturn({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  });
+}
+
 final class InvoiceDispatchState {
   const InvoiceDispatchState({required this.ownerConfirmed, this.confirmedAt});
   final bool ownerConfirmed;
