@@ -311,11 +311,14 @@ class _TradeItemPickerState extends State<TradeItemPicker> {
               const SizedBox(height: AppTokens.spaceSm + 4),
             ],
             TradeChoiceGrid(
+              columns: 5,
+              compactColumns: 3,
               children: [
                 for (final choice in visible)
                   TradeChoiceTile(
                     key: Key('trade-new-category-${choice.label}'),
                     label: choice.label,
+                    dense: true,
                     onTap: () => _pick(choice),
                   ),
                 if (widget.onCreate != null)
@@ -363,7 +366,7 @@ class _TradeItemPickerState extends State<TradeItemPicker> {
     final name = _name.text.trim();
     final reserved = widget.reservedNames.contains(name);
     final existing = reserved ? null : _existing(name);
-    final karats = StockCategory.workedJewelry.karats.toList()..sort();
+    final karats = orderedKarats(StockCategory.workedJewelry.karats);
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.fromLTRB(
@@ -514,11 +517,13 @@ class TradeChoiceTile extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.selected = false,
+    this.dense = false,
   });
 
   final String label;
   final Widget? icon;
   final bool selected;
+  final bool dense;
   final VoidCallback? onTap;
 
   @override
@@ -540,9 +545,13 @@ class TradeChoiceTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: icon == null ? 52 : 84),
+            constraints: BoxConstraints(
+              minHeight: dense ? 40 : (icon == null ? 52 : 84),
+            ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+              padding: dense
+                  ? const EdgeInsets.symmetric(horizontal: 4, vertical: 6)
+                  : const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -557,14 +566,18 @@ class TradeChoiceTile extends StatelessWidget {
                     Text(
                       label,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: selected
-                            ? scheme.onPrimaryContainer
-                            : scheme.onSurface,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                      ),
+                      style:
+                          (dense
+                                  ? Theme.of(context).textTheme.labelMedium
+                                  : Theme.of(context).textTheme.labelLarge)
+                              ?.copyWith(
+                                color: selected
+                                    ? scheme.onPrimaryContainer
+                                    : scheme.onSurface,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
                     ),
                   ],
                 ),

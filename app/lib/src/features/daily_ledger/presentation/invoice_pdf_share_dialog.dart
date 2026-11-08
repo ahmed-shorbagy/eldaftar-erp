@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,6 +10,12 @@ import '../../../theme/app_tokens.dart';
 import '../../../theme/whatsapp_icon.dart';
 import '../application/confirmed_operation_pdf.dart';
 import '../application/financial_gateway.dart';
+import '../application/invoice_whatsapp_share.dart';
+import '../data/platform_invoice_whatsapp_share.dart';
+import '../../invoice_message/application/message_gateway.dart';
+import '../../invoice_message/application/message_handoff.dart';
+import '../../invoice_message/data/url_message_launcher.dart';
+import '../../invoice_message/domain/message_template.dart';
 import '../application/idempotency_key.dart';
 import '../application/ledger_activity.dart';
 import '../domain/opening_issue.dart';
@@ -24,7 +30,6 @@ import '../application/pending_financial_command.dart';
 import '../data/pending_financial_command.dart';
 
 typedef InvoiceShare = Future<bool> Function(Uint8List bytes, String filename);
-typedef InvoiceRasterizer = Future<Uint8List> Function(Uint8List pdf);
 
 /// Native share is a handoff. Dismissed or unavailable never means sent.
 bool invoiceShareHandoffOpened(ShareResultStatus status) =>
@@ -41,7 +46,7 @@ Future<bool?> showInvoicePdfShareDialog({
   required bool Function() canWrite,
   Listenable? invalidations,
   InvoiceShare? share,
-  InvoiceRasterizer? rasterize,
+  InvoiceWhatsappShare? whatsapp,
 }) => showDialog<bool>(
   context: context,
   barrierDismissible: false,
@@ -54,7 +59,7 @@ Future<bool?> showInvoicePdfShareDialog({
     canWrite: canWrite,
     invalidations: invalidations,
     share: share,
-    rasterize: rasterize,
+    whatsapp: whatsapp,
   ),
 );
 
@@ -70,7 +75,7 @@ String invoiceFactsFingerprint(Map<String, Object?> operation) => jsonEncode({
   'payload': operation['payload'],
 });
 
-enum _Action { image, pdf, legacy, confirm, check }
+enum _Action { whatsapp, pdf, legacy, confirm, check }
 
 class InvoicePdfShareDialog extends StatefulWidget {
   const InvoicePdfShareDialog({
@@ -83,14 +88,14 @@ class InvoicePdfShareDialog extends StatefulWidget {
     required this.canWrite,
     this.invalidations,
     this.share,
-    this.rasterize,
+    this.whatsapp,
   });
   final FinancialGateway gateway;
   final String userId, shopId, operationId;
   final bool Function() canRead, canWrite;
   final Listenable? invalidations;
   final InvoiceShare? share;
-  final InvoiceRasterizer? rasterize;
+  final InvoiceWhatsappShare? whatsapp;
   @override
   State<InvoicePdfShareDialog> createState() => _InvoicePdfShareDialogState();
 }
@@ -320,9 +325,7 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
       return await buildBrandedInvoicePdf(
         brand.document,
         logoBytes: brand.logo,
-        output: action == _Action.image
-            ? BrandedInvoiceOutput.image
-            : BrandedInvoiceOutput.print,
+        output: BrandedInvoiceOutput.print,
       );
     } catch (_) {
       if (mounted) {
@@ -361,10 +364,6 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
       }
       final pdf = await _pdf(fresh, action);
       if (pdf == null || !mounted || epoch != _accessEpoch) return;
-      final image = action == _Action.image;
-      final bytes = image
-          ? await (widget.rasterize ?? _rasterFirstPage)(pdf)
-          : pdf;
       final checked = await _read();
       if (!mounted || epoch != _accessEpoch) return;
       if (invoiceFactsFingerprint(checked) != invoiceFactsFingerprint(fresh)) {
@@ -376,13 +375,14 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
         });
         return;
       }
-      final filename =
-          'eldaftar-invoice-${fresh['shop_sequence']}.${image ? 'png' : 'pdf'}';
+      final filename = 'eldaftar-invoice-${fresh['shop_sequence']}.pdf';
+      if (action == _Action.whatsapp) {
+        await _handoffWhatsapp(pdf, filename, fresh);
+        return;
+      }
       final opened = widget.share != null
-          ? await widget.share!(bytes, filename)
-          : image
-          ? await _sharePng(bytes, filename)
-          : await Printing.sharePdf(bytes: bytes, filename: filename);
+          ? await widget.share!(pdf, filename)
+          : await Printing.sharePdf(bytes: pdf, filename: filename);
       if (!mounted || epoch != _accessEpoch || !widget.canRead()) return;
       setState(() {
         if (opened) {
@@ -410,30 +410,117 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
     }
   }
 
-  Future<Uint8List> _rasterFirstPage(Uint8List pdf) async {
-    await for (final page in Printing.raster(pdf, pages: const [0], dpi: 216)) {
-      return page.toPng();
+  Future<String> _messageText() async {
+    final gateway = widget.gateway;
+    if (gateway is! InvoiceMessageGateway) return '';
+    final messages = gateway as InvoiceMessageGateway;
+    try {
+      final preview = await MessageHandoff(
+        messages,
+        const UrlMessageLauncher(),
+        canRead: widget.canRead,
+      ).prepare(widget.userId, widget.shopId, widget.operationId);
+      return preview.body;
+    } on MessageValidation {
+      try {
+        final source = await messages.readMessageSource(
+          widget.userId,
+          widget.shopId,
+          widget.operationId,
+        );
+        return MessageTemplate.parse(
+          source.profile.template,
+        ).render(source.operation);
+      } catch (_) {
+        return '';
+      }
+    } catch (_) {
+      return '';
     }
-    throw const FormatException('raster');
   }
 
-  Future<bool> _sharePng(Uint8List bytes, String filename) async {
+  Future<void> _handoffWhatsapp(
+    Uint8List pdf,
+    String filename,
+    Map<String, Object?> operation,
+  ) async {
+    final payload = operation['payload'];
+    final phone = payload is Map
+        ? messageWhatsappPhone(payload['customer_phone'])
+        : null;
+    final text = await _messageText();
+    if (!mounted || !widget.canRead()) return;
+    final box = context.findRenderObject() as RenderBox?;
+    final result =
+        await (widget.whatsapp ?? const PlatformInvoiceWhatsappShare())
+            .sharePdf(
+              pdf: pdf,
+              filename: filename,
+              phoneDigits: phone,
+              text: text,
+              origin: box == null
+                  ? null
+                  : box.localToGlobal(Offset.zero) & box.size,
+            );
+    if (!mounted || !widget.canRead()) return;
+    if (result == WhatsappShareResult.notInstalled) {
+      if (widget.share != null) {
+        await widget.share!(pdf, filename);
+      } else {
+        await _sharePdfSheet(pdf, filename, text);
+      }
+      if (!mounted || !widget.canRead()) return;
+      setState(() {
+        _opened = true;
+        _say('واتساب غير مثبت. اختر تطبيقاً للمشاركة.');
+      });
+      return;
+    }
+    setState(() {
+      switch (result) {
+        case WhatsappShareResult.opened:
+          _opened = true;
+          _say(
+            defaultTargetPlatform == TargetPlatform.windows
+                ? phone == null
+                      ? 'فُتح واتساب. اختر العميل، ثم اسحب ملف الفاتورة المحدد إلى المحادثة وأرسل، ثم أكّد هنا.'
+                      : 'فُتحت محادثة العميل. اسحب ملف الفاتورة المحدد إلى المحادثة وأرسل، ثم أكّد هنا.'
+                : phone == null
+                ? 'فُتح واتساب ومعه الفاتورة. اختر العميل وأرسل، ثم أكّد هنا.'
+                : 'فُتحت محادثة العميل في واتساب ومعها الفاتورة والرسالة. أرسلها ثم أكّد هنا.',
+          );
+        case WhatsappShareResult.sheetOpened:
+          _opened = true;
+          _say('اختر واتساب ثم العميل وأرسل، ثم أكّد هنا.');
+        case WhatsappShareResult.failed:
+          _say('تعذر فتح واتساب. حاول مجدداً.', error: true);
+        case WhatsappShareResult.notInstalled:
+          break;
+      }
+    });
+  }
+
+  Future<void> _sharePdfSheet(
+    Uint8List bytes,
+    String filename,
+    String text,
+  ) async {
     final box = context.findRenderObject() as RenderBox?;
     try {
-      final result = await SharePlus.instance.share(
+      await SharePlus.instance.share(
         ShareParams(
-          files: [XFile.fromData(bytes, mimeType: 'image/png', name: filename)],
+          files: [
+            XFile.fromData(bytes, mimeType: 'application/pdf', name: filename),
+          ],
+          text: text,
           fileNameOverrides: [filename],
           sharePositionOrigin: box == null
               ? null
               : box.localToGlobal(Offset.zero) & box.size,
         ),
       );
-      return invoiceShareHandoffOpened(result.status);
-    } on UnimplementedError {
-      // The printing adapter declares PDF content. Sending PNG bytes through
-      // it can give recipients the wrong media type; keep the PDF action separate.
-      return false;
+    } catch (_) {
+      // The status sentence still tells the owner to pick another app.
     }
   }
 
@@ -551,7 +638,7 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
                   _InvoiceSummary(operation: operation),
                   const SizedBox(height: AppTokens.spaceMd),
                   FilledButton.icon(
-                    key: const Key('invoice-image-share'),
+                    key: const Key('invoice-whatsapp-pdf'),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(
                         AppTokens.minControlSize,
@@ -559,11 +646,11 @@ class _InvoicePdfShareDialogState extends State<InvoicePdfShareDialog> {
                     ),
                     onPressed: shareBlocked
                         ? null
-                        : () => _share(_Action.image),
-                    icon: _busy == _Action.image
+                        : () => _share(_Action.whatsapp),
+                    icon: _busy == _Action.whatsapp
                         ? const _Spinner()
                         : const WhatsappIcon(),
-                    label: const Text('إرسال صورة عبر واتساب'),
+                    label: const Text('إرسال الفاتورة PDF على واتساب'),
                   ),
                   const SizedBox(height: AppTokens.spaceSm),
                   OutlinedButton.icon(

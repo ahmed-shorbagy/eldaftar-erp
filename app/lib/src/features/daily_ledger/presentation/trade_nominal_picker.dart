@@ -185,7 +185,7 @@ class _TradeNominalPickerState extends State<TradeNominalPicker> {
               ),
               children: [
                 Text(
-                  'اختر أكثر من نوع. اضغط الشريحة مرة للاختيار، ثم عدّل العدد بعلامة ×.',
+                  'اضغط النوع لاختياره، ثم حدد العدد بالأسفل.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -208,30 +208,6 @@ class _TradeNominalPickerState extends State<TradeNominalPicker> {
                       ),
                   ],
                 ),
-                if (ordered.isNotEmpty) ...[
-                  const SizedBox(height: AppTokens.spaceLg),
-                  Text(
-                    'الأعداد المختارة',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppTokens.spaceSm),
-                  for (final index in ordered) ...[
-                    _SelectedQuantityRow(
-                      key: Key('nominal-qty-row-$index'),
-                      index: index,
-                      label: widget.suggestions[index].label,
-                      controller: _counts[index],
-                      unitGrams: widget.suggestions[index].grams,
-                      onMinus: () => _bump(index, -1),
-                      onPlus: () => _bump(index, 1),
-                      onChanged: (value) => _setCount(index, value),
-                      onClear: () => _toggle(index),
-                    ),
-                    const SizedBox(height: AppTokens.spaceSm),
-                  ],
-                ],
                 if (_error != null) ...[
                   const SizedBox(height: AppTokens.spaceSm),
                   Text(
@@ -257,6 +233,40 @@ class _TradeNominalPickerState extends State<TradeNominalPicker> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (ordered.isNotEmpty)
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.3,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'الأعداد المختارة',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: AppTokens.spaceSm),
+                            for (final index in ordered) ...[
+                              _SelectedQuantityRow(
+                                key: Key('nominal-qty-row-$index'),
+                                index: index,
+                                label: widget.suggestions[index].label,
+                                controller: _counts[index],
+                                unitGrams: widget.suggestions[index].grams,
+                                onMinus: () => _bump(index, -1),
+                                onPlus: () => _bump(index, 1),
+                                onChanged: (value) => _setCount(index, value),
+                                onClear: () => _toggle(index),
+                              ),
+                              const SizedBox(height: AppTokens.spaceSm),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                   Text(
                     total == null
                         ? 'الوزن المقترح: —'

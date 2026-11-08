@@ -45,6 +45,7 @@ class AuthGate extends StatefulWidget {
     this.helpGateway,
     this.supportGateway,
     this.auditTrailGateway,
+    this.appVersion,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -62,6 +63,7 @@ class AuthGate extends StatefulWidget {
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
   final AuditTrailGateway? auditTrailGateway;
+  final String? appVersion;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -233,6 +235,7 @@ class _AuthGateState extends State<AuthGate> {
         helpGateway: widget.helpGateway,
         supportGateway: widget.supportGateway,
         auditTrailGateway: widget.auditTrailGateway,
+        appVersion: widget.appVersion,
         onSignOut: () async {
           await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);

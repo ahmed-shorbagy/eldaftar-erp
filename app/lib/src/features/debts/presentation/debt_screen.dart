@@ -14,6 +14,7 @@ import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
 import '../../../theme/cash_input.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
+import '../../customers/presentation/customer_phone_field.dart';
 import '../application/debt_command_flow.dart';
 import '../application/debt_contract.dart';
 import '../application/debt_gateway.dart';
@@ -820,7 +821,7 @@ class _DebtScreenState extends State<DebtScreen> {
               initialValue: _karat,
               decoration: const InputDecoration(labelText: 'العيار'),
               items: [
-                for (final karat in ScrapKarats.allowed.toList()..sort())
+                for (final karat in orderedKarats(ScrapKarats.allowed))
                   DropdownMenuItem(value: karat, child: Text('$karat')),
               ],
               onChanged: (value) => setState(() => _karat = value ?? _karat),
@@ -833,15 +834,10 @@ class _DebtScreenState extends State<DebtScreen> {
                 ? null
                 : 'اكتب اسم الطرف.',
           ),
-          TextFormField(
-            key: const Key('debt-phone'),
+          CustomerPhoneField(
             controller: _phone,
-            textDirection: TextDirection.ltr,
-            decoration: const InputDecoration(labelText: 'الهاتف'),
-            keyboardType: TextInputType.phone,
-            validator: (value) => debtPhone(value ?? '') is DebtAccepted<String>
-                ? null
-                : 'الهاتف غير صالح.',
+            fieldKey: const Key('debt-phone'),
+            label: 'الهاتف',
           ),
           TextFormField(
             key: const Key('debt-reason'),

@@ -70,6 +70,14 @@ abstract final class ScrapKarats {
   static const allowed = <int>{14, 18, 21, 22, 24};
 }
 
+/// Owner order: the common Egyptian karats first, 22 and 14 last.
+const karatDisplayOrder = <int>[18, 21, 24, 22, 14];
+
+List<int> orderedKarats(Iterable<int> allowed) => [
+  for (final karat in karatDisplayOrder)
+    if (allowed.contains(karat)) karat,
+];
+
 abstract final class OpeningPayload {
   static const version = 1;
 }

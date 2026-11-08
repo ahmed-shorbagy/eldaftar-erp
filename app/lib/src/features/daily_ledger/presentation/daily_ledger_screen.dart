@@ -1575,7 +1575,7 @@ class _StockRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final karats = entry.category.karats.toList()..sort();
+    final karats = orderedKarats(entry.category.karats);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,

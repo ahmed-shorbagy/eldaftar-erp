@@ -24,7 +24,8 @@ void main() {
     () {
       expect(whatsappPhone('01012345678'), '201012345678');
       expect(whatsappPhone('+201012345678'), '201012345678');
-      expect(whatsappPhone('201012345678'), '201012345678');
+      expect(whatsappPhone('+966512345678'), '966512345678');
+      expect(whatsappPhone('201012345678'), isNull);
       expect(whatsappPhone('01123'), isNull);
     },
   );

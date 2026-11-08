@@ -74,6 +74,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.helpGateway,
     this.supportGateway,
     this.auditTrailGateway,
+    this.appVersion,
   });
 
   final DebtReminderCoordinator? reminders;
@@ -89,6 +90,7 @@ class ShopAccountsGate extends StatefulWidget {
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
   final AuditTrailGateway? auditTrailGateway;
+  final String? appVersion;
 
   @override
   State<ShopAccountsGate> createState() => _ShopAccountsGateState();
@@ -761,6 +763,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             ? _shopImageBytes
             : null,
         applyShopLogo: applyShopLogo,
+        appVersion: widget.appVersion,
         reportsBuilder:
             !selected.hasPermission(ShopPermission.reports) ||
                 opening is! ReportGateway ||

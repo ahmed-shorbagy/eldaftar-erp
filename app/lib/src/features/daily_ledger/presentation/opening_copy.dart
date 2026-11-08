@@ -40,7 +40,7 @@ const openingCategoryChoices = <StockCategory>[
   StockCategory.coin,
 ];
 
-const scrapKaratChoices = <int>[14, 18, 21, 22, 24];
+final scrapKaratChoices = orderedKarats(ScrapKarats.allowed);
 
 const _arabicMonths = <String>[
   'يناير',

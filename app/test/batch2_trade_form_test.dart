@@ -127,7 +127,7 @@ void main() {
     await reviewTrade(tester);
     expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
     expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
-    expect(find.textContaining('يزيد مخزون خاتم'), findsOneWidget);
+    expect(find.textContaining('يزيد كسر'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(partial.payloads.single['purchase_obligation_piastres'], '4000000');
@@ -322,7 +322,9 @@ void main() {
     expect(find.byKey(const Key('trade-catalog-table')), findsNothing);
     expect(find.byKey(const Key('trade-open-inventory')), findsNothing);
     expect(find.byKey(const Key('trade-select-name')), findsNothing);
-    expect(find.byKey(const Key('trade-add-other-product')), findsOneWidget);
+    expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
+    expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-ميدالية')), findsOneWidget);
     expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
     await revealTrade(tester, find.byKey(const Key('trade-select-غويشة')));
     await tester.tap(find.byKey(const Key('trade-select-غويشة')));
@@ -388,39 +390,27 @@ void main() {
     await chooseTradeItem(tester, 'أخرى');
     expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
     expect(find.byKey(const Key('trade-select-خاتم ملكي')), findsOneWidget);
-    await revealTrade(tester, find.byKey(const Key('trade-add-other-product')));
-    await tester.tap(find.byKey(const Key('trade-add-other-product')));
+    expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
+    await revealTrade(tester, find.byKey(const Key('trade-select-خاتم ملكي')));
+    await tester.tap(find.byKey(const Key('trade-select-خاتم ملكي')));
     await tester.pumpAndSettle();
-    await enterTradeField(
-      tester,
-      const Key('trade-other-product-name'),
-      'بروش',
-    );
-    await tester.tap(find.byKey(const Key('trade-other-product-save')));
-    await tester.pumpAndSettle();
-    expect(catalog.savedProducts, hasLength(1));
-    final payload =
-        catalog.savedProducts.single['p_payload'] as Map<String, Object?>;
-    expect(payload['kind'], 'product');
-    expect(payload['name'], 'بروش');
-    expect(payload['category'], 'worked_jewelry');
-    expect(payload['karat'], 21);
-    expect(find.byKey(const Key('trade-select-بروش')), findsOneWidget);
     expect(
       tester
-          .widget<TextField>(find.byKey(const Key('trade-grams-0')))
+          .widget<TextField>(
+            find.byKey(const Key('trade-grams-0'), skipOffstage: false),
+          )
           .controller,
       isNotNull,
     );
     await enterTradeField(tester, const Key('trade-grams-0'), '2.50');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     await reviewTrade(tester);
-    expect(find.textContaining('بروش'), findsWidgets);
+    expect(find.textContaining('خاتم ملكي'), findsWidgets);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(
       (gateway.payloads.single['items'] as List).single['item_name'],
-      'بروش',
+      'خاتم ملكي',
     );
     expect(
       (gateway.payloads.single['items'] as List).single['category'],
@@ -454,37 +444,8 @@ void main() {
     expect(find.byKey(const Key('trade-new-category-أخرى')), findsNothing);
     expect(find.byKey(const Key('trade-new-category-غويشة')), findsOneWidget);
     expect(find.byKey(const Key('trade-new-category-بروش')), findsOneWidget);
+    expect(find.byKey(const Key('trade-picker-create')), findsNothing);
 
-    await tester.ensureVisible(find.byKey(const Key('trade-picker-create')));
-    await tester.tap(find.byKey(const Key('trade-picker-create')));
-    await tester.pumpAndSettle();
-    expect(find.text('صنف جديد في «أخرى»'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const Key('trade-other-product-name')),
-      'بروش',
-    );
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('trade-other-product-exists')), findsOneWidget);
-    expect(
-      tester
-          .widget<FilledButton>(
-            find.byKey(const Key('trade-other-product-save')),
-          )
-          .onPressed,
-      isNull,
-    );
-    await tester.enterText(
-      find.byKey(const Key('trade-other-product-name')),
-      'خاتم',
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.text('هذا صنف رئيسي. اختره من الأصناف الرئيسية.'),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(const Key('trade-picker-back')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-new-category-غويشة')));
     await tester.pumpAndSettle();
     expect(find.text('اختر نوع القطعة التالية'), findsNothing);
@@ -492,50 +453,18 @@ void main() {
     expect(catalog.savedProducts, isEmpty);
   });
 
-  testWidgets('unknown catalog save keeps the name frozen for retry', (
+  testWidgets('other names stay in the sale grid and are not created there', (
     tester,
   ) async {
-    final catalog = Batch2Catalog()
-      ..productResult = const FinancialUnknown()
-      ..catalogStatusResult = const StatusUnknown();
     final gateway = Batch2TradeGateway();
     await pumpTradeScreen(
       tester,
       gateway: gateway,
       statusGateway: gateway,
       kind: FinancialKind.sale,
-      catalog: catalog,
     );
     await chooseTradeItem(tester, 'أخرى');
-    await revealTrade(tester, find.byKey(const Key('trade-add-other-product')));
-    await tester.tap(find.byKey(const Key('trade-add-other-product')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('trade-other-product-name')),
-      'كوليه',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('trade-other-product-save')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('trade-other-product-status')), findsOneWidget);
-    expect(find.text('إعادة المحاولة'), findsOneWidget);
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('trade-other-product-name')))
-          .enabled,
-      isFalse,
-    );
-    final firstKey = catalog.savedProducts.single['p_idempotency_key'];
-    catalog
-      ..productResult = const FinancialCommitted(
-        'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-        replayed: false,
-      )
-      ..catalogStatusResult = const StatusAbsent();
-    await tester.tap(find.byKey(const Key('trade-other-product-save')));
-    await tester.pumpAndSettle();
-    expect(catalog.savedProducts, hasLength(2));
-    expect(catalog.savedProducts.last['p_idempotency_key'], firstKey);
+    expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
     expect(find.byKey(const Key('trade-select-كوليه')), findsOneWidget);
   });
 

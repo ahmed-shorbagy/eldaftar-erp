@@ -13,9 +13,11 @@ import 'inventory_widgets.dart';
 
 const _categories = ['worked_jewelry', 'bullion', 'coin', 'scrap'];
 
-List<int> karatsFor(String category) => category == 'scrap'
-    ? ScrapKarats.allowed.toList()
-    : (StockCategory.byCode(category)?.karats.toList() ?? const []);
+List<int> karatsFor(String category) => orderedKarats(
+  category == 'scrap'
+      ? ScrapKarats.allowed
+      : (StockCategory.byCode(category)?.karats ?? const <int>{}),
+);
 
 class InventoryFormScope {
   const InventoryFormScope({
@@ -1836,7 +1838,7 @@ class _GoldAcquisitionFormState extends State<GoldAcquisitionForm>
             label: 'عيار الذهب المستحق',
           ),
           items: [
-            for (final karat in ScrapKarats.allowed)
+            for (final karat in orderedKarats(ScrapKarats.allowed))
               DropdownMenuItem(value: karat, child: Text('$karat')),
           ],
           onChanged: (value) {
@@ -2124,7 +2126,8 @@ class _CatalogProductFormState extends State<CatalogProductForm>
         inventoryField(
           context: context,
           controller: _name,
-          label: 'اسم المنتج',
+          label: 'اسم الصنف',
+          hint: 'مثال: بروش، كوليه، محبس',
           fieldKey: const Key('product-name'),
           action: TextInputAction.done,
         ),

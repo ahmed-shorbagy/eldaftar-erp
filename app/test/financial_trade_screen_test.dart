@@ -395,7 +395,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('يبقى مستحقاً للعميل: 40,000'), findsOneWidget);
-    expect(find.textContaining('يزيد مخزون خاتم عيار 18'), findsOneWidget);
+    expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.payloads.single['purchase_obligation_piastres'], '4000000');

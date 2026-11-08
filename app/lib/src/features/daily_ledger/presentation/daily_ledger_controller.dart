@@ -172,7 +172,7 @@ class DailyLedgerController extends ChangeNotifier {
     if (fieldsLocked) return;
     entry.category = category;
     if (!category.allowsKarat(entry.karat)) {
-      entry.karat = (category.karats.toList()..sort()).first;
+      entry.karat = orderedKarats(category.karats).first;
     }
     notifyListeners();
   }

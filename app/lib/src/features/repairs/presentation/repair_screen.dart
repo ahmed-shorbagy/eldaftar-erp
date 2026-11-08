@@ -2,6 +2,7 @@ import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
+import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
@@ -895,7 +896,7 @@ class _RepairScreenState extends State<RepairScreen> {
           isExpanded: true,
           decoration: const InputDecoration(labelText: 'العيار'),
           items: [
-            for (final karat in repairKarats)
+            for (final karat in orderedKarats(repairKarats))
               DropdownMenuItem(value: karat, child: Text('$karat')),
           ],
           onChanged: (value) => setState(() => _karat = value),

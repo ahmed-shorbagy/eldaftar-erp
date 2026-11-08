@@ -61,6 +61,7 @@ class ShopWorkspace extends StatefulWidget {
     this.shopImageBytes,
     this.syncTicks,
     this.applyShopLogo,
+    this.appVersion,
   });
 
   final ShopAccount shop;
@@ -99,6 +100,7 @@ class ShopWorkspace extends StatefulWidget {
   final Uint8List? shopImageBytes;
   final Listenable? syncTicks;
   final ApplyShopLogoToInvoice? applyShopLogo;
+  final String? appVersion;
 
   @override
   State<ShopWorkspace> createState() => _ShopWorkspaceState();
@@ -523,41 +525,52 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
                         ),
                     ],
                   ),
-                  if (widget.appearanceBuilder != null) ...[
+                  if (widget.appearanceBuilder != null ||
+                      (widget.shop.isOwner &&
+                          widget.messageBuilder != null)) ...[
                     const SizedBox(height: AppTokens.spaceMd),
                     _settingsGroup(
                       title: 'الفاتورة',
                       children: [
-                        FutureBuilder<LogoUploadRecord?>(
-                          future: _logoDraft,
-                          builder: (context, snapshot) => ListTile(
-                            key: const Key('workspace-invoice-appearance'),
-                            minVerticalPadding: 14,
-                            leading: const ExcludeSemantics(
-                              child: Icon(Icons.receipt_long_outlined),
-                            ),
-                            title: const Text('مظهر الفاتورة'),
-                            subtitle: switch (_logoApply) {
-                              _LogoApply.running => const Text(
-                                'جارٍ إضافة اللوجو إلى الفاتورة…',
+                        if (widget.appearanceBuilder != null)
+                          FutureBuilder<LogoUploadRecord?>(
+                            future: _logoDraft,
+                            builder: (context, snapshot) => ListTile(
+                              key: const Key('workspace-invoice-appearance'),
+                              minVerticalPadding: 14,
+                              leading: const ExcludeSemantics(
+                                child: Icon(Icons.receipt_long_outlined),
                               ),
-                              _LogoApply.failed => const Text(
-                                'تعذر إضافة اللوجو إلى الفاتورة. اضغط للمحاولة مرة أخرى.',
+                              title: const Text('مظهر الفاتورة'),
+                              subtitle: switch (_logoApply) {
+                                _LogoApply.running => const Text(
+                                  'جارٍ إضافة اللوجو إلى الفاتورة…',
+                                ),
+                                _LogoApply.failed => const Text(
+                                  'تعذر إضافة اللوجو إلى الفاتورة. اضغط للمحاولة مرة أخرى.',
+                                ),
+                                _LogoApply.done => null,
+                                _LogoApply.idle =>
+                                  snapshot.data?.fromRegistration == true
+                                      ? const Text(
+                                          'سيُضاف لوجو المحل إلى الفاتورة بعد تفعيل الاشتراك.',
+                                        )
+                                      : null,
+                              },
+                              trailing: const ExcludeSemantics(
+                                child: Icon(Icons.chevron_left),
                               ),
-                              _LogoApply.done => null,
-                              _LogoApply.idle =>
-                                snapshot.data?.fromRegistration == true
-                                    ? const Text(
-                                        'سيُضاف لوجو المحل إلى الفاتورة بعد تفعيل الاشتراك.',
-                                      )
-                                    : null,
-                            },
-                            trailing: const ExcludeSemantics(
-                              child: Icon(Icons.chevron_left),
+                              onTap: _openAppearance,
                             ),
-                            onTap: _openAppearance,
                           ),
-                        ),
+                        if (widget.shop.isOwner &&
+                            widget.messageBuilder != null)
+                          _link(
+                            'رسالة الفاتورة',
+                            Icons.chat_outlined,
+                            _openMessage,
+                            key: const Key('workspace-invoice-message'),
+                          ),
                       ],
                     ),
                   ],
@@ -624,6 +637,17 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
                     ),
                   ],
                 ),
+                if (widget.appVersion != null) ...[
+                  const SizedBox(height: AppTokens.spaceLg),
+                  Text(
+                    'الإصدار \u2066${widget.appVersion}\u2069',
+                    key: const Key('workspace-app-version'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

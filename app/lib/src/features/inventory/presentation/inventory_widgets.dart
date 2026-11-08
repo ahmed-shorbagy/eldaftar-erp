@@ -203,6 +203,7 @@ Widget inventoryField({
   FocusNode? focusNode,
   TextInputType keyboard = TextInputType.text,
   TextInputAction action = TextInputAction.next,
+  String? hint,
   bool enabled = true,
   bool cashAmount = false,
   int maxLength = 200,
@@ -229,7 +230,7 @@ Widget inventoryField({
         ? [CashInputFormatter(signed: resolvedKeyboard.signed == true)]
         : null,
     textInputAction: action,
-    decoration: ledgerFieldDecoration(context, label: label),
+    decoration: ledgerFieldDecoration(context, label: label, hint: hint),
   );
 }
 

@@ -338,16 +338,14 @@ void main() {
       expect(() => messageValues(op), throwsA(isA<MessageValidation>()));
     },
   );
-  test('Egyptian snapshot normalization preserves legacy rules only', () {
-    for (final phone in [
-      '01011111111',
-      '+201011111111',
-      '201011111111',
-      '(010) 1111-1111',
-    ]) {
-      expect(messageEgyptianPhone(phone), '201011111111');
-    }
-    for (final phone in [null, '', '+966501234567', 'abc', '0111111']) {
+  test('WhatsApp phone accepts Egypt and international numbers', () {
+    expect(messageWhatsappPhone('01012345678'), '201012345678');
+    expect(messageWhatsappPhone('+201012345678'), '201012345678');
+    expect(messageWhatsappPhone('(010) 1234-5678'), '201012345678');
+    expect(messageWhatsappPhone('+966512345678'), '966512345678');
+    expect(messageWhatsappUri('مرحبا', '+966512345678').path, '/966512345678');
+    for (final phone in [null, '', '201011111111', 'abc', '0111111']) {
+      expect(messageWhatsappPhone(phone), isNull);
       expect(
         () => messageWhatsappUri('x', phone),
         throwsA(isA<MessageValidation>()),

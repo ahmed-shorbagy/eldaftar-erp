@@ -1,4 +1,5 @@
 import 'package:eldafttar/src/features/daily_ledger/application/financial_gateway.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/invoice_whatsapp_share.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/invoice_pdf_share_dialog.dart';
 import 'package:eldafttar/src/features/invoice_appearance/application/invoice_appearance_contract.dart';
 import 'package:eldafttar/src/features/invoice_appearance/application/invoice_appearance_gateway.dart';
@@ -214,7 +215,7 @@ void main() {
   }
 
   testWidgets(
-    'sync ticks and live fields after the sale never block sharing the image',
+    'sync ticks and live fields after the sale never block sharing the PDF',
     (t) async {
       final tick = ValueNotifier<int>(0);
       final gateway = BrandShareGateway()..syncTick = tick;
@@ -232,13 +233,14 @@ void main() {
               canRead: () => true,
               canWrite: () => true,
               invalidations: tick,
-              rasterize: (pdf) async {
+              whatsapp: _RecordingWhatsapp((pdf, name, phone, text) async {
                 rasterInput = pdf;
+                names.add(name);
                 gateway.liveFields = {
                   'return_remainder': {'fully_returned': false},
                 };
-                return Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
-              },
+                return WhatsappShareResult.opened;
+              }),
               share: (bytes, name) async {
                 names.add(name);
                 return true;
@@ -250,13 +252,13 @@ void main() {
       await t.pumpAndSettle();
       tick.value++;
       await t.pumpAndSettle();
-      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.tap(find.byKey(const Key('invoice-whatsapp-pdf')));
       await t.pumpAndSettle();
       expect(gateway.creates, 1);
       expect(String.fromCharCodes(rasterInput!.take(4)), '%PDF');
-      expect(names.single, endsWith('.png'));
+      expect(names.single, endsWith('.pdf'));
       expect(find.textContaining('تغيّرت'), findsNothing);
-      expect(find.text('إرسال صورة عبر واتساب'), findsOneWidget);
+      expect(find.text('إرسال الفاتورة PDF على واتساب'), findsOneWidget);
       expect(find.byKey(const Key('invoice-pdf-share')), findsOneWidget);
       await t.pumpWidget(const SizedBox());
       tick.dispose();
@@ -285,24 +287,22 @@ void main() {
               operationId: brandOperation,
               canRead: () => true,
               canWrite: () => true,
-              rasterize: (pdf) async =>
-                  Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]),
               share: (bytes, name) async => opened.removeAt(0),
             ),
           ),
         ),
       );
       await t.pumpAndSettle();
-      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.tap(find.byKey(const Key('invoice-pdf-share')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('invoice-pdf-confirm')), findsNothing);
       expect(find.textContaining('لم يتأكد اكتمال المشاركة'), findsOneWidget);
       expect(find.textContaining('أكد المالك إرسال'), findsNothing);
-      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.tap(find.byKey(const Key('invoice-pdf-share')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('invoice-pdf-confirm')), findsOneWidget);
       expect(find.textContaining('اختر العميل في واتساب'), findsOneWidget);
-      await t.tap(find.byKey(const Key('invoice-image-share')));
+      await t.tap(find.byKey(const Key('invoice-pdf-share')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('invoice-pdf-confirm')), findsOneWidget);
       expect(find.textContaining('لم يتأكد اكتمال المشاركة'), findsNothing);
@@ -383,4 +383,25 @@ void main() {
     expect(document.totalGramsText, '4.391');
     expect(document.titleLabel, 'فاتورة بيع');
   });
+}
+
+final class _RecordingWhatsapp implements InvoiceWhatsappShare {
+  const _RecordingWhatsapp(this.onShare);
+
+  final Future<WhatsappShareResult> Function(
+    Uint8List pdf,
+    String filename,
+    String? phone,
+    String text,
+  )
+  onShare;
+
+  @override
+  Future<WhatsappShareResult> sharePdf({
+    required Uint8List pdf,
+    required String filename,
+    required String? phoneDigits,
+    required String text,
+    Rect? origin,
+  }) => onShare(pdf, filename, phoneDigits, text);
 }

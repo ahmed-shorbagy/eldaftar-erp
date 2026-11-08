@@ -19,10 +19,9 @@ import '../domain/opening_issue.dart';
 import '../domain/payment_method_catalog.dart';
 import '../domain/quantities.dart';
 import '../domain/invoice_pricing.dart';
-import '../../inventory/application/inventory_command_flow.dart';
 import '../../inventory/application/inventory_gateway.dart';
-import '../../inventory/domain/inventory_models.dart';
-import '../../inventory/presentation/inventory_copy.dart';
+import '../../customers/domain/phone_countries.dart';
+import '../../customers/presentation/customer_phone_field.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_tokens.dart';
@@ -90,6 +89,7 @@ class _ItemEntry {
 
   String category;
   bool customName = false;
+  bool countFromPicker = false;
   String? originalMilligrams;
   int karat;
   final TextEditingController name;
@@ -122,6 +122,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   final _purchaseTotal = TextEditingController();
   final _customerName = TextEditingController();
   final _customerPhone = TextEditingController();
+  final _phoneField = GlobalKey<CustomerPhoneFieldState>();
   final _note = TextEditingController();
   final _basePrice = TextEditingController();
   final _workmanship = TextEditingController(text: '0');
@@ -129,6 +130,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   final _otherChargesLabel = TextEditingController();
   final _discount = TextEditingController(text: '0');
   bool _priceDetails = false;
+  bool _linePricing = false;
   FinancialDraft? _review;
   String? _error;
   String? _key;
@@ -149,7 +151,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   bool _productsFailed = false;
   bool _productsLoading = false;
   int _productGeneration = 0;
-  PendingFinancialCommand? _productPending;
   final _otherCatalog = ValueNotifier(const TradeOtherCatalog(choices: []));
   final _pending = const PendingFinancialCommands();
   Map<String, Object?>? _frozenBody;
@@ -164,6 +165,19 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       widget.exchangeReturnPayload == null &&
       (widget.kind == FinancialKind.sale ||
           widget.kind == FinancialKind.purchase);
+
+  /// Owner rule 2026-11-06: purchased jewelry is booked as scrap at its karat.
+  /// Coins and bars keep their own stock (owner question Q3).
+  /// Exchange replacements keep the category the owner chose.
+  bool get _purchaseToScrap =>
+      widget.kind == FinancialKind.purchase &&
+      widget.exchangeReturnPayload == null;
+
+  String _bookedCategory(String category) =>
+      _purchaseToScrap && category == 'worked_jewelry' ? 'scrap' : category;
+
+  int _bookedKarat(String category, int karat) =>
+      category == 'scrap' && !ScrapKarats.allowed.contains(karat) ? 18 : karat;
 
   String get _title => widget.initialPayload != null
       ? 'تعديل العملية'
@@ -181,6 +195,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     super.initState();
     widget.syncTicks?.addListener(_accessChanged);
     unawaited(_loadScrapPreferences());
+    unawaited(_loadLinePricing());
     if (widget.kind != FinancialKind.expense) {
       _items.add(_ItemEntry(scrap: widget.kind == FinancialKind.scrapSale));
     }
@@ -265,6 +280,87 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     }
   }
 
+  bool _payloadHasLinePrices(Map<String, Object?>? payload) {
+    final items = payload?['items'];
+    return items is List &&
+        items.any((item) => item is Map && item['line_price_piastres'] != null);
+  }
+
+  Future<void> _loadLinePricing() async {
+    if (_payloadHasLinePrices(widget.initialPayload)) {
+      if (mounted) setState(() => _linePricing = true);
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final on = prefs.getBool('trade_line_pricing_${widget.shopId}') ?? false;
+      if (mounted) setState(() => _linePricing = on);
+    } catch (_) {
+      // A missing preference leaves the switch off.
+    }
+  }
+
+  Future<void> _setLinePricing(bool on) async {
+    setState(() {
+      _linePricing = on;
+      if (!on) {
+        for (final row in _items) {
+          row.price.clear();
+        }
+      }
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('trade_line_pricing_${widget.shopId}', on);
+    } catch (_) {
+      // The choice still applies to this screen when saving the preference fails.
+    }
+  }
+
+  BigInt _linePriceSum() {
+    var sum = BigInt.zero;
+    for (final row in _items) {
+      final parsed = Piastres.parsePounds(cashInputValue(row.price.text));
+      if (parsed is Accepted<Piastres>) sum += parsed.value.value;
+    }
+    return sum;
+  }
+
+  String _signedPounds(BigInt piastres) {
+    final negative = piastres < BigInt.zero;
+    final magnitude = negative ? -piastres : piastres;
+    final parsed = Piastres.parseWire(magnitude.toString());
+    if (parsed is! Accepted<Piastres>) return '—';
+    final text = parsed.value.poundsText;
+    return displayPounds(negative ? '-$text' : text);
+  }
+
+  Widget _linePriceSummary(ThemeData theme) {
+    final sum = _linePriceSum();
+    final compared = widget.kind == FinancialKind.purchase
+        ? Piastres.parsePounds(cashInputValue(_purchaseTotal.text))
+        : Piastres.parsePounds(_totalPounds() ?? '');
+    final difference = compared is Accepted<Piastres>
+        ? sum - compared.value.value
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'مجموع أسعار الأصناف: ${_signedPounds(sum)}',
+          key: const Key('trade-line-price-sum'),
+        ),
+        if (difference != null && difference != BigInt.zero)
+          Text(
+            'الفرق عن المدفوع: ${_signedPounds(difference)}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+      ],
+    );
+  }
+
   Future<void> _loadScrapPreferences() async {
     final shop = widget.shopId;
     try {
@@ -329,6 +425,21 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     if (widget.canRead?.call() == false ||
         widget.canWrite?.call() == false ||
         _busy) {
+      return;
+    }
+    final phoneState = _phoneField.currentState;
+    final storedPhone = _customerPhone.text.trim();
+    if (phoneState != null
+        ? !phoneState.validate()
+        : storedPhone.isNotEmpty &&
+              checkCustomerPhone(egypt, storedPhone) is PhoneRejected) {
+      setState(() => _error = 'راجع رقم الهاتف.');
+      return;
+    }
+    if (_fastEntry &&
+        _linePricing &&
+        _items.any((row) => row.price.text.trim().isEmpty)) {
+      setState(() => _error = 'أدخل سعر كل صنف أو أوقف «سعر لكل صنف».');
       return;
     }
     if (widget.kind != FinancialKind.expense) {
@@ -1023,12 +1134,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        TextField(
-          key: const Key('trade-customer-phone'),
+        CustomerPhoneField(
+          key: _phoneField,
           controller: _customerPhone,
-          textDirection: TextDirection.ltr,
-          keyboardType: TextInputType.phone,
-          decoration: ledgerFieldDecoration(context, label: 'رقم الهاتف'),
+          fieldKey: const Key('trade-customer-phone'),
+          label: 'رقم الهاتف',
         ),
         const SizedBox(height: 16),
         TextField(
@@ -1062,10 +1172,18 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     const SizedBox(height: 12),
     _categoryChooser(theme),
     const SizedBox(height: 12),
+    SwitchListTile(
+      key: const Key('trade-line-pricing'),
+      contentPadding: EdgeInsets.zero,
+      title: const Text('سعر لكل صنف'),
+      value: _linePricing,
+      onChanged: _busy ? null : _setLinePricing,
+    ),
     for (var index = 0; index < _items.length; index++) ...[
       _itemCard(index, theme),
       const SizedBox(height: 12),
     ],
+    if (_linePricing) ...[_linePriceSummary(theme), const SizedBox(height: 12)],
     _addItemButton(),
     const SizedBox(height: 16),
     ..._paymentFields(theme),
@@ -1073,6 +1191,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     if (widget.kind == FinancialKind.sale)
       ExpansionTile(
         key: const Key('trade-customer-disclosure'),
+        childrenPadding: const EdgeInsetsDirectional.only(top: 12, bottom: 8),
         title: const Text('تفاصيل العميل (اختياري)'),
         children: [
           if (widget.initialPayload != null) ...[
@@ -1092,12 +1211,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            key: const Key('trade-customer-phone'),
+          CustomerPhoneField(
+            key: _phoneField,
             controller: _customerPhone,
-            textDirection: TextDirection.ltr,
-            keyboardType: TextInputType.phone,
-            decoration: ledgerFieldDecoration(context, label: 'رقم الهاتف'),
+            fieldKey: const Key('trade-customer-phone'),
+            label: 'رقم الهاتف',
           ),
           const SizedBox(height: 12),
           TextField(
@@ -1111,6 +1229,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     if (widget.kind != FinancialKind.sale)
       ExpansionTile(
         key: const Key('trade-notes-disclosure'),
+        childrenPadding: const EdgeInsetsDirectional.only(top: 12, bottom: 8),
         title: const Text('ملاحظات (اختياري)'),
         children: [
           TextField(
@@ -1125,10 +1244,18 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   static const _otherJewelry = <(String, String)>[
     ('دبلة', 'worked_jewelry'),
+    ('محبس', 'worked_jewelry'),
     ('غويشة', 'worked_jewelry'),
     ('إسورة', 'worked_jewelry'),
+    ('انسيال', 'worked_jewelry'),
     ('خلخال', 'worked_jewelry'),
+    ('كوليه', 'worked_jewelry'),
     ('طقم', 'worked_jewelry'),
+    ('نص طقم', 'worked_jewelry'),
+    ('بروش', 'worked_jewelry'),
+    ('توينز', 'worked_jewelry'),
+    ('كف', 'worked_jewelry'),
+    ('ميدالية', 'worked_jewelry'),
   ];
 
   List<(String, String)> get _otherChoices {
@@ -1284,33 +1411,27 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   Widget _otherCategoryGrid(ThemeData theme) {
-    final canAdd =
-        widget.catalog != null &&
-        !_busy &&
-        !_unknown &&
-        widget.canWrite?.call() != false;
     return TradeChoiceGrid(
       key: const Key('trade-other-grid'),
+      columns: 5,
+      compactColumns: 3,
       children: [
         for (final choice in _otherChoices)
           TradeChoiceTile(
             key: Key('trade-select-${choice.$1}'),
             label: choice.$1,
+            dense: true,
             selected: _items.last.name.text == choice.$1,
             onTap: () => setState(() {
               final item = _items.last;
               item.customName = false;
+              item.countFromPicker = false;
               _showOther = true;
               item.name.text = choice.$1;
-              item.category = choice.$2;
-              item.karat = _categoryKarat(choice.$1);
+              final booked = _bookedCategory(choice.$2);
+              item.category = booked;
+              item.karat = _bookedKarat(booked, _categoryKarat(choice.$1));
             }),
-          ),
-        if (canAdd)
-          TradeAddTile(
-            key: const Key('trade-add-other-product'),
-            label: 'صنف جديد',
-            onTap: _addOtherProduct,
           ),
       ],
     );
@@ -1318,8 +1439,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   Future<TradeItemChoice?> _openItemPicker({required bool createOnly}) {
     _publishOthers();
-    final canCreate =
-        widget.catalog != null && widget.kind != FinancialKind.scrapSale;
     return showTradeItemPicker(
       context,
       title: 'اختر نوع القطعة التالية',
@@ -1328,139 +1447,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       reservedNames: _mainNames,
       onRetry: widget.catalog == null ? null : () => _loadProducts(reset: true),
       onMore: widget.catalog == null ? null : () => _loadProducts(reset: false),
-      onCreate: canCreate ? _createOtherProduct : null,
+      onCreate: null,
       createOnly: createOnly,
     );
-  }
-
-  Future<void> _addOtherProduct() async {
-    if (_busy ||
-        _unknown ||
-        widget.catalog == null ||
-        widget.canWrite?.call() == false) {
-      return;
-    }
-    final choice = await _openItemPicker(createOnly: true);
-    if (!mounted || choice == null || widget.canWrite?.call() == false) return;
-    setState(() {
-      final item = _items.last;
-      item.customName = false;
-      _showOther = true;
-      item.name.text = choice.label;
-      item.category = choice.category;
-      item.karat = _categoryKarat(choice.label);
-      _error = null;
-    });
-  }
-
-  /// Catalog-only save; the picker keeps [key] for a retry of the same name.
-  Future<TradeCreateOutcome> _createOtherProduct(
-    String name,
-    int karat,
-    String key,
-  ) async {
-    final catalog = widget.catalog;
-    if (catalog == null || widget.canWrite?.call() == false) {
-      return const TradeCreateFailed('لا يمكن إضافة صنف الآن.');
-    }
-    final flow = InventoryCommandFlow(
-      gateway: catalog,
-      statusGateway: widget.statusGateway,
-      store: _pending,
-    );
-    final InventorySubmitResult result;
-    final pending = _productPending;
-    try {
-      if (pending != null && pending.key == key) {
-        result = await flow.reconcile(
-          userId: widget.userId,
-          shopId: widget.shopId,
-          command: pending,
-          retry: true,
-        );
-      } else {
-        final day = await widget.gateway.dayState(callerUserId: widget.userId);
-        final dayId = day.dayId;
-        final version = day.dayVersion;
-        if (!day.isOpen || dayId == null || version == null || version < 1) {
-          return const TradeCreateFailed('افتح يوم العمل أولاً، ثم أضف الصنف.');
-        }
-        final anchor = DayAnchor.tryCreate(dayId, '$version');
-        if (anchor is! InventoryAccepted<DayAnchor>) {
-          return const TradeCreateFailed(
-            'تعذر قراءة يوم العمل. حدّث الدفتر وحاول مجدداً.',
-          );
-        }
-        final reviewed = reviewProduct(
-          day: anchor.value,
-          name: name,
-          category: 'worked_jewelry',
-          karat: karat,
-        );
-        if (reviewed is InventoryRejected<ReviewedCommand>) {
-          return TradeCreateFailed(inventoryIssueCopy(reviewed.code));
-        }
-        result = await flow.submit(
-          userId: widget.userId,
-          shopId: widget.shopId,
-          idempotencyKey: key,
-          command: (reviewed as InventoryAccepted<ReviewedCommand>).value,
-          readOnly: false,
-        );
-      }
-    } catch (_) {
-      return const TradeCreateFailed(
-        'تعذر الاتصال. تحقق من الشبكة ثم حاول مرة أخرى.',
-      );
-    }
-    switch (result) {
-      case InventorySaved(:final id):
-        _productPending = null;
-        await _loadProducts(reset: true);
-        if (mounted) {
-          setState(() => _rememberSavedOtherProduct(id, name, karat));
-          _publishOthers();
-        }
-        return TradeCreated(TradeItemChoice(name, 'worked_jewelry'));
-      case InventoryFailed(:final code) || InventoryNotSent(:final code):
-        _productPending = null;
-        return TradeCreateFailed(inventoryFailureCopy(code));
-      case InventoryUnconfirmed(:final command, :final statusUnknown):
-        _productPending = command;
-        return TradeCreateFailed(
-          statusUnknown
-              ? 'حالة الحفظ غير مؤكدة. تحقق من الاتصال ثم أعد المحاولة.'
-              : 'لم نتأكد من حفظ الصنف. أعد المحاولة بنفس الاسم.',
-          retryable: true,
-        );
-    }
-  }
-
-  void _rememberSavedOtherProduct(String id, String name, int karat) {
-    final existing = _products.indexWhere(
-      (product) =>
-          product.name == name &&
-          product.category == 'worked_jewelry' &&
-          product.karat == karat,
-    );
-    if (existing >= 0) {
-      _products = [
-        _products[existing],
-        for (final product in _products.indexed)
-          if (product.$1 != existing) product.$2,
-      ];
-      return;
-    }
-    _products = [
-      CatalogProduct(
-        id: id,
-        name: name,
-        category: 'worked_jewelry',
-        karat: karat,
-        createdAt: '',
-      ),
-      ..._products,
-    ];
   }
 
   Widget _addItemButton() => TradeAddItemButton(
@@ -1523,11 +1512,13 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         final position = _items.indexOf(row);
         for (final entry in selected.indexed) {
           final line = entry.$1 == 0 ? row : _ItemEntry();
-          line.category = category;
+          final booked = _bookedCategory(category);
+          line.category = booked;
           line.customName = false;
-          line.karat = category == 'coin' ? 21 : 24;
+          line.karat = _bookedKarat(booked, category == 'coin' ? 21 : 24);
           line.name.text = entry.$2.suggestion.label;
           line.count.text = entry.$2.count.wire;
+          line.countFromPicker = true;
           line.grams.text =
               gramEntryValue(entry.$2.milligrams.gramsText, decimalPlaces: 2) ??
               entry.$2.milligrams.gramsText;
@@ -1541,9 +1532,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       setState(() {
         if (add) _items.add(row);
         row.customName = false;
+        row.countFromPicker = false;
         row.name.text = label == 'أخرى' ? '' : label;
-        row.category = category;
-        row.karat = _categoryKarat(label);
+        final booked = _bookedCategory(category);
+        row.category = booked;
+        row.karat = _bookedKarat(booked, _categoryKarat(label));
         _showOther =
             label == 'أخرى' ||
             _otherChoices.any((choice) => choice.$1 == label);
@@ -1551,7 +1544,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         if (add && !_fastEntry) _step = 1;
       });
     }
-    _scrollToItem(row);
+    if (label != 'أخرى') _scrollToItem(row);
   }
 
   void _scrollToItem(_ItemEntry row) {
@@ -1891,17 +1884,22 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     final row = _items[index];
     final categories = widget.kind == FinancialKind.scrapSale
         ? <StockCategory>[]
-        : [...openingCategoryChoices];
+        : [
+            for (final category in openingCategoryChoices)
+              if (!_purchaseToScrap ||
+                  category != StockCategory.workedJewelry ||
+                  row.category == 'worked_jewelry')
+                category,
+          ];
     final categoryCode = row.category;
-    final karats = categoryCode == 'scrap'
-        ? (ScrapKarats.allowed
-              .where(
-                (karat) =>
-                    !_hiddenScrapKarats.contains(karat) || karat == row.karat,
-              )
-              .toList()
-            ..sort())
-        : (StockCategory.byCode(categoryCode)!.karats.toList()..sort());
+    final karats = orderedKarats(
+      categoryCode == 'scrap'
+          ? ScrapKarats.allowed.where(
+              (karat) =>
+                  !_hiddenScrapKarats.contains(karat) || karat == row.karat,
+            )
+          : StockCategory.byCode(categoryCode)!.karats,
+    );
     return Card(
       key: row.anchor,
       child: Padding(
@@ -1950,11 +1948,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   if (value == null) return;
                   setState(() {
                     row.category = value;
+                    row.countFromPicker = false;
                     final allowed = value == 'scrap'
                         ? ScrapKarats.allowed
                         : StockCategory.byCode(value)!.karats;
                     if (!allowed.contains(row.karat)) {
-                      row.karat = (allowed.toList()..sort()).first;
+                      row.karat = orderedKarats(allowed).first;
                     }
                   });
                 },
@@ -1981,11 +1980,24 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 first: TextField(
                   key: Key('trade-count-$index'),
                   controller: row.count,
+                  readOnly: row.countFromPicker,
+                  onTap: row.countFromPicker
+                      ? () => _chooseCategory(
+                          row.category == 'coin' ? 'جنيهات' : 'سبائك',
+                          row.category,
+                          target: row,
+                        )
+                      : null,
                   textDirection: TextDirection.ltr,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
                   onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-                  decoration: ledgerFieldDecoration(context, label: 'العدد'),
+                  decoration: ledgerFieldDecoration(context, label: 'العدد')
+                      .copyWith(
+                        suffixIcon: row.countFromPicker
+                            ? const Icon(Icons.lock_outline, size: 18)
+                            : null,
+                      ),
                 ),
                 second: TextField(
                   key: Key('trade-grams-$index'),
@@ -2001,7 +2013,6 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   decoration: ledgerFieldDecoration(
                     context,
                     label: 'الوزن بالجرام',
-                    helper: 'دقة 0.01 جرام · منزلتان عشريتان كحد أقصى',
                   ),
                 ),
               )
@@ -2020,24 +2031,18 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 decoration: ledgerFieldDecoration(
                   context,
                   label: 'الوزن بالجرام',
-                  helper: 'دقة 0.01 جرام · منزلتان عشريتان كحد أقصى',
                 ),
               ),
-            if (_fastEntry &&
-                widget.initialPayload != null &&
-                (widget.initialPayload!['items'] as List).any(
-                  (item) => item is Map && item['line_price_piastres'] != null,
-                ))
-              TextField(
-                key: Key('trade-edit-line-price-$index'),
+            if (_fastEntry && _linePricing) ...[
+              const SizedBox(height: 12),
+              ledgerMoneyField(
+                key: Key('trade-line-price-$index'),
+                context: context,
                 controller: row.price,
-                inputFormatters: const [CashInputFormatter()],
-                textDirection: TextDirection.ltr,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: ledgerFieldDecoration(context, label: 'قيمة الصنف'),
+                label: 'سعر الصنف',
+                onChanged: (_) => setState(() {}),
               ),
+            ],
             ..._nominalWidgets(row, index),
             const SizedBox(height: 12),
             if (_fastEntry)
@@ -2418,7 +2423,7 @@ String _issueCopy(FinancialIssue issue) => switch (issue) {
     'راجع وسائل الدفع ومبالغها؛ لا تكرر الوسيلة نفسها.',
   FinancialIssue.tenderMismatch => 'مجموع وسائل الدفع لا يساوي المبلغ المطلوب.',
   FinancialIssue.invalidItem => 'راجع الصنف والعيار والعدد والوزن والسعر.',
-  FinancialIssue.linePriceMismatch => 'أسعار الأصناف لا تساوي السعر الكلي.',
+  FinancialIssue.linePriceMismatch => 'أسعار الأصناف لا تساوي الإجمالي.',
   FinancialIssue.missingDescription => 'أدخل وصفاً للمصروف.',
   FinancialIssue.invalidCustomer => 'راجع بيانات العميل والملاحظة.',
   FinancialIssue.pricingMismatch =>

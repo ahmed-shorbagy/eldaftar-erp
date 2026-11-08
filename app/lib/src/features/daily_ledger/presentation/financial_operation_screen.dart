@@ -884,7 +884,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
 }
 
 String? whatsappPhone(Object? value) {
-  return messageEgyptianPhone(value);
+  return messageWhatsappPhone(value);
 }
 
 String _pounds(Object? value) {

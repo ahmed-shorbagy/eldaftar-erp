@@ -58,7 +58,9 @@ void main() {
       'Cairo',
     )..addFont(Future.value(ByteData.sublistView(font)))).load();
   });
-  testWidgets('More omits superseded text-only message settings', (t) async {
+  testWidgets('More opens the invoice message from the invoice group', (
+    t,
+  ) async {
     size(t);
     final g = MessageFake(), locker = MessageLocker();
     await t.pumpWidget(
@@ -78,8 +80,8 @@ void main() {
     );
     await t.pumpAndSettle();
     await tapMessage(t, find.byKey(const Key('workspace-nav-4')));
-    expect(find.byKey(const Key('workspace-invoice-message')), findsNothing);
-    expect(find.byKey(const Key('message-editor')), findsNothing);
+    await tapMessage(t, find.byKey(const Key('workspace-invoice-message')));
+    expect(find.byKey(const Key('message-editor')), findsOneWidget);
     expect(g.sends, 0);
   });
   testWidgets(

@@ -187,7 +187,7 @@ class _MessageHandoffDialogState extends State<MessageHandoffDialog>
                 'مراجعة النص: \u2066${_preview!.source.profile.revision}\u2069',
               ),
               Text(
-                'الوجهة من المستند المؤكد: \u2066${messageEgyptianPhone((_preview!.source.operation['payload'] as Map)['customer_phone'])}\u2069',
+                'الوجهة من المستند المؤكد: \u2066${messageWhatsappPhone((_preview!.source.operation['payload'] as Map)['customer_phone'])}\u2069',
                 textDirection: TextDirection.rtl,
               ),
               const SizedBox(height: 12),

@@ -211,26 +211,15 @@ final class _Body {
         note: 'كما سُجل عند تأكيد الشراء',
       ),
     ],
-    if (document.description != null || document.note != null) ...[
+    if (document.description != null) ...[
       pw.SizedBox(height: 10),
       pw.Container(
         width: double.infinity,
         padding: const pw.EdgeInsets.all(10),
         decoration: style.box(),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            if (document.description != null)
-              pdfText(
-                document.description!,
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-            if (document.note != null)
-              pdfText(
-                document.note!,
-                style: pw.TextStyle(color: style.muted, fontSize: 9.5),
-              ),
-          ],
+        child: pdfText(
+          document.description!,
+          style: const pw.TextStyle(fontSize: 10),
         ),
       ),
     ],
@@ -332,7 +321,7 @@ final class _Body {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pdfText(
-          document.kind == 'sale' ? 'العميل' : 'البائع',
+          'العميل',
           style: pw.TextStyle(color: style.muted, fontSize: 8.5),
         ),
         if (document.customerName != null)

@@ -1,12 +1,14 @@
 import '../../../theme/amount_format.dart';
+import '../../customers/domain/customer_rules.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/postgres_integer.dart';
 import '../../daily_ledger/domain/quantities.dart';
 
 const defaultInvoiceMessage =
-    'ملخص العملية رقم {sequence}\n'
-    '{kind}\nالإجمالي: {total}\nيرجى مراجعة تفاصيل العملية قبل الإرسال.';
-const messageRendererVersion = 1;
+    'أهلاً بحضرتك، يسعدنا تعاملكم مع {shop_name}.\n'
+    'فاتورتكم رقم {sequence} جاهزة بإجمالي {total}.\n'
+    'شكراً لتعاملكم.';
+const messageRendererVersion = 2;
 const messageTokens = <String, String>{
   'sequence': 'رقم العملية',
   'kind': 'نوع العملية',
@@ -288,19 +290,18 @@ String messageOperationTime(Map<String, Object?> source) {
   return '${date.day} ${months[date.month - 1]} ${date.year}، ${local.substring(11, 16)}';
 }
 
-String? messageEgyptianPhone(Object? raw) {
+String? messageWhatsappPhone(Object? raw) {
   if (raw is! String) return null;
-  final phone = raw.trim().replaceAll(RegExp(r'[\s()-]'), '');
-  if (RegExp(r'^01[0-9]{9}$').hasMatch(phone)) return '2$phone';
-  if (RegExp(r'^\+201[0-9]{9}$').hasMatch(phone)) return phone.substring(1);
-  return RegExp(r'^201[0-9]{9}$').hasMatch(phone) ? phone : null;
+  final normalized = normalizeCustomerPhone(raw);
+  if (normalized == null) return null;
+  return normalized.substring(1);
 }
 
 Uri messageWhatsappUri(String body, Object? snapshotPhone) {
-  final phone = messageEgyptianPhone(snapshotPhone);
+  final phone = messageWhatsappPhone(snapshotPhone);
   if (phone == null) {
     throw const MessageValidation(
-      'لا يحتوي المستند المؤكد على رقم مصري صالح لواتساب.',
+      'لا يحتوي المستند المؤكد على رقم هاتف صالح لواتساب.',
     );
   }
   validateMessageUnicode(body);

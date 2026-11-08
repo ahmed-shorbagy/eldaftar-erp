@@ -4,6 +4,7 @@ import '../../../theme/amount_format.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/ledger_home_metrics.dart';
 import '../domain/gold_metrics.dart';
+import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
 import 'ledger_balance_sections.dart';
@@ -22,7 +23,7 @@ class LedgerNormalizationControl extends StatelessWidget {
     initialValue: value,
     decoration: const InputDecoration(labelText: 'عرض الذهب بمحيف عيار'),
     items: [
-      for (final karat in normalizationKarats)
+      for (final karat in orderedKarats(normalizationKarats))
         DropdownMenuItem(value: karat, child: Text('عيار $karat')),
     ],
     onChanged: (next) {

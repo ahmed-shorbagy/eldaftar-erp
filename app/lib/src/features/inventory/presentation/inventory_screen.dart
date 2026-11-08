@@ -517,6 +517,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
         const SizedBox(height: 16),
         _filterBlock(),
         const SizedBox(height: 16),
+        FilledButton.icon(
+          key: const Key('inventory-new-item'),
+          onPressed: _writesEnabled
+              ? () => _open(CatalogProductForm(scope: _scope))
+              : null,
+          icon: const Icon(Icons.add),
+          label: const Text('صنف جديد'),
+        ),
+        const SizedBox(height: 16),
         Focus(
           focusNode: _totalsFocus,
           child: Column(
@@ -852,15 +861,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             const SizedBox(height: 8),
             _action(
-              'منتج في الكتالوج',
-              const Key('inventory-product'),
-              null,
-              () {
-                _open(CatalogProductForm(scope: _scope));
-              },
-              filled: false,
-            ),
-            _action(
               'فئة سبيكة اسمية',
               const Key('inventory-denomination'),
               null,
@@ -879,9 +879,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _filterBlock() {
-    final karats = _category == null
-        ? ScrapKarats.allowed
-        : karatsFor(_category!);
+    final karats = karatsFor(_category ?? 'scrap');
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

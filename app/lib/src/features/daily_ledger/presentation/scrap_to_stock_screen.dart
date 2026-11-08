@@ -48,10 +48,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   bool _busy = false;
   bool _unknown = false;
 
-  List<int> get _availableKarats => [
+  List<int> get _availableKarats => orderedKarats([
     for (final line in widget.scrap)
       if (_wireWeight(line) > BigInt.zero) line.karat,
-  ]..sort();
+  ]);
 
   List<StockCategory> get _categories => [
     for (final category in StockCategory.canonicalOrder)

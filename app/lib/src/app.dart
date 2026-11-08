@@ -105,6 +105,7 @@ class ElDafttarApp extends StatelessWidget {
               helpGateway: helpGateway,
               supportGateway: supportGateway,
               auditTrailGateway: auditTrailGateway,
+              appVersion: appVersion,
               onToggleTheme: themeController.toggle,
             ),
           ),

@@ -538,6 +538,18 @@ void main() {
       find.byKey(const Key('inventory-add')),
     );
     expect(add.onPressed, isNull);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('inventory-new-item'), skipOffstage: false),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      find.byKey(const Key('inventory-product'), skipOffstage: false),
+      findsNothing,
+    );
     expect(inventory.posts, 0);
     expect(locker.value, isNull);
     expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);
@@ -562,6 +574,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    expect(find.byKey(const Key('inventory-new-item')), findsOneWidget);
+    expect(find.byKey(const Key('inventory-product')), findsNothing);
     expect(find.byKey(const Key('inventory-cash')), findsOneWidget);
     expect(find.byKey(const Key('inventory-cash-cash')), findsOneWidget);
     await tester.tap(find.byKey(const Key('inventory-search')));

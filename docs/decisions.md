@@ -1,6 +1,10 @@
 # Architecture and product decisions
 
-## Current decision — 2026-11-08
+## Current decision — 2026-11-08, trade and WhatsApp
+
+The 2026-11-06 owner notes are implemented in the Flutter client only. [ADR 0040](adr/0040-owner-feedback-2026-11-06-trade-invoice-whatsapp.md) records purchased jewelry booked as scrap, karat order 18/21/24/22/14, optional per-line prices, invoices that keep the shop name and omit the internal note, a PDF-and-message WhatsApp handoff, international customer phones with Egypt as the default, the locked coin and bar count, the dense «أخرى» list, and «صنف جديد» only in الجرد الفوري. It amends ADR 0022 and keeps ADR 0006. No schema or R2 change. Not committed and not deployed. Android, iOS, and Windows device acceptance remain open. [Validation](operations/owner-feedback-2026-11-06-validation.md).
+
+## Previous decision — 2026-11-08, ledger and navigation
 
 The 2026-11-08 owner notes are implemented in the Flutter client only. [ADR 0039](adr/0039-owner-feedback-2026-11-08-ledger-and-navigation.md) records the home labels «وزن مباع» and «وزن مشترى», money tiles without the normalized gold line, per-karat purchase weights including scrap, removal of the extra metrics sheet, three item rows with a price column, the note dot, the «أهلاً» header, the drawer’s removal into «المزيد», the «لوجو المحل» name, and automatic invoice-logo application. That last step amends ADR 0021’s manual shop-image opt-in. Review, versioning, the active-entitlement write, and immutable issued copies stay. No schema or R2 change. Not committed and not deployed. Owner and device acceptance remain open. [Validation](operations/owner-feedback-2026-11-08-validation.md).
 

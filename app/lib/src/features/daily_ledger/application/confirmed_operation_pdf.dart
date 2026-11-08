@@ -151,10 +151,6 @@ Future<Uint8List> buildConfirmedOperationPdf(
           for (final raw in tenders)
             if (raw is Map)
               _row(_method(raw['method']), _pounds(raw['piastres']), ink),
-        if ((payload['note'] ?? '').toString().isNotEmpty) ...[
-          pw.SizedBox(height: 12),
-          pdfText('ملاحظة: ${payload['note']}'),
-        ],
       ],
     ),
   );

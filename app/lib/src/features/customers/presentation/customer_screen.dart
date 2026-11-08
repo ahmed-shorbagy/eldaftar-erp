@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
+import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../application/customer_contract.dart';
 import '../application/customer_gateway.dart';
 import '../application/customer_command_flow.dart';
 import '../domain/customer_rules.dart';
+import 'customer_phone_field.dart';
 import '../domain/customer_statistics.dart';
 import '../domain/customer_saved_number.dart';
 import '../domain/customer_contact.dart';
@@ -1096,7 +1098,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
         spacing: AppTokens.spaceMd,
         runSpacing: AppTokens.spaceSm,
         children: [
-          for (final karat in compact ? [18, 21, 24] : customerKarats)
+          for (final karat in orderedKarats(
+            compact ? const [18, 21, 24] : customerKarats,
+          ))
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Column(
@@ -1258,22 +1262,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
                 children: [
-                  TextFormField(
-                    key: Key('customer-phone-$i'),
+                  CustomerPhoneField(
                     controller: _phones[i].controller,
+                    fieldKey: Key('customer-phone-$i'),
+                    label: 'رقم الهاتف ${i + 1}',
                     enabled: !_blocked,
-                    keyboardType: TextInputType.phone,
-                    textDirection: TextDirection.ltr,
-                    decoration: InputDecoration(
-                      labelText: 'رقم الهاتف ${i + 1}',
-                      helperText: 'رقم مصري محلي أو رقم دولي يبدأ بـ +',
-                      helperMaxLines: 3,
-                      errorMaxLines: 3,
-                    ),
-                    validator: (v) =>
-                        normalizeCustomerPhone((v ?? '').trim()) == null
-                        ? customerError('invalid_phone')
-                        : null,
+                    allowEmpty: false,
+                    emptyMessage: customerError('invalid_phone'),
                   ),
                   Row(
                     children: [
