@@ -113,6 +113,8 @@ RepairDetail parseRepairDetail(Object? raw) {
   if (events is! List || custody is! List) {
     throw const FormatException('repair');
   }
+  final collections = json['collections'] ?? const <Object?>[];
+  if (collections is! List) throw const FormatException('repair');
   final operation = json['financial_operation_id'];
   return RepairDetail(
     summary: _summary(json),
@@ -143,6 +145,14 @@ RepairDetail parseRepairDetail(Object? raw) {
             allowZero: false,
           ),
           karat: _karat(_map(item)['karat']),
+          createdAtShop: _text(_map(item)['created_at_shop']),
+        ),
+    ],
+    collections: [
+      for (final item in collections)
+        RepairCollectionView(
+          operationId: _uuid(_map(item)['operation_id']),
+          piastres: _money(_map(item)['piastres']),
           createdAtShop: _text(_map(item)['created_at_shop']),
         ),
     ],

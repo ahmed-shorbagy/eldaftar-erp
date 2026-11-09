@@ -22,6 +22,7 @@ class LedgerDateScreen extends StatefulWidget {
     required this.onOperation,
     this.syncTicks,
     this.loadItems,
+    this.initialDate,
   });
   final LedgerDateGateway gateway;
   final String userId, shopId;
@@ -29,6 +30,7 @@ class LedgerDateScreen extends StatefulWidget {
   final Future<void> Function(LedgerFeedLine) onOperation;
   final Future<List<LedgerLineItem>?> Function(String)? loadItems;
   final Listenable? syncTicks;
+  final String? initialDate;
   @override
   State<LedgerDateScreen> createState() => _LedgerDateScreenState();
 }
@@ -43,6 +45,7 @@ class _LedgerDateScreenState extends State<LedgerDateScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedDate = widget.initialDate;
     widget.syncTicks?.addListener(_sync);
     unawaited(_preferences());
     unawaited(_load());
@@ -198,7 +201,13 @@ class _LedgerDateScreenState extends State<LedgerDateScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('دفتر حسب التاريخ')),
+      appBar: AppBar(
+        title: Text(
+          widget.initialDate == null
+              ? 'دفتر حسب التاريخ'
+              : 'دفتر ${formatLedgerHeading(widget.initialDate!)}',
+        ),
+      ),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -209,16 +218,17 @@ class _LedgerDateScreenState extends State<LedgerDateScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                OutlinedButton.icon(
-                  key: const Key('ledger-select-date'),
-                  onPressed: snapshot == null || _busy ? null : _chooseDate,
-                  icon: const Icon(Icons.calendar_month_outlined),
-                  label: Text(
-                    snapshot == null
-                        ? 'اختيار التاريخ بعد تحميل الدفتر'
-                        : formatServerDate(snapshot.businessDate),
+                if (widget.initialDate == null)
+                  OutlinedButton.icon(
+                    key: const Key('ledger-select-date'),
+                    onPressed: snapshot == null || _busy ? null : _chooseDate,
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: Text(
+                      snapshot == null
+                          ? 'اختيار التاريخ بعد تحميل الدفتر'
+                          : formatServerDate(snapshot.businessDate),
+                    ),
                   ),
-                ),
                 if (_busy) const LinearProgressIndicator(),
                 if (_error != null) ...[
                   Text(_error!),

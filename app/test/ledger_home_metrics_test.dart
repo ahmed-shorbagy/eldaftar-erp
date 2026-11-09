@@ -4,11 +4,39 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
+    'a saved repair figure stays selected and an older layout leaves it off the home',
+    () {
+      final saved = migrateLedgerMetricLayout(const [
+        'metric:repair',
+        'metric:total_cash',
+        'metric:sale',
+        'metric:purchase',
+        'metric:sale_gold',
+        'metric:purchase_gold',
+      ]);
+      expect(saved.homeIds, contains('repair'));
+      final older = migrateLedgerMetricLayout(const [
+        'metric:total_cash',
+        'metric:sale',
+        'metric:purchase',
+        'metric:sale_gold',
+        'metric:purchase_gold',
+        'metric:expense',
+      ]);
+      expect(older.homeIds, ledgerDefaultHomeMetrics);
+      expect(older.homeIds, isNot(contains('repair')));
+      expect(older.moreIds, contains('repair'));
+    },
+  );
+
+  test(
     'default layout has six figures and eight distinct karat choices in More',
     () {
       final layout = migrateLedgerMetricLayout(null);
       expect(layout.homeIds, ledgerDefaultHomeMetrics);
-      expect(layout.moreIds, hasLength(8));
+      expect(layout.moreIds, hasLength(9));
+      expect(layout.moreIds, contains('repair'));
+      expect(layout.homeIds, isNot(contains('repair')));
       expect(layout.homeIds, isNot(contains('total_gold')));
       expect(layout.isValid, isTrue);
       expect(layout.homeIds, isNot(contains('operations')));
@@ -38,7 +66,7 @@ void main() {
       ]);
       expect(layout.homeIds.length, 6);
       expect(layout.homeIds, isNot(contains('operations')));
-      expect(layout.moreIds, hasLength(8));
+      expect(layout.moreIds, hasLength(9));
       expect(layout.homeIds, isNot(contains('total_gold')));
     },
   );

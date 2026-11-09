@@ -2154,6 +2154,16 @@ class HttpOpeningGateway
   }
 
   @override
+  Future<RepairRpcResult> collectOutstanding({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  }) => post(
+    callerUserId: callerUserId,
+    command: repairCollectCommand(idempotencyKey, payload),
+  );
+
+  @override
   Future<RepairRpcResult> post({
     required String callerUserId,
     required PendingFinancialCommand command,

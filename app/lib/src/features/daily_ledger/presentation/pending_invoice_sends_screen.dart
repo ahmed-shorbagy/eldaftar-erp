@@ -78,7 +78,7 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
       if (!mounted) return;
       setState(() {
         if (reset) _items.clear();
-        _items.addAll(page.items);
+        _items.addAll(page.items.where((item) => item.kind == 'sale'));
         _nextBefore = page.nextBeforeSequence;
         _loaded = true;
       });
@@ -104,7 +104,7 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
           syncTicks: widget.syncTicks,
           line: LedgerFeedLine(
             kind: item.kind,
-            labelAr: item.kind == 'sale' ? 'بيع' : 'شراء',
+            labelAr: 'بيع',
             operationId: item.operationId,
             actorDisplayName: '',
             occurredAt: '',
@@ -142,8 +142,10 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
                       padding: const EdgeInsets.all(16),
                       children: [
                         Text(
-                          'فواتير العمليات المؤكدة التي لم يؤكد المالك إرسالها عبر واتساب.',
-                          style: theme.textTheme.bodyMedium,
+                          'فواتير البيع غير المرسلة في اليوم المفتوح فقط.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         if (_loading) const LinearProgressIndicator(),
                         if (_failed)
@@ -155,7 +157,9 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
                         if (_items.isEmpty && !_loading) ...[
                           const SizedBox(height: 32),
                           const Center(
-                            child: Text('لا توجد فواتير بانتظار تأكيد الإرسال'),
+                            child: Text(
+                              'لا توجد فواتير بيع معلقة في اليوم المفتوح.',
+                            ),
                           ),
                         ],
                         for (final item in _items)

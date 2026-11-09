@@ -417,7 +417,8 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                 Text(switch (widget.line.kind) {
                                   'sale' ||
                                   'scrap_sale' ||
-                                  'repair_fee' => 'النقد المحصّل',
+                                  'repair_fee' ||
+                                  'repair_fee_collection' => 'النقد المحصّل',
                                   'purchase' => 'سعر الشراء الكلي',
                                   'customer_return' => 'المبلغ المرتجع',
                                   'sale_return' || 'purchase_return' =>
@@ -436,7 +437,8 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           ),
                         ),
                       ],
-                      if (widget.line.kind == 'repair_fee') ...[
+                      if (widget.line.kind == 'repair_fee' ||
+                          widget.line.kind == 'repair_fee_collection') ...[
                         Text('القطعة: ${details['description'] ?? ''}'),
                         Text(
                           'الأجرة النهائية: ${_pounds(details['final_fee_piastres'])}',

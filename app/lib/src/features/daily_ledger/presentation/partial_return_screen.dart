@@ -1,4 +1,5 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
 
 import '../application/financial_gateway.dart';
@@ -545,6 +546,8 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -760,6 +763,9 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                         maxLength: 1000,
                         minLines: 2,
                         maxLines: 4,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => dismissKeyboard(),
+                        onTapOutside: dismissKeyboardOnTapOutside,
                         decoration: ledgerFieldDecoration(
                           context,
                           label: 'ملاحظة',

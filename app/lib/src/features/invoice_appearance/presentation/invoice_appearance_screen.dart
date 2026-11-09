@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../../shop_accounts/domain/shop_image.dart';
@@ -716,6 +717,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
               maxWidth: AppTokens.contentMaxWidth,
             ),
             child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
@@ -749,6 +751,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
                     maxLength: invoiceAddressMax,
                     minLines: 2,
                     maxLines: invoiceAddressMaxLines,
+                    onTapOutside: dismissKeyboardOnTapOutside,
                     decoration: const InputDecoration(labelText: 'العنوان'),
                     onChanged: (_) => setState(_markDirty),
                   ),

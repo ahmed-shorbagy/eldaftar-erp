@@ -1,5 +1,6 @@
 import '../../../theme/cash_input.dart';
 import '../../../theme/gram_input.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -775,6 +776,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   Expanded(
                     child: ListView(
                       controller: _guideScroll,
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                       children: [
                         if (widget.practice) ...[
@@ -1108,6 +1111,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             key: const Key('trade-note'),
             controller: _note,
             maxLines: 3,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => dismissKeyboard(),
+            onTapOutside: dismissKeyboardOnTapOutside,
             decoration: ledgerFieldDecoration(
               context,
               label: 'ملاحظات (اختياري)',
@@ -1136,6 +1142,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           key: const Key('trade-note'),
           controller: _note,
           maxLines: 3,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => dismissKeyboard(),
+          onTapOutside: dismissKeyboardOnTapOutside,
           decoration: ledgerFieldDecoration(context, label: 'ملاحظات'),
         ),
       ],

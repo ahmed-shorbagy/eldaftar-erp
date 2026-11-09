@@ -42,6 +42,7 @@ String repairEventLabel(String kind) => switch (kind) {
   'repair_handover' => 'تسليم القطعة',
   'repair_cancel' => 'إلغاء وإعادة القطعة',
   'repair_archive' => 'أرشفة السجل',
+  'repair_collect' => 'تحصيل المتبقي',
   _ => 'تحديث السجل',
 };
 
@@ -52,6 +53,7 @@ String repairIssueText(RepairIssue issue) => switch (issue) {
   RepairIssue.weightRequired => 'أدخل وزنًا أكبر من صفر بثلاث خانات عشرية.',
   RepairIssue.feeRequired => 'أدخل أجرة التسليم.',
   RepairIssue.collectedExceedsFee => 'المحصّل لا يتجاوز الأجرة النهائية.',
+  RepairIssue.exceedsOutstanding => 'المبلغ أكبر من المتبقي.',
   RepairIssue.collectionMismatch => 'طريقة التحصيل لا تطابق المبلغ.',
   RepairIssue.overflow => 'القيمة أكبر من الحد المسموح.',
 };
@@ -59,6 +61,7 @@ String repairIssueText(RepairIssue issue) => switch (issue) {
 String repairFailureText(String code) => switch (code) {
   'stale_repair' => 'تغيّر السجل. أعد التحميل ثم أعد المحاولة.',
   'repair_not_ready' => 'التسليم متاح فقط من حالة جاهز للتسليم.',
+  'repair_not_delivered' => 'التحصيل متاح بعد تسليم القطعة فقط.',
   'repair_not_active' => 'الإلغاء متاح للسجلات النشطة فقط.',
   'repair_not_terminal' => 'الأرشفة للسجلات المسلّمة أو الملغاة فقط.',
   'shop_not_active' => 'الاشتراك منتهٍ. العرض للقراءة فقط.',

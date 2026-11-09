@@ -10,6 +10,7 @@ enum RepairIssue {
   feeRequired,
   collectedExceedsFee,
   collectionMismatch,
+  exceedsOutstanding,
   overflow,
 }
 
@@ -132,6 +133,36 @@ final class RepairHandoverCommand {
       'expected_day_id': expectedDayId,
       'expected_day_version': expectedDayVersion.toString(),
     },
+  };
+}
+
+final class RepairCollectCommand {
+  const RepairCollectCommand({
+    required this.repairId,
+    required this.expectedVersion,
+    required this.amountPiastres,
+    required this.outstandingPiastres,
+    required this.tenders,
+    required this.dayId,
+    required this.dayVersion,
+  });
+
+  final String repairId;
+  final BigInt expectedVersion;
+  final BigInt amountPiastres;
+  final BigInt outstandingPiastres;
+  final List<RepairTender> tenders;
+  final String dayId;
+  final BigInt dayVersion;
+
+  Map<String, Object?> payload() => {
+    'version': 1,
+    'repair_id': repairId,
+    'expected_version': expectedVersion.toString(),
+    'day_id': dayId,
+    'day_version': dayVersion.toString(),
+    'amount_piastres': amountPiastres.toString(),
+    'tenders': [for (final tender in tenders) tender.toJson()],
   };
 }
 
@@ -352,6 +383,45 @@ abstract final class RepairRules {
         expectedDayVersion: collected == BigInt.zero
             ? null
             : expectedDayVersion,
+      ),
+    );
+  }
+
+  static RepairRulesResult<RepairCollectCommand> reviewCollect({
+    required String repairId,
+    required BigInt expectedVersion,
+    required BigInt outstandingPiastres,
+    required String amountPounds,
+    required List<RepairTender> tenders,
+    required String dayId,
+    required BigInt dayVersion,
+  }) {
+    if (expectedVersion < BigInt.one ||
+        outstandingPiastres < BigInt.zero ||
+        dayVersion < BigInt.one) {
+      return const RepairRejected(RepairIssue.invalidInput);
+    }
+    final parsed = _pounds(amountPounds.trim());
+    if (parsed is RepairRejected<BigInt>) return RepairRejected(parsed.issue);
+    final amount = (parsed as RepairAccepted<BigInt>).value;
+    if (amount <= BigInt.zero) {
+      return const RepairRejected(RepairIssue.invalidInput);
+    }
+    if (amount > outstandingPiastres) {
+      return const RepairRejected(RepairIssue.exceedsOutstanding);
+    }
+    if (!_tendersMatch(tenders, amount)) {
+      return const RepairRejected(RepairIssue.collectionMismatch);
+    }
+    return RepairAccepted(
+      RepairCollectCommand(
+        repairId: repairId,
+        expectedVersion: expectedVersion,
+        amountPiastres: amount,
+        outstandingPiastres: outstandingPiastres,
+        tenders: List.unmodifiable(tenders),
+        dayId: dayId,
+        dayVersion: dayVersion,
       ),
     );
   }

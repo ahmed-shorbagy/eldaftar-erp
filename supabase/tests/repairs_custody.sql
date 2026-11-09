@@ -174,6 +174,7 @@ declare
   v_wallet bigint;
   v_day_version text;
   v_result jsonb;
+  v_summary jsonb;
   v_page jsonb;
   v_partial uuid;
   v_none uuid;
@@ -505,6 +506,15 @@ begin
   where account.shop_id = v_shop and account.method_code = 'wallet';
   if v_cash <> 520000 or v_wallet <> 108000 then
     raise exception 'split_tender_balances_wrong';
+  end if;
+  v_summary := public.get_ledger_date_v1(null, null, 20) -> 'day_summary';
+  if v_summary ->> 'repair_piastres' is distinct from '28000'
+    or v_summary ->> 'repair_count' is distinct from '2' then
+    raise exception 'repair_day_summary_wrong %', v_summary;
+  end if;
+  if (public.get_financial_day_report_v1((v_state ->> 'business_day_id')::uuid)
+      #>> '{summary,repair_piastres}') is distinct from '28000' then
+    raise exception 'repair_day_report_wrong';
   end if;
 
   v_result := public.post_repair_intake_v1(

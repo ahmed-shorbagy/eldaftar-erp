@@ -7,6 +7,8 @@ import '../../debts/presentation/debt_native_screen.dart';
 import 'dart:async';
 import '../../reports/application/report_gateway.dart';
 import '../../reports/presentation/reports_screen.dart';
+import '../../daily_ledger/application/ledger_date_gateway.dart';
+import '../../daily_ledger/presentation/ledger_archive_screen.dart';
 import '../../audit_trail/domain/audit_trail.dart';
 import '../../analytics/application/analytics_gateway.dart';
 import '../../analytics/presentation/analytics_screen.dart';
@@ -954,6 +956,24 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
                   if (!mounted) return;
                   setState(() => _ledgerGeneration++);
                 },
+              ),
+        ledgerArchiveBuilder:
+            opening is! ReportGateway ||
+                opening is! LedgerDateGateway ||
+                opening is! FinancialGateway ||
+                userId == null
+            ? null
+            : (context) => LedgerArchiveScreen(
+                reportGateway: opening as ReportGateway,
+                dateGateway: opening as LedgerDateGateway,
+                financialGateway: opening as FinancialGateway,
+                userId: userId,
+                shopId: selected.id,
+                syncTicks: _ticks,
+                canRead: () =>
+                    mounted &&
+                    widget.currentUserId?.call() == userId &&
+                    _selected?.id == selected.id,
               ),
         customerBuilder:
             !selected.isOwner || opening is! CustomerGateway || userId == null

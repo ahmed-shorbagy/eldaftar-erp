@@ -1,4 +1,5 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
@@ -53,6 +54,8 @@ enum _Stage {
   detail,
   handover,
   handoverReview,
+  collect,
+  collectReview,
   cancelReview,
   archiveReview,
   success,
@@ -76,6 +79,7 @@ class _RepairScreenState extends State<RepairScreen> {
   final _estimate = TextEditingController();
   final _finalFee = TextEditingController();
   final _collected = TextEditingController();
+  final _collectAmount = TextEditingController();
   final _reason = TextEditingController();
   final _tenders = <_TenderDraft>[_TenderDraft()];
 
@@ -99,6 +103,7 @@ class _RepairScreenState extends State<RepairScreen> {
   RepairCollectionMode _mode = RepairCollectionMode.all;
   RepairIntakeCommand? _intake;
   RepairHandoverCommand? _handover;
+  RepairCollectCommand? _collectCommand;
   String? _frozenKey;
   String? _frozenKind;
   String? _success;
@@ -184,7 +189,9 @@ class _RepairScreenState extends State<RepairScreen> {
       _loadList();
       return;
     }
-    if (_stage == _Stage.detail || _stage == _Stage.handover) {
+    if (_stage == _Stage.detail ||
+        _stage == _Stage.handover ||
+        _stage == _Stage.collect) {
       final id = _detail?.summary.id;
       if (id != null) _openDetail(id, keepStage: true);
     }
@@ -193,6 +200,7 @@ class _RepairScreenState extends State<RepairScreen> {
   bool get _isReview =>
       _stage == _Stage.intakeReview ||
       _stage == _Stage.handoverReview ||
+      _stage == _Stage.collectReview ||
       _stage == _Stage.cancelReview ||
       _stage == _Stage.archiveReview;
 
@@ -214,6 +222,7 @@ class _RepairScreenState extends State<RepairScreen> {
     _estimate.dispose();
     _finalFee.dispose();
     _collected.dispose();
+    _collectAmount.dispose();
     _reason.dispose();
     for (final tender in _tenders) {
       tender.dispose();
@@ -346,7 +355,12 @@ class _RepairScreenState extends State<RepairScreen> {
         repairId: id,
       );
       RepairContext? context;
-      if (!_readOnly && detail.summary.status == 'ready') {
+      if (!_readOnly &&
+          const {
+            'ready',
+            'delivered',
+            'archived',
+          }.contains(detail.summary.status)) {
         context = await widget.gateway.context(callerUserId: widget.userId);
       }
       if (!mounted || generation != _readGeneration) return;
@@ -403,6 +417,7 @@ class _RepairScreenState extends State<RepairScreen> {
     required String kind,
     required Map<String, Object?> payload,
     required bool collected,
+    String success = 'تم حفظ الطلب.',
   }) async {
     if (_writesBlocked || _reviewStale) return;
     final identity = _identity;
@@ -422,7 +437,7 @@ class _RepairScreenState extends State<RepairScreen> {
       setState(() {
         _releaseBusy();
         _pending = null;
-        _success = 'تم حفظ الطلب.';
+        _success = success;
         _stage = _Stage.success;
       });
       return;
@@ -470,6 +485,9 @@ class _RepairScreenState extends State<RepairScreen> {
     if (!mounted || identity != _identity) return;
     if (result is RepairSaved) {
       _clearKey();
+      if (pending.kind == 'repair_collect') {
+        widget.onCollected?.call();
+      }
       if (pending.kind == 'repair_handover') {
         final payload = pending.body['p_payload'];
         final collected = payload is Map ? payload['collected_piastres'] : null;
@@ -666,6 +684,8 @@ class _RepairScreenState extends State<RepairScreen> {
                             ? _Stage.intake
                             : _stage == _Stage.handover ||
                                   _stage == _Stage.handoverReview ||
+                                  _stage == _Stage.collect ||
+                                  _stage == _Stage.collectReview ||
                                   _stage == _Stage.cancelReview ||
                                   _stage == _Stage.archiveReview
                             ? _Stage.detail
@@ -682,6 +702,7 @@ class _RepairScreenState extends State<RepairScreen> {
               maxWidth: AppTokens.contentMaxWidth,
             ),
             child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(AppTokens.spaceMd),
               children: [
                 if (_readOnly) _banner(repairFailureText('shop_not_active')),
@@ -737,6 +758,7 @@ class _RepairScreenState extends State<RepairScreen> {
     _Stage.intake || _Stage.intakeReview => 'استلام إصلاح',
     _Stage.detail => 'تفاصيل الإصلاح',
     _Stage.handover || _Stage.handoverReview => 'تسليم الإصلاح',
+    _Stage.collect || _Stage.collectReview => 'تحصيل المتبقي',
     _Stage.cancelReview => 'إلغاء الإصلاح',
     _Stage.archiveReview => 'أرشفة الإصلاح',
   };
@@ -748,6 +770,8 @@ class _RepairScreenState extends State<RepairScreen> {
     _Stage.detail => _detailView(),
     _Stage.handover => _handoverForm(),
     _Stage.handoverReview => _handoverReview(),
+    _Stage.collect => _collectForm(),
+    _Stage.collectReview => _collectReview(),
     _Stage.cancelReview => _cancelReview(),
     _Stage.archiveReview => _archiveReview(),
     _Stage.success => _successView(),
@@ -782,7 +806,11 @@ class _RepairScreenState extends State<RepairScreen> {
           FilledButton(
             key: const Key('repair-pending-retry'),
             onPressed: _busy ? null : _retryPending,
-            child: const Text('إعادة المحاولة'),
+            child: Text(
+              _pending?.kind == 'repair_collect'
+                  ? 'التحقق وإعادة المحاولة'
+                  : 'إعادة المحاولة',
+            ),
           ),
         ],
       ),
@@ -996,6 +1024,10 @@ class _RepairScreenState extends State<RepairScreen> {
           Text('الأجرة النهائية: ${repairMoney(item.finalFeePiastres)}'),
           Text('المحصّل: ${repairMoney(item.collectedPiastres)}'),
           Text('المتبقي: ${repairMoney(item.outstandingPiastres)}'),
+          for (final collection in detail.collections)
+            Text(
+              'تحصيل ${repairMoney(collection.piastres)} · ${formatServerCairoTimestamp(collection.createdAtShop)}',
+            ),
         ],
         Text(item.custodyHeld ? 'الحيازة قائمة' : 'الحيازة مُحررة'),
         Text('وقت الاستلام: ${formatServerCairoTimestamp(item.intakeAtShop)}'),
@@ -1019,6 +1051,13 @@ class _RepairScreenState extends State<RepairScreen> {
             'ready',
             'تعليمها جاهزة للتسليم',
             'repair-status-ready',
+          ),
+        if (_canCollect)
+          FilledButton.icon(
+            key: const Key('repair-collect'),
+            onPressed: _writesBlocked ? null : _openCollect,
+            icon: const Icon(Icons.payments_outlined),
+            label: const Text('تحصيل المتبقي'),
           ),
         if (!_readOnly && item.status == 'ready')
           FilledButton(
@@ -1053,6 +1092,148 @@ class _RepairScreenState extends State<RepairScreen> {
             onPressed: _writesBlocked ? null : () => _go(_Stage.archiveReview),
             child: const Text('أرشفة السجل'),
           ),
+      ],
+    );
+  }
+
+  bool get _canCollect {
+    final item = _detail?.summary;
+    if (item == null || _readOnly) return false;
+    if (item.status != 'delivered' && item.status != 'archived') return false;
+    if (item.outstandingPiastres <= BigInt.zero) return false;
+    return _context?.day.isOpen == true;
+  }
+
+  void _openCollect() {
+    final item = _detail?.summary;
+    if (item == null) return;
+    final parsed = Piastres.parseWire(item.outstandingPiastres.toString());
+    _collectAmount.text = parsed is Accepted<Piastres>
+        ? editableCashText(parsed.value.poundsText)
+        : '';
+    for (final tender in _tenders) {
+      tender.dispose();
+    }
+    _tenders
+      ..clear()
+      ..add(_TenderDraft());
+    final cash = _context?.cashMethods.where(
+      (method) => method.method == 'cash',
+    );
+    if (cash != null && cash.isNotEmpty) {
+      _tenders.first.method = 'cash';
+      _tenders.first.amount.text = _collectAmount.text;
+    }
+    _go(_Stage.collect);
+  }
+
+  void _reviewCollect() {
+    final detail = _detail;
+    final day = _context?.day;
+    if (detail == null || day?.isOpen != true || day?.dayId == null) {
+      setState(() => _notice = repairFailureText('day_closed'));
+      return;
+    }
+    final tenders = <RepairTender>[];
+    for (final tender in _tenders) {
+      final parsed = Piastres.parsePounds(tender.amount.text.trim());
+      if (tender.method == null || parsed is! Accepted<Piastres>) {
+        setState(
+          () => _notice = repairIssueText(RepairIssue.collectionMismatch),
+        );
+        return;
+      }
+      tenders.add(
+        RepairTender(method: tender.method!, piastres: parsed.value.value),
+      );
+    }
+    final reviewed = RepairRules.reviewCollect(
+      repairId: detail.summary.id,
+      expectedVersion: detail.summary.recordVersion,
+      outstandingPiastres: detail.summary.outstandingPiastres,
+      amountPounds: _collectAmount.text,
+      tenders: tenders,
+      dayId: day!.dayId!,
+      dayVersion: day.dayVersion!,
+    );
+    if (reviewed is RepairRejected<RepairCollectCommand>) {
+      setState(() => _notice = repairIssueText(reviewed.issue));
+      return;
+    }
+    setState(() {
+      _notice = null;
+      _collectCommand =
+          (reviewed as RepairAccepted<RepairCollectCommand>).value;
+      _stage = _Stage.collectReview;
+    });
+  }
+
+  Widget _collectForm() {
+    final item = _detail?.summary;
+    final methods = _context?.cashMethods ?? const <RepairCashMethod>[];
+    if (item == null) return const SizedBox.shrink();
+    return Column(
+      key: const Key('repair-collect-form'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('المتبقي: ${repairMoney(item.outstandingPiastres)}'),
+        const SizedBox(height: AppTokens.spaceSm),
+        TextField(
+          key: const Key('repair-collect-amount'),
+          controller: _collectAmount,
+          inputFormatters: const [CashInputFormatter()],
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'المبلغ المحصّل'),
+        ),
+        if (methods.isEmpty)
+          _banner('لا توجد طريقة نقد متاحة في الأرصدة المفتوحة.', error: true),
+        if (methods.isNotEmpty) ...[
+          for (var index = 0; index < _tenders.length; index++)
+            _tenderRow(index, methods),
+          if (_tenders.length < 4 && _tenders.length < methods.length)
+            TextButton(
+              onPressed: () => setState(() => _tenders.add(_TenderDraft())),
+              child: const Text('إضافة طريقة دفع'),
+            ),
+        ],
+        const SizedBox(height: AppTokens.spaceMd),
+        FilledButton(
+          key: const Key('repair-collect-review'),
+          onPressed: _writesBlocked ? null : _reviewCollect,
+          child: const Text('مراجعة التحصيل'),
+        ),
+      ],
+    );
+  }
+
+  Widget _collectReview() {
+    final command = _collectCommand;
+    if (command == null) return const SizedBox.shrink();
+    final rest = command.outstandingPiastres - command.amountPiastres;
+    return Column(
+      key: const Key('repair-collect-summary'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('تزيد النقدية: ${repairMoney(command.amountPiastres)}'),
+        for (final tender in command.tenders)
+          Text(
+            '${repairMethodLabels[tender.method] ?? tender.method}: ${repairMoney(tender.piastres)}',
+          ),
+        Text('يصبح المتبقي: ${repairMoney(rest)}'),
+        if (_reviewStale) _staleReview(),
+        const SizedBox(height: AppTokens.spaceMd),
+        FilledButton(
+          key: const Key('repair-collect-confirm'),
+          onPressed: _writesBlocked || _reviewStale
+              ? null
+              : () => _submit(
+                  kind: 'repair_collect',
+                  payload: command.payload(),
+                  collected: true,
+                  success: 'تم تحصيل المبلغ وإضافته إلى النقدية.',
+                ),
+          child: const Text('تأكيد التحصيل'),
+        ),
       ],
     );
   }
@@ -1242,6 +1423,9 @@ class _RepairScreenState extends State<RepairScreen> {
           key: const Key('repair-cancel-reason'),
           controller: _reason,
           maxLines: 3,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => dismissKeyboard(),
+          onTapOutside: dismissKeyboardOnTapOutside,
           decoration: const InputDecoration(labelText: 'سبب الإرجاع'),
         ),
         if (_reviewStale) _staleReview(),
@@ -1363,6 +1547,9 @@ class _RepairScreenState extends State<RepairScreen> {
           ? TextDirection.ltr
           : null,
       maxLines: maxLines,
+      textInputAction: maxLines > 1 ? TextInputAction.done : null,
+      onTapOutside: maxLines > 1 ? dismissKeyboardOnTapOutside : null,
+      onFieldSubmitted: maxLines > 1 ? (_) => dismissKeyboard() : null,
       decoration: InputDecoration(labelText: label, hintText: hint),
       validator: (value) {
         if (!requiredField) return null;

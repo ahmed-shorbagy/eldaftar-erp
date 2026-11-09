@@ -412,6 +412,16 @@ class _ReportsScreenState extends State<ReportsScreen>
                         ))
                           _value(e.value, report.value(e.key).toString()),
                       ]),
+                      _section('الصيانة', [
+                        _value(
+                          'إيراد الصيانة',
+                          reportMoney(report.value('repair_piastres')),
+                        ),
+                        _value(
+                          'عدد عمليات الصيانة',
+                          report.value('repair_count').toString(),
+                        ),
+                      ]),
                       _section('الذهب بالجرام حسب العيار', [
                         const Text('صافٍ بعد المرتجعات؛ كل عيار مستقل.'),
                         for (final g in report.gold) ...[

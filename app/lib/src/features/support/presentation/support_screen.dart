@@ -3,6 +3,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../theme/app_tokens.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import '../domain/support_models.dart';
 
 /// Arabic copy for the owner support contact (HELP-02, ADR 0036).
@@ -313,6 +314,7 @@ class _SupportScreenState extends State<SupportScreen> {
             maxWidth: AppTokens.contentMaxWidth,
           ),
           child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.all(16),
             children: [
               _buildForm(theme),
@@ -384,6 +386,7 @@ class _SupportScreenState extends State<SupportScreen> {
               enabled: !_formBlocked,
               minLines: 4,
               maxLines: 8,
+              onTapOutside: dismissKeyboardOnTapOutside,
               keyboardType: TextInputType.multiline,
               onChanged: _onDraftChanged,
               decoration: const InputDecoration(

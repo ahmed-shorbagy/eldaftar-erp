@@ -102,6 +102,12 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('اليوم مغلق'), findsOneWidget);
     await t.scrollUntilVisible(
+      find.text('إيراد الصيانة'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('إيراد الصيانة'), findsOneWidget);
+    await t.scrollUntilVisible(
       find.text('لا توجد عمليات لهذا اليوم المالي.'),
       500,
       scrollable: find.byType(Scrollable).first,

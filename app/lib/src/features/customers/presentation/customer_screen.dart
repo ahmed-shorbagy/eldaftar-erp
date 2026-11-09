@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
@@ -1607,6 +1608,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
         controller: _note,
         enabled: !_blocked,
         maxLines: 5,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => dismissKeyboard(),
+        onTapOutside: dismissKeyboardOnTapOutside,
         decoration: const InputDecoration(
           labelText: 'ملاحظة جديدة',
           helperText: 'تُحفظ بتاريخها دون تعديل الملاحظات السابقة.',
@@ -1778,6 +1782,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
               maxWidth: AppTokens.contentMaxWidth,
             ),
             child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(16),
               children: [
                 if (_readOnly)

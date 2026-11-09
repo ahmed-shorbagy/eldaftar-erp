@@ -1,6 +1,10 @@
 # Architecture and product decisions
 
-## Current decision — 2026-11-08, voice notes
+## Current decision — 2026-11-09, day cycle and repairs
+
+The 2026-11-09 voice notes for the day cycle and repairs are accepted in [ADR 0042](adr/0042-owner-feedback-2026-11-09-day-cycle-and-repairs.md). Pending invoices are sales of the open day only, closing the day zeroes daily flows and keeps cash and gold balances, «الدفاتر» is a read-only archive of closed days, and an outstanding repair fee can be collected later on the open day. It amends ADR 0012 and ADR 0006. Deployed to development `xchapwvmvoefriqcxtvn`. Not committed. [Plan](operations/owner-feedback-2026-11-09-plan-batch-a.md). [Validation](operations/owner-feedback-2026-11-09-batch-a-validation.md).
+
+## Previous decision — 2026-11-08, voice notes
 
 The 2026-11-08 voice notes are accepted in [ADR 0041](adr/0041-owner-feedback-2026-11-08-voice-notes.md). Scrap moves into a named item, closing is an item grid with compact counts, the invoice copy panel and the linked return button leave the operation screen, a purchase is paid in full and jewelry is booked as scrap on the server, a standalone customer return posts cash out and named stock in, and expenses, returns, and notes can be edited or deleted under the windows in that ADR. It amends ADR 0007, ADR 0021, and ADR 0040. Not committed and not deployed. [Plan](operations/owner-feedback-2026-11-08-voice-notes-plan.md).
 

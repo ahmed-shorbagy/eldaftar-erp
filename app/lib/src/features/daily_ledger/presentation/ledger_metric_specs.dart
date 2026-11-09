@@ -123,6 +123,13 @@ Map<String, LedgerMetricSpec> ledgerMetricValues(
       Icons.receipt_long_outlined,
       LedgerMetricTone.neutral,
     ),
+    'repair': LedgerMetricSpec(
+      ledgerMetricLabel('repair'),
+      money(summary?.repairPiastres),
+      'جنيه',
+      Icons.handyman_outlined,
+      LedgerMetricTone.positive,
+    ),
     for (final karat in [18, 21, 24])
       'sale_karat_$karat': LedgerMetricSpec(
         ledgerMetricLabel('sale_karat_$karat'),

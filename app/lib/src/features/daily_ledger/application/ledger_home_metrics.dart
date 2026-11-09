@@ -16,6 +16,7 @@ const ledgerMetricIds = <String>[
   'scrap_purchase_18',
   'scrap_purchase_21',
   'scrap_purchase_24',
+  'repair',
   'scrap_purchase_22',
   'scrap_purchase_14',
 ];
@@ -175,6 +176,7 @@ String ledgerMetricLabel(String id) {
     'sale_gold' => 'وزن مباع',
     'purchase_gold' => 'وزن مشترى',
     'expense' => 'المصروفات',
+    'repair' => 'إيراد الصيانة',
     _ => id,
   };
 }

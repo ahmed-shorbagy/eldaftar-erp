@@ -7,6 +7,7 @@ const repairRpcs = <String, String>{
   'repair_handover': 'post_repair_handover_v1',
   'repair_cancel': 'post_repair_cancel_v1',
   'repair_archive': 'post_repair_archive_v1',
+  'repair_collect': 'post_repair_collect_v1',
 };
 
 final _versionWire = RegExp(r'^[1-9][0-9]{0,18}$');
@@ -22,7 +23,9 @@ bool matchesRepairEnvelope(String key, String kind, Map<String, Object?> body) {
   final payload = body['p_payload'];
   if (payload is! Map) return false;
   final map = Map<String, Object?>.from(payload);
-  if (map['version'] != 1 || map['kind'] != kind) return false;
+  if (map['version'] != 1) return false;
+  if (kind == 'repair_collect') return _collect(map);
+  if (map['kind'] != kind) return false;
   return switch (kind) {
     'repair_intake' => _intake(map),
     'repair_status' => _status(map),
@@ -60,6 +63,38 @@ bool _status(Map<String, Object?> map) =>
     isUuid('${map['repair_id']}') &&
     _wire(map['expected_version']) &&
     const {'in_progress', 'ready'}.contains(map['status']);
+
+bool _collect(Map<String, Object?> map) {
+  final tenders = map['tenders'];
+  if (map.length != 7 ||
+      map.containsKey('kind') ||
+      !isUuid('${map['repair_id']}') ||
+      !_wire(map['expected_version']) ||
+      !isUuid('${map['day_id']}') ||
+      !_wire(map['day_version']) ||
+      !_wire(map['amount_piastres']) ||
+      tenders is! List ||
+      tenders.isEmpty ||
+      tenders.length > 4) {
+    return false;
+  }
+  final seen = <String>{};
+  for (final tender in tenders) {
+    if (tender is! Map ||
+        tender.length != 2 ||
+        !const {
+          'cash',
+          'instant_transfer',
+          'wallet',
+          'card',
+        }.contains(tender['method']) ||
+        !seen.add(tender['method'] as String) ||
+        !_wire(tender['piastres'])) {
+      return false;
+    }
+  }
+  return true;
+}
 
 bool _handover(Map<String, Object?> map) {
   final collected = map['collected_piastres'];

@@ -1,4 +1,5 @@
 import '../../../theme/amount_format.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
 
 import '../application/financial_gateway.dart';
@@ -187,6 +188,8 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text('عكس كامل مرتبط', style: theme.textTheme.headlineSmall),
@@ -249,6 +252,9 @@ class _LinkedReturnScreenState extends State<LinkedReturnScreen> {
                       controller: _note,
                       maxLength: 1000,
                       maxLines: 3,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => dismissKeyboard(),
+                      onTapOutside: dismissKeyboardOnTapOutside,
                       decoration: const InputDecoration(
                         labelText: 'سبب أو ملاحظة اختيارية',
                       ),

@@ -168,6 +168,18 @@ final class RepairCustodyView {
   final String createdAtShop;
 }
 
+final class RepairCollectionView {
+  const RepairCollectionView({
+    required this.operationId,
+    required this.piastres,
+    required this.createdAtShop,
+  });
+
+  final String operationId;
+  final BigInt piastres;
+  final String createdAtShop;
+}
+
 final class RepairDetail {
   const RepairDetail({
     required this.summary,
@@ -179,6 +191,7 @@ final class RepairDetail {
     required this.timeZone,
     required this.events,
     required this.custodyEvents,
+    this.collections = const [],
   });
 
   final RepairSummary summary;
@@ -190,6 +203,7 @@ final class RepairDetail {
   final String timeZone;
   final List<RepairEventView> events;
   final List<RepairCustodyView> custodyEvents;
+  final List<RepairCollectionView> collections;
 }
 
 abstract class RepairGateway {
@@ -217,4 +231,19 @@ abstract class RepairGateway {
     required String callerUserId,
     required String repairId,
   });
+
+  Future<RepairRpcResult> collectOutstanding({
+    required String callerUserId,
+    required String idempotencyKey,
+    required Map<String, Object?> payload,
+  });
 }
+
+PendingFinancialCommand repairCollectCommand(
+  String idempotencyKey,
+  Map<String, Object?> payload,
+) => PendingFinancialCommand(
+  key: idempotencyKey,
+  kind: 'repair_collect',
+  body: {'p_idempotency_key': idempotencyKey, 'p_payload': payload},
+);

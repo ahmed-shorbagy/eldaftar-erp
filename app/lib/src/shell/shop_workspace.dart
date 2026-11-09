@@ -47,6 +47,7 @@ class ShopWorkspace extends StatefulWidget {
     this.inventoryBuilder,
     this.traderBuilder,
     this.repairBuilder,
+    this.ledgerArchiveBuilder,
     this.debtBuilder,
     this.customerBuilder,
     this.reportsBuilder,
@@ -86,6 +87,7 @@ class ShopWorkspace extends StatefulWidget {
   final WidgetBuilder? inventoryBuilder;
   final WidgetBuilder? traderBuilder;
   final WidgetBuilder? repairBuilder;
+  final WidgetBuilder? ledgerArchiveBuilder;
   final WidgetBuilder? debtBuilder;
   final WidgetBuilder? customerBuilder;
   final WidgetBuilder? reportsBuilder;
@@ -692,6 +694,20 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
 
   List<Widget> _morePages() {
     final links = <Widget>[
+      if (widget.shop.hasPermission(ShopPermission.reports) &&
+          widget.ledgerArchiveBuilder != null)
+        _link(
+          'الدفاتر',
+          Icons.menu_book_outlined,
+          () {
+            final builder = widget.ledgerArchiveBuilder;
+            if (builder == null) return;
+            Navigator.of(
+              context,
+            ).push<void>(MaterialPageRoute(builder: builder));
+          },
+          key: const Key('workspace-ledger-archive'),
+        ),
       if (widget.shop.hasPermission(ShopPermission.reports))
         _link(
           'التقارير',

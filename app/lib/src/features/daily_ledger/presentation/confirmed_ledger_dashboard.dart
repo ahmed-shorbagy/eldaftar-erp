@@ -11,6 +11,7 @@ import 'ledger_balance_sections.dart';
 import 'ledger_metric_specs.dart';
 import 'ledger_journal_table.dart';
 import 'ledger_quick_actions.dart';
+import 'opening_copy.dart';
 
 /// Displays only figures returned by the confirmed server read model.
 class ConfirmedLedgerDashboard extends StatefulWidget {
@@ -26,6 +27,7 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
     this.onScrapToStock,
     this.onCloseDay,
     this.onOpenDay,
+    this.onOpenArchive,
     this.onOperation,
     this.onPendingInvoices,
     this.onDailyNotes,
@@ -48,6 +50,7 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
   final VoidCallback? onScrapToStock;
   final VoidCallback? onCloseDay;
   final VoidCallback? onOpenDay;
+  final ValueChanged<String>? onOpenArchive;
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onPendingInvoices;
   final VoidCallback? onDailyNotes;
@@ -526,6 +529,12 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
               ],
               if (section == 'activity') ...[
                 const SizedBox(height: 12),
+                if (view.dayReset)
+                  _DayResetCard(
+                    date: view.lastClosedBusinessDate,
+                    onOpenDay: widget.onOpenDay,
+                    onOpenArchive: widget.onOpenArchive,
+                  ),
                 _JournalPreview(
                   rows: widget.activityLines ?? view.feed,
                   onViewAll: _showHistory,
@@ -651,6 +660,64 @@ class _CompactBookRow extends StatelessWidget {
                   label: const Text('إضافة مرتجع'),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DayResetCard extends StatelessWidget {
+  const _DayResetCard({
+    required this.date,
+    required this.onOpenDay,
+    required this.onOpenArchive,
+  });
+
+  final String? date;
+  final VoidCallback? onOpenDay;
+  final ValueChanged<String>? onOpenArchive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final formatted = date == null ? null : formatServerDate(date!);
+    return Card(
+      key: const Key('ledger-day-reset'),
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('تم تقفيل اليوم', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              'الدفاتر فارغة حتى تفتح يومًا جديدًا. الأرصدة النقدية والمخزون كما هي.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton(
+                  key: const Key('ledger-day-reset-open'),
+                  onPressed: onOpenDay,
+                  child: const Text('فتح يوم جديد'),
+                ),
+                if (formatted != null)
+                  OutlinedButton(
+                    key: const Key('ledger-day-reset-archive'),
+                    onPressed: onOpenArchive == null
+                        ? null
+                        : () => onOpenArchive!(date!),
+                    child: Text('عرض يوم $formatted في الدفاتر'),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

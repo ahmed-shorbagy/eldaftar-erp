@@ -69,6 +69,38 @@ String formatServerDate(String isoDate) {
   return '$day ${_arabicMonths[month - 1]} ${parts[0]}';
 }
 
+const _arabicWeekdays = <String>[
+  'الاثنين',
+  'الثلاثاء',
+  'الأربعاء',
+  'الخميس',
+  'الجمعة',
+  'السبت',
+  'الأحد',
+];
+
+/// Weekday plus calendar date, for example «الأحد 8 نوفمبر 2026».
+String formatLedgerHeading(String isoDate) {
+  final parts = isoDate.split('-');
+  if (parts.length != 3) return formatServerDate(isoDate);
+  final year = int.tryParse(parts[0]);
+  final month = int.tryParse(parts[1]);
+  final day = int.tryParse(parts[2]);
+  if (year == null || month == null || day == null) {
+    return formatServerDate(isoDate);
+  }
+  final weekday = DateTime.utc(year, month, day).weekday;
+  return '${_arabicWeekdays[weekday - 1]} ${formatServerDate(isoDate)}';
+}
+
+/// Month and year, for example «نوفمبر 2026».
+String formatLedgerMonth(String isoDate) {
+  final parts = isoDate.split('-');
+  final month = parts.length == 3 ? int.tryParse(parts[1]) : null;
+  if (month == null || month < 1 || month > 12) return isoDate;
+  return '${_arabicMonths[month - 1]} ${parts[0]}';
+}
+
 /// Renders the server Cairo timestamp. The `T` separator is not shown.
 String formatServerCairoTimestamp(String value) {
   final pieces = value.split('T');

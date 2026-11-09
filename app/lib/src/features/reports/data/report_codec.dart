@@ -43,6 +43,8 @@ FinancialDayReport parseFinancialDayReport(Object? raw) {
   if (!reportSummaryLabels.keys.every(summary.containsKey)) {
     throw const FormatException('report_summary');
   }
+  summary.putIfAbsent('repair_piastres', () => BigInt.zero);
+  summary.putIfAbsent('repair_count', () => BigInt.zero);
   final gold = _list(m['gold']).map((v) {
     final g = _map(v);
     return ReportGold(

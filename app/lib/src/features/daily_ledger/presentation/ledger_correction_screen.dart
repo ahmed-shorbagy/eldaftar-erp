@@ -1,4 +1,5 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import 'dart:convert';
 import '../../../theme/amount_format.dart';
 
@@ -424,6 +425,8 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text('مراجعة التسوية', style: theme.textTheme.headlineSmall),
@@ -452,6 +455,9 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                     readOnly: locked || !widget.writesEnabled,
                     maxLength: 1000,
                     maxLines: 3,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => dismissKeyboard(),
+                    onTapOutside: dismissKeyboardOnTapOutside,
                     decoration: ledgerFieldDecoration(
                       context,
                       label: 'سبب التسوية',

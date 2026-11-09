@@ -17,6 +17,8 @@ final class DailyLedgerView {
     this.feedCursor,
     this.tradeChangeSequence,
     this.journalContext,
+    this.dayReset = false,
+    this.lastClosedBusinessDate,
   });
 
   final String state;
@@ -33,6 +35,12 @@ final class DailyLedgerView {
   /// Server sequence of the latest edit/delete; invalidates cached older pages.
   final String? tradeChangeSequence;
   final LedgerJournalContext? journalContext;
+
+  /// True when no financial day is open and the home flows were zeroed.
+  final bool dayReset;
+
+  /// Newest closed business date, `YYYY-MM-DD`, when the server sent one.
+  final String? lastClosedBusinessDate;
 
   bool get isConfirmed => state == 'confirmed';
   bool get isUninitialized => state == 'uninitialized';
@@ -83,6 +91,8 @@ final class LedgerDaySummary {
     required this.purchaseCount,
     required this.expenseCount,
     this.goldByBucket = const [],
+    this.repairPiastres = '0',
+    this.repairCount = 0,
   });
 
   final String salePiastres;
@@ -92,6 +102,8 @@ final class LedgerDaySummary {
   final int purchaseCount;
   final int expenseCount;
   final List<LedgerGoldMovement> goldByBucket;
+  final String repairPiastres;
+  final int repairCount;
 
   BigInt goldMilligrams({required String kind, required int karat}) =>
       goldByBucket

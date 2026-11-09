@@ -2,6 +2,7 @@ import 'message_display.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../application/message_contract.dart';
@@ -405,6 +406,8 @@ class _MessageSettingsScreenState extends State<MessageSettingsScreen>
                 maxWidth: AppTokens.contentMaxWidth,
               ),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
                 children: [
                   if (_state == 'loading') const LinearProgressIndicator(),
@@ -439,6 +442,7 @@ class _MessageSettingsScreenState extends State<MessageSettingsScreen>
                       enabled: _editable,
                       minLines: 4,
                       maxLines: 9,
+                      onTapOutside: dismissKeyboardOnTapOutside,
                       onChanged: (_) => _edited(),
                       decoration: InputDecoration(
                         labelText: 'نص الرسالة',

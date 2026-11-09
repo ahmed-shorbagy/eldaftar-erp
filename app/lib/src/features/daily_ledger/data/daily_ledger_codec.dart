@@ -99,7 +99,12 @@ DailyLedgerView parseDailyLedger(Object? json) {
   final keys = json.keys.toSet();
   final extra = keys.difference(allowedFields);
   // v2 confirmed reads may include feed_page and/or trade_change_sequence.
-  const optionalV2 = {'feed_page', 'trade_change_sequence'};
+  const optionalV2 = {
+    'feed_page',
+    'trade_change_sequence',
+    'day_reset',
+    'last_closed_business_date',
+  };
   if (!keys.containsAll(allowedFields) ||
       extra.any((key) => !optionalV2.contains(key)) ||
       (extra.isNotEmpty && version == 1)) {
@@ -154,6 +159,15 @@ DailyLedgerView parseDailyLedger(Object? json) {
   if (confirmed && businessDay == null) {
     throw const FormatException('business_day');
   }
+  final dayReset = json['day_reset'];
+  if (dayReset != null && dayReset is! bool) {
+    throw const FormatException('day_reset');
+  }
+  final lastClosed = json['last_closed_business_date'];
+  if (lastClosed != null &&
+      (lastClosed is! String || !isCalendarDate(lastClosed))) {
+    throw const FormatException('last_closed_business_date');
+  }
   final tradeChangeSequence = json['trade_change_sequence'];
   if (tradeChangeSequence != null &&
       (tradeChangeSequence is! String ||
@@ -179,6 +193,8 @@ DailyLedgerView parseDailyLedger(Object? json) {
     journalContext: version == 3
         ? _journalContext(json['journal_context'])
         : null,
+    dayReset: dayReset == true,
+    lastClosedBusinessDate: lastClosed as String?,
   );
   if (confirmed && view.totalCashPounds == null) {
     throw const FormatException('cash_total');
@@ -193,6 +209,8 @@ DailyLedgerView parseDailyLedger(Object? json) {
             summary.saleCount != 0 ||
             summary.purchaseCount != 0 ||
             summary.expenseCount != 0 ||
+            summary.repairPiastres != '0' ||
+            summary.repairCount != 0 ||
             summary.goldByBucket.isNotEmpty ||
             journal.returnCount != 0 ||
             journal.noteCount != 0)) {
@@ -249,11 +267,20 @@ LedgerJournalContext _journalContext(Object? value) {
 }
 
 LedgerDaySummary parseLedgerDaySummary(Object? value) {
-  if (value is! Map || (value.length != 6 && value.length != 7)) {
-    throw const FormatException('day_summary');
-  }
   const money = ['sale_piastres', 'purchase_piastres', 'expense_piastres'];
   const counts = ['sale_count', 'purchase_count', 'expense_count'];
+  const optional = {'gold_by_bucket', 'repair_piastres', 'repair_count'};
+  if (value is! Map ||
+      value.keys.any(
+        (key) =>
+            !money.contains(key) &&
+            !counts.contains(key) &&
+            !optional.contains(key),
+      ) ||
+      money.any((field) => !value.containsKey(field)) ||
+      counts.any((field) => !value.containsKey(field))) {
+    throw const FormatException('day_summary');
+  }
   for (final field in money) {
     final raw = value[field];
     if (raw is! String || Piastres.parseWire(raw) is! Accepted<Piastres>) {
@@ -265,7 +292,19 @@ LedgerDaySummary parseLedgerDaySummary(Object? value) {
     if (raw is! int || raw < 0) throw const FormatException('day_summary');
   }
   final goldRaw = value['gold_by_bucket'];
-  if (value.length == 7 && goldRaw is! List) {
+  if (value.containsKey('gold_by_bucket') && goldRaw is! List) {
+    throw const FormatException('day_summary');
+  }
+  final repairPiastres = value.containsKey('repair_piastres')
+      ? value['repair_piastres']
+      : '0';
+  final repairCount = value.containsKey('repair_count')
+      ? value['repair_count']
+      : 0;
+  if (repairPiastres is! String ||
+      Piastres.parseWire(repairPiastres) is! Accepted<Piastres> ||
+      repairCount is! int ||
+      repairCount < 0) {
     throw const FormatException('day_summary');
   }
   final gold = <LedgerGoldMovement>[];
@@ -321,6 +360,8 @@ LedgerDaySummary parseLedgerDaySummary(Object? value) {
     purchaseCount: value['purchase_count'] as int,
     expenseCount: value['expense_count'] as int,
     goldByBucket: List.unmodifiable(gold),
+    repairPiastres: repairPiastres,
+    repairCount: repairCount,
   );
 }
 
@@ -593,6 +634,7 @@ LedgerFeedLine _feedLine(Object? row) {
     'open_day': 'فتح اليومية',
     'daily_note': 'ملاحظة يومية',
     'repair_fee': 'أجرة إصلاح',
+    'repair_fee_collection': 'تحصيل متبقي صيانة',
   };
   final shopSequence = row['shop_sequence'];
   final shopTime = row['occurred_at_shop'];

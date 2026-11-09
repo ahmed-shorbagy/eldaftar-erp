@@ -15,6 +15,8 @@ import '../../daily_notes/data/note_image_file_store.dart';
 import '../../daily_notes/data/platform_note_image_source.dart';
 import '../../daily_notes/data/secure_note_draft_store.dart';
 import '../../daily_notes/presentation/daily_notes_screen.dart';
+import '../../reports/application/report_gateway.dart';
+import '../application/ledger_date_gateway.dart';
 import '../application/opening_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
@@ -41,6 +43,7 @@ import 'confirmed_ledger_dashboard.dart';
 import 'financial_trade_screen.dart';
 import 'financial_operation_screen.dart';
 import 'pending_invoice_sends_screen.dart';
+import 'ledger_archive_screen.dart';
 import 'daily_close_screen.dart';
 import 'cash_transfer_screen.dart';
 import 'scrap_to_stock_screen.dart';
@@ -840,6 +843,34 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     await _maybeLoadFinancialDay(force: true);
   }
 
+  void _openArchive(String date) {
+    final gateway = widget.gateway;
+    final userId = widget.userId;
+    if (gateway is! ReportGateway ||
+        gateway is! LedgerDateGateway ||
+        gateway is! FinancialGateway ||
+        userId == null) {
+      return;
+    }
+    final reports = gateway as ReportGateway;
+    final dates = gateway as LedgerDateGateway;
+    final money = gateway as FinancialGateway;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => LedgerArchiveScreen(
+          reportGateway: reports,
+          dateGateway: dates,
+          financialGateway: money,
+          userId: userId,
+          shopId: widget.shop.id,
+          canRead: () => mounted && widget.userId == userId,
+          syncTicks: widget.syncTicks,
+          initialDate: date,
+        ),
+      ),
+    );
+  }
+
   void _openPendingInvoices() {
     final gateway = _financialGateway;
     final userId = widget.userId;
@@ -1234,6 +1265,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                           _financialPending == null
                       ? _openDay
                       : null,
+                  onOpenArchive: _openArchive,
                   onOperation: _financialGateway == null
                       ? null
                       : _openOperation,
@@ -1279,6 +1311,7 @@ class _LedgerBody extends StatelessWidget {
     this.onScrapToStock,
     this.onCloseDay,
     this.onOpenDay,
+    this.onOpenArchive,
     this.onOperation,
     this.onPendingInvoices,
     this.onDailyNotes,
@@ -1302,6 +1335,7 @@ class _LedgerBody extends StatelessWidget {
   final VoidCallback? onScrapToStock;
   final VoidCallback? onCloseDay;
   final VoidCallback? onOpenDay;
+  final ValueChanged<String>? onOpenArchive;
   final ValueChanged<LedgerFeedLine>? onOperation;
   final VoidCallback? onPendingInvoices;
   final VoidCallback? onDailyNotes;
@@ -1362,6 +1396,7 @@ class _LedgerBody extends StatelessWidget {
             onScrapToStock: onScrapToStock,
             onCloseDay: onCloseDay,
             onOpenDay: dayBusy ? null : onOpenDay,
+            onOpenArchive: onOpenArchive,
             onOperation: onOperation,
             onPendingInvoices: onPendingInvoices,
             onDailyNotes: onDailyNotes,

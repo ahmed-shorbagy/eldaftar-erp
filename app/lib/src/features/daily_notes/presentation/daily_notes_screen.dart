@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../application/daily_note_submission.dart';
@@ -1045,6 +1046,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text(DailyNoteCopy.helpTitle)),
       body: ListView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(16),
         children: [
           if (_restoring) ...[
@@ -1069,6 +1071,7 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
                 : null,
             minLines: 3,
             maxLines: 6,
+            onTapOutside: dismissKeyboardOnTapOutside,
             decoration: const InputDecoration(
               labelText: DailyNoteCopy.textLabel,
             ),
@@ -1343,7 +1346,7 @@ class _NoteEditFormState extends State<_NoteEditForm> {
       controller: _text,
       maxLines: 5,
       textInputAction: TextInputAction.done,
-      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+      onTapOutside: dismissKeyboardOnTapOutside,
     );
     final save = FilledButton(
       key: const Key('note-edit-save'),

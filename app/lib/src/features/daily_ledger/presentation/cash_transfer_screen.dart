@@ -1,5 +1,6 @@
 import '../../../theme/cash_input.dart';
 import '../../../theme/amount_format.dart';
+import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
 
 import '../application/daily_ledger_view.dart';
@@ -214,6 +215,8 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text('بين وسائل الدفع', style: theme.textTheme.headlineSmall),
@@ -280,6 +283,9 @@ class _CashTransferScreenState extends State<CashTransferScreen> {
                       controller: _note,
                       maxLength: 1000,
                       maxLines: 3,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => dismissKeyboard(),
+                      onTapOutside: dismissKeyboardOnTapOutside,
                       decoration: ledgerFieldDecoration(
                         context,
                         label: 'ملاحظة اختيارية',
