@@ -1,6 +1,6 @@
 # Customer directory, notes and explicit transaction associations
 
-Status: CRM-01/CRM-03 implemented and verified in development. Native owner/device acceptance remains open. Date: 2026-10-13.
+Status: CRM-01/CRM-03 implemented and verified in development. Native owner/device acceptance remains open. Amended by ADR 0043: a confirmed sale or purchase may create or link a customer from its phone or name. Manual link and unlink stay. Date: 2026-10-13.
 
 The submitted [slice prompt](../operations/customers-slice-prompt-2026-10-13.md) bounds the PAGES customer requirements to directory/phones, notes/latest preview, VIP/open-request status and explicit confirmed-operation associations. The source customer mockup supplies card/header/dated-note structure. Its weight statistics, calls, WhatsApp, contact-saved state, request reminders and sharing controls are excluded. [Owner access](0003-owner-only-shop-access.md), [immutable finance](0009-milestone-3-accounting-working-rules.md), repairs and [debt contracts](0013-debt-balances-and-settlement.md) remain intact.
 

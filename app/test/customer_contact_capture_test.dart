@@ -76,6 +76,7 @@ void main() {
           await t.tap(find.byKey(const Key('customer-$customerId')));
           await contactCapture(t, key, 'detail-$suffix');
           await t.ensureVisible(find.text('واتساب'));
+          await t.pumpAndSettle();
           await t.tap(find.text('واتساب'));
           await contactCapture(t, key, 'choice-$suffix');
           // Number controls remain independent 48px targets with Arabic primary semantics.
@@ -96,6 +97,7 @@ void main() {
             greaterThanOrEqualTo(4.5),
           );
           await t.ensureVisible(find.byKey(const Key('customer-contact-open')));
+          await t.pumpAndSettle();
           final held = Completer<void>();
           l.hold = held.future;
           await t.tap(find.byKey(const Key('customer-contact-open')));
@@ -106,19 +108,23 @@ void main() {
           l.hold = null;
           l.outcome = ContactHandoff.unavailable;
           await t.ensureVisible(find.byKey(const Key('customer-contact-open')));
+          await t.pumpAndSettle();
           await t.tap(find.byKey(const Key('customer-contact-open')));
           await contactCapture(t, key, 'unavailable-$suffix');
           await t.ensureVisible(find.text('فتح رابط واتساب خارجيًا'));
+          await t.pumpAndSettle();
           await contactCapture(t, key, 'fallback-$suffix');
           l.outcome = ContactHandoff.failed;
           await t.tap(find.text('فتح رابط واتساب خارجيًا'));
           await contactCapture(t, key, 'failure-$suffix');
           l.outcome = ContactHandoff.denied;
           await t.ensureVisible(find.byKey(const Key('customer-contact-open')));
+          await t.pumpAndSettle();
           await t.tap(find.byKey(const Key('customer-contact-open')));
           await contactCapture(t, key, 'denied-$suffix');
           l.outcome = ContactHandoff.permanentlyDenied;
           await t.ensureVisible(find.byKey(const Key('customer-contact-open')));
+          await t.pumpAndSettle();
           await t.tap(find.byKey(const Key('customer-contact-open')));
           await contactCapture(t, key, 'blocked-$suffix');
           expect(g.sent, isEmpty);

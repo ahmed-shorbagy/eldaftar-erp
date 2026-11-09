@@ -307,6 +307,10 @@ class LedgerActivityController {
   String? _tradeChangeSequence;
   String? _calendarDate;
 
+  /// The open financial day behind a calendar head, when there is exactly one.
+  /// Older pages then read that day only, never a closed session of the date.
+  String? _calendarDayId;
+
   bool get busy => _busyGeneration == _generation;
 
   void reset() {
@@ -314,6 +318,7 @@ class LedgerActivityController {
     state = LedgerActivityState.empty;
     _tradeChangeSequence = null;
     _calendarDate = null;
+    _calendarDayId = null;
   }
 
   bool _still(int generation, String userId, String shopId, String dayId) =>
@@ -369,6 +374,10 @@ class LedgerActivityController {
       fromSummary: true,
     );
     _calendarDate = calendar;
+    final dayIds = ledger.journalContext?.dayIds ?? const <String>[];
+    _calendarDayId = calendar != null && dayIds.length == 1
+        ? dayIds.single
+        : null;
   }
 
   Future<void> loadOlder({
@@ -382,6 +391,7 @@ class LedgerActivityController {
     final capturedDay = state.dayId;
     final cursor = state.olderCursor;
     final calendar = _calendarDate;
+    final calendarDay = _calendarDayId;
     _busyGeneration = generation;
     try {
       final LedgerOperationPage page;
@@ -394,6 +404,7 @@ class LedgerActivityController {
           shopId: capturedShop,
           businessDate: calendar,
           beforeSequence: cursor,
+          dayId: calendarDay,
         );
         if (snapshot.businessDate != calendar) {
           throw const FormatException('calendar_date');

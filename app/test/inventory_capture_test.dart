@@ -155,6 +155,10 @@ class _Inventory implements InventoryGateway {
   ]);
 
   @override
+  Future<InventoryItemGrid> itemGrid({required String callerUserId}) async =>
+      const InventoryItemGrid(rows: [], scrapByKarat: {}, totals: {});
+
+  @override
   Future<LotPage> lots({
     required String callerUserId,
     String? category,

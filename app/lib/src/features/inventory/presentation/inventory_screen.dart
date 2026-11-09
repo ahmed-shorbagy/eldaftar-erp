@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../daily_ledger/application/daily_ledger_view.dart';
 import '../../daily_ledger/application/financial_gateway.dart';
@@ -20,6 +21,7 @@ import '../application/inventory_gateway.dart';
 import '../domain/inventory_models.dart';
 import 'inventory_copy.dart';
 import 'inventory_forms.dart';
+import 'inventory_item_grid_view.dart';
 import 'inventory_lots_table.dart';
 import 'inventory_widgets.dart';
 
@@ -103,6 +105,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
   String? _category;
   int? _karat;
   String? _stockClass;
+  InventoryItemGrid? _grid;
+  bool _gridFailed = false;
+  InventoryTotals? _allTotals;
+  List<int> _karatOrder = List<int>.from(inventoryDefaultKaratOrder);
+  bool _karatExpanded = false;
+  final _lotsKey = GlobalKey();
 
   bool get _writesEnabled =>
       !widget.readOnly && _day != null && !_otherPending && !_inventoryPending;
@@ -111,7 +119,80 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void initState() {
     super.initState();
     widget.syncTicks?.addListener(_onSync);
+    unawaited(_loadKaratPreferences());
     _load();
+  }
+
+  String get _orderKey => 'inventory_karat_order_${widget.shopId}';
+  String get _expandedKey => 'inventory_karat_expanded_${widget.shopId}';
+
+  Future<void> _loadKaratPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final order = parseInventoryKaratOrder(prefs.getStringList(_orderKey));
+      final expanded = prefs.getBool(_expandedKey) ?? false;
+      if (!mounted) return;
+      setState(() {
+        _karatOrder = order;
+        _karatExpanded = expanded;
+      });
+    } catch (_) {
+      // A device preference failure keeps the default order.
+    }
+  }
+
+  Future<void> _saveKaratPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_orderKey, [
+        for (final karat in _karatOrder) '$karat',
+      ]);
+      await prefs.setBool(_expandedKey, _karatExpanded);
+    } catch (_) {
+      // Not saved on this device; the screen keeps the choice for now.
+    }
+  }
+
+  Future<void> _chooseKaratOrder() async {
+    final next = await showInventoryKaratOrder(context, _karatOrder);
+    if (next == null || !mounted) return;
+    setState(
+      () => _karatOrder = parseInventoryKaratOrder([
+        for (final karat in next) '$karat',
+      ]),
+    );
+    unawaited(_saveKaratPreferences());
+  }
+
+  void _openGridCell(String itemName, int karat) {
+    setState(() {
+      _category = 'worked_jewelry';
+      _karat = karat;
+      _search.text = itemName;
+    });
+    unawaited(_loadAndShowLots());
+  }
+
+  Future<void> _loadAndShowLots() async {
+    await _load();
+    if (!mounted) return;
+    final target = _lotsKey.currentContext;
+    if (target != null && target.mounted) {
+      await Scrollable.ensureVisible(target);
+    }
+  }
+
+  InventoryInsights? get _insights {
+    final totals = _allTotals;
+    if (totals == null) return null;
+    return inventoryInsights([
+      for (final bucket in totals.buckets)
+        InventoryInsightBucket(
+          category: bucket.category,
+          availableMilligrams: bucket.quantities.availableMilligrams,
+          availableCount: bucket.quantities.availableCount,
+        ),
+    ], _cash);
   }
 
   @override
@@ -296,11 +377,33 @@ class _InventoryScreenState extends State<InventoryScreen> {
       } catch (_) {
         if (!_same(generation, userId, shopId)) return;
       }
+      InventoryItemGrid? grid;
+      var gridFailed = false;
+      try {
+        grid = await widget.gateway.itemGrid(callerUserId: userId);
+      } catch (_) {
+        gridFailed = true;
+      }
+      if (!_same(generation, userId, shopId)) return;
+      InventoryTotals? allTotals = _category == null && _karat == null
+          ? totals
+          : null;
+      if (allTotals == null) {
+        try {
+          allTotals = await widget.gateway.totals(callerUserId: userId);
+        } catch (_) {
+          allTotals = null;
+        }
+        if (!_same(generation, userId, shopId)) return;
+      }
       if (!_same(generation, userId, shopId)) return;
       setState(() {
         _loading = false;
         _day = day;
         if (totals != null) _totals = totals;
+        if (grid != null) _grid = grid;
+        _gridFailed = gridFailed;
+        if (allTotals != null) _allTotals = allTotals;
         if (lots != null) {
           _lots
             ..clear()
@@ -496,6 +599,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
             onPressed: _retryPending,
             child: const Text('التحقق من العملية المعلّقة'),
           ),
+        if (_insights != null) ...[
+          InventoryInsightsStrip(insights: _insights!),
+          const SizedBox(height: 16),
+        ],
+        InventoryItemGridView(
+          grid: _grid,
+          order: _karatOrder,
+          expanded: _karatExpanded,
+          loading: _loading,
+          failed: _gridFailed,
+          onRetry: _load,
+          onExpanded: (value) {
+            setState(() => _karatExpanded = value);
+            unawaited(_saveKaratPreferences());
+          },
+          onOrder: _chooseKaratOrder,
+          onCell: _openGridCell,
+        ),
+        const SizedBox(height: 16),
         TextField(
           key: const Key('inventory-search'),
           controller: _search,
@@ -596,7 +718,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
         if (_denomsMissing)
           const Text('كتالوج الفئات غير متاح. يمكن الحفظ دون وزن اسمي.'),
         const SizedBox(height: 8),
-        Text('الدفعات', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'الدفعات',
+          key: _lotsKey,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         if (_lots.isEmpty && !_loading)
           Text(
@@ -1409,7 +1535,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         const SizedBox(height: AppTokens.spaceSm),
         _sectionCard(
           keyName: 'inventory-jewelry-section',
-          title: 'المشغولات حسب العيار',
+          title: 'الأصناف حسب العيار — تفصيل',
           children: [
             for (final bucket in jewelry)
               _factLine(

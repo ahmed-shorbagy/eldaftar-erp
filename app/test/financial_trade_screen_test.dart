@@ -276,8 +276,8 @@ void main() {
     }
     await tester.enterText(find.byKey(const Key('close-scrap-21')), '٠');
     expect(find.text('مشغولات'), findsNothing);
-    expect(find.text('18'), findsNothing);
-    expect(find.text('21'), findsWidgets);
+    expect(find.text('عيار 18'), findsNothing);
+    expect(find.text('عيار 21'), findsWidgets);
     await tester.enterText(find.byKey(const Key('close-count-0-21')), '2');
     await tester.tap(find.byKey(const Key('close-review')));
     await tester.pump();
@@ -339,11 +339,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final headers = find.text('18').evaluate().toList();
+      final headers = find.text('عيار 18').evaluate().toList();
       expect(headers, isNotEmpty);
-      expect(find.text('21'), findsWidgets);
-      expect(find.text('22'), findsNothing);
-      expect(find.text('14'), findsNothing);
+      expect(find.text('عيار 21'), findsWidgets);
+      expect(find.text('عيار 22'), findsNothing);
+      expect(find.text('عيار 14'), findsNothing);
       expect(find.text('مشغولات'), findsNothing);
       for (final method in ['cash', 'instant_transfer', 'wallet', 'card']) {
         await tester.enterText(find.byKey(Key('close-cash-$method')), '0');
@@ -359,7 +359,10 @@ void main() {
       await tester.tap(find.byKey(const Key('close-review')));
       await tester.pump();
       expect(find.text('اكتب العدد قبل الوزن.'), findsOneWidget);
-      await tester.enterText(find.byKey(const Key('close-count-0-21')), '10000');
+      await tester.enterText(
+        find.byKey(const Key('close-count-0-21')),
+        '10000',
+      );
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('close-count-0-21')))

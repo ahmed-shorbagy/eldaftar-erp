@@ -80,6 +80,19 @@ class CustomerTransport {
   final bool absent;
 }
 
+class CustomerOverview {
+  const CustomerOverview({
+    required this.activeCount,
+    required this.vipCount,
+    required this.active30Days,
+    required this.openRequestCount,
+  });
+  final BigInt activeCount;
+  final BigInt vipCount;
+  final BigInt active30Days;
+  final BigInt openRequestCount;
+}
+
 abstract class CustomerGateway {
   Future<CustomerTransport> sendCustomer({
     required String callerUserId,
@@ -108,4 +121,5 @@ abstract class CustomerGateway {
     required String query,
     required String? cursor,
   });
+  Future<CustomerOverview> customerOverview({required String callerUserId});
 }

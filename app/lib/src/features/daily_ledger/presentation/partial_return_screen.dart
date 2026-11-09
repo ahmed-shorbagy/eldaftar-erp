@@ -596,15 +596,6 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                                 'المتبقي من المقابل: ${displayPounds(signedPoundsText(bounds.remainderConsideration))}',
                                 style: theme.textTheme.titleSmall,
                               ),
-                              if (purchase) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  'المستحق للبائع: ${displayPounds(signedPoundsText(bounds.payableRemaining))}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
                               const SizedBox(height: 12),
                               Align(
                                 alignment: AlignmentDirectional.centerStart,
@@ -790,10 +781,14 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
                                 'المقابل: ${displayPounds(signedPoundsText(review.consideration))}',
                               ),
                               if (purchase) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  'يُلغى من المستحق: ${displayPounds(signedPoundsText(review.cancelledPayable))}',
-                                ),
+                                // Purchases are paid in full (ADR 0041). Only
+                                // an old unpaid purchase still has a payable.
+                                if (review.cancelledPayable != BigInt.zero) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'يُلغى من المستحق: ${displayPounds(signedPoundsText(review.cancelledPayable))}',
+                                  ),
+                                ],
                                 const SizedBox(height: 6),
                                 Text(
                                   'نقد من البائع: ${displayPounds(signedPoundsText(review.cashRefund))}',

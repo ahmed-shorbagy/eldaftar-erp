@@ -474,8 +474,8 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
-    expect(find.text('18'), findsOneWidget);
-    expect(find.text('21'), findsOneWidget);
+    expect(find.text('عيار 18'), findsOneWidget);
+    expect(find.text('عيار 21'), findsWidgets);
     await t.enterText(find.byKey(const Key('close-count-0-21')), '2');
     await t.enterText(find.byKey(const Key('staff-scrap-21')), '1.000');
     await delegateTap(t, find.byKey(const Key('staff-count-review')));

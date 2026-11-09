@@ -56,6 +56,7 @@ void main() {
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const Key('customer-name')), 'عميل جديد');
     await t.ensureVisible(find.byKey(const Key('customer-save')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('customer-save')));
     await t.pumpAndSettle();
     expect(find.byKey(const Key('customer-success')), findsOneWidget);
@@ -72,6 +73,7 @@ void main() {
     await t.enterText(find.byKey(const Key('customer-name')), 'عميل جديد');
     for (var i = 0; i < 2; i++) {
       await t.ensureVisible(find.byKey(const Key('customer-add-phone')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-add-phone')));
       await t.pumpAndSettle();
       await t.enterText(
@@ -80,6 +82,7 @@ void main() {
       );
     }
     await t.ensureVisible(find.byKey(const Key('customer-save')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('customer-save')));
     await t.pumpAndSettle();
     expect(find.text('رقم الهاتف مكرر في هذا الملف.'), findsOneWidget);
@@ -108,6 +111,7 @@ void main() {
       );
       g.statusOverride = CustomerTransport(receipt: g.committed);
       await t.ensureVisible(find.byKey(const Key('customer-retry')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-retry')));
       await t.pumpAndSettle();
       expect(g.sent, hasLength(1));
@@ -167,6 +171,7 @@ void main() {
       await t.tap(find.byKey(const Key('customer-$customerId')));
       await t.pumpAndSettle();
       await t.ensureVisible(find.text('ربط عملية مؤكدة'));
+      await t.pumpAndSettle();
       await t.tap(find.text('ربط عملية مؤكدة'));
       await t.pumpAndSettle();
       await t.tap(find.text('شراء · رقم 7'));
@@ -174,6 +179,7 @@ void main() {
       expect(find.text('طرف العملية الأصلي'), findsOneWidget);
       expect(find.textContaining('لا يتغير النقد'), findsOneWidget);
       await t.ensureVisible(find.byKey(const Key('customer-confirm')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-confirm')));
       await t.pumpAndSettle();
       expect(g.sent.single.kind, 'customer_link');

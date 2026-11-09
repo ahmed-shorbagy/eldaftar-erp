@@ -29,6 +29,16 @@ A-D7. Every multi-line text field closes the keyboard on tap outside. Fields tha
 
 A-D8. The trader custody flow in «الجرد الفوري» is a different business case and is not changed.
 
+### Amendment after review (2026-11-09)
+
+A-D9. «الدفاتر» reads one closed day by its id, not by calendar date. A day closed and another opened on the same date are two entries, and neither shows the other's operations or figures. `get_ledger_day_v1(p_day_id, p_before_sequence, p_limit)` returns the `get_ledger_date_v1` contract for that day only and keeps that function's staff rules: an employee gets only their own rows and no figures.
+
+A-D10. Home pages older rows of the open day. `get_daily_ledger_home_v1` now returns the cursor of the oldest row it sent when more open-day rows exist, and the app reads older pages with `get_ledger_day_v1` for the open day. Before, a day with more than 100 operations could not show the rest.
+
+A-D11. The day-reset card shows only after a day was closed. Its «فتح يوم جديد» shows only when the viewer can open a day, and its «الدفاتر» link only with the reports grant.
+
+A-D12. The closing grid puts every cell under its karat heading («عيار N») and gives coin and bullion rows their own heading with the karat in the row name. A purchase return no longer shows «المستحق للبائع»; «يُلغى من المستحق» shows only for an old unpaid purchase.
+
 ## Data and compatibility impact
 
 Money stays integer piastres and gold stays integer milligrams. New migrations only, after `20261108160200`. Public RPCs that change are renamed to `…_before_<topic>`, revoked, and wrapped.
@@ -54,5 +64,7 @@ Money stays integer piastres and gold stays integer milligrams. New migrations o
 - `supabase/tests/ledger_home_day_reset.sql`
 - `supabase/tests/repairs_custody.sql`
 - `supabase/tests/repair_fee_collection.sql`
+- `supabase/tests/sale_named_item_and_day_read.sql` (A-D9, A-D10)
+- `app/test/owner_feedback_2026_11_09_fixes_test.dart` (A-D10 to A-D12)
 
 The [validation note](../operations/owner-feedback-2026-11-09-batch-a-validation.md) records the gates, the development deployment, and the hosted checks.

@@ -103,6 +103,7 @@ void main() {
       expect(find.text('متابعة طلب العميل'), findsOneWidget);
       expect(find.text('متابعة طلب الصيانة'), findsNothing);
       await tester.ensureVisible(find.byKey(const Key('ledger-retry-pending')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('ledger-retry-pending')));
       await tester.pumpAndSettle();
       expect(opens, 1);

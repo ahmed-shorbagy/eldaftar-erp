@@ -207,7 +207,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   static const _labels = [
     'الدفتر اليومي',
     'الجرد الفوري',
-    'العملاء',
+    'بيانات العملاء',
     'التقارير',
     'المزيد',
   ];
@@ -379,7 +379,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
     2 =>
       widget.shop.isOwner && widget.customerBuilder != null
           ? widget.customerBuilder!(context)
-          : _page('العملاء', [
+          : _page('بيانات العملاء', [
               Text(
                 widget.shop.isOwner
                     ? 'ملفات العملاء غير متاحة في هذا الاتصال. بيانات طرف العملية متاحة في تفاصيل العملية المؤكدة داخل الدفتر.'

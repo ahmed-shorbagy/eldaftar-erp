@@ -235,6 +235,13 @@ void main() {
               store: MemoryLocker(),
             ),
           );
+          // The 2026-11-09 item table and figures now open the page.
+          await tester.scrollUntilVisible(
+            find.byKey(const Key('inventory-new-item')),
+            200,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await tester.pumpAndSettle();
           expect(find.byKey(const Key('inventory-new-item')), findsOneWidget);
           expect(
             find.text(
@@ -242,6 +249,12 @@ void main() {
             ),
             findsNothing,
           );
+          await tester.scrollUntilVisible(
+            find.byKey(const Key('inventory-karat-all-0')),
+            -100,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await tester.pumpAndSettle();
           final wrap = tester.widget<Wrap>(
             find.byKey(const Key('inventory-karat-all-0')),
           );

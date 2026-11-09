@@ -50,6 +50,42 @@ Map<String, Object?> _map(Object? raw) {
   return Map<String, Object?>.from(raw);
 }
 
+InventoryItemGrid parseInventoryItemGrid(Object? raw) {
+  final json = _map(raw);
+  if (json['rows'] is! List || json['scrap'] is! List) {
+    throw const FormatException('inventory_item_grid');
+  }
+  final cellsByItem = <String, Map<int, InventoryGridCell>>{};
+  for (final item in json['rows'] as List) {
+    final row = _map(item);
+    final name = _text(row['item_name']);
+    final karat = _karat(row['karat']);
+    final cell = InventoryGridCell(
+      count: _positive(row['count']),
+      countKnown: row['count_known'] is bool
+          ? row['count_known'] as bool
+          : throw const FormatException('inventory_item_grid'),
+      milligrams: _positive(row['milligrams']),
+    );
+    cellsByItem.putIfAbsent(name, () => <int, InventoryGridCell>{})[karat] =
+        cell;
+  }
+  final rows = orderInventoryGridRows([
+    for (final entry in cellsByItem.entries)
+      InventoryGridRow(itemName: entry.key, cells: entry.value),
+  ]);
+  final scrap = <int, BigInt>{};
+  for (final item in json['scrap'] as List) {
+    final row = _map(item);
+    scrap[_karat(row['karat'])] = _positive(row['milligrams']);
+  }
+  return InventoryItemGrid(
+    rows: rows,
+    scrapByKarat: scrap,
+    totals: inventoryGridTotals(rows),
+  );
+}
+
 InventoryTotals parseInventoryTotals(Object? raw) {
   final json = _map(raw);
   if (json['ok'] != true || json['buckets'] is! List) {

@@ -615,15 +615,31 @@ class HttpOpeningGateway
     required String shopId,
     String? businessDate,
     String? beforeSequence,
+    String? dayId,
   }) async {
     final snapshot = parseLedgerDate(
-      await _ledgerFeatureRead(userId, 'get_ledger_date_v1', {
-        'p_business_date': businessDate,
-        'p_before_sequence': beforeSequence,
-        'p_limit': 100,
-      }),
+      dayId == null
+          ? await _ledgerFeatureRead(userId, 'get_ledger_date_v1', {
+              'p_business_date': businessDate,
+              'p_before_sequence': beforeSequence,
+              'p_limit': 100,
+            })
+          : await _ledgerFeatureRead(userId, 'get_ledger_day_v1', {
+              'p_day_id': dayId,
+              'p_before_sequence': beforeSequence,
+              'p_limit': 100,
+            }),
       shopId,
     );
+    if (dayId != null) {
+      if (snapshot.dayIds.length != 1 || snapshot.dayIds.single != dayId) {
+        throw const FormatException('requested_ledger_day');
+      }
+      if (businessDate != null && snapshot.businessDate != businessDate) {
+        throw const FormatException('requested_ledger_date');
+      }
+      return snapshot;
+    }
     if (snapshot.businessDate != (businessDate ?? snapshot.serverDate)) {
       throw const FormatException('requested_ledger_date');
     }
@@ -981,6 +997,14 @@ class HttpOpeningGateway
     'p_category': ?category,
     'p_karat': ?karat,
   }, parseInventoryTotals);
+
+  @override
+  Future<InventoryItemGrid> itemGrid({required String callerUserId}) => _parsed(
+    callerUserId,
+    'get_inventory_item_grid_v1',
+    const {},
+    parseInventoryItemGrid,
+  );
 
   @override
   Future<LotPage> lots({
@@ -2803,6 +2827,15 @@ class HttpOpeningGateway
     {'p_query': query, 'p_limit': 20, 'p_cursor': cursor},
     (raw) => parseCustomerSection(raw, type: 'candidates'),
   );
+
+  @override
+  Future<CustomerOverview> customerOverview({required String callerUserId}) =>
+      _customerRead(
+        callerUserId,
+        'get_customer_overview_v1',
+        const {},
+        parseCustomerOverview,
+      );
 
   @override
   Object? appearanceSession(String userId) {

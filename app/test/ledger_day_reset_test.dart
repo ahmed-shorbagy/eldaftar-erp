@@ -64,7 +64,8 @@ void main() {
     final spec = ledgerMetricValues(view, 21)['repair']!;
     expect(spec.label, 'إيراد الصيانة');
     expect(spec.value, '200');
-    expect(spec.unit, 'جنيه');
+    // Same unit as the other money figures (2026-11-09 review).
+    expect(spec.unit, '');
   });
 
   testWidgets(

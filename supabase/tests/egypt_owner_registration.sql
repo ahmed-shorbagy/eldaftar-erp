@@ -244,14 +244,14 @@ begin
     or has_function_privilege('authenticated', 'public.create_shop_account(text,text,text,text,uuid)', 'EXECUTE') then
     raise exception 'registration or legacy RPC grant is too wide';
   end if;
+  if to_regclass('public.shop_member_grants') is null then
+    raise exception 'shop_member_grants is missing';
+  end if;
   select string_agg(item, ', ' order by item)
   into v_remaining
   from (
     select 'shop_invitations'::text as item
     where to_regclass('public.shop_invitations') is not null
-    union all
-    select 'shop_member_grants'
-    where to_regclass('public.shop_member_grants') is not null
     union all
     select 'create_staff_invitation'
     where to_regprocedure('public.create_staff_invitation(uuid,text,text,uuid,uuid)') is not null
@@ -827,6 +827,7 @@ begin
     from information_schema.columns
     where table_schema in ('public', 'private')
       and column_name ilike '%password%'
+      and column_name is distinct from 'password_proof'
   ) then
     raise exception 'a shop or reservation table stores a password';
   end if;

@@ -99,8 +99,9 @@ void main() {
         );
         await t.tap(find.byKey(const Key('customer-$customerId')));
         await capture(t, key, 'detail-$suffix');
-        await t.ensureVisible(find.text('إضافة ملاحظة'));
-        await t.tap(find.text('إضافة ملاحظة'));
+        await t.ensureVisible(find.byKey(const Key('customer-action-note')));
+        await t.pumpAndSettle();
+        await t.tap(find.byKey(const Key('customer-action-note')));
         await t.pumpAndSettle();
         await t.enterText(
           find.byKey(const Key('customer-note')),
@@ -110,11 +111,13 @@ void main() {
         await t.tap(find.byTooltip('رجوع'));
         await t.pumpAndSettle();
         await t.ensureVisible(find.text('حالة العميل'));
+        await t.pumpAndSettle();
         await t.tap(find.text('حالة العميل'));
         await capture(t, key, 'status-$suffix');
         await t.tap(find.byTooltip('رجوع'));
         await t.pumpAndSettle();
         await t.ensureVisible(find.text('ربط عملية مؤكدة'));
+        await t.pumpAndSettle();
         await t.tap(find.text('ربط عملية مؤكدة'));
         await t.pumpAndSettle();
         await t.tap(find.text('شراء · رقم 7'));
@@ -122,6 +125,7 @@ void main() {
         await t.tap(find.byTooltip('رجوع'));
         await t.pumpAndSettle();
         await t.ensureVisible(find.text('أرشفة الملف'));
+        await t.pumpAndSettle();
         await t.tap(find.text('أرشفة الملف'));
         await capture(t, key, 'archive-review-$suffix');
       });
@@ -148,10 +152,11 @@ void main() {
         await capture(t, key, 'pending-$suffix');
         g.statusOverride = CustomerTransport(receipt: g.committed);
         await t.ensureVisible(find.byKey(const Key('customer-retry')));
+        await t.pumpAndSettle();
         await t.tap(find.byKey(const Key('customer-retry')));
         await t.pumpAndSettle();
         await capture(t, key, 'success-$suffix');
-        await t.tap(find.text('قائمة العملاء'));
+        await t.tap(find.text('قائمة بيانات العملاء'));
         await t.pumpAndSettle();
         await t.tap(find.byKey(const Key('customer-create')));
         await t.pumpAndSettle();
@@ -183,6 +188,7 @@ void main() {
       await t.pumpAndSettle();
       await t.enterText(find.byKey(const Key('customer-name')), 'عميل اختبار');
       await t.ensureVisible(find.byKey(const Key('customer-add-phone')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-add-phone')));
       await t.pumpAndSettle();
       await t.enterText(

@@ -120,6 +120,10 @@ class QuietInventory implements InventoryGateway {
   }) async => InventoryTotals(const []);
 
   @override
+  Future<InventoryItemGrid> itemGrid({required String callerUserId}) async =>
+      const InventoryItemGrid(rows: [], scrapByKarat: {}, totals: {});
+
+  @override
   Future<LotPage> lots({
     required String callerUserId,
     String? category,
@@ -574,10 +578,23 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('onboarding-guide')), findsNothing);
+    // The item table and figures now come first on the page.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('inventory-new-item')),
+      200,
+      scrollable: _pageScroll,
+    );
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('inventory-new-item')), findsOneWidget);
     expect(find.byKey(const Key('inventory-product')), findsNothing);
     expect(find.byKey(const Key('inventory-cash')), findsOneWidget);
     expect(find.byKey(const Key('inventory-cash-cash')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('inventory-search')),
+      -200,
+      scrollable: _pageScroll,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('inventory-search')));
     await tester.pump();
     final search = tester.widget<TextField>(

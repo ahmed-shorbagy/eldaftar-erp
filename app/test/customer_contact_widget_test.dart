@@ -98,7 +98,7 @@ void main() {
       await t.tap(find.byKey(const Key('customer-$customerId')));
       await t.pumpAndSettle();
       expect(find.text('تعديل بيانات العميل'), findsNothing);
-      await t.tap(find.text('الاتصال'));
+      await t.tap(find.byKey(const Key('customer-detail-call')));
       await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-contact-open')));
       await t.pumpAndSettle();
@@ -114,25 +114,20 @@ void main() {
       final l = ContactLauncherFake();
       await t.pumpWidget(customerHost(contactScreen(g, l)));
       await t.pumpAndSettle();
+      // No phone: the card shows «بدون رقم هاتف» and no contact buttons.
       expect(
-        t
-            .widget<TextButton>(
-              find.byKey(const Key('customer-whatsapp-$customerId')),
-            )
-            .onPressed,
-        isNull,
+        find.byKey(const Key('customer-whatsapp-$customerId')),
+        findsNothing,
       );
+      expect(find.text('بدون رقم هاتف'), findsOneWidget);
       await t.tap(find.byKey(const Key('customer-$customerId')));
       await t.pumpAndSettle();
       expect(
-        t
-            .widget<OutlinedButton>(
-              find.widgetWithText(OutlinedButton, 'الاتصال'),
-            )
-            .onPressed,
+        t.widget<InkWell>(find.byKey(const Key('customer-detail-call'))).onTap,
         isNull,
       );
       await t.ensureVisible(find.text('تعديل بيانات العميل'));
+      await t.pumpAndSettle();
       await t.tap(find.text('تعديل بيانات العميل'));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('customer-name')), findsOneWidget);
@@ -154,6 +149,7 @@ void main() {
     expect(find.text('فتح رابط واتساب خارجيًا'), findsOneWidget);
     l.outcome = ContactHandoff.opened;
     await t.ensureVisible(find.text('فتح رابط واتساب خارجيًا'));
+    await t.pumpAndSettle();
     await t.tap(find.text('فتح رابط واتساب خارجيًا'));
     await t.pumpAndSettle();
     expect(l.destinations.last.toString(), 'https://wa.me/201011111111');
@@ -275,6 +271,7 @@ void main() {
       isNull,
     );
     await t.ensureVisible(find.text('تحديث أرقام الاتصال'));
+    await t.pumpAndSettle();
     await t.tap(find.text('تحديث أرقام الاتصال'));
     await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('customer-contact-open')));
@@ -309,6 +306,7 @@ void main() {
       await chooseWhatsapp(t);
       final radios = find.byType(RadioListTile<String>);
       await t.ensureVisible(radios.first);
+      await t.pumpAndSettle();
       final client = t.state(radios.first) as RadioClient<String>;
       client.focusNode.requestFocus();
       await t.pump();
@@ -323,6 +321,7 @@ void main() {
       await t.sendKeyEvent(LogicalKeyboardKey.tab);
       await t.pump();
       await t.ensureVisible(find.text('إلغاء'));
+      await t.pumpAndSettle();
       await t.tap(find.text('إلغاء'));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('customer-search')), findsOneWidget);
@@ -427,9 +426,12 @@ void main() {
       await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-$customerId')));
       await t.pumpAndSettle();
-      final label = draft == 'edit' ? 'تعديل بيانات العميل' : 'إضافة ملاحظة';
-      await t.ensureVisible(find.text(label));
-      await t.tap(find.text(label));
+      final action = find.byKey(
+        Key(draft == 'edit' ? 'customer-action-edit' : 'customer-action-note'),
+      );
+      await t.ensureVisible(action);
+      await t.pumpAndSettle();
+      await t.tap(action);
       await t.pumpAndSettle();
       final key = Key(draft == 'edit' ? 'customer-name' : 'customer-note');
       await t.enterText(find.byKey(key), 'مسودة محفوظة');

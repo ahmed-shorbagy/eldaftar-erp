@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
-import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../application/customer_contract.dart';
 import '../application/customer_gateway.dart';
 import '../application/customer_command_flow.dart';
 import '../domain/customer_rules.dart';
 import 'customer_phone_field.dart';
-import '../domain/customer_statistics.dart';
 import '../domain/customer_saved_number.dart';
 import '../domain/customer_contact.dart';
 import '../application/customer_contact_flow.dart';
 import '../data/url_customer_contact_launcher.dart';
+import 'customer_detail_view.dart';
+import 'customer_list_card.dart';
+import 'customer_overview_header.dart';
 import 'customer_whatsapp_icon.dart';
 
 String customerError(String? code) => switch (code) {
@@ -116,6 +117,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
   List<CustomerRecord> _items = [];
   List<Map<String, Object?>> _candidates = [];
   CustomerDetail? _detail;
+  CustomerOverview? _overview;
+  bool _showAllNotes = false;
+  final _linksKey = GlobalKey();
   PendingFinancialCommand? _pending;
   Map<String, Object?>? _review;
   Map<String, Object?>? _operation;
@@ -279,6 +283,17 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _foreign = pending != null && _pending == null;
       final detailId = _detail?.customer.id ?? _selectedId;
       if (_stage == 'list' || detailId == null) {
+        if (!older) {
+          try {
+            _overview = await widget.gateway.customerOverview(
+              callerUserId: widget.userId,
+            );
+          } catch (_) {
+            // The figures are a summary. Their failure must not hide the
+            // customer list itself; the header simply stays away.
+            _overview = null;
+          }
+        }
         final page = await widget.gateway.customers(
           callerUserId: widget.userId,
           query: _search.text.trim(),
@@ -321,6 +336,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
     setState(() {
       _detail = null;
       _selectedId = c.id;
+      _showAllNotes = false;
       _stage = 'detail';
       _loading = true;
       _error = null;
@@ -996,250 +1012,208 @@ class _CustomerScreenState extends State<CustomerScreen> {
     ];
   }
 
-  Widget _card(CustomerRecord c, {bool clickable = true}) => Card(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ListTile(
-          key: Key('customer-${c.id}'),
-          onTap: clickable ? () => _openCustomer(c) : null,
-          leading: MediaQuery.textScalerOf(context).scale(16) > 20
-              ? null
-              : CircleAvatar(child: Text(c.name.characters.first)),
-          titleAlignment: ListTileTitleAlignment.top,
-          title: Text(
-            c.name,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (c.phones.isEmpty)
-                const Text('بدون رقم هاتف')
-              else
-                _contact(c.phones.firstWhere((p) => p.primary).normalized),
-              if (clickable)
-                Text(
-                  c.phones.isEmpty
-                      ? 'حالة حفظ الرقم الأساسي لواتساب: غير متاحة؛ بدون هاتف'
-                      : 'حالة حفظ الرقم الأساسي لواتساب: ${savedNumberLabel(c.phones.firstWhere((p) => p.primary).saved?.state)}',
-                ),
-              Text(
-                c.lastAtShop == null
-                    ? 'لا توجد عمليات مرتبطة'
-                    : 'آخر عملية: ${customerDate(c.lastAtShop!)}',
-              ),
-              if (clickable && c.statistics != null) ...[
-                const Text('اشترى العميل من المحل (جرام)'),
-                _weightTiles(c.statistics!, compact: true),
-                const Text('صافي العمليات المؤكدة المرتبطة فقط'),
-              ],
-              if (c.latestNote != null)
-                Text(
-                  c.latestNote!,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              Wrap(
-                spacing: 8,
-                children: [
-                  if (c.vip)
-                    const Chip(
-                      avatar: Icon(Icons.star_outline),
-                      label: Text('عميل مميز'),
-                    ),
-                  if (c.openRequest) const Chip(label: Text('طلب مفتوح')),
-                  if (c.archived) const Chip(label: Text('مؤرشف')),
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (clickable)
-          Padding(
-            padding: const EdgeInsetsDirectional.only(
-              start: 16,
-              end: 16,
-              bottom: 8,
-            ),
-            child: Tooltip(
-              message: 'محادثة واتساب مع ${c.name}',
-              child: TextButton.icon(
-                key: Key('customer-whatsapp-${c.id}'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  minimumSize: const Size(48, 48),
-                ),
-                onPressed:
-                    !_canContact ||
-                        _contactBusy ||
-                        _loading ||
-                        !c.phones.any(
-                          (p) =>
-                              customerContactUri(
-                                CustomerContactAction.whatsapp,
-                                p.normalized,
-                              ) !=
-                              null,
-                        )
-                    ? null
-                    : () => _prepareContact(c, CustomerContactAction.whatsapp),
-                icon: const CustomerWhatsappIcon(),
-                label: const Text('واتساب'),
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
-  Widget _weightTiles(CustomerStatistics statistics, {bool compact = false}) =>
-      Wrap(
-        spacing: AppTokens.spaceMd,
-        runSpacing: AppTokens.spaceSm,
-        children: [
-          for (final karat in orderedKarats(
-            compact ? const [18, 21, 24] : customerKarats,
-          ))
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'عيار $karat',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: compact
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  if (!compact) const Text('اشترى العميل'),
-                  Text(
-                    customerGrams(statistics.at(karat).boughtMilligrams),
-                    textDirection: TextDirection.ltr,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  if (!compact) ...[
-                    const Text('باع العميل للمحل'),
-                    Text(
-                      customerGrams(statistics.at(karat).soldMilligrams),
-                      textDirection: TextDirection.ltr,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-        ],
-      );
-
-  List<Widget> _statisticsWidgets(CustomerRecord customer) {
-    final s = customer.statistics;
-    final op = s?.lastOperation;
-    const kinds = {
-      'sale': 'شراء العميل من المحل',
-      'purchase': 'بيع العميل للمحل',
-      'sale_return': 'مرتجع شراء العميل',
-      'purchase_return': 'مرتجع بيع العميل للمحل',
-    };
+  List<Widget> _list() {
+    final today = DateTime.now();
     return [
-      _heading('إحصائيات العملاء'),
-      if (s == null)
-        const Text('الإحصائيات غير متاحة؛ افتح الملف مجددًا لتحديثه.')
-      else ...[
-        const Text(
-          'الأوزان الصافية بالجرام بعد المرتجعات المؤكدة. تشمل العمليات المرتبطة صراحة بهذا الملف فقط، وليست كامل تاريخ العميل.',
+      TextField(
+        key: const Key('customer-search'),
+        controller: _search,
+        decoration: const InputDecoration(
+          hintText: 'ابحث بالاسم أو رقم الهاتف…',
+          prefixIcon: Icon(Icons.search),
         ),
-        if (!s.hasActivity)
-          const Text('لا توجد عمليات مؤكدة مرتبطة؛ جميع الأوزان والأعداد صفر.'),
-        _weightTiles(s),
-        Text('عدد عمليات شراء العميل من المحل: \u2066${s.boughtCount}\u2069'),
-        Text('عدد عمليات بيع العميل للمحل: \u2066${s.soldCount}\u2069'),
-        const Text('يبقى عدد العمليات بعد المرتجع الجزئي أو الكامل.'),
-        if (op != null)
-          Text(
-            'آخر عملية مؤكدة: ${kinds[op.kind]} · رقم \u2066${op.sequence}\u2069 · ${customerDate(op.createdAtShop)}',
-          )
-        else
-          const Text('لا توجد عملية مؤكدة مرتبطة لعرض تاريخها.'),
+        onChanged: (_) {
+          _debounce?.cancel();
+          _debounce = Timer(const Duration(milliseconds: 350), () => _reload());
+        },
+      ),
+      const SizedBox(height: AppTokens.spaceMd),
+      if (_overview != null) ...[
+        CustomerOverviewHeader(overview: _overview!),
+        const SizedBox(height: AppTokens.spaceMd),
       ],
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              'قائمة العملاء',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          OutlinedButton.icon(
+            key: const Key('customer-sort'),
+            onPressed: _loading ? null : _chooseSort,
+            icon: const Icon(Icons.swap_vert),
+            label: const Text('ترتيب'),
+          ),
+        ],
+      ),
+      const SizedBox(height: AppTokens.spaceSm),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final entry in const {
+              'active': 'العملاء',
+              'vip': 'المميزون',
+              'open_request': 'طلبات مفتوحة',
+              'archived': 'المؤرشفون',
+              'all': 'الكل',
+            }.entries)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: FilterChip(
+                  label: Text(entry.value),
+                  selected: _filter == entry.key,
+                  onSelected: _loading
+                      ? null
+                      : (_) {
+                          setState(() => _filter = entry.key);
+                          _reload();
+                        },
+                ),
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppTokens.spaceSm),
+      if (_items.isEmpty && !_loading)
+        const Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('لا توجد ملفات مطابقة. يمكنك تغيير البحث أو إضافة عميل.'),
+        ),
+      for (final c in _items)
+        CustomerListCard(
+          customer: c,
+          today: today,
+          onOpen: () => _openCustomer(c),
+          onWhatsapp: _contactable(c, CustomerContactAction.whatsapp)
+              ? () => _prepareContact(c, CustomerContactAction.whatsapp)
+              : null,
+          onCall: _contactable(c, CustomerContactAction.dialer)
+              ? () => _prepareContact(c, CustomerContactAction.dialer)
+              : null,
+        ),
+      if (_cursor != null)
+        _action(
+          'عرض المزيد من العملاء',
+          _loading ? null : () => _reload(older: true),
+        ),
     ];
   }
 
-  List<Widget> _list() => [
-    TextField(
-      key: const Key('customer-search'),
-      controller: _search,
-      decoration: const InputDecoration(
-        labelText: 'بحث',
-        helperText: 'اسم العميل أو رقم الهاتف',
-        prefixIcon: Icon(Icons.search),
+  bool _contactable(CustomerRecord c, CustomerContactAction action) =>
+      _canContact &&
+      !_contactBusy &&
+      !_loading &&
+      c.phones.any((p) => customerContactUri(action, p.normalized) != null);
+
+  Future<void> _chooseSort() async {
+    final next = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('الاسم'),
+              trailing: _sort == 'name' ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.pop(context, 'name'),
+            ),
+            ListTile(
+              title: const Text('آخر عملية'),
+              trailing: _sort == 'last_operation'
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () => Navigator.pop(context, 'last_operation'),
+            ),
+          ],
+        ),
       ),
-      onChanged: (_) {
-        _debounce?.cancel();
-        _debounce = Timer(const Duration(milliseconds: 350), () => _reload());
-      },
-    ),
-    const SizedBox(height: 16),
-    DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _sort,
-      decoration: const InputDecoration(labelText: 'الترتيب'),
-      items: const [
-        DropdownMenuItem(value: 'name', child: Text('الاسم')),
-        DropdownMenuItem(value: 'last_operation', child: Text('آخر عملية')),
-      ],
-      onChanged: _loading
-          ? null
-          : (v) {
-              if (v != null) setState(() => _sort = v);
-              _reload();
-            },
-    ),
-    const SizedBox(height: 8),
-    Wrap(
-      spacing: 8,
-      children: [
-        for (final entry in const {
-          'active': 'العملاء',
-          'archived': 'المؤرشفون',
-          'vip': 'المميزون',
-          'open_request': 'طلبات مفتوحة',
-          'all': 'الكل',
-        }.entries)
-          FilterChip(
-            label: Text(entry.value),
-            selected: _filter == entry.key,
-            onSelected: _loading
-                ? null
-                : (_) {
-                    setState(() => _filter = entry.key);
-                    _reload();
-                  },
+    );
+    if (next == null || !mounted) return;
+    setState(() => _sort = next);
+    _reload();
+  }
+
+  void _openStatus() {
+    final c = _detail?.customer;
+    if (c == null) return;
+    setState(() {
+      _vip = c.vip;
+      _open = c.openRequest;
+      _stage = 'status';
+      _stale = false;
+    });
+  }
+
+  void _openNote() => setState(() {
+    _note.clear();
+    _stage = 'note';
+    _stale = false;
+  });
+
+  List<Widget> _notesSection(CustomerDetail d) {
+    final theme = Theme.of(context);
+    final notes = d.notes.items;
+    final shown = _showAllNotes || notes.length <= 4 ? notes : notes.take(4);
+    return [
+      Card(
+        key: const Key('customer-detail-notes'),
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'الملاحظات',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  if (!_readOnly)
+                    TextButton.icon(
+                      key: const Key('customer-note-add'),
+                      onPressed: _blocked ? null : _openNote,
+                      icon: const Icon(Icons.add),
+                      label: const Text('إضافة ملاحظة'),
+                    ),
+                ],
+              ),
+              if (notes.isEmpty) const Text('لا توجد ملاحظات.'),
+              for (final n in shown)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.sticky_note_2_outlined,
+                    color: theme.colorScheme.secondary,
+                  ),
+                  title: Text(n['body'] as String),
+                  subtitle: Text(
+                    '${customerDate(n['created_at_shop'] as String)} · ${n['actor_display_name']}',
+                  ),
+                ),
+              if (!_showAllNotes && notes.length > 4)
+                TextButton(
+                  key: const Key('customer-notes-all'),
+                  onPressed: () => setState(() => _showAllNotes = true),
+                  child: const Text('عرض كل الملاحظات'),
+                ),
+              if ((_showAllNotes || notes.length <= 4) &&
+                  d.notes.cursor != null)
+                TextButton(
+                  onPressed: _loading ? null : () => _more('notes'),
+                  child: const Text('عرض ملاحظات أقدم'),
+                ),
+            ],
           ),
-      ],
-    ),
-    if (!_readOnly)
-      _action(
-        'إضافة عميل جديد',
-        _blocked ? null : () => _edit(),
-        key: const Key('customer-create'),
-        primary: true,
+        ),
       ),
-    if (_items.isEmpty && !_loading)
-      const Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('لا توجد ملفات مطابقة. يمكنك تغيير البحث أو إضافة عميل.'),
-      ),
-    ..._items.map(_card),
-    if (_cursor != null)
-      _action(
-        'عرض المزيد من العملاء',
-        _loading ? null : () => _reload(older: true),
-      ),
-  ];
+    ];
+  }
+
   List<Widget> _editForm() => [
     Form(
       key: _form,
@@ -1347,33 +1321,102 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final d = _detail;
     if (d == null) return [];
     final c = d.customer;
+    final today = DateTime.now();
     return [
-      _card(c, clickable: false),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          OutlinedButton.icon(
-            onPressed: !_canContact || _loading || c.phones.isEmpty
-                ? null
-                : () => _prepareContact(c, CustomerContactAction.dialer),
-            icon: const Icon(Icons.phone_outlined),
-            label: const Text('الاتصال'),
-          ),
-          OutlinedButton.icon(
-            onPressed: !_canContact || _loading || c.phones.isEmpty
-                ? null
-                : () => _prepareContact(c, CustomerContactAction.whatsapp),
-            icon: const CustomerWhatsappIcon(),
-            label: const Text('واتساب'),
-          ),
-        ],
+      CustomerDetailHeader(
+        customer: c,
+        onCall: _contactable(c, CustomerContactAction.dialer)
+            ? () => _prepareContact(c, CustomerContactAction.dialer)
+            : null,
+        onWhatsapp: _contactable(c, CustomerContactAction.whatsapp)
+            ? () => _prepareContact(c, CustomerContactAction.whatsapp)
+            : null,
+        onEdit: _readOnly || _blocked ? null : () => _edit(c),
       ),
-      if (c.phones.isEmpty)
-        const Text(
-          'أضف رقم هاتف من تعديل بيانات العميل عند توفر صلاحية التعديل.',
+      const SizedBox(height: AppTokens.spaceMd),
+      CustomerPurchaseSummary(customer: c, today: today),
+      if (c.openRequest) ...[
+        const SizedBox(height: AppTokens.spaceMd),
+        Card(
+          key: const Key('customer-detail-request'),
+          child: ListTile(
+            leading: const Icon(Icons.pending_actions_outlined),
+            title: const Text('يوجد طلب مفتوح لهذا العميل.'),
+            trailing: _readOnly
+                ? null
+                : TextButton(
+                    onPressed: _blocked ? null : _openStatus,
+                    child: const Text('إنهاء الطلب'),
+                  ),
+          ),
         ),
-      ..._statisticsWidgets(c),
+      ],
+      const SizedBox(height: AppTokens.spaceMd),
+      ..._notesSection(d),
+      const SizedBox(height: AppTokens.spaceMd),
+      if (!_readOnly)
+        CustomerQuickActions(
+          actions: [
+            CustomerQuickAction(
+              key: const Key('customer-action-edit'),
+              label: 'تعديل بيانات العميل',
+              icon: Icons.edit_outlined,
+              onTap: _blocked ? null : () => _edit(c),
+            ),
+            CustomerQuickAction(
+              key: const Key('customer-action-history'),
+              label: 'تاريخ العمليات',
+              icon: Icons.history,
+              onTap: () {
+                final target = _linksKey.currentContext;
+                if (target != null) Scrollable.ensureVisible(target);
+              },
+            ),
+            CustomerQuickAction(
+              key: const Key('customer-action-note'),
+              label: 'إضافة ملاحظة',
+              icon: Icons.note_add_outlined,
+              onTap: _blocked ? null : _openNote,
+            ),
+            CustomerQuickAction(
+              key: const Key('customer-action-status'),
+              label: 'حالة العميل',
+              icon: c.vip ? Icons.star : Icons.star_border,
+              onTap: _blocked ? null : _openStatus,
+            ),
+            if (!c.archived)
+              CustomerQuickAction(
+                key: const Key('customer-action-link'),
+                label: 'ربط عملية مؤكدة',
+                icon: Icons.link,
+                onTap: _blocked
+                    ? null
+                    : () {
+                        _candidateSearch.clear();
+                        _candidates = [];
+                        _stale = false;
+                        _loadCandidates();
+                      },
+              ),
+            CustomerQuickAction(
+              key: const Key('customer-action-archive'),
+              label: c.archived ? 'استعادة الملف' : 'أرشفة الملف',
+              icon: c.archived
+                  ? Icons.unarchive_outlined
+                  : Icons.archive_outlined,
+              destructive: !c.archived,
+              onTap: _blocked
+                  ? null
+                  : () => setState(() {
+                      _review = _payload(
+                        c.archived ? 'customer_restore' : 'customer_archive',
+                      );
+                      _stage = 'review';
+                      _stale = false;
+                    }),
+            ),
+          ],
+        ),
       _heading('بيانات العميل'),
       if (c.phones.isEmpty)
         const Text('حالة حفظ الرقم لواتساب غير متاحة؛ بدون هاتف.'),
@@ -1400,79 +1443,11 @@ class _CustomerScreenState extends State<CustomerScreen> {
           ),
         ),
       Text('آخر تحديث للملف: ${customerDate(c.updatedAtShop)}'),
-      if (!_readOnly)
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _action('تعديل بيانات العميل', _blocked ? null : () => _edit(c)),
-            _action(
-              'حالة العميل',
-              _blocked
-                  ? null
-                  : () => setState(() {
-                      _vip = c.vip;
-                      _open = c.openRequest;
-                      _stage = 'status';
-                      _stale = false;
-                    }),
-            ),
-            _action(
-              'إضافة ملاحظة',
-              _blocked
-                  ? null
-                  : () => setState(() {
-                      _note.clear();
-                      _stage = 'note';
-                      _stale = false;
-                    }),
-            ),
-            if (!c.archived)
-              _action(
-                'ربط عملية مؤكدة',
-                _blocked
-                    ? null
-                    : () {
-                        _candidateSearch.clear();
-                        _candidates = [];
-                        _stale = false;
-                        _loadCandidates();
-                      },
-              ),
-            _action(
-              c.archived ? 'استعادة الملف' : 'أرشفة الملف',
-              _blocked
-                  ? null
-                  : () => setState(() {
-                      _review = _payload(
-                        c.archived ? 'customer_restore' : 'customer_archive',
-                      );
-                      _stage = 'review';
-                      _stale = false;
-                    }),
-            ),
-          ],
-        ),
-      _heading('الملاحظات'),
-      if (d.notes.items.isEmpty) const Text('لا توجد ملاحظات.'),
-      for (final n in d.notes.items)
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(n['body'] as String),
-                Text(
-                  '${customerDate(n['created_at_shop'] as String)} · ${n['actor_display_name']}',
-                ),
-              ],
-            ),
-          ),
-        ),
-      if (d.notes.cursor != null)
-        _action('عرض ملاحظات أقدم', _loading ? null : () => _more('notes')),
-      _heading('العمليات المرتبطة'),
+      Padding(
+        key: _linksKey,
+        padding: const EdgeInsets.only(top: 24, bottom: 8),
+        child: Text('العمليات', style: Theme.of(context).textTheme.titleLarge),
+      ),
       if (d.links.items.isEmpty)
         const Text('لا توجد عمليات مرتبطة بهذا العميل.'),
       for (final op in d.links.items)
@@ -1703,7 +1678,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
         'customer_unlink' => 'سيُلغى الارتباط الحالي مع الاحتفاظ بسجله.',
         'customer_archive' =>
           'سيُخفى الملف من القائمة المعتادة ويمكن استعادته لاحقًا.',
-        'customer_restore' => 'سيعود الملف إلى قائمة العملاء.',
+        'customer_restore' => 'سيعود الملف إلى قائمة بيانات العملاء.',
         _ => '',
       }),
       const Padding(
@@ -1738,7 +1713,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             : () => _openCustomer(_detail!.customer),
       ),
       _action(
-        'قائمة العملاء',
+        'قائمة بيانات العملاء',
         _pending != null
             ? null
             : () {
@@ -1759,7 +1734,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       appBar: AppBar(
         title: Text(
           _stage == 'list'
-              ? 'العملاء'
+              ? 'بيانات العملاء'
               : _stage == 'edit'
               ? _editId == null
                     ? 'إضافة عميل'
@@ -1837,6 +1812,19 @@ class _CustomerScreenState extends State<CustomerScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: _stage == 'list' && !_readOnly
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppTokens.spaceMd),
+                child: FilledButton.icon(
+                  key: const Key('customer-create'),
+                  onPressed: _blocked ? null : () => _edit(),
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  label: const Text('إضافة عميل جديد'),
+                ),
+              ),
+            )
+          : null,
     ),
   );
 }

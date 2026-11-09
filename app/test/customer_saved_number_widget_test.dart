@@ -54,6 +54,7 @@ Future<void> reviewSaved(
   await t.tap(find.text(label).last);
   await t.pumpAndSettle();
   await t.ensureVisible(find.text('مراجعة إقرار المالك'));
+  await t.pumpAndSettle();
   await t.tap(find.text('مراجعة إقرار المالك'));
   await t.pumpAndSettle();
 }
@@ -89,16 +90,12 @@ void main() {
       addTearDown(sync.dispose);
       await t.pumpWidget(customerHost(savedScreen(g, store, sync: sync)));
       await t.pumpAndSettle();
-      expect(find.textContaining('غير متاحة؛ بدون هاتف'), findsOneWidget);
+      expect(find.text('بدون رقم هاتف'), findsOneWidget);
       g.row['phones'] = savedPhones('saved');
       sync.notifyListeners();
       await t.pumpAndSettle();
-      expect(
-        find.textContaining(
-          'حالة حفظ الرقم الأساسي لواتساب: أكد المالك حفظ الرقم',
-        ),
-        findsOneWidget,
-      );
+      // The card shows the primary number's state as a short tag.
+      expect(find.text('محفوظ'), findsOneWidget);
       expect(g.sent, isEmpty);
     },
   );
@@ -141,7 +138,7 @@ void main() {
         await t.pumpWidget(customerHost(savedScreen(g, store)));
         await t.pumpAndSettle();
         expect(
-          find.textContaining('حالة حفظ الرقم الأساسي لواتساب'),
+          find.byKey(const Key('customer-whatsapp-$customerId')),
           findsOneWidget,
         );
         await openSaved(t);
@@ -324,9 +321,11 @@ void main() {
       await t.tap(find.byTooltip('رجوع'));
       await t.pumpAndSettle();
       await t.ensureVisible(find.text('واتساب'));
+      await t.pumpAndSettle();
       await t.tap(find.text('واتساب'));
       await t.pumpAndSettle();
       await t.ensureVisible(find.byKey(const Key('customer-contact-open')));
+      await t.pumpAndSettle();
       await t.tap(find.byKey(const Key('customer-contact-open')));
       await t.pumpAndSettle();
       expect(g.sent, isEmpty);

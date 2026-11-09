@@ -48,7 +48,19 @@ declare
  id uuid; other uuid; operation uuid; cursor_value text;
 begin
  perform public.confirm_opening_balances(gen_random_uuid(),'{"version":1,"cash":{"cash":"50000"},"stock":[],"scrap":[]}'::jsonb);
+ -- Keep the seed purchase unlinked so manual link/unlink fault tests stay valid.
+ reset role;
+ alter table public.financial_operation_details
+   disable trigger financial_operation_details_customer_capture;
+ set local role authenticated;
+ perform set_config('request.jwt.claim.sub','c8111111-1111-4111-8111-111111111111',true);
  purchase:=public.post_daily_ledger_trade(gen_random_uuid(),'{"version":1,"kind":"purchase","total_piastres":"1000","tenders":[{"method":"cash","piastres":"1000"}],"items":[{"category":"scrap","karat":21,"milligrams":"1255","count":null,"item_name":"كسر اصطناعي","line_price_piastres":null}],"description":"","customer_name":"لقطة الطرف الاصطناعي","customer_phone":"","note":""}'::jsonb);
+ reset role;
+ alter table public.financial_operation_details
+   enable trigger financial_operation_details_customer_capture;
+ set local role authenticated;
+ perform set_config('request.jwt.claim.sub','c8111111-1111-4111-8111-111111111111',true);
+ perform set_config('request.jwt.claims','{"sub":"c8111111-1111-4111-8111-111111111111","role":"authenticated","session_id":"c8888888-8888-4888-8888-888888888888","is_anonymous":false}',true);
  operation:=(purchase->>'operation_id')::uuid;
  customer:=public.post_customer_create_v1(gen_random_uuid(),'{"version":1,"kind":"customer_create","display_name":"عميل تحقق أول","phones":[{"number":"01088888888","is_primary":true}],"is_vip":false,"has_open_request":false}');
  id:=(customer->>'customer_id')::uuid;

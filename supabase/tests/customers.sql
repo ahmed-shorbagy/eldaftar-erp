@@ -273,6 +273,14 @@ select public.confirm_opening_balances(
   '{"version":1,"cash":{"cash":"500000","wallet":"100000"},"stock":[{"category":"worked_jewelry","karat":21,"milligrams":"20000","count":"5"}],"scrap":[{"karat":21,"milligrams":"3000"}]}'::jsonb
 );
 
+-- Seed trades keep party names for manual-link candidate tests. Disable
+-- auto-capture here so those fixtures stay unlinked until the CRM asserts.
+reset role;
+alter table public.financial_operation_details
+  disable trigger financial_operation_details_customer_capture;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'c1111111-1111-4111-8111-111111111111', true);
+
 insert into customer_ops (name, operation_id, payload)
 select 'sale_old', (public.post_daily_ledger_trade(
   'c3000000-0000-4000-8000-000000000011',
@@ -345,6 +353,9 @@ select operation_id, 'c1222222-2222-4222-8222-222222222222',
   pg_catalog.clock_timestamp()
 from customer_ops where name = 'unconfirmed';
 
+alter table public.financial_operation_details
+  enable trigger financial_operation_details_customer_capture;
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'c1111111-1111-4111-8111-111111111111', true);
 select set_config('request.jwt.claims',
@@ -386,6 +397,7 @@ declare
   v_debt_rev bigint;
   v_repair_rev bigint;
   v_customer_rev bigint;
+  v_customers_before bigint;
   v_long text := 'ملاحظة ' || repeat('ط', 200);
 begin
   select operation_id into v_sale_old from customer_ops where name = 'sale_old';
@@ -413,6 +425,9 @@ begin
   select ledger_revision, debt_revision, repair_revision, customer_revision
     into v_ledger, v_debt_rev, v_repair_rev, v_customer_rev
   from public.shop_sync_signals where shop_id = v_shop;
+  -- Baseline includes customers auto-captured from seed sales (ADR 0043).
+  select count(*) into v_customers_before
+  from public.customers where shop_id = v_shop;
 
   perform pg_temp.expect_code(
     format(
@@ -441,7 +456,7 @@ begin
     ),
     'invalid_input'
   );
-  if (select count(*) from public.customers where shop_id = v_shop) <> 0 then
+  if (select count(*) from public.customers where shop_id = v_shop) <> v_customers_before then
     raise exception 'rejected_create_persisted';
   end if;
 
@@ -1080,5 +1095,146 @@ begin
   end if;
 end;
 $cross$;
+
+reset role;
+insert into auth.users (
+  id, instance_id, aud, role, email, is_anonymous, created_at, updated_at
+) values
+  ('c8111111-1111-4111-8111-111111111111', '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'customer-staff@example.test', false, now(), now()),
+  ('c9111111-1111-4111-8111-111111111111', '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'customer-partner@example.test', false, now(), now());
+insert into public.shop_memberships (shop_id, user_id, role) values
+  ('c1222222-2222-4222-8222-222222222222', 'c8111111-1111-4111-8111-111111111111', 'employee'),
+  ('c1222222-2222-4222-8222-222222222222', 'c9111111-1111-4111-8111-111111111111', 'partner');
+insert into public.shop_member_grants (shop_id, user_id, permission, granted_by) values
+  ('c1222222-2222-4222-8222-222222222222', 'c8111111-1111-4111-8111-111111111111', 'sale', 'c1111111-1111-4111-8111-111111111111'),
+  ('c1222222-2222-4222-8222-222222222222', 'c9111111-1111-4111-8111-111111111111', 'reports', 'c1111111-1111-4111-8111-111111111111');
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'c1111111-1111-4111-8111-111111111111', true);
+select set_config('request.jwt.claim.session_id', '', true);
+select set_config('request.jwt.claims',
+  '{"sub":"c1111111-1111-4111-8111-111111111111","role":"authenticated","is_anonymous":false}', true);
+
+do $overview$
+declare
+  v_shop uuid := 'c1222222-2222-4222-8222-222222222222';
+  v_other uuid := 'c2222222-2222-4222-8222-222222222222';
+  v_overview jsonb;
+  v_active text;
+  v_vip text;
+  v_open text;
+  v_recent text;
+  v_archived jsonb;
+begin
+  v_archived := public.post_customer_create_v1(
+    'c3000000-0000-4000-8000-000000000901',
+    jsonb_build_object(
+      'version', 1, 'kind', 'customer_create', 'display_name', 'عميل مؤرشف للملخص',
+      'phones', '[]'::jsonb, 'is_vip', false, 'has_open_request', false
+    )
+  );
+  perform public.post_customer_archive_v1(
+    'c3000000-0000-4000-8000-000000000902',
+    jsonb_build_object(
+      'version', 1, 'kind', 'customer_archive',
+      'customer_id', v_archived ->> 'customer_id',
+      'expected_version', v_archived ->> 'record_version'
+    )
+  );
+  v_overview := public.get_customer_overview_v1();
+  reset role;
+  select count(*)::text into v_active
+  from public.customers where shop_id = v_shop and status = 'active';
+  select count(*)::text into v_vip
+  from public.customers
+  where shop_id = v_shop and status = 'active' and is_vip;
+  select count(*)::text into v_open
+  from public.customers
+  where shop_id = v_shop and status = 'active' and has_open_request;
+  select count(*)::text into v_recent
+  from public.customers as customer
+  where customer.shop_id = v_shop
+    and customer.status = 'active'
+    and exists (
+      select 1
+      from public.customer_operation_links as link
+      join public.financial_operations as operation
+        on operation.shop_id = link.shop_id and operation.id = link.operation_id
+      where link.shop_id = customer.shop_id
+        and link.customer_id = customer.id
+        and link.status = 'active'
+        and not private.ledger_trade_hidden(link.shop_id, link.operation_id)
+        and operation.created_at >= now() - interval '30 days'
+    );
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', 'c1111111-1111-4111-8111-111111111111', true);
+  perform set_config('request.jwt.claim.session_id', '', true);
+  if v_overview ->> 'active_count' is distinct from v_active
+    or v_overview ->> 'vip_count' is distinct from v_vip
+    or v_overview ->> 'open_request_count' is distinct from v_open
+    or v_overview ->> 'active_30_days' is distinct from v_recent
+    or v_active::integer = (
+      select count(*) from public.customers where shop_id = v_shop
+    ) then
+    raise exception 'customer_overview_wrong %', jsonb_build_object(
+      'overview', v_overview, 'active', v_active, 'vip', v_vip,
+      'open', v_open, 'recent', v_recent
+    );
+  end if;
+  if exists (
+    select 1 from public.customers
+    where shop_id = v_other and status = 'active'
+  ) and v_overview ->> 'active_count' = (
+    select count(*)::text from public.customers where shop_id = v_other and status = 'active'
+  ) and v_active is distinct from (
+    select count(*)::text from public.customers where shop_id = v_other and status = 'active'
+  ) then
+    null;
+  end if;
+end;
+$overview$;
+
+select set_config('request.jwt.claim.sub', 'c2111111-1111-4111-8111-111111111111', true);
+do $other_shop$
+declare
+  v_overview jsonb := public.get_customer_overview_v1();
+  v_shop uuid := 'c2222222-2222-4222-8222-222222222222';
+begin
+  if v_overview ->> 'active_count' is distinct from (
+    select count(*)::text from public.customers
+    where shop_id = v_shop and status = 'active'
+  ) then
+    raise exception 'other_shop_overview %', v_overview;
+  end if;
+end;
+$other_shop$;
+
+select set_config('request.jwt.claim.sub', 'c8111111-1111-4111-8111-111111111111', true);
+do $staff$
+begin
+  perform public.get_customer_overview_v1();
+  raise exception 'staff_overview_allowed';
+exception
+  when others then
+    if sqlerrm is distinct from 'forbidden' then
+      raise exception 'staff_overview_got_%', sqlerrm;
+    end if;
+end;
+$staff$;
+
+select set_config('request.jwt.claim.sub', 'c9111111-1111-4111-8111-111111111111', true);
+do $partner$
+begin
+  perform public.get_customer_overview_v1();
+  raise exception 'partner_overview_allowed';
+exception
+  when others then
+    if sqlerrm is distinct from 'forbidden' then
+      raise exception 'partner_overview_got_%', sqlerrm;
+    end if;
+end;
+$partner$;
 
 rollback;

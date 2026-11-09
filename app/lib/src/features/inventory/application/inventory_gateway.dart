@@ -1,7 +1,10 @@
 import '../../daily_ledger/application/financial_gateway.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
+import '../domain/inventory_item_grid.dart';
 import '../domain/inventory_models.dart';
+
+export '../domain/inventory_item_grid.dart';
 
 class InventoryReadException implements Exception {
   const InventoryReadException([this.code]);
@@ -330,6 +333,8 @@ abstract class InventoryGateway {
     String? category,
     int? karat,
   });
+
+  Future<InventoryItemGrid> itemGrid({required String callerUserId});
 
   Future<LotPage> lots({
     required String callerUserId,

@@ -22,5 +22,9 @@ abstract class LedgerDateGateway {
     required String shopId,
     String? businessDate,
     String? beforeSequence,
+
+    /// One financial day only. A closed day and a day opened later on the
+    /// same calendar date share a date, so «الدفاتر» and home read by id.
+    String? dayId,
   });
 }

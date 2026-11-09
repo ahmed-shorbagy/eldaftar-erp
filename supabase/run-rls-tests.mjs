@@ -48,6 +48,10 @@ for (const name of [
   'customers.sql',
   'customers_edges.sql',
   'customer_statistics.sql',
+  'customer_auto_capture.sql',
+  'inventory_item_grid.sql',
+  'day_close_keeps_customers_and_inventory.sql',
+  'sale_named_item_and_day_read.sql',
 ]) {
   const file = fileURLToPath(new URL(`./tests/${name}`, import.meta.url))
   console.log(`Running ${name}`)

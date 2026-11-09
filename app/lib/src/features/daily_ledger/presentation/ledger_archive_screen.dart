@@ -76,19 +76,20 @@ class _LedgerArchiveScreenState extends State<LedgerArchiveScreen> {
             if (byDate != 0) return byDate;
             return b.openedAtShop.compareTo(a.openedAtShop);
           });
-      final seen = <String>{};
-      final unique = <ReportDay>[
-        for (final day in closed)
-          if (seen.add(day.date)) day,
-      ];
+      // Every closed day is its own entry, even two on one calendar date.
       setState(() {
-        _days = unique;
+        _days = closed;
         _loading = false;
       });
       final initial = widget.initialDate;
       if (initial != null && !_openedInitial) {
         _openedInitial = true;
-        await _open(initial);
+        for (final day in closed) {
+          if (day.date == initial) {
+            await _open(day);
+            break;
+          }
+        }
       }
     } catch (_) {
       if (mounted) {
@@ -100,7 +101,7 @@ class _LedgerArchiveScreenState extends State<LedgerArchiveScreen> {
     }
   }
 
-  Future<void> _open(String date) async {
+  Future<void> _open(ReportDay day) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => LedgerDateScreen(
@@ -108,7 +109,8 @@ class _LedgerArchiveScreenState extends State<LedgerArchiveScreen> {
           userId: widget.userId,
           shopId: widget.shopId,
           canRead: widget.canRead,
-          initialDate: date,
+          initialDate: day.date,
+          dayId: day.id,
           syncTicks: widget.syncTicks,
           loadItems: (id) async {
             final operation = await widget.financialGateway.operation(
@@ -181,13 +183,18 @@ class _LedgerArchiveScreenState extends State<LedgerArchiveScreen> {
                             ),
                           ),
                         ListTile(
-                          key: Key('ledger-archive-${_days[index].date}'),
+                          key: Key(
+                            index > 0 &&
+                                    _days[index - 1].date == _days[index].date
+                                ? 'ledger-archive-${_days[index].id}'
+                                : 'ledger-archive-${_days[index].date}',
+                          ),
                           title: Text(formatLedgerHeading(_days[index].date)),
                           subtitle: Text(
                             'مقفول · فُتح ${_days[index].openedAtShop.substring(11, 16)}',
                           ),
                           trailing: const Icon(Icons.chevron_left),
-                          onTap: () => _open(_days[index].date),
+                          onTap: () => _open(_days[index]),
                         ),
                       ],
                     ],

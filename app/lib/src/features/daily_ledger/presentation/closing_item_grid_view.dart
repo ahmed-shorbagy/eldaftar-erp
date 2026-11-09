@@ -59,6 +59,8 @@ class ClosingItemGridView extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // One width for headers, counts and weights so every cell sits under
+        // its karat heading.
         final cellWidth = showWeights ? 80.0 : 64.0;
         final cellsWidth = columnCount == 0
             ? 0.0
@@ -77,9 +79,9 @@ class ClosingItemGridView extends StatelessWidget {
                   for (final karat in grid.jewelryKarats) ...[
                     const SizedBox(width: AppTokens.spaceSm),
                     SizedBox(
-                      width: 64,
+                      width: cellWidth,
                       child: Text(
-                        '$karat',
+                        'عيار $karat',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.labelLarge,
                       ),
@@ -88,11 +90,27 @@ class ClosingItemGridView extends StatelessWidget {
                 ],
               ),
             for (var index = 0; index < grid.rows.length; index++) ...[
+              if (grid.rows[index].category != 'worked_jewelry' &&
+                  (index == 0 ||
+                      grid.rows[index - 1].category == 'worked_jewelry')) ...[
+                const SizedBox(height: AppTokens.spaceSm),
+                if (grid.jewelryKarats.isNotEmpty) const Divider(height: 1),
+                const SizedBox(height: AppTokens.spaceSm / 2),
+                Text(
+                  'جنيهات وسبائك',
+                  key: const Key('close-other-heading'),
+                  style: theme.textTheme.labelLarge,
+                ),
+              ],
               const SizedBox(height: AppTokens.spaceSm),
               _GridRow(
                 row: grid.rows[index],
                 index: index,
                 nameWidth: nameWidth,
+                cellWidth: cellWidth,
+                columns: grid.rows[index].category == 'worked_jewelry'
+                    ? grid.jewelryKarats
+                    : grid.rows[index].karats,
                 showWeights: showWeights,
                 readOnly: readOnly,
                 fields: fields,
@@ -145,6 +163,8 @@ class _GridRow extends StatelessWidget {
     required this.row,
     required this.index,
     required this.nameWidth,
+    required this.cellWidth,
+    required this.columns,
     required this.showWeights,
     required this.readOnly,
     required this.fields,
@@ -155,6 +175,11 @@ class _GridRow extends StatelessWidget {
   final ClosingGridRow row;
   final int index;
   final double nameWidth;
+  final double cellWidth;
+
+  /// Karat columns in heading order. A jewelry row follows the table
+  /// heading; a coin or bullion row names its own karat.
+  final List<int> columns;
   final bool showWeights;
   final bool readOnly;
   final List<({String name, int karat, bool weight, int rowIndex})> fields;
@@ -182,6 +207,7 @@ class _GridRow extends StatelessWidget {
             : 'عدد ${row.name} عيار $karat',
         readOnly: readOnly,
         weight: weight,
+        width: cellWidth,
         textInputAction: last ? TextInputAction.done : TextInputAction.next,
         onSubmitted: (_) {
           if (last) {
@@ -197,11 +223,19 @@ class _GridRow extends StatelessWidget {
       children: [
         SizedBox(
           width: nameWidth,
-          child: Text(row.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(
+            row.category == 'worked_jewelry'
+                ? row.name
+                : '${row.name} · عيار ${row.karats.join('، ')}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        for (final karat in row.karats) ...[
+        for (final karat in columns) ...[
           const SizedBox(width: AppTokens.spaceSm),
-          cell(karat, weight: false),
+          row.karats.contains(karat)
+              ? cell(karat, weight: false)
+              : SizedBox(width: cellWidth),
         ],
       ],
     );
@@ -214,9 +248,11 @@ class _GridRow extends StatelessWidget {
         Row(
           children: [
             SizedBox(width: nameWidth),
-            for (final karat in row.karats) ...[
+            for (final karat in columns) ...[
               const SizedBox(width: AppTokens.spaceSm),
-              cell(karat, weight: true),
+              row.karats.contains(karat)
+                  ? cell(karat, weight: true)
+                  : SizedBox(width: cellWidth),
             ],
           ],
         ),

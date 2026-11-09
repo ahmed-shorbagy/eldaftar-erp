@@ -427,3 +427,13 @@ CustomerReceipt parseCustomerReceipt(
     declarationEventId: declarationEvent,
   );
 }
+
+CustomerOverview parseCustomerOverview(Object? raw) {
+  final m = customerMap(raw);
+  return CustomerOverview(
+    activeCount: _statisticsInteger(m['active_count']),
+    vipCount: _statisticsInteger(m['vip_count']),
+    active30Days: _statisticsInteger(m['active_30_days']),
+    openRequestCount: _statisticsInteger(m['open_request_count']),
+  );
+}

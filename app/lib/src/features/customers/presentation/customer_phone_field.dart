@@ -12,6 +12,7 @@ class CustomerPhoneField extends StatefulWidget {
     this.enabled = true,
     this.allowEmpty = true,
     this.emptyMessage = 'أدخل رقم الهاتف.',
+    this.onChanged,
   });
 
   final TextEditingController controller;
@@ -20,6 +21,7 @@ class CustomerPhoneField extends StatefulWidget {
   final bool enabled;
   final bool allowEmpty;
   final String emptyMessage;
+  final ValueChanged<String>? onChanged;
 
   @override
   CustomerPhoneFieldState createState() => CustomerPhoneFieldState();
@@ -66,17 +68,19 @@ class CustomerPhoneFieldState extends State<CustomerPhoneField> {
     final raw = _national.text.trim();
     if (raw.isEmpty) {
       widget.controller.text = '';
-      return;
+    } else {
+      final check = checkCustomerPhone(_country, raw);
+      if (check is PhoneAccepted) {
+        widget.controller.text = check.e164;
+      } else {
+        final digits = foldCustomerDigits(raw).replaceAll(RegExp(r'[\s-]'), '');
+        widget.controller.text =
+            digits.startsWith('+') || digits.startsWith('00')
+            ? digits
+            : '+${_country.dial}${digits.startsWith('0') ? digits.substring(1) : digits}';
+      }
     }
-    final check = checkCustomerPhone(_country, raw);
-    if (check is PhoneAccepted) {
-      widget.controller.text = check.e164;
-      return;
-    }
-    final digits = foldCustomerDigits(raw).replaceAll(RegExp(r'[\s-]'), '');
-    widget.controller.text = digits.startsWith('+') || digits.startsWith('00')
-        ? digits
-        : '+${_country.dial}${digits.startsWith('0') ? digits.substring(1) : digits}';
+    widget.onChanged?.call(widget.controller.text);
   }
 
   /// Empty is accepted when [CustomerPhoneField.allowEmpty]. A valid number

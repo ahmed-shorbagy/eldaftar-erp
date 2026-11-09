@@ -1265,7 +1265,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                           _financialPending == null
                       ? _openDay
                       : null,
-                  onOpenArchive: _openArchive,
+                  onOpenArchive:
+                      widget.shop.hasPermission(ShopPermission.reports)
+                      ? _openArchive
+                      : null,
                   onOperation: _financialGateway == null
                       ? null
                       : _openOperation,

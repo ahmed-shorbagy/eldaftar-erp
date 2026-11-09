@@ -126,7 +126,7 @@ Map<String, LedgerMetricSpec> ledgerMetricValues(
     'repair': LedgerMetricSpec(
       ledgerMetricLabel('repair'),
       money(summary?.repairPiastres),
-      'جنيه',
+      '',
       Icons.handyman_outlined,
       LedgerMetricTone.positive,
     ),

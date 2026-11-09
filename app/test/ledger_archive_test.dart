@@ -49,19 +49,22 @@ class _Reports implements ReportGateway {
 
 class _Dates implements LedgerDateGateway {
   String? requested;
+  String? requestedDay;
   @override
   Future<LedgerDateSnapshot> readLedgerDate({
     required String userId,
     required String shopId,
     String? businessDate,
     String? beforeSequence,
+    String? dayId,
   }) async {
     requested = businessDate;
+    requestedDay = dayId;
     return LedgerDateSnapshot(
       shopId: shopId,
       businessDate: businessDate ?? '2026-11-08',
       serverDate: '2026-11-09',
-      dayIds: const ['dddddddd-dddd-4ddd-8ddd-dddddddddddd'],
+      dayIds: [dayId ?? 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'],
       summary: const LedgerDaySummary(
         salePiastres: '0',
         purchasePiastres: '0',
@@ -139,7 +142,7 @@ class _Money implements FinancialGateway {
 
 void main() {
   testWidgets(
-    'closed days are listed once, newest first, and open a read-only day',
+    'every closed day is listed by id, newest first, and opens read-only',
     (tester) async {
       final dates = _Dates();
       await tester.pumpWidget(
@@ -167,6 +170,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('مقفول · فُتح 18:00'), findsOneWidget);
+      // Two sessions closed on 2026-11-08 are two entries.
+      expect(find.text('مقفول · فُتح 09:30'), findsOneWidget);
+      expect(find.byKey(const Key('ledger-archive-2')), findsOneWidget);
       final tiles = find.byType(ListTile);
       expect(
         tester.widget<ListTile>(tiles.at(0)).key,
@@ -176,6 +182,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('دفتر الأحد 8 نوفمبر 2026'), findsOneWidget);
       expect(dates.requested, '2026-11-08');
+      // The newest session of that date, read by its day id only.
+      expect(dates.requestedDay, '3');
       await tester.tap(find.text('بيع'));
       await tester.pumpAndSettle();
       expect(find.text('تعديل'), findsNothing);
@@ -203,6 +211,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('دفتر السبت 7 نوفمبر 2026'), findsOneWidget);
     expect(dates.requested, '2026-11-07');
+    expect(dates.requestedDay, '1');
   });
 
   testWidgets(

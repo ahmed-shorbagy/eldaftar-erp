@@ -529,7 +529,8 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
               ],
               if (section == 'activity') ...[
                 const SizedBox(height: 12),
-                if (view.dayReset)
+                // A shop that never closed a day has nothing to announce.
+                if (view.dayReset && view.lastClosedBusinessDate != null)
                   _DayResetCard(
                     date: view.lastClosedBusinessDate,
                     onOpenDay: widget.onOpenDay,
@@ -703,17 +704,16 @@ class _DayResetCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                FilledButton(
-                  key: const Key('ledger-day-reset-open'),
-                  onPressed: onOpenDay,
-                  child: const Text('فتح يوم جديد'),
-                ),
-                if (formatted != null)
+                if (onOpenDay != null)
+                  FilledButton(
+                    key: const Key('ledger-day-reset-open'),
+                    onPressed: onOpenDay,
+                    child: const Text('فتح يوم جديد'),
+                  ),
+                if (formatted != null && onOpenArchive != null)
                   OutlinedButton(
                     key: const Key('ledger-day-reset-archive'),
-                    onPressed: onOpenArchive == null
-                        ? null
-                        : () => onOpenArchive!(date!),
+                    onPressed: () => onOpenArchive!(date!),
                     child: Text('عرض يوم $formatted في الدفاتر'),
                   ),
               ],

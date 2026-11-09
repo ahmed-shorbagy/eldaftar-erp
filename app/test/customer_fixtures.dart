@@ -203,4 +203,13 @@ class FakeCustomers implements CustomerGateway {
     required String query,
     required String? cursor,
   }) async => CustomerSection([candidateJson()], null);
+
+  CustomerOverview? overview;
+  @override
+  Future<CustomerOverview> customerOverview({
+    required String callerUserId,
+  }) async {
+    if (overview != null) return overview!;
+    throw const CustomerReadException('rpc_unavailable');
+  }
 }

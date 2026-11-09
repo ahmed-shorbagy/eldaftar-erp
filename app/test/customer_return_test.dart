@@ -239,6 +239,7 @@ void main() {
       '5000',
     );
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.textContaining('تنقص النقدية'), findsOneWidget);
@@ -303,6 +304,7 @@ void main() {
       '5000',
     );
     await tester.ensureVisible(find.byKey(const Key('trade-review')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('trade-confirm')));

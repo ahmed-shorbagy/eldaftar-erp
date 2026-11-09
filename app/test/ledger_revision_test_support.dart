@@ -167,6 +167,7 @@ class RevisionGateway extends FakeFinancialGateway
   final reviews = <Map<String, Object?>>[];
   final dates = <String?>[];
   final cursors = <String?>[];
+  final dayIds = <String?>[];
   bool pendingAtPost = false;
   Map<String, Object?> operationPayload = sourceTrade();
   String operationKind = 'sale';
@@ -223,9 +224,11 @@ class RevisionGateway extends FakeFinancialGateway
     required String shopId,
     String? businessDate,
     String? beforeSequence,
+    String? dayId,
   }) async {
     dates.add(businessDate);
     cursors.add(beforeSequence);
+    dayIds.add(dayId);
     return heldDate?.future ?? dateValue;
   }
 }

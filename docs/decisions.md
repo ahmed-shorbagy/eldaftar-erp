@@ -1,8 +1,12 @@
 # Architecture and product decisions
 
-## Current decision — 2026-11-09, day cycle and repairs
+## Current decision — 2026-11-09, customer data and instant inventory
 
-The 2026-11-09 voice notes for the day cycle and repairs are accepted in [ADR 0042](adr/0042-owner-feedback-2026-11-09-day-cycle-and-repairs.md). Pending invoices are sales of the open day only, closing the day zeroes daily flows and keeps cash and gold balances, «الدفاتر» is a read-only archive of closed days, and an outstanding repair fee can be collected later on the open day. It amends ADR 0012 and ADR 0006. Deployed to development `xchapwvmvoefriqcxtvn`. Not committed. [Plan](operations/owner-feedback-2026-11-09-plan-batch-a.md). [Validation](operations/owner-feedback-2026-11-09-batch-a-validation.md).
+The 2026-11-09 voice notes for customers and instant inventory are accepted in [ADR 0043](adr/0043-owner-feedback-2026-11-09-customer-data-and-inventory.md). The page is «بيانات العملاء». A confirmed sale or purchase captures the customer by phone, then by name, without renaming an existing file and without failing the sale. «الجرد الفوري» starts with six figures and an item-by-karat table. Closing a day does not change customer data or that table. A sale takes stock from the same item first. It amends ADR 0014. Deployed to development `xchapwvmvoefriqcxtvn`. Not committed. [Plan](operations/owner-feedback-2026-11-09-plan-batch-b.md). [Validation](operations/owner-feedback-2026-11-09-batch-b-validation.md).
+
+## Previous decision — 2026-11-09, day cycle and repairs
+
+The 2026-11-09 voice notes for the day cycle and repairs are accepted in [ADR 0042](adr/0042-owner-feedback-2026-11-09-day-cycle-and-repairs.md). Pending invoices are sales of the open day only, closing the day zeroes daily flows and keeps cash and gold balances, «الدفاتر» is a read-only archive of closed days, and an outstanding repair fee can be collected later on the open day. After review, «الدفاتر» and home read a day by its id. It amends ADR 0012 and ADR 0006. Deployed to development `xchapwvmvoefriqcxtvn`. Not committed. [Plan](operations/owner-feedback-2026-11-09-plan-batch-a.md). [Validation](operations/owner-feedback-2026-11-09-batch-a-validation.md).
 
 ## Previous decision — 2026-11-08, voice notes
 

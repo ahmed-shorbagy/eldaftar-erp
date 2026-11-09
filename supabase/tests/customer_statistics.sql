@@ -149,8 +149,9 @@ create function pg_temp.line(k integer,m text,c text,category text default 'work
  select jsonb_build_object('category',category,'karat',k,'milligrams',m,'count',c,'item_name','صنف اصطناعي','line_price_piastres',null);
 $f$;
 create function pg_temp.trade(kind text,items jsonb,total text) returns jsonb language sql as $f$
+ -- Empty party fields so ADR 0043 auto-capture does not link before the manual link under test.
  select jsonb_build_object('version',1,'kind',kind,'total_piastres',total,'tenders',jsonb_build_array(jsonb_build_object('method','cash','piastres',total)),
- 'items',items,'description','','customer_name','طرف اصطناعي متطابق','customer_phone','','note','');
+ 'items',items,'description','','customer_name','','customer_phone','','note','');
 $f$;
 create function pg_temp.link(c jsonb,op uuid,kind text default 'customer_link') returns jsonb language plpgsql as $f$
 declare payload jsonb:=jsonb_build_object('version',1,'kind',kind,'customer_id',c->>'customer_id','expected_version',c->>'record_version','operation_id',op);

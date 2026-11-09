@@ -34,35 +34,33 @@ do $test$
 declare
   v_denied boolean := false;
 begin
-  if to_regclass('public.shop_invitations') is not null
-    or to_regclass('public.shop_member_grants') is not null then
+  -- ADR 0033 restored shop_member_grants and partner/employee roles.
+  -- The invitation table and the pre-ADR staff RPCs stay removed.
+  if to_regclass('public.shop_invitations') is not null then
     raise exception 'staff tables still exist';
+  end if;
+  if to_regclass('public.shop_member_grants') is null then
+    raise exception 'shop_member_grants is missing';
   end if;
   if to_regprocedure('public.create_staff_invitation(uuid,text,text,uuid,uuid)') is not null
     or to_regprocedure('public.accept_staff_invitation(uuid)') is not null
     or to_regprocedure('public.set_staff_permission(uuid,uuid,text,boolean,uuid)') is not null
     or to_regprocedure('public.revoke_staff_member(uuid,uuid,uuid)') is not null
-    or to_regprocedure('private.can_manage_staff(uuid)') is not null
-    or to_regprocedure('private.has_shop_permission(uuid,text)') is not null then
+    or to_regprocedure('private.can_manage_staff(uuid)') is not null then
     raise exception 'staff or permission function still exists';
   end if;
-
-  begin
-    insert into public.shop_memberships (shop_id, user_id, role)
-    values ('a5656565-6565-4565-8565-656565656565', '65656565-6565-4565-8565-656565656565', 'employee');
-  exception when check_violation then
-    v_denied := true;
-  end;
-  if not v_denied then raise exception 'employee role was accepted'; end if;
-
-  v_denied := false;
-  begin
-    insert into public.shop_memberships (shop_id, user_id, role)
-    values ('a5656565-6565-4565-8565-656565656565', '65656565-6565-4565-8565-656565656565', 'partner');
-  exception when check_violation then
-    v_denied := true;
-  end;
-  if not v_denied then raise exception 'partner role was accepted'; end if;
+  if to_regprocedure('private.has_shop_permission(uuid,text)') is null then
+    raise exception 'shop permission helper is missing';
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.shop_memberships'::regclass
+      and conname = 'shop_memberships_role_check'
+      and pg_get_constraintdef(oid) ilike '%partner%'
+      and pg_get_constraintdef(oid) ilike '%employee%'
+  ) then
+    raise exception 'partner and employee roles are not allowed';
+  end if;
 
   v_denied := false;
   begin

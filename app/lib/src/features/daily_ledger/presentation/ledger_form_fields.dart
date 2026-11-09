@@ -189,10 +189,14 @@ class ClosingCountCell extends StatelessWidget {
     this.weight = false,
     this.textInputAction = TextInputAction.next,
     this.onSubmitted,
+    this.width,
   });
 
   final TextEditingController controller;
   final String semanticsLabel;
+
+  /// Fixed column width; defaults to 64 for a count and 80 for a weight.
+  final double? width;
   final Key? fieldKey;
   final bool readOnly;
   final bool weight;
@@ -204,7 +208,7 @@ class ClosingCountCell extends StatelessWidget {
     return Semantics(
       label: semanticsLabel,
       child: SizedBox(
-        width: weight ? 80 : 64,
+        width: width ?? (weight ? 80 : 64),
         child: TextField(
           key: fieldKey,
           controller: controller,

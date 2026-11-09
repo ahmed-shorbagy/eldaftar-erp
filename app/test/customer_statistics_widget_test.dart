@@ -79,8 +79,8 @@ void main() {
     g.broken = false;
     await t.tap(find.text('إعادة المحاولة'));
     await t.pumpAndSettle();
-    expect(find.text('إحصائيات العملاء'), findsOneWidget);
-    expect(find.text('6.000'), findsOneWidget);
+    expect(find.text('ملخص المشتريات'), findsOneWidget);
+    expect(find.text('6.00 g'), findsOneWidget);
   });
   testWidgets('failed statistics refresh visibly marks cached figures stale', (
     t,
@@ -100,7 +100,7 @@ void main() {
       find.textContaining('البيانات المعروضة قد تكون قديمة'),
       findsOneWidget,
     );
-    expect(find.text('6.000'), findsOneWidget);
+    expect(find.text('6.00 g'), findsOneWidget);
   });
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -156,10 +156,10 @@ void main() {
             ),
           );
           await _capture(t, key, 'list-$suffix');
-          expect(find.text('اشترى العميل من المحل (جرام)'), findsOneWidget);
-          expect(find.text('6.000'), findsOneWidget);
-          final label = t.widget<Text>(find.text('عيار 18'));
-          final labelTheme = Theme.of(t.element(find.text('عيار 18')));
+          expect(find.text('18K'), findsOneWidget);
+          expect(find.text('6.00 g'), findsOneWidget);
+          final label = t.widget<Text>(find.text('18K'));
+          final labelTheme = Theme.of(t.element(find.text('18K')));
           final foreground = label.style!.color!.computeLuminance();
           final background = labelTheme.colorScheme.surfaceContainerLow
               .computeLuminance();
@@ -168,28 +168,26 @@ void main() {
               : (background + 0.05) / (foreground + 0.05);
           expect(contrast, greaterThanOrEqualTo(4.5));
           expect(
-            Directionality.of(t.element(find.text('6.000'))),
+            Directionality.of(t.element(find.text('6.00 g'))),
             TextDirection.rtl,
           );
           expect(
-            t.widget<Text>(find.text('6.000')).textDirection,
+            t.widget<Text>(find.text('6.00 g')).textDirection,
             TextDirection.ltr,
           );
           await t.tap(find.byKey(const Key('customer-$customerId')));
           await t.pumpAndSettle();
           await _capture(t, key, 'detail-$suffix');
-          expect(find.text('عيار 14'), findsOneWidget);
-          expect(find.text('عيار 22'), findsOneWidget);
-          expect(find.text('1.255'), findsOneWidget);
+          // 14 was bought, so it shows; 22 was not, so it stays hidden.
+          expect(find.text('14K'), findsOneWidget);
+          expect(find.text('22K'), findsNothing);
           await t.scrollUntilVisible(
-            find.textContaining('عدد عمليات شراء العميل من المحل:'),
+            find.text('21K 1.26 g'),
             150,
             scrollable: find.byType(Scrollable).first,
           );
-          expect(
-            find.textContaining('عدد عمليات شراء العميل من المحل:'),
-            findsOneWidget,
-          );
+          expect(find.text('21K 1.26 g'), findsOneWidget);
+          expect(find.text('1 فاتورة'), findsOneWidget);
           await _capture(t, key, 'counts-$suffix');
           await t.scrollUntilVisible(
             find.textContaining('مرتجع شراء العميل'),
@@ -226,15 +224,12 @@ void main() {
           '0';
       ticks.apply({ShopSyncScope.ledger});
       await t.pumpAndSettle();
-      expect(find.text('6.000'), findsNothing);
-      expect(find.text('0.000'), findsOneWidget);
+      expect(find.text('6.00 g'), findsNothing);
+      expect(find.text('0.00 g'), findsWidgets);
       expect(g.reads, 2);
       await t.tap(find.byKey(const Key('customer-$customerId')));
       await t.pumpAndSettle();
-      expect(
-        find.textContaining('عدد عمليات شراء العميل من المحل: \u20661\u2069'),
-        findsOneWidget,
-      );
+      expect(find.text('1 فاتورة'), findsOneWidget);
     },
   );
   testWidgets('empty and archived summaries have honest Arabic states', (
@@ -270,6 +265,7 @@ void main() {
     await t.tap(find.byKey(const Key('customer-$customerId')));
     await t.pumpAndSettle();
     await t.ensureVisible(find.text('تعديل بيانات العميل'));
+    await t.pumpAndSettle();
     await t.tap(find.text('تعديل بيانات العميل'));
     await t.pumpAndSettle();
     await t.enterText(

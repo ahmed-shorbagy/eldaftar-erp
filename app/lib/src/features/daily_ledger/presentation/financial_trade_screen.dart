@@ -1189,11 +1189,16 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     ..._paymentFields(theme),
     if (widget.initialPayload?['pricing'] is Map) ..._pricingFields(theme),
     if (widget.kind == FinancialKind.sale ||
+        widget.kind == FinancialKind.purchase ||
         widget.kind == FinancialKind.customerReturn)
       ExpansionTile(
         key: const Key('trade-customer-disclosure'),
         childrenPadding: const EdgeInsetsDirectional.only(top: 12, bottom: 8),
-        title: const Text('تفاصيل العميل (اختياري)'),
+        title: Text(
+          widget.kind == FinancialKind.purchase
+              ? 'تفاصيل البائع (اختياري)'
+              : 'تفاصيل العميل (اختياري)',
+        ),
         children: [
           if (widget.initialPayload != null) ...[
             TextField(
@@ -1206,9 +1211,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           TextField(
             key: const Key('trade-customer-name'),
             controller: _customerName,
+            onChanged: (_) => setState(() {}),
             decoration: ledgerFieldDecoration(
               context,
-              label: 'اسم العميل (اختياري)',
+              label: widget.kind == FinancialKind.purchase
+                  ? 'اسم البائع (اختياري)'
+                  : 'اسم العميل (اختياري)',
             ),
           ),
           const SizedBox(height: 12),
@@ -1217,7 +1225,23 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             controller: _customerPhone,
             fieldKey: const Key('trade-customer-phone'),
             label: 'رقم الهاتف',
+            onChanged: (_) => setState(() {}),
           ),
+          if ((widget.kind == FinancialKind.sale ||
+                  widget.kind == FinancialKind.purchase) &&
+              (_customerName.text.trim().isNotEmpty ||
+                  _customerPhone.text.trim().isNotEmpty)) ...[
+            const SizedBox(height: 8),
+            Text(
+              key: const Key('trade-customer-capture-hint'),
+              widget.kind == FinancialKind.purchase
+                  ? 'يُحفظ البائع تلقائيًا في بيانات العملاء بعد تأكيد العملية.'
+                  : 'يُحفظ العميل تلقائيًا في بيانات العملاء بعد تأكيد العملية.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           TextField(
             key: const Key('trade-note'),
@@ -1231,6 +1255,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         ],
       ),
     if (widget.kind != FinancialKind.sale &&
+        widget.kind != FinancialKind.purchase &&
         widget.kind != FinancialKind.customerReturn)
       ExpansionTile(
         key: const Key('trade-notes-disclosure'),

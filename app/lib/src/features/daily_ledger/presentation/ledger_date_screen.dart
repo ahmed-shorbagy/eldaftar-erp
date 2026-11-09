@@ -23,6 +23,7 @@ class LedgerDateScreen extends StatefulWidget {
     this.syncTicks,
     this.loadItems,
     this.initialDate,
+    this.dayId,
   });
   final LedgerDateGateway gateway;
   final String userId, shopId;
@@ -31,6 +32,9 @@ class LedgerDateScreen extends StatefulWidget {
   final Future<List<LedgerLineItem>?> Function(String)? loadItems;
   final Listenable? syncTicks;
   final String? initialDate;
+
+  /// When set, the screen shows that one financial day (read-only archive).
+  final String? dayId;
   @override
   State<LedgerDateScreen> createState() => _LedgerDateScreenState();
 }
@@ -98,6 +102,7 @@ class _LedgerDateScreenState extends State<LedgerDateScreen> {
         shopId: widget.shopId,
         businessDate: _selectedDate,
         beforeSequence: older ? previous?.page.nextBeforeSequence : null,
+        dayId: widget.dayId,
       );
       if (!mounted || generation != _generation) return;
       if (!widget.canRead()) {
