@@ -8,7 +8,7 @@ import {
  * back/forward and shared links working. Hosting must rewrite unknown paths to
  * `index.html` (single-page fallback); Vite's dev server already does.
  */
-export type AdminArea = 'overview' | 'subscribers' | 'appVersion' | 'help' | 'support'
+export type AdminArea = 'overview' | 'subscribers' | 'appVersion' | 'help' | 'support' | 'audit'
 
 export type AdminRoute =
   | { area: 'overview' }
@@ -16,6 +16,7 @@ export type AdminRoute =
   | { area: 'appVersion' }
   | { area: 'help' }
   | { area: 'support' }
+  | { area: 'audit' }
 
 export const defaultAdminRoute: AdminRoute = { area: 'overview' }
 
@@ -32,6 +33,7 @@ const areaSegments: Record<AdminArea, string> = {
   appVersion: 'app-version',
   help: 'help',
   support: 'support',
+  audit: 'audit',
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -62,6 +64,7 @@ export function parseAdminPath(pathname: string, search = ''): AdminRoute | null
   if (first === areaSegments.appVersion) return { area: 'appVersion' }
   if (first === areaSegments.help) return { area: 'help' }
   if (first === areaSegments.support) return { area: 'support' }
+  if (first === areaSegments.audit) return { area: 'audit' }
   return null
 }
 

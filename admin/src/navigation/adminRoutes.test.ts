@@ -25,6 +25,7 @@ test('every area round-trips through its path', () => {
     { area: 'appVersion' },
     { area: 'help' },
     { area: 'support' },
+    { area: 'audit' },
   ] as AdminRoute[]) {
     expect(roundTrip(route)).toEqual(route)
   }

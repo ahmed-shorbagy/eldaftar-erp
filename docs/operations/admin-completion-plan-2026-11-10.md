@@ -50,6 +50,8 @@ Status 2026-11-10: implemented, locally verified and deployed to development und
 
 ## Phase 3 — platform audit browser
 
+Status 2026-11-10: implemented, locally verified and deployed to development under [ADR 0046](../adr/0046-platform-admin-audit.md) ([validation and deployment](../reviews/admin-audit-2026-11-10/validation.md)). Forced-update, Help and announcement changes now append trigger events; «سجل الإدارة» merges all six admin sources with family and admin filters. History starts at deployment; no date-range filter. The original scope follows.
+
 - First verify which admin mutations write audit rows today. Code issuance writes `identity_audit_events`; contact reveal, version policy, Help edits and support status changes need checking against their migrations.
 - Fill any gap with append-only audit rows (actor, server UTC time, action, target, safe summary) that no client can edit.
 - Add a read-only «سجل الإدارة» browser with keyset paging, filters by action family, admin and date range. PII values never appear in summaries.

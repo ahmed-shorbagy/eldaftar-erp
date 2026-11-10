@@ -1,5 +1,6 @@
 import { CacheProvider } from '@emotion/react'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined'
 import SupportAgentOutlinedIcon from '@mui/icons-material/SupportAgentOutlined'
@@ -13,6 +14,10 @@ import { AppVersionPolicyPanel } from './appVersion/AppVersionPolicyPanel.tsx'
 import type { AppVersionGateway } from './appVersion/AppVersionGateway.ts'
 import { appVersionCopy } from './appVersion/copy.ts'
 import { SupabaseAppVersionGateway } from './appVersion/SupabaseAppVersionGateway.ts'
+import { AuditLogPanel } from './audit/AuditLogPanel.tsx'
+import type { AuditGateway } from './audit/AuditGateway.ts'
+import { auditCopy } from './audit/copy.ts'
+import { SupabaseAuditGateway } from './audit/SupabaseAuditGateway.ts'
 import { AdminAuthScreen } from './auth/AdminAuthScreen.tsx'
 import type { AdminAccess, AdminAuthGateway } from './auth/AdminAuthGateway.ts'
 import { getSupabaseClient } from './config/supabaseClient.ts'
@@ -52,6 +57,7 @@ const navAreas: Array<{ area: AdminArea; label: string; icon: ReactNode }> = [
   { area: 'appVersion', label: appVersionCopy.navLabel, icon: <SystemUpdateAltOutlinedIcon /> },
   { area: 'help', label: helpCopy.navLabel, icon: <HelpOutlineOutlinedIcon /> },
   { area: 'support', label: supportCopy.navLabel, icon: <SupportAgentOutlinedIcon /> },
+  { area: 'audit', label: auditCopy.navLabel, icon: <HistoryOutlinedIcon /> },
 ]
 
 function areaRoute(area: AdminArea): AdminRoute {
@@ -68,6 +74,7 @@ export function App({
   helpGateway,
   supportGateway,
   overviewGateway,
+  auditGateway,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeController: ThemeController
@@ -78,6 +85,7 @@ export function App({
   helpGateway?: HelpGateway | null
   supportGateway?: SupportGateway | null
   overviewGateway?: OverviewGateway | null
+  auditGateway?: AuditGateway | null
 }) {
   const [choice, setChoice] = useState(themeController.mode)
   const [access, setAccess] = useState<AdminAccess>(authGateway?.status ?? 'unavailable')
@@ -134,6 +142,11 @@ export function App({
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseOverviewGateway(client)
   }, [overviewGateway])
+  const auditReadGateway = useMemo(() => {
+    if (auditGateway !== undefined) return auditGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseAuditGateway(client)
+  }, [auditGateway])
   const reportAccessLoss = useCallback(() => {
     void authGateway?.refresh()
   }, [authGateway])
@@ -188,6 +201,20 @@ export function App({
     if (route.area === 'appVersion') {
       return versionGateway
         ? <AppVersionPolicyPanel gateway={versionGateway} onAccessLost={reportAccessLoss} />
+        : <DirectoryUnavailable />
+    }
+    if (route.area === 'audit') {
+      return auditReadGateway
+        ? (
+          <AuditLogPanel
+            gateway={auditReadGateway}
+            onAccessLost={reportAccessLoss}
+            onOpen={(next) => {
+              navigate(next)
+              window.scrollTo({ top: 0 })
+            }}
+          />
+        )
         : <DirectoryUnavailable />
     }
     if (route.area === 'support') {
