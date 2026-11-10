@@ -80,7 +80,9 @@ $fn$;
 
 do $priv$
 begin
-  if private.ledger_operation_label('repair_fee') is distinct from 'أجرة إصلاح'
+  -- ADR 0044 C-D7: «مرمة» in every user-facing label.
+  if private.ledger_operation_label('repair_fee') is distinct from 'أجرة مرمة'
+    or private.ledger_operation_label('repair_fee_collection') is distinct from 'تحصيل متبقي مرمة'
     or private.ledger_operation_label('sale') is distinct from 'بيع'
     or private.ledger_operation_label('daily_note') is distinct from 'ملاحظة يومية' then
     raise exception 'repair_label_regressed';
@@ -507,12 +509,12 @@ begin
   if v_cash <> 520000 or v_wallet <> 108000 then
     raise exception 'split_tender_balances_wrong';
   end if;
-  v_summary := public.get_ledger_date_v1(null, null, 20) -> 'day_summary';
+  v_summary := public.get_ledger_date_v2(null, null, 20) -> 'day_summary';
   if v_summary ->> 'repair_piastres' is distinct from '28000'
     or v_summary ->> 'repair_count' is distinct from '2' then
     raise exception 'repair_day_summary_wrong %', v_summary;
   end if;
-  if (public.get_financial_day_report_v1((v_state ->> 'business_day_id')::uuid)
+  if (public.get_financial_day_report_v2((v_state ->> 'business_day_id')::uuid)
       #>> '{summary,repair_piastres}') is distinct from '28000' then
     raise exception 'repair_day_report_wrong';
   end if;

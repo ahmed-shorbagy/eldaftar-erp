@@ -25,7 +25,7 @@ ReviewedCommand addition() =>
               reason: 'إضافة',
               lines: [
                 AdditionLine(
-                  itemName: 'خاتم',
+                  itemName: 'خواتم',
                   category: 'worked_jewelry',
                   karat: 21,
                   milligrams: BigInt.from(10000),

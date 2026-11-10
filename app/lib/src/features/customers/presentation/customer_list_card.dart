@@ -139,6 +139,10 @@ class CustomerListCard extends StatelessWidget {
                     const SizedBox(width: AppTokens.spaceSm),
                     _Tag(label: 'طلب مفتوح', color: scheme.primary),
                   ],
+                  if (c.inWhatsappGroup) ...[
+                    const SizedBox(width: AppTokens.spaceSm),
+                    _Tag(label: 'في الجروب', color: scheme.tertiary),
+                  ],
                   if (c.archived) ...[
                     const SizedBox(width: AppTokens.spaceSm),
                     _Tag(label: 'مؤرشف', color: scheme.onSurfaceVariant),

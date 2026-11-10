@@ -77,7 +77,7 @@ Map<String, Object?> _source({required String kind}) => {
     'note': 'ملاحظة داخلية',
     'items': [
       {
-        'item_name': 'خاتم',
+        'item_name': 'خواتم',
         'category': 'worked_jewelry',
         'karat': 18,
         'milligrams': '1830',

@@ -27,7 +27,7 @@ void main() {
         statusGateway: gateway,
         kind: FinancialKind.sale,
       );
-      await chooseTradeItem(tester, 'خاتم');
+      await chooseTradeItem(tester, 'خواتم');
       expect(
         find.text('دقة 0.01 جرام · منزلتان عشريتان كحد أقصى'),
         findsNothing,
@@ -99,7 +99,7 @@ void main() {
     );
     await chooseTradeItem(tester, 'أخرى');
     expect(
-      tester.getSize(find.byKey(const Key('trade-select-دبلة'))).height,
+      tester.getSize(find.byKey(const Key('trade-select-دبل'))).height,
       lessThanOrEqualTo(44),
     );
   });

@@ -53,7 +53,7 @@ void main() {
                   'note': '',
                   'items': [
                     {
-                      'item_name': 'خاتم',
+                      'item_name': 'خواتم',
                       'category': 'worked_jewelry',
                       'karat': 21,
                       'milligrams': '10000',

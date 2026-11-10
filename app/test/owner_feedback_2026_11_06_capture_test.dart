@@ -134,8 +134,8 @@ void main() {
           );
           await _save(tester, _label('sale-switch-off', dark, size, scale));
           await chooseTradeItem(tester, 'أخرى');
-          await revealTrade(tester, find.byKey(const Key('trade-select-دبلة')));
-          expect(find.byKey(const Key('trade-select-ميدالية')), findsOneWidget);
+          await revealTrade(tester, find.byKey(const Key('trade-select-دبل')));
+          expect(find.byKey(const Key('trade-select-محابس')), findsOneWidget);
           await _save(tester, _label('sale-other-grid', dark, size, scale));
           await revealTrade(
             tester,
@@ -178,7 +178,7 @@ void main() {
               shopId: 'shop-1',
             ),
           );
-          await chooseTradeItem(tester, 'خاتم');
+          await chooseTradeItem(tester, 'خواتم');
           await revealTrade(tester, find.byKey(const Key('trade-grams-0')));
           await _save(tester, _label('purchase-ring', dark, size, scale));
 

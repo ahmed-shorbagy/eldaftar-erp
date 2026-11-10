@@ -118,7 +118,7 @@ void main() {
     );
     await tester.tap(find.text('فتح البيع'));
     await tester.pumpAndSettle();
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '25');
     await reviewTrade(tester);

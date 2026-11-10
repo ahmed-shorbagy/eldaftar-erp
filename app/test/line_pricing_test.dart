@@ -26,8 +26,8 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('trade-line-pricing')));
     await tester.pumpAndSettle();
-    await chooseTradeItem(tester, 'خاتم');
-    await _addItem(tester, 'حلق');
+    await chooseTradeItem(tester, 'خواتم');
+    await _addItem(tester, 'حلقان');
     await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
     await enterTradeField(tester, const Key('trade-line-price-0'), '5000');
     await enterTradeField(tester, const Key('trade-grams-1'), '2.00');
@@ -54,8 +54,8 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('trade-line-pricing')));
     await tester.pumpAndSettle();
-    await chooseTradeItem(tester, 'خاتم');
-    await _addItem(tester, 'حلق');
+    await chooseTradeItem(tester, 'خواتم');
+    await _addItem(tester, 'حلقان');
     await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
     await enterTradeField(tester, const Key('trade-line-price-0'), '5000');
     await enterTradeField(tester, const Key('trade-grams-1'), '2.00');
@@ -76,7 +76,7 @@ void main() {
       kind: FinancialKind.sale,
     );
     expect(find.byKey(const Key('trade-line-price-0')), findsNothing);
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.00');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     await reviewTrade(tester);
@@ -147,7 +147,7 @@ void main() {
                 'karat': 18,
                 'milligrams': '3500',
                 'count': '1',
-                'item_name': 'خاتم',
+                'item_name': 'خواتم',
                 'line_price_piastres': '500000',
               },
             ],

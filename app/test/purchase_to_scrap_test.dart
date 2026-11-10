@@ -24,12 +24,12 @@ void main() {
       statusGateway: gateway,
       kind: FinancialKind.purchase,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     expect(find.byKey(const Key('trade-count-0')), findsNothing);
     await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '1000');
     await reviewTrade(tester);
-    expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
+    expect(find.textContaining('يزيد الكسر عيار 18'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     final line =
@@ -37,7 +37,7 @@ void main() {
             as Map<String, Object?>;
     expect(line['category'], 'scrap');
     expect(line['karat'], 18);
-    expect(line['item_name'], 'خاتم');
+    expect(line['item_name'], 'خواتم');
     expect(line['count'], isNull);
     expect(line['milligrams'], '3500');
   });
@@ -55,6 +55,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('nominal-apply')));
     await tester.pumpAndSettle();
+    await keepPurchaseAsStock(tester);
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '500');
     await reviewTrade(tester);
     await tester.tap(find.byKey(const Key('trade-confirm')));
@@ -77,7 +78,7 @@ void main() {
       statusGateway: ring,
       kind: FinancialKind.purchase,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await tester.tap(find.byKey(const Key('trade-karat-0-scrap-18')));
     await tester.pumpAndSettle();
     final karatValues = tester
@@ -90,8 +91,8 @@ void main() {
     await enterTradeField(tester, const Key('trade-grams-0'), '2.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '1000');
     await reviewTrade(tester);
-    expect(find.textContaining('يزيد كسر عيار 21'), findsOneWidget);
-    expect(find.textContaining('مخزون خاتم'), findsNothing);
+    expect(find.textContaining('يزيد الكسر عيار 21'), findsOneWidget);
+    expect(find.textContaining('مخزون خواتم'), findsNothing);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     final ringLine =
@@ -106,11 +107,11 @@ void main() {
       statusGateway: chain,
       kind: FinancialKind.purchase,
     );
-    await chooseTradeItem(tester, 'سلسلة');
+    await chooseTradeItem(tester, 'سلاسل');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '500');
     await reviewTrade(tester);
-    expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
+    expect(find.textContaining('يزيد الكسر عيار 18'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     final chainLine =
@@ -130,6 +131,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('nominal-apply')));
     await tester.pumpAndSettle();
+    await keepPurchaseAsStock(tester);
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '7000');
     await reviewTrade(tester);
     await tester.tap(find.byKey(const Key('trade-confirm')));
@@ -148,18 +150,18 @@ void main() {
       statusGateway: gateway,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '1000');
     await reviewTrade(tester);
-    expect(find.textContaining('ينقص مخزون خاتم'), findsOneWidget);
+    expect(find.textContaining('ينقص مخزون خواتم'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     final line =
         (gateway.payloads.single['items'] as List).single
             as Map<String, Object?>;
     expect(line['category'], 'worked_jewelry');
-    expect(line['item_name'], 'خاتم');
+    expect(line['item_name'], 'خواتم');
     expect(line['count'], '1');
   });
 
@@ -197,7 +199,7 @@ void main() {
                   'karat': 21,
                   'milligrams': '3500',
                   'count': '1',
-                  'item_name': 'خاتم',
+                  'item_name': 'خواتم',
                   'line_price_piastres': null,
                 },
               ],
@@ -225,7 +227,7 @@ void main() {
     final line = (reviewed!['items'] as List).single as Map<String, Object?>;
     expect(line['category'], 'worked_jewelry');
     expect(line['karat'], 21);
-    expect(line['item_name'], 'خاتم');
+    expect(line['item_name'], 'خواتم');
     expect(line['count'], '1');
     expect(gateway.payloads, isEmpty);
   });

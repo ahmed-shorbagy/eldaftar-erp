@@ -138,10 +138,7 @@ void main() {
         calls.every((r) => !r.url.pathSegments.last.startsWith('post_')),
         isTrue,
       );
-      expect(
-        find.byKey(const Key('operation-whatsapp-share')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('operation-whatsapp-share')), findsOneWidget);
     },
   );
 }

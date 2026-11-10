@@ -207,7 +207,7 @@ void main() {
       find.byKey(const Key('repair-customer-name')),
       'عميل الإصلاح',
     );
-    await tester.enterText(find.byKey(const Key('repair-item')), 'خاتم');
+    await tester.enterText(find.byKey(const Key('repair-item')), 'خواتم');
     await tester.enterText(find.byKey(const Key('repair-grams')), '1.255');
     await tester.tap(find.byKey(const Key('repair-karat')));
     await tester.pumpAndSettle();
@@ -341,7 +341,7 @@ void main() {
             'kind': 'repair_intake',
             'customer_name': 'عميل',
             'customer_phone': '',
-            'item_description': 'خاتم',
+            'item_description': 'خواتم',
             'measured_milligrams': '1255',
             'karat': 21,
             'issue': 'مفصص',
@@ -369,7 +369,7 @@ void main() {
       find.byKey(const Key('repair-customer-name')),
       'عميل',
     );
-    await tester.enterText(find.byKey(const Key('repair-item')), 'خاتم');
+    await tester.enterText(find.byKey(const Key('repair-item')), 'خواتم');
     await tester.enterText(find.byKey(const Key('repair-grams')), '1.260');
     await tester.tap(find.byKey(const Key('repair-karat')));
     await tester.pumpAndSettle();

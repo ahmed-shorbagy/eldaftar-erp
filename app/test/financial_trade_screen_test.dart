@@ -145,7 +145,7 @@ Future<void> beginTrade(WidgetTester tester) async {
     Key(
       screen.kind == FinancialKind.scrapSale
           ? 'trade-select-كسر'
-          : 'trade-select-خاتم',
+          : 'trade-select-خواتم',
     ),
   );
   await tester.dragUntilVisible(
@@ -436,7 +436,7 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.textContaining('تنقص النقدية: 60,000'), findsOneWidget);
-    expect(find.textContaining('يزيد كسر عيار 18'), findsOneWidget);
+    expect(find.textContaining('يزيد الكسر عيار 18'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(

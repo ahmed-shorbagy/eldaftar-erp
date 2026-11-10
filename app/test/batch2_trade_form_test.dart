@@ -30,7 +30,7 @@ void main() {
     expect(find.byKey(const Key('trade-next')), findsNothing);
     expect(find.byKey(const Key('trade-line-price-0')), findsNothing);
     expect(find.byKey(const Key('trade-send-invoice')), findsNothing);
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.255');
     expect(
       tester
@@ -81,7 +81,7 @@ void main() {
         statusGateway: gateway,
         kind: kind,
       );
-      await chooseTradeItem(tester, 'خاتم');
+      await chooseTradeItem(tester, 'خواتم');
       await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
       await enterTradeField(
         tester,
@@ -113,7 +113,7 @@ void main() {
     );
     expect(find.byKey(const Key('trade-customer-disclosure')), findsNothing);
     expect(find.byKey(const Key('trade-purchase-price')), findsNothing);
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '10.000');
     await reviewTrade(tester);
     expect(find.text('أدخل مبلغاً صحيحاً أكبر من صفر.'), findsOneWidget);
@@ -126,12 +126,12 @@ void main() {
       statusGateway: paid,
       kind: FinancialKind.purchase,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '10.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '60000');
     await reviewTrade(tester);
     expect(find.textContaining('تنتقل الملكية إلى المتجر'), findsOneWidget);
-    expect(find.textContaining('يزيد كسر'), findsOneWidget);
+    expect(find.textContaining('يزيد الكسر'), findsOneWidget);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(
@@ -187,6 +187,7 @@ void main() {
       await tester.enterText(find.byKey(const Key('nominal-count-3')), '2');
       await tester.tap(find.byKey(const Key('nominal-apply')));
       await tester.pumpAndSettle();
+      await keepPurchaseAsStock(tester);
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('trade-grams-0')))
@@ -205,6 +206,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('nominal-apply')));
       await tester.pumpAndSettle();
+      await keepPurchaseAsStock(tester);
       expect(
         tester
             .widget<TextField>(find.byKey(const Key('trade-grams-0')))
@@ -309,22 +311,22 @@ void main() {
     expect(find.byKey(const Key('trade-open-inventory')), findsNothing);
     expect(find.byKey(const Key('trade-select-name')), findsNothing);
     expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
-    expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
-    expect(find.byKey(const Key('trade-select-ميدالية')), findsOneWidget);
-    expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
-    await revealTrade(tester, find.byKey(const Key('trade-select-غويشة')));
-    await tester.tap(find.byKey(const Key('trade-select-غويشة')));
+    expect(find.byKey(const Key('trade-select-دبل')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-محابس')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-غوايش')), findsOneWidget);
+    await revealTrade(tester, find.byKey(const Key('trade-select-غوايش')));
+    await tester.tap(find.byKey(const Key('trade-select-غوايش')));
     await tester.pumpAndSettle();
     expect(openedInventory, isFalse);
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '50');
     await reviewTrade(tester);
-    expect(find.textContaining('غويشة'), findsWidgets);
+    expect(find.textContaining('غوايش'), findsWidgets);
     await tester.tap(find.byKey(const Key('trade-confirm')));
     await tester.pumpAndSettle();
     expect(
       (gateway.payloads.single['items'] as List).single['item_name'],
-      'غويشة',
+      'غوايش',
     );
     expect(
       (gateway.payloads.single['items'] as List).single['category'],
@@ -350,11 +352,11 @@ void main() {
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '50');
     await reviewTrade(tester);
     expect(find.text('اختر الصنف.'), findsOneWidget);
-    await revealTrade(tester, find.byKey(const Key('trade-select-طقم')));
-    await tester.tap(find.byKey(const Key('trade-select-طقم')));
+    await revealTrade(tester, find.byKey(const Key('trade-select-توينز')));
+    await tester.tap(find.byKey(const Key('trade-select-توينز')));
     await tester.pumpAndSettle();
     await reviewTrade(tester);
-    expect(find.textContaining('طقم'), findsWidgets);
+    expect(find.textContaining('توينز'), findsWidgets);
   });
 
   testWidgets('other grid saves a shop product then selects it', (
@@ -374,7 +376,7 @@ void main() {
       catalog: catalog,
     );
     await chooseTradeItem(tester, 'أخرى');
-    expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-دبل')), findsOneWidget);
     expect(find.byKey(const Key('trade-select-خاتم ملكي')), findsOneWidget);
     expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
     await revealTrade(tester, find.byKey(const Key('trade-select-خاتم ملكي')));
@@ -421,18 +423,18 @@ void main() {
       kind: FinancialKind.sale,
       catalog: catalog,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await revealTrade(tester, find.byKey(const Key('trade-add-item')));
     await tester.tap(find.byKey(const Key('trade-add-item')));
     await tester.pumpAndSettle();
     expect(find.text('اختر نوع القطعة التالية'), findsOneWidget);
-    expect(find.byKey(const Key('trade-new-category-سلسلة')), findsOneWidget);
+    expect(find.byKey(const Key('trade-new-category-سلاسل')), findsOneWidget);
     expect(find.byKey(const Key('trade-new-category-أخرى')), findsNothing);
-    expect(find.byKey(const Key('trade-new-category-غويشة')), findsOneWidget);
+    expect(find.byKey(const Key('trade-new-category-غوايش')), findsOneWidget);
     expect(find.byKey(const Key('trade-new-category-بروش')), findsOneWidget);
     expect(find.byKey(const Key('trade-picker-create')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('trade-new-category-غويشة')));
+    await tester.tap(find.byKey(const Key('trade-new-category-غوايش')));
     await tester.pumpAndSettle();
     expect(find.text('اختر نوع القطعة التالية'), findsNothing);
     expect(find.text('الصنف 2'), findsOneWidget);
@@ -451,7 +453,7 @@ void main() {
     );
     await chooseTradeItem(tester, 'أخرى');
     expect(find.byKey(const Key('trade-add-other-product')), findsNothing);
-    expect(find.byKey(const Key('trade-select-كوليه')), findsOneWidget);
+    expect(find.byKey(const Key('trade-select-كوليهات')), findsOneWidget);
   });
 
   testWidgets('unknown sale keeps one key and ignores a duplicate tap', (
@@ -468,7 +470,7 @@ void main() {
       statusGateway: gateway,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '10');
     await reviewTrade(tester);
@@ -513,7 +515,7 @@ void main() {
       statusGateway: missingTime,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'حلق');
+    await chooseTradeItem(tester, 'حلقان');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
     await enterTradeField(
       tester,
@@ -541,7 +543,7 @@ void main() {
       statusGateway: ready,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'حلق');
+    await chooseTradeItem(tester, 'حلقان');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
     await enterTradeField(
       tester,
@@ -569,7 +571,7 @@ void main() {
       statusGateway: reconciled,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'حلق');
+    await chooseTradeItem(tester, 'حلقان');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '10');
     await reviewTrade(tester);
@@ -597,7 +599,7 @@ void main() {
       statusGateway: gateway,
       kind: FinancialKind.purchase,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.000');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     await reviewTrade(tester);

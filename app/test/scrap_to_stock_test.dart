@@ -157,7 +157,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byKey(const Key('scrap-stock-item-خاتم')));
+    await tester.tap(find.byKey(const Key('scrap-stock-item-خواتم')));
     await tester.pump();
     await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '0.501');
     await tester.ensureVisible(find.byKey(const Key('scrap-stock-review')));
@@ -179,7 +179,7 @@ void main() {
       find.textContaining('ينقص الكسر: 0.38 جرام (375 ملليجرام) · عيار 21'),
       findsOneWidget,
     );
-    expect(find.textContaining('يزيد مخزون خاتم عيار 21:'), findsOneWidget);
+    expect(find.textContaining('يزيد مخزون خواتم عيار 21:'), findsOneWidget);
     expect(find.text('النقدية لا تتغير.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('scrap-stock-confirm')));
     await tester.pumpAndSettle();
@@ -188,7 +188,7 @@ void main() {
     expect(gateway.payload?['count'], '2');
     expect(gateway.payload?['karat'], 21);
     expect(gateway.payload?['note'], '');
-    expect(gateway.payload?['item_name'], 'خاتم');
+    expect(gateway.payload?['item_name'], 'خواتم');
     expect(gateway.payload?['category'], 'worked_jewelry');
     expect(find.text('ملاحظة اختيارية'), findsNothing);
     expect(find.text('مشغولات'), findsNothing);
@@ -198,7 +198,14 @@ void main() {
     tester,
   ) async {
     await _pumpScrap(tester, scrap: _scrap);
-    for (final label in ['خاتم', 'حلق', 'سلسلة', 'تعليقة', 'جنيهات', 'أخرى']) {
+    for (final label in [
+      'خواتم',
+      'حلقان',
+      'سلاسل',
+      'تعاليق',
+      'جنيهات',
+      'أخرى',
+    ]) {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.text('سبائك'), findsNothing);
@@ -219,7 +226,7 @@ void main() {
       ],
     );
     expect(find.text('سبائك'), findsOneWidget);
-    expect(find.text('خاتم'), findsNothing);
+    expect(find.text('خواتم'), findsNothing);
     expect(find.text('أخرى'), findsNothing);
     expect(find.text('جنيهات'), findsNothing);
     expect(find.text('مشغولات'), findsNothing);
@@ -250,7 +257,7 @@ void main() {
         ),
       ],
     );
-    await tester.tap(find.byKey(const Key('scrap-stock-item-خاتم')));
+    await tester.tap(find.byKey(const Key('scrap-stock-item-خواتم')));
     await tester.pump();
     await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '2.000');
     await tester.ensureVisible(find.byKey(const Key('scrap-stock-review')));
@@ -263,7 +270,7 @@ void main() {
     expect(gateway.payload?['category'], 'worked_jewelry');
     expect(gateway.payload?['karat'], 21);
     expect(gateway.payload?['milligrams'], '2000');
-    expect(gateway.payload?['item_name'], 'خاتم');
+    expect(gateway.payload?['item_name'], 'خواتم');
     expect(gateway.payload?['note'], '');
   });
 
@@ -342,7 +349,7 @@ void main() {
             ),
           ),
         );
-        await tester.tap(find.byKey(const Key('scrap-stock-item-خاتم')));
+        await tester.tap(find.byKey(const Key('scrap-stock-item-خواتم')));
         await tester.pump();
         await tester.enterText(
           find.byKey(const Key('scrap-stock-grams')),

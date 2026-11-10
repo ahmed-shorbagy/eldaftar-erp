@@ -5,7 +5,7 @@ void main() {
   Map<String, Object?> payload(Object? price) => {
     'items': [
       {
-        'item_name': 'خاتم',
+        'item_name': 'خواتم',
         'milligrams': '1000',
         'karat': 21,
         'category': 'worked_jewelry',

@@ -247,7 +247,7 @@ class ItemCacheGateway implements OpeningGateway, FinancialGateway {
       'payload': {
         'items': [
           {
-            'item_name': 'خاتم',
+            'item_name': 'خواتم',
             'milligrams': '1000',
             'karat': 21,
             'category': 'worked_jewelry',
@@ -1339,7 +1339,7 @@ void main() {
 
       await pump();
       await tester.pumpAndSettle();
-      expect(find.text('خاتم'), findsOneWidget);
+      expect(find.text('خواتم'), findsOneWidget);
       expect(gateway.operationCalls, 1);
       await pump();
       await tester.pumpAndSettle();

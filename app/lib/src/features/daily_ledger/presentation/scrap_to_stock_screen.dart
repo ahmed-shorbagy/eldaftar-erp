@@ -11,6 +11,7 @@ import '../application/idempotency_key.dart';
 import '../application/opening_gateway.dart';
 import '../application/pending_financial_command.dart';
 import '../data/pending_financial_command.dart';
+import '../domain/jewelry_items.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
@@ -70,19 +71,19 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   bool _unknown = false;
 
   static const _jewelry = <_ScrapItem>[
-    _ScrapItem('خاتم', 'worked_jewelry', icon: JewelryGlyph(JewelryKind.ring)),
+    _ScrapItem('خواتم', 'worked_jewelry', icon: JewelryGlyph(JewelryKind.ring)),
     _ScrapItem(
-      'حلق',
+      'حلقان',
       'worked_jewelry',
       icon: JewelryGlyph(JewelryKind.earrings),
     ),
     _ScrapItem(
-      'سلسلة',
+      'سلاسل',
       'worked_jewelry',
       icon: JewelryGlyph(JewelryKind.necklace),
     ),
     _ScrapItem(
-      'تعليقة',
+      'تعاليق',
       'worked_jewelry',
       icon: JewelryGlyph(JewelryKind.pendant),
     ),
@@ -150,7 +151,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   }
 
   void _publishOthers() {
-    const reserved = {'خاتم', 'حلق', 'سلسلة', 'تعليقة'};
+    final reserved = {...jewelryMainTileNames, ...jewelryBuiltIns};
     _otherCatalog.value = TradeOtherCatalog(
       choices: [
         for (final name in tradeOtherJewelryNames)
@@ -159,8 +160,11 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
           if (product.category == 'worked_jewelry' &&
               product.karat == _karat &&
               !tradeOtherJewelryNames.contains(product.name) &&
-              !reserved.contains(product.name))
-            TradeItemChoice(product.name, product.category),
+              !reserved.contains(canonicalJewelryName(product.name)))
+            TradeItemChoice(
+              canonicalJewelryName(product.name),
+              product.category,
+            ),
       ],
       loading: _productsLoading,
       failed: widget.catalog == null || _productsFailed,
@@ -213,11 +217,9 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
       title: 'اختر الصنف',
       mainChoices: const [],
       others: _otherCatalog,
-      reservedNames: const {
-        'خاتم',
-        'حلق',
-        'سلسلة',
-        'تعليقة',
+      reservedNames: {
+        ...jewelryMainTileNames,
+        ...jewelryBuiltIns,
         'جنيهات',
         'سبائك',
         'أخرى',

@@ -118,7 +118,7 @@ begin
     'd4400000-0000-4000-8000-000000000011',
     pg_temp.handover(v_unpaid, '3', '20000', 'none', '0', '[]'::jsonb, null, null)
   );
-  v_summary := public.get_ledger_date_v1(null, null, 20) -> 'day_summary';
+  v_summary := public.get_ledger_date_v2(null, null, 20) -> 'day_summary';
   if v_summary ->> 'repair_piastres' is distinct from '0'
     or v_summary ->> 'repair_count' is distinct from '0' then
     raise exception 'unpaid_repair_posted %', v_summary;
@@ -134,12 +134,12 @@ begin
       v_state ->> 'business_day_id', v_state ->> 'day_version'
     )
   );
-  v_summary := public.get_ledger_date_v1(null, null, 20) -> 'day_summary';
+  v_summary := public.get_ledger_date_v2(null, null, 20) -> 'day_summary';
   if v_summary ->> 'repair_piastres' is distinct from '20000'
     or v_summary ->> 'repair_count' is distinct from '1'
-    or (public.get_financial_day_report_v1((v_state ->> 'business_day_id')::uuid)
+    or (public.get_financial_day_report_v2((v_state ->> 'business_day_id')::uuid)
       #>> '{summary,repair_piastres}') is distinct from '20000'
-    or (public.get_financial_day_report_v1((v_state ->> 'business_day_id')::uuid)
+    or (public.get_financial_day_report_v2((v_state ->> 'business_day_id')::uuid)
       #>> '{summary,repair_count}') is distinct from '1' then
     raise exception 'paid_repair_revenue_wrong %', v_summary;
   end if;
@@ -301,7 +301,7 @@ begin
   ) ->> 'ok') is distinct from 'true' then
     raise exception 'close_failed';
   end if;
-  if (public.get_daily_ledger_home_v1() #>> '{day_summary,repair_piastres}') is distinct from '0' then
+  if (public.get_daily_ledger_home_v2() #>> '{day_summary,repair_piastres}') is distinct from '0' then
     raise exception 'closed_home_kept_repair_revenue';
   end if;
   perform pg_temp.expect_code(

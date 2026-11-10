@@ -62,7 +62,7 @@ void main() {
   test('repair metric reads the day summary in pounds', () {
     final view = _view(reset: false).copyWithSummary('20000');
     final spec = ledgerMetricValues(view, 21)['repair']!;
-    expect(spec.label, 'إيراد الصيانة');
+    expect(spec.label, 'إيراد المرمات');
     expect(spec.value, '200');
     // Same unit as the other money figures (2026-11-09 review).
     expect(spec.unit, '');
@@ -129,6 +129,37 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ledger-day-reset')), findsNothing);
+  });
+
+  testWidgets('after reset the home keeps cash and zeroes daily figures only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('ar'),
+        theme: AppTheme.light(),
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: ConfirmedLedgerDashboard(
+                ledger: _view(reset: true),
+                shopId: 'shop-reset-metrics',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ledger-total-cash')), findsOneWidget);
+    expect(find.text('2,500'), findsWidgets);
+    expect(find.byKey(const Key('ledger-metric-sale')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-metric-purchase')), findsOneWidget);
+    expect(find.byKey(const Key('ledger-metric-expense')), findsOneWidget);
+    // Gold/scrap balances stay in الجرد الفوري, not on the home strip.
+    expect(find.byKey(const Key('ledger-balance-stock')), findsNothing);
+    expect(find.byKey(const Key('ledger-balance-scrap')), findsNothing);
   });
 }
 

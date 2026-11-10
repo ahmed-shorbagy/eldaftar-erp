@@ -49,7 +49,7 @@ void main() {
       statusGateway: gateway,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.00');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     await revealTrade(
@@ -80,7 +80,7 @@ void main() {
       statusGateway: gateway,
       kind: FinancialKind.sale,
     );
-    await chooseTradeItem(tester, 'خاتم');
+    await chooseTradeItem(tester, 'خواتم');
     await enterTradeField(tester, const Key('trade-grams-0'), '1.00');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '100');
     final disclosure = find.byKey(const Key('trade-customer-disclosure'));

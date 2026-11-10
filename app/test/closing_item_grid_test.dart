@@ -34,16 +34,13 @@ void main() {
       bookStock: [bucket('worked_jewelry', 18)],
       shopNames: const [
         (name: 'دبلة خاصة', category: 'worked_jewelry', karat: 18),
-        (name: 'خاتم', category: 'worked_jewelry', karat: 18),
+        (name: 'خواتم', category: 'worked_jewelry', karat: 18),
         (name: 'دبلة خاصة', category: 'worked_jewelry', karat: 21),
         (name: 'سبيكة خاصة', category: 'bullion', karat: 24),
       ],
     );
     expect(grid.rows.map((row) => row.name), [
-      'خاتم',
-      'حلق',
-      'سلسلة',
-      'تعليقة',
+      ...ClosingItemGrid.builtInJewelry,
       'دبلة خاصة',
     ]);
   });
@@ -53,12 +50,7 @@ void main() {
       bookStock: [bucket('worked_jewelry', 18)],
       shopNames: const [],
     );
-    expect(jewelry.rows.map((row) => row.name), [
-      'خاتم',
-      'حلق',
-      'سلسلة',
-      'تعليقة',
-    ]);
+    expect(jewelry.rows.map((row) => row.name), ClosingItemGrid.builtInJewelry);
 
     final withMetal = ClosingItemGrid.build(
       bookStock: [
@@ -81,13 +73,13 @@ void main() {
       shopNames: const [],
     );
     final ready = grid.toObservations({
-      ('خاتم', 21): ('2', ''),
-      ('حلق', 18): ('', ''),
+      ('خواتم', 21): ('2', ''),
+      ('حلقان', 18): ('', ''),
     });
     expect(ready, isA<ClosingGridReady>());
     expect((ready as ClosingGridReady).stock, [
       {
-        'item_name': 'خاتم',
+        'item_name': 'خواتم',
         'category': 'worked_jewelry',
         'karat': 21,
         'count': '2',
@@ -95,7 +87,7 @@ void main() {
       },
     ]);
 
-    final missingCount = grid.toObservations({('خاتم', 21): ('', '1.500')});
+    final missingCount = grid.toObservations({('خواتم', 21): ('', '1.500')});
     expect(
       missingCount,
       isA<ClosingGridRejected>().having(
@@ -131,12 +123,12 @@ void main() {
         ],
         shopNames: const [],
       );
-      final draft = grid.toObservations({('خاتم', 21): ('1', '')});
+      final draft = grid.toObservations({('خواتم', 21): ('1', '')});
       expect(draft, isA<ClosingGridReady>());
       final stock = (draft as ClosingGridReady).stock;
       expect(stock, hasLength(2));
       expect(stock.last, {
-        'item_name': 'خاتم',
+        'item_name': 'محابس',
         'category': 'worked_jewelry',
         'karat': 22,
         'count': '0',
@@ -166,9 +158,9 @@ void main() {
       ],
       shopNames: const [],
     );
-    final draft = grid.toObservations({('حلق', 22): ('0', '')});
+    final draft = grid.toObservations({('حلقان', 22): ('0', '')});
     expect((draft as ClosingGridReady).stock, hasLength(1));
-    expect(draft.stock.single['item_name'], 'حلق');
+    expect(draft.stock.single['item_name'], 'حلقان');
   });
 
   test('a leading zero is read as the plain number', () {
@@ -176,7 +168,7 @@ void main() {
       bookStock: [bucket('worked_jewelry', 18)],
       shopNames: const [],
     );
-    final draft = grid.toObservations({('خاتم', 18): ('05', '')});
+    final draft = grid.toObservations({('خواتم', 18): ('05', '')});
     expect((draft as ClosingGridReady).stock.single['count'], '5');
   });
 
@@ -185,7 +177,7 @@ void main() {
       bookStock: [bucket('worked_jewelry', 18)],
       shopNames: const [],
     );
-    final rejected = grid.toObservations({('خاتم', 18): ('10000', '')});
+    final rejected = grid.toObservations({('خواتم', 18): ('10000', '')});
     expect(
       rejected,
       isA<ClosingGridRejected>().having(

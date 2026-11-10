@@ -474,7 +474,7 @@ void main() {
     expect(ledger.isUninitialized, isTrue);
     expect(paths, [
       '/rest/v1/rpc/get_opening_status',
-      '/rest/v1/rpc/get_daily_ledger_home_v1',
+      '/rest/v1/rpc/get_daily_ledger_home_v2',
     ]);
   });
 
@@ -484,7 +484,7 @@ void main() {
       final paths = <String>[];
       final client = MockClient((request) async {
         paths.add(request.url.path);
-        if (request.url.path.endsWith('get_daily_ledger_home_v1') ||
+        if (request.url.path.endsWith('get_daily_ledger_home_v2') ||
             request.url.path.endsWith('get_daily_ledger_v2')) {
           return http.Response(jsonEncode({'code': 'PGRST202'}), 404);
         }
@@ -497,7 +497,7 @@ void main() {
       final ledger = await gateway(client).ledger(callerUserId: 'owner-a');
       expect(ledger.isConfirmed, isTrue);
       expect(paths, [
-        '/rest/v1/rpc/get_daily_ledger_home_v1',
+        '/rest/v1/rpc/get_daily_ledger_home_v2',
         '/rest/v1/rpc/get_daily_ledger_v2',
         '/rest/v1/rpc/get_daily_ledger',
       ]);
@@ -754,7 +754,7 @@ void main() {
         'occurred_at_cairo': '2026-09-26T03:30:00',
         'is_return': true,
         'total_pounds': '5000.00',
-        'item_summary': 'خاتم',
+        'item_summary': 'خواتم',
       },
     ];
     final line = parseDailyLedger(body).feed.single;
@@ -762,7 +762,7 @@ void main() {
     expect(line.isReturn, isTrue);
     expect(line.labelAr, 'مرتجع');
     expect(line.totalPounds, '5000.00');
-    expect(line.itemSummary, 'خاتم');
+    expect(line.itemSummary, 'خواتم');
   });
 }
 

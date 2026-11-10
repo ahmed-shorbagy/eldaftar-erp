@@ -20,6 +20,7 @@ import '../application/inventory_contract.dart';
 import '../application/inventory_gateway.dart';
 import '../domain/inventory_models.dart';
 import 'inventory_copy.dart';
+import 'inventory_figures.dart';
 import 'inventory_forms.dart';
 import 'inventory_item_grid_view.dart';
 import 'inventory_lots_table.dart';
@@ -182,17 +183,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
-  InventoryInsights? get _insights {
+  BigInt? _cashPricePiastresPerGram;
+
+  List<InventoryFigure>? get _figures {
     final totals = _allTotals;
     if (totals == null) return null;
-    return inventoryInsights([
-      for (final bucket in totals.buckets)
-        InventoryInsightBucket(
-          category: bucket.category,
-          availableMilligrams: bucket.quantities.availableMilligrams,
-          availableCount: bucket.quantities.availableCount,
-        ),
-    ], _cash);
+    return inventoryFigures(
+      [
+        for (final bucket in totals.buckets)
+          (
+            category: bucket.category,
+            karat: bucket.karat,
+            milligrams: bucket.quantities.availableMilligrams,
+            count: bucket.quantities.availableCount,
+          ),
+      ],
+      _cash,
+      cashPricePiastresPerGram: _cashPricePiastresPerGram,
+    );
   }
 
   @override
@@ -599,8 +607,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
             onPressed: _retryPending,
             child: const Text('التحقق من العملية المعلّقة'),
           ),
-        if (_insights != null) ...[
-          InventoryInsightsStrip(insights: _insights!),
+        if (_figures != null) ...[
+          InventoryFigureCarousel(
+            figures: _figures!,
+            onCashPrice: (price) =>
+                setState(() => _cashPricePiastresPerGram = price),
+          ),
           const SizedBox(height: 16),
         ],
         InventoryItemGridView(

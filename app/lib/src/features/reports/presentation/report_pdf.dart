@@ -136,8 +136,8 @@ Future<Uint8List> _buildFinancialPdf(_ReportPdfSource report) async {
           ],
         ),
         if (week == null) ...[
-          pair('إيراد الصيانة', reportMoney(report.value('repair_piastres'))),
-          pair('عدد عمليات الصيانة', report.value('repair_count').toString()),
+          pair('إيراد المرمات', reportMoney(report.value('repair_piastres'))),
+          pair('عدد عمليات المرمات', report.value('repair_count').toString()),
         ],
         pw.SizedBox(height: 10),
         text('الذهب بالجرام حسب العيار — صافٍ بعد المرتجعات', size: 13),

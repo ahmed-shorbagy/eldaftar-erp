@@ -520,6 +520,22 @@ Future<void> reviewTrade(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Confirms the C-D8 purchase sheet so the coin/bullion line stays stock.
+Future<void> keepPurchaseAsStock(WidgetTester tester) async {
+  final yes = find.byKey(const Key('purchase-stock-yes'));
+  if (yes.evaluate().isEmpty) return;
+  await tester.tap(yes);
+  await tester.pumpAndSettle();
+}
+
+/// Turns a confirmed coin/bullion purchase line into scrap at [karat].
+Future<void> bookPurchaseAsScrap(WidgetTester tester, int karat) async {
+  await tester.tap(find.byKey(const Key('purchase-stock-no')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(Key('purchase-scrap-karat-$karat')));
+  await tester.pumpAndSettle();
+}
+
 Map<String, Object?> confirmedSaleOperation({
   String operationId = tradeOperationId,
   String? occurredAt = '2026-10-12T12:04:05+00:00',
@@ -539,7 +555,7 @@ Map<String, Object?> confirmedSaleOperation({
     'note': '',
     'items': [
       {
-        'item_name': 'خاتم',
+        'item_name': 'خواتم',
         'category': 'worked_jewelry',
         'karat': 18,
         'milligrams': '1830',

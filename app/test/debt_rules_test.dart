@@ -195,7 +195,7 @@ void main() {
       deliveries: null,
       receipt: DebtReceipt(
         category: 'worked_jewelry',
-        productName: 'خاتم',
+        productName: 'خواتم',
         milligrams: BigInt.from(1500),
         count: BigInt.one,
       ),

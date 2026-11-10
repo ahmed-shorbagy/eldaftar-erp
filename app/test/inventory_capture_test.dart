@@ -467,7 +467,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.enterText(find.byKey(const Key('add-name')), 'خاتم');
+        await tester.enterText(find.byKey(const Key('add-name')), 'خواتم');
         await tester.enterText(find.byKey(const Key('add-grams')), '4.998');
         await tester.enterText(find.byKey(const Key('add-reason')), 'وزن فعلي');
         await tester.scrollUntilVisible(

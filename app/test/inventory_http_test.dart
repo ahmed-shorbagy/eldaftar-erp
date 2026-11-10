@@ -57,7 +57,7 @@ void main() {
                   reason: 'إضافة',
                   lines: [
                     AdditionLine(
-                      itemName: 'خاتم',
+                      itemName: 'خواتم',
                       category: 'worked_jewelry',
                       karat: 21,
                       milligrams: BigInt.from(1830),
@@ -164,7 +164,7 @@ void main() {
                 'operation_id': operationId,
                 'lot_id': operationId,
                 'product_id': catalogId,
-                'product_name': 'خاتم',
+                'product_name': 'خواتم',
                 'owner_kind': 'shop',
                 'trader_id': null,
                 'counterparty_name': 'تاجر',
@@ -269,7 +269,7 @@ void main() {
                   reason: 'إضافة',
                   lines: [
                     AdditionLine(
-                      itemName: 'خاتم',
+                      itemName: 'خواتم',
                       category: 'worked_jewelry',
                       karat: 21,
                       milligrams: BigInt.from(1000),
@@ -344,8 +344,8 @@ void main() {
                     lot: LotSnapshot(
                       id: operationId,
                       productId: catalogId,
-                      productName: 'خاتم',
-                      displayName: 'خاتم',
+                      productName: 'خواتم',
+                      displayName: 'خواتم',
                       category: 'worked_jewelry',
                       karat: 21,
                       stockClass: StockClass.ownedAvailable,

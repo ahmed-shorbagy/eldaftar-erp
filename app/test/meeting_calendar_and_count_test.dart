@@ -44,14 +44,14 @@ Map<String, Object?> observations({String count = '3', Object? weight}) => {
   'scrap': book['scrap'],
   'stock': [
     {
-      'item_name': 'خاتم',
+      'item_name': 'خواتم',
       'category': 'worked_jewelry',
       'karat': 21,
       'count': count,
       'milligrams': weight,
     },
     {
-      'item_name': 'حلق',
+      'item_name': 'حلقان',
       'category': 'worked_jewelry',
       'karat': 21,
       'count': '2',
@@ -128,7 +128,7 @@ void main() {
         isFalse,
       );
       final duplicate = observations();
-      ((duplicate['stock'] as List)[1] as Map)['item_name'] = 'خاتم';
+      ((duplicate['stock'] as List)[1] as Map)['item_name'] = 'خواتم';
       expect(closingObservationsMatch(duplicate, book), isFalse);
     },
   );

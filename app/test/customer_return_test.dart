@@ -227,7 +227,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('trade-select-خاتم')));
+    await tester.tap(find.byKey(const Key('trade-select-خواتم')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '2.00');
     await tester.tap(find.byKey(const Key('trade-karat-0-worked_jewelry-18')));
@@ -243,7 +243,7 @@ void main() {
     await tester.tap(find.byKey(const Key('trade-review')));
     await tester.pumpAndSettle();
     expect(find.textContaining('تنقص النقدية'), findsOneWidget);
-    expect(find.textContaining('يزيد مخزون خاتم عيار 21'), findsOneWidget);
+    expect(find.textContaining('يزيد مخزون خواتم عيار 21'), findsOneWidget);
     expect(
       find.text('مجموع وسائل الدفع لا يساوي المبلغ المطلوب.'),
       findsNothing,
@@ -263,7 +263,7 @@ void main() {
           'karat': 21,
           'milligrams': '2000',
           'count': '1',
-          'item_name': 'خاتم',
+          'item_name': 'خواتم',
           'line_price_piastres': null,
         },
       ],
@@ -296,7 +296,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('trade-select-خاتم')));
+    await tester.tap(find.byKey(const Key('trade-select-خواتم')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('trade-grams-0')), '2.00');
     await tester.enterText(

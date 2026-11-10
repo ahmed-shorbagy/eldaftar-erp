@@ -190,7 +190,7 @@ void main() {
     await _expectDismissed(
       tester,
       field: const Key('repair-notes'),
-      outside: find.text('استلام إصلاح'),
+      outside: find.text('استلام مرمة'),
     );
   });
 }

@@ -15,6 +15,7 @@ class CustomerRecord {
     required this.status,
     required this.vip,
     required this.openRequest,
+    this.inWhatsappGroup = false,
     required this.phones,
     required this.updatedAt,
     required this.updatedAtShop,
@@ -26,7 +27,7 @@ class CustomerRecord {
   });
   final String id, name, status, updatedAt, updatedAtShop, timeZone;
   final BigInt version;
-  final bool vip, openRequest;
+  final bool vip, openRequest, inWhatsappGroup;
   final List<CustomerContact> phones;
   final String? lastAt, lastAtShop, latestNote;
   final CustomerStatistics? statistics;

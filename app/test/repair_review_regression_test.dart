@@ -50,7 +50,7 @@ void main() {
       final remote = MissingBackend();
       await pumpRepair(tester, gateway: remote, locker: MemoryLocker());
       expect(
-        find.text('الصيانة غير متاحة في هذا الاتصال حاليًا.'),
+        find.text('المرمات غير متاحة في هذا الاتصال حاليًا.'),
         findsOneWidget,
       );
       expect(
@@ -191,7 +191,7 @@ void main() {
             'kind': 'repair_intake',
             'customer_name': 'عميل',
             'customer_phone': '',
-            'item_description': 'خاتم',
+            'item_description': 'خواتم',
             'measured_milligrams': '1255',
             'karat': 21,
             'issue': 'لحام',

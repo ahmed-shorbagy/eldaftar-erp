@@ -92,7 +92,7 @@ void main() {
       ).code,
       'attachment_rejected',
     );
-    expect(boundedNoteQuery('خاتم'), isTrue);
+    expect(boundedNoteQuery('خواتم'), isTrue);
     expect(boundedNoteQuery('م' * (noteSearchMaxChars + 1)), isFalse);
   });
 }

@@ -412,13 +412,13 @@ class _ReportsScreenState extends State<ReportsScreen>
                         ))
                           _value(e.value, report.value(e.key).toString()),
                       ]),
-                      _section('الصيانة', [
+                      _section('المرمات', [
                         _value(
-                          'إيراد الصيانة',
+                          'إيراد المرمات',
                           reportMoney(report.value('repair_piastres')),
                         ),
                         _value(
-                          'عدد عمليات الصيانة',
+                          'عدد عمليات المرمات',
                           report.value('repair_count').toString(),
                         ),
                       ]),

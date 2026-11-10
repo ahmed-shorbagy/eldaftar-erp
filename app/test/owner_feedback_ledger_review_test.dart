@@ -61,7 +61,7 @@ class ReviewGateway extends FakeFinancialGateway
             weightGrams: row.$5,
             karat: row.$6,
             paymentLabel: 'كاش',
-            itemSummary: 'خاتم',
+            itemSummary: 'خواتم',
             pieceCount: '1',
             isReturn: row.$1 == 'sale_return',
             hasNote: row.$1 == 'sale',

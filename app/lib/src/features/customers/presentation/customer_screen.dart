@@ -8,6 +8,7 @@ import '../application/customer_contract.dart';
 import '../application/customer_gateway.dart';
 import '../application/customer_command_flow.dart';
 import '../domain/customer_rules.dart';
+import '../domain/shop_phone_country.dart';
 import 'customer_phone_field.dart';
 import '../domain/customer_saved_number.dart';
 import '../domain/customer_contact.dart';
@@ -110,6 +111,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _foreign = false,
       _vip = false,
       _open = false,
+      _whatsappGroup = false,
       _syncQueued = false,
       _accessLost = false;
   String? _error, _cursor, _candidateCursor, _editId, _selectedId;
@@ -1057,6 +1059,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
               'active': 'العملاء',
               'vip': 'المميزون',
               'open_request': 'طلبات مفتوحة',
+              'whatsapp_group': 'جروب الواتساب',
               'archived': 'المؤرشفون',
               'all': 'الكل',
             }.entries)
@@ -1142,6 +1145,19 @@ class _CustomerScreenState extends State<CustomerScreen> {
     setState(() {
       _vip = c.vip;
       _open = c.openRequest;
+      _whatsappGroup = c.inWhatsappGroup;
+      _stage = 'status';
+      _stale = false;
+    });
+  }
+
+  void _openWhatsappGroupStatus({required bool join}) {
+    final c = _detail?.customer;
+    if (c == null) return;
+    setState(() {
+      _vip = c.vip;
+      _open = c.openRequest;
+      _whatsappGroup = join;
       _stage = 'status';
       _stale = false;
     });
@@ -1244,6 +1260,9 @@ class _CustomerScreenState extends State<CustomerScreen> {
                     enabled: !_blocked,
                     allowEmpty: false,
                     emptyMessage: customerError('invalid_phone'),
+                    defaultCountry: ShopPhoneCountryCache.forShop(
+                      widget.shopId,
+                    ),
                   ),
                   Row(
                     children: [
@@ -1383,6 +1402,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
               label: 'حالة العميل',
               icon: c.vip ? Icons.star : Icons.star_border,
               onTap: _blocked ? null : _openStatus,
+            ),
+            CustomerQuickAction(
+              key: const Key('customer-action-whatsapp-group'),
+              label: c.inWhatsappGroup
+                  ? 'إزالة من الجروب'
+                  : 'إضافة لجروب الواتساب',
+              icon: Icons.groups_outlined,
+              onTap: _blocked
+                  ? null
+                  : () => _openWhatsappGroupStatus(join: !c.inWhatsappGroup),
             ),
             if (!c.archived)
               CustomerQuickAction(
@@ -1617,6 +1646,12 @@ class _CustomerScreenState extends State<CustomerScreen> {
         value: _open,
         onChanged: _blocked ? null : (v) => setState(() => _open = v),
       ),
+      SwitchListTile(
+        key: const Key('customer-whatsapp-group-switch'),
+        title: const Text('في جروب الواتساب'),
+        value: _whatsappGroup,
+        onChanged: _blocked ? null : (v) => setState(() => _whatsappGroup = v),
+      ),
       _action(
         'حفظ الحالة',
         _blocked || _stale
@@ -1625,6 +1660,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 ..._payload('customer_status'),
                 'is_vip': _vip,
                 'has_open_request': _open,
+                'in_whatsapp_group': _whatsappGroup,
               }),
         primary: true,
       ),

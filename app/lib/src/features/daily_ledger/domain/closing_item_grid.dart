@@ -1,3 +1,4 @@
+import 'jewelry_items.dart';
 import 'opening_issue.dart';
 import 'quantities.dart';
 
@@ -41,7 +42,7 @@ final class ClosingItemGrid {
     this.zeroBuckets = const [],
   });
 
-  static const builtInJewelry = ['خاتم', 'حلق', 'سلسلة', 'تعليقة'];
+  static const builtInJewelry = jewelryBuiltIns;
   static const _jewelryOrder = [18, 21, 22, 14];
 
   final List<int> jewelryKarats;
@@ -70,12 +71,13 @@ final class ClosingItemGrid {
         rows.add(ClosingGridRow(name, 'worked_jewelry', jewelryKarats));
       }
       for (final product in shopNames) {
+        final name = canonicalJewelryName(product.name);
         if (product.category != 'worked_jewelry' ||
             !jewelryKarats.contains(product.karat) ||
-            !seen.add(product.name)) {
+            !seen.add(name)) {
           continue;
         }
-        rows.add(ClosingGridRow(product.name, 'worked_jewelry', jewelryKarats));
+        rows.add(ClosingGridRow(name, 'worked_jewelry', jewelryKarats));
       }
     }
     final coin = bookStock.where((row) => row['category'] == 'coin');

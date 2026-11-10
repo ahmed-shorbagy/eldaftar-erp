@@ -20,7 +20,7 @@ List<LotSnapshot> completionLots() => [
     LotSnapshot(
       id: measured ? 'measured' : 'legacy',
       productId: 'product',
-      productName: 'خاتم',
+      productName: 'خواتم',
       displayName: measured ? 'خاتم تجريبي' : 'رصيد تاريخي',
       category: 'worked_jewelry',
       karat: 21,

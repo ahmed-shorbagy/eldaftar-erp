@@ -57,10 +57,10 @@ begin
     pg_temp.with_day('{"version":1,"kind":"inventory_addition","reason":"خاتم","lines":[{"item_name":"خاتم","category":"worked_jewelry","karat":21,"milligrams":"1000","count":"1","denomination_id":null,"coin_type_id":null}]}'::jsonb));
 
   perform public.post_daily_ledger_trade('f3300000-0000-4000-8000-000000000013', v_sale);
-  if pg_temp.grid_cell('خاتم', 21) is not null then
-    raise exception 'ring_not_taken_from_ring %', pg_temp.grid_cell('خاتم', 21);
+  if pg_temp.grid_cell('خواتم', 21) is not null then
+    raise exception 'ring_not_taken_from_ring %', pg_temp.grid_cell('خواتم', 21);
   end if;
-  v_cell := pg_temp.grid_cell('سلسلة', 21);
+  v_cell := pg_temp.grid_cell('سلاسل', 21);
   if v_cell ->> 'count' is distinct from '2' or v_cell ->> 'milligrams' is distinct from '2000' then
     raise exception 'chain_changed_by_ring_sale %', v_cell;
   end if;
@@ -77,7 +77,7 @@ begin
   if v_cell ->> 'count' is distinct from '1' or v_cell ->> 'milligrams' is distinct from '1000' then
     raise exception 'earring_not_from_opening %', v_cell;
   end if;
-  v_cell := pg_temp.grid_cell('سلسلة', 21);
+  v_cell := pg_temp.grid_cell('سلاسل', 21);
   if v_cell ->> 'count' is distinct from '2' then
     raise exception 'chain_changed_by_earring_sale %', v_cell;
   end if;
@@ -90,7 +90,7 @@ begin
   if pg_temp.grid_cell('رصيد افتتاحي مجمّع', 21) is not null then
     raise exception 'opening_not_used_first %', pg_temp.grid_cell('رصيد افتتاحي مجمّع', 21);
   end if;
-  v_cell := pg_temp.grid_cell('سلسلة', 21);
+  v_cell := pg_temp.grid_cell('سلاسل', 21);
   if v_cell ->> 'count' is distinct from '1' or v_cell ->> 'milligrams' is distinct from '1000' then
     raise exception 'fallback_wrong %', v_cell;
   end if;

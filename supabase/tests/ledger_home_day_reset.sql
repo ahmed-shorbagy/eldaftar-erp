@@ -39,7 +39,7 @@ declare
   v_keys text;
 begin
   perform public.post_daily_ledger_trade('b3300000-0000-4000-8000-000000000011', v_sale);
-  v_home := public.get_daily_ledger_home_v1();
+  v_home := public.get_daily_ledger_home_v2();
   if v_home #>> '{day_summary,sale_piastres}' is distinct from '500000'
     or (
       select count(*) from jsonb_array_elements(v_home -> 'feed') as item
@@ -65,7 +65,7 @@ begin
 
   perform set_config('request.jwt.claim.sub', 'b1100000-0000-4000-8000-000000000002', true);
   perform public.post_daily_ledger_trade('b3300000-0000-4000-8000-000000000012', v_staff);
-  v_home := public.get_daily_ledger_home_v1();
+  v_home := public.get_daily_ledger_home_v2();
   if v_home ->> 'employee_ledger' is distinct from 'true'
     or jsonb_array_length(v_home -> 'feed') <> 1
     or v_home ? 'day_summary'
@@ -74,7 +74,7 @@ begin
   end if;
 
   perform set_config('request.jwt.claim.sub', 'b1100000-0000-4000-8000-000000000001', true);
-  v_home := public.get_daily_ledger_home_v1();
+  v_home := public.get_daily_ledger_home_v2();
   v_cash := v_home -> 'cash';
   v_stock := v_home -> 'stock';
   v_scrap := v_home -> 'scrap';
@@ -103,7 +103,7 @@ begin
   ) ->> 'ok') is distinct from 'true' then
     raise exception 'close_failed %', v_counts;
   end if;
-  v_home := public.get_daily_ledger_home_v1();
+  v_home := public.get_daily_ledger_home_v2();
   if v_home ->> 'day_reset' is distinct from 'true'
     or v_home -> 'feed' is distinct from '[]'::jsonb
     or v_home #>> '{day_summary,sale_piastres}' is distinct from '0'
@@ -122,7 +122,7 @@ begin
   end if;
 
   perform set_config('request.jwt.claim.sub', 'b1100000-0000-4000-8000-000000000002', true);
-  v_home := public.get_daily_ledger_home_v1();
+  v_home := public.get_daily_ledger_home_v2();
   if v_home -> 'feed' is distinct from '[]'::jsonb
     or v_home ? 'day_summary'
     or v_home ->> 'day_reset' is distinct from 'true' then
@@ -131,7 +131,7 @@ begin
 
   perform set_config('request.jwt.claim.sub', 'b1100000-0000-4000-8000-000000000001', true);
   perform public.open_daily_ledger_day('b3300000-0000-4000-8000-000000000014');
-  v_home := public.get_daily_ledger_home_v1();
+  v_home := public.get_daily_ledger_home_v2();
   if v_home ->> 'day_reset' is distinct from 'false'
     or exists (
       select 1 from jsonb_array_elements(v_home -> 'feed') as item
@@ -139,7 +139,7 @@ begin
     ) then
     raise exception 'new_day_home_wrong %', v_home -> 'feed';
   end if;
-  v_date := public.get_ledger_date_v1(v_closed::date, null, 20);
+  v_date := public.get_ledger_date_v2(v_closed::date, null, 20);
   if (v_date #>> '{day_summary,sale_piastres}')::numeric < 500000
     or jsonb_array_length(v_date #> '{feed_page,items}') < 1 then
     raise exception 'closed_date_was_deleted %', v_date -> 'day_summary';

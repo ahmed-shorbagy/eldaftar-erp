@@ -734,7 +734,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         ),
       if (widget.shop.isOwner && widget.repairBuilder != null)
         _link(
-          'الصيانة',
+          'المرمات',
           Icons.handyman_outlined,
           _openRepairs,
           key: const Key('workspace-repairs'),

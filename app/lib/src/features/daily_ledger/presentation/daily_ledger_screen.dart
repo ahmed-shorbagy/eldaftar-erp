@@ -512,7 +512,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
               ? 'يوجد طلب عميل محفوظ. افتح العملاء للتحقق منه.'
               : debt
               ? 'يوجد طلب ديون محفوظ. افتح الديون من المزيد للتحقق منه.'
-              : 'يوجد طلب صيانة محفوظ. افتح الصيانة من المزيد للتحقق منه.',
+              : 'يوجد طلب مرمة محفوظ. افتح المرمات من المزيد للتحقق منه.',
         );
         return;
       }
@@ -1134,7 +1134,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                                 : repairRpcs.containsKey(
                                     _financialPending!.kind,
                                   )
-                                ? 'طلب صيانة بانتظار تأكيد الحفظ'
+                                ? 'طلب مرمة بانتظار تأكيد الحفظ'
                                 : (debtRpcs.containsKey(
                                         _financialPending!.kind,
                                       ) ||
@@ -1173,7 +1173,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                                     : repairRpcs.containsKey(
                                         _financialPending!.kind,
                                       )
-                                    ? 'متابعة طلب الصيانة'
+                                    ? 'متابعة طلب المرمة'
                                     : (debtRpcs.containsKey(
                                             _financialPending!.kind,
                                           ) ||

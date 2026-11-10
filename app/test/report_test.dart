@@ -156,7 +156,7 @@ void main() {
     final g = HttpOpeningGateway(
       client: MockClient((r) async {
         requests.add(r.url.path);
-        if (r.url.path.endsWith('/get_financial_day_report_v1')) {
+        if (r.url.path.endsWith('/get_financial_day_report_v2')) {
           return http.Response(
             jsonEncode(
               reportFixture()..['shop_id'] = wrongShop ? 'other' : reportShop,

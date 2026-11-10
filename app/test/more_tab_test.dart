@@ -56,7 +56,7 @@ Future<void> _pump(
           onToggleTheme: (_) async {},
           analyticsBuilder: withPages ? (_) => _page('التحليلات') : null,
           traderBuilder: withPages ? (_) => _page('التجار') : null,
-          repairBuilder: withPages ? (_) => _page('الصيانة') : null,
+          repairBuilder: withPages ? (_) => _page('المرمات') : null,
           debtBuilder: withPages ? (_) => _page('الديون') : null,
           closingStaffBuilder: withPages ? (_) => _page('فريق العد') : null,
           reportsBuilder: (_) => const Scaffold(body: Text('صفحة التقارير')),

@@ -594,12 +594,13 @@ class LedgerMetricTile extends StatelessWidget {
         : BorderSide(color: frame);
     final body = Padding(
       padding: EdgeInsets.fromLTRB(
-        compact ? 10 : 14,
-        compact ? 10 : 14,
-        compact ? 10 : 14,
-        compact ? 10 : 14,
+        compact ? 8 : 14,
+        compact ? 8 : 14,
+        compact ? 8 : 14,
+        compact ? 8 : 14,
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -610,17 +611,20 @@ class LedgerMetricTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(icon, size: 18, color: accent),
+                  padding: EdgeInsets.all(compact ? 6 : 8),
+                  child: Icon(icon, size: compact ? 16 : 18, color: accent),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
+                  maxLines: compact ? 2 : null,
+                  overflow: compact ? TextOverflow.ellipsis : null,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
                     height: 1.25,
+                    fontSize: compact ? 12 : null,
                   ),
                 ),
               ),
@@ -642,10 +646,10 @@ class LedgerMetricTile extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 6 : 12),
           SizedBox(
             width: double.infinity,
-            height: MediaQuery.textScalerOf(context).scale(30),
+            height: MediaQuery.textScalerOf(context).scale(compact ? 24 : 30),
             child: FittedBox(
               alignment: AlignmentDirectional.centerStart,
               fit: BoxFit.scaleDown,

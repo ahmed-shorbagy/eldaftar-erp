@@ -232,7 +232,7 @@ void main() {
     expect(find.byKey(const Key('ledger-day-reset-open')), findsNothing);
   });
 
-  testWidgets('a purchase keeps its notes field and seller labels', (
+  testWidgets('a purchase keeps its notes field and customer labels', (
     tester,
   ) async {
     final gateway = Batch2TradeGateway();
@@ -249,7 +249,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('trade-customer-disclosure')));
     await tester.pumpAndSettle();
-    expect(find.text('تفاصيل البائع (اختياري)'), findsOneWidget);
+    expect(find.text('تفاصيل العميل (اختياري)'), findsOneWidget);
     expect(find.byKey(const Key('trade-note')), findsOneWidget);
   });
 

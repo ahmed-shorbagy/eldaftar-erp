@@ -108,7 +108,7 @@ void main() {
             final label =
                 '${kind.name}-${dark ? 'dark' : 'light'}-${size.width.toInt()}';
             await saveTradeCapture(tester, '$label-entry');
-            await chooseTradeItem(tester, 'خاتم');
+            await chooseTradeItem(tester, 'خواتم');
             await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
             await enterTradeField(
               tester,
@@ -149,7 +149,7 @@ void main() {
         statusResult: const StatusUnknown(),
       );
       await openCapture(tester, gateway, FinancialKind.sale, dark, scale: 1.5);
-      await chooseTradeItem(tester, 'خاتم');
+      await chooseTradeItem(tester, 'خواتم');
       await enterTradeField(tester, const Key('trade-grams-0'), '1.830');
       await enterTradeField(
         tester,

@@ -27,7 +27,7 @@ void main() {
           },
           'items': [
             {
-              'item_name': 'خاتم',
+              'item_name': 'خواتم',
               'karat': 18,
               'milligrams': '1830',
               'count': '1',
@@ -60,14 +60,14 @@ void main() {
         'note': 'اختبار',
         'items': [
           {
-            'item_name': 'خاتم',
+            'item_name': 'خواتم',
             'karat': 21,
             'milligrams': '6000',
             'count': '1',
             'line_price_piastres': null,
           },
           {
-            'item_name': 'سلسلة',
+            'item_name': 'سلاسل',
             'karat': 21,
             'milligrams': '4000',
             'count': '1',

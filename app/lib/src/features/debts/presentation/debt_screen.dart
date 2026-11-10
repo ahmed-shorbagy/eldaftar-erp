@@ -14,6 +14,7 @@ import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
 import '../../../theme/cash_input.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
+import '../../customers/domain/shop_phone_country.dart';
 import '../../customers/presentation/customer_phone_field.dart';
 import '../application/debt_command_flow.dart';
 import '../application/debt_contract.dart';
@@ -838,6 +839,7 @@ class _DebtScreenState extends State<DebtScreen> {
             controller: _phone,
             fieldKey: const Key('debt-phone'),
             label: 'الهاتف',
+            defaultCountry: ShopPhoneCountryCache.forShop(widget.shopId),
           ),
           TextFormField(
             key: const Key('debt-reason'),

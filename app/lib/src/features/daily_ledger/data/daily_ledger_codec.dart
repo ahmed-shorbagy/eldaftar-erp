@@ -633,8 +633,13 @@ LedgerFeedLine _feedLine(Object? row) {
     'close_day': 'تقفيل اليومية',
     'open_day': 'فتح اليومية',
     'daily_note': 'ملاحظة يومية',
-    'repair_fee': 'أجرة إصلاح',
-    'repair_fee_collection': 'تحصيل متبقي صيانة',
+    'repair_fee': 'أجرة مرمة',
+    'repair_fee_collection': 'تحصيل متبقي مرمة',
+    // Server kinds since 2026-10-13 (ledger_operation_label); a debt or gold
+    // obligation row in the feed must not make the whole ledger unreadable.
+    'debt_settlement': 'سداد دين',
+    'gold_obligation_acquisition': 'استلام ذهب مقابل التزام',
+    'gold_obligation_settlement': 'سداد التزام ذهب',
   };
   final shopSequence = row['shop_sequence'];
   final shopTime = row['occurred_at_shop'];

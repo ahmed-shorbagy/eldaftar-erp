@@ -72,7 +72,7 @@ void main() {
             'kind': 'repair_intake',
             'customer_name': 'عميل',
             'customer_phone': '',
-            'item_description': 'خاتم',
+            'item_description': 'خواتم',
             'measured_milligrams': '1255',
             'karat': 21,
             'issue': 'لحام',
@@ -114,7 +114,7 @@ void main() {
         (await store.read(repair.userId, repair.shopId))!.body,
         pending.body,
       );
-      expect(find.text('متابعة طلب الصيانة'), findsOneWidget);
+      expect(find.text('متابعة طلب المرمة'), findsOneWidget);
     },
   );
 

@@ -48,7 +48,7 @@ void main() {
           ],
         ),
         'transparent-logo': _document(
-          items: [_item('خاتم', 21, '2500', '1')],
+          items: [_item('خواتم', 21, '2500', '1')],
           logo: true,
         ),
         'missing-logo': _document(
@@ -94,8 +94,8 @@ void main() {
           shopName: 'مجوهرات النور',
           address: 'شبرا - القاهرة',
           items: [
-            _item('خاتم', 21, '1830', '1', price: '500000'),
-            _item('سلسلة', 18, '2560', '1', price: '200000'),
+            _item('خواتم', 21, '1830', '1', price: '500000'),
+            _item('سلاسل', 18, '2560', '1', price: '200000'),
           ],
           tenders: [
             {'method': 'cash', 'piastres': '500000'},

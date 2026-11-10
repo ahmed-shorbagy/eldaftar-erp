@@ -8,7 +8,7 @@ void main() {
     karat: 18,
     grams: '1.830',
     count: '1',
-    name: 'خاتم',
+    name: 'خواتم',
   );
 
   test('sale keeps integer piastres and three-decimal gram precision', () {
@@ -60,7 +60,7 @@ void main() {
           karat: 18,
           grams: '1.8301',
           count: '1',
-          name: 'خاتم',
+          name: 'خواتم',
         ),
       ],
       tenders: const [
@@ -173,7 +173,7 @@ void main() {
           karat: 21,
           grams: '2.000',
           count: '1',
-          name: 'خاتم',
+          name: 'خواتم',
         ),
       ],
       tenders: const [
@@ -196,7 +196,7 @@ void main() {
           'karat': 21,
           'milligrams': '2000',
           'count': '1',
-          'item_name': 'خاتم',
+          'item_name': 'خواتم',
           'line_price_piastres': null,
         },
       ],
@@ -231,7 +231,7 @@ void main() {
           karat: 21,
           grams: '2.000',
           count: '1',
-          name: 'خاتم',
+          name: 'خواتم',
         ),
       ],
       tenders: const [

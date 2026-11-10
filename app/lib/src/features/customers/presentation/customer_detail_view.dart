@@ -87,6 +87,29 @@ class CustomerDetailHeader extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (c.inWhatsappGroup)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 8),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: scheme.tertiaryContainer,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          'في الجروب',
+                          key: const Key('customer-detail-whatsapp-group'),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onTertiaryContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (c.archived)
                   Padding(
                     padding: const EdgeInsetsDirectional.only(start: 8),

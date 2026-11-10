@@ -29,8 +29,8 @@ LotSnapshot lot({
   return LotSnapshot(
     id: id,
     productId: productId,
-    productName: 'خاتم',
-    displayName: 'خاتم',
+    productName: 'خواتم',
+    displayName: 'خواتم',
     category: category,
     karat: karat,
     stockClass: stockClass,
@@ -281,7 +281,7 @@ void main() {
                 reason: '   ',
                 lines: [
                   AdditionLine(
-                    itemName: 'خاتم',
+                    itemName: 'خواتم',
                     category: 'worked_jewelry',
                     karat: 21,
                     milligrams: BigInt.from(1000),
@@ -322,7 +322,7 @@ void main() {
                   ownerKind: recognition == 'custody' ? 'trader' : 'shop',
                   traderId: recognition == 'custody' ? traderId : null,
                   counterpartyName: 'تاجر',
-                  productName: 'خاتم',
+                  productName: 'خواتم',
                   category: 'worked_jewelry',
                   karat: 21,
                   milligrams: BigInt.from(10000),
@@ -406,7 +406,7 @@ void main() {
       final unlinked =
           reviewGoldAcquisition(
                 day: day,
-                itemName: 'خاتم',
+                itemName: 'خواتم',
                 category: 'worked_jewelry',
                 karat: 21,
                 milligrams: BigInt.from(1000),
@@ -422,7 +422,7 @@ void main() {
       final linked =
           reviewGoldAcquisition(
                 day: day,
-                itemName: 'خاتم',
+                itemName: 'خواتم',
                 category: 'worked_jewelry',
                 karat: 21,
                 milligrams: BigInt.from(1000),
@@ -439,7 +439,7 @@ void main() {
       expect(
         (reviewGoldAcquisition(
                   day: day,
-                  itemName: 'خاتم',
+                  itemName: 'خواتم',
                   category: 'worked_jewelry',
                   karat: 21,
                   milligrams: BigInt.from(1000),

@@ -141,10 +141,10 @@ void main() {
       final named = parseStaffCountAssignment({
         ...assignmentJson(),
         'item_names': [
-          {'name': 'دبلة', 'category': 'worked_jewelry', 'karat': 21},
+          {'name': 'دبل', 'category': 'worked_jewelry', 'karat': 21},
         ],
       });
-      expect(named.itemNames.single.name, 'دبلة');
+      expect(named.itemNames.single.name, 'دبل');
       expect(named.itemNames.single.category, 'worked_jewelry');
       expect(named.itemNames.single.karat, 21);
       expect(
@@ -152,7 +152,7 @@ void main() {
           ...assignmentJson(),
           'item_names': [
             {
-              'name': 'دبلة',
+              'name': 'دبل',
               'category': 'worked_jewelry',
               'karat': 21,
               'count': '4',
@@ -296,10 +296,11 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      expect(find.text('خاتم'), findsOneWidget);
-      expect(find.text('حلق'), findsOneWidget);
-      expect(find.text('سلسلة'), findsOneWidget);
-      expect(find.text('تعليقة'), findsOneWidget);
+      expect(find.text('محابس'), findsOneWidget);
+      expect(find.text('خواتم'), findsOneWidget);
+      expect(find.text('حلقان'), findsOneWidget);
+      expect(find.text('سلاسل'), findsOneWidget);
+      expect(find.text('تعاليق'), findsOneWidget);
       expect(find.text('مشغولات'), findsNothing);
       await t.enterText(find.byKey(const Key('close-count-0-21')), '5');
       await t.enterText(find.byKey(const Key('close-count-0-21')), '2.5');
@@ -325,7 +326,7 @@ void main() {
       await delegateTap(t, find.byKey(const Key('staff-count-review')));
       await delegateTap(t, find.byKey(const Key('staff-count-submit')));
       expect(g.keys, hasLength(1));
-      expect((g.bodies.single['stock'] as List).single['item_name'], 'خاتم');
+      expect((g.bodies.single['stock'] as List).single['item_name'], 'محابس');
       expect((g.bodies.single['stock'] as List).single['milligrams'], isNull);
       expect(find.byKey(const Key('close-count-0-21')), findsNothing);
       expect(find.textContaining('تم إرسال العد إلى المالك'), findsOneWidget);
@@ -335,6 +336,10 @@ void main() {
   testWidgets(
     'staff count accepts Arabic-indic grams and keeps milligrams exact',
     (t) async {
+      t.view.physicalSize = const Size(800, 1400);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
       final g = DelegateFake();
       await t.pumpWidget(
         delegateHost(
@@ -412,7 +417,7 @@ void main() {
         ..assignment = parseStaffCountAssignment({
           ...assignmentJson(),
           'item_names': [
-            {'name': 'دبلة', 'category': 'worked_jewelry', 'karat': 21},
+            {'name': 'دبل', 'category': 'worked_jewelry', 'karat': 21},
             {'name': 'جنيه خارج المهمة', 'category': 'coin', 'karat': 21},
           ],
         });
@@ -427,27 +432,39 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      for (final name in ['خاتم', 'حلق', 'سلسلة', 'تعليقة', 'دبلة']) {
+      for (final name in [
+        'محابس',
+        'توينز',
+        'غوايش',
+        'سلاسل',
+        'انسيالات',
+        'حلقان',
+        'اساور',
+        'تعاليق',
+        'كوليهات',
+        'دبل',
+        'خواتم',
+      ]) {
         expect(find.text(name), findsOneWidget);
       }
       expect(find.text('جنيه خارج المهمة'), findsNothing);
       expect(find.text('مشغولات'), findsNothing);
       expect(find.byKey(const Key('close-add-item')), findsNothing);
-      await t.enterText(find.byKey(const Key('close-count-4-21')), '12345');
+      await t.enterText(find.byKey(const Key('close-count-9-21')), '12345');
       expect(
         t
-            .widget<TextField>(find.byKey(const Key('close-count-4-21')))
+            .widget<TextField>(find.byKey(const Key('close-count-9-21')))
             .controller!
             .text,
         '1234',
       );
-      await t.enterText(find.byKey(const Key('close-count-4-21')), '05');
+      await t.enterText(find.byKey(const Key('close-count-9-21')), '05');
       await t.enterText(find.byKey(const Key('staff-scrap-21')), '1');
       await delegateTap(t, find.byKey(const Key('staff-count-review')));
       await delegateTap(t, find.byKey(const Key('staff-count-submit')));
       final stock = g.bodies.single['stock'] as List;
       expect(stock, hasLength(1));
-      expect(stock.single['item_name'], 'دبلة');
+      expect(stock.single['item_name'], 'دبل');
       expect(stock.single['category'], 'worked_jewelry');
       expect(stock.single['karat'], 21);
       expect(stock.single['count'], '5');
@@ -484,11 +501,11 @@ void main() {
     expect(stock, hasLength(2));
     expect(
       stock.singleWhere((row) => row['karat'] == 21),
-      containsPair('item_name', 'خاتم'),
+      containsPair('item_name', 'محابس'),
     );
     expect(stock.singleWhere((row) => row['karat'] == 21)['count'], '2');
     expect(stock.singleWhere((row) => row['karat'] == 18), {
-      'item_name': 'خاتم',
+      'item_name': 'محابس',
       'category': 'worked_jewelry',
       'karat': 18,
       'count': '0',

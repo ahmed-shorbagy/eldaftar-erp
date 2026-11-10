@@ -25,7 +25,7 @@ void main() {
       expect(fees.map((entry) => entry.totalPounds), ['200.00', '200.00']);
       expect(
         fees.every(
-          (entry) => entry.labelAr == 'أجرة إصلاح' && entry.weightGrams == null,
+          (entry) => entry.labelAr == 'أجرة مرمة' && entry.weightGrams == null,
         ),
         isTrue,
       );

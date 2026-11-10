@@ -496,7 +496,7 @@ class HttpOpeningGateway
   Future<DailyLedgerView> ledger({required String callerUserId}) async {
     http.Response response;
     try {
-      response = await _post(callerUserId, 'get_daily_ledger_home_v1', {});
+      response = await _post(callerUserId, 'get_daily_ledger_home_v2', {});
       if (_rpcMissing(response)) {
         response = await _post(callerUserId, 'get_daily_ledger_v2', {});
       }
@@ -619,7 +619,7 @@ class HttpOpeningGateway
   }) async {
     final snapshot = parseLedgerDate(
       dayId == null
-          ? await _ledgerFeatureRead(userId, 'get_ledger_date_v1', {
+          ? await _ledgerFeatureRead(userId, 'get_ledger_date_v2', {
               'p_business_date': businessDate,
               'p_before_sequence': beforeSequence,
               'p_limit': 100,
@@ -1517,7 +1517,7 @@ class HttpOpeningGateway
     String shopId,
     String dayId,
   ) async {
-    final response = await _rpc(userId, 'get_financial_day_report_v1', {
+    final response = await _rpc(userId, 'get_financial_day_report_v2', {
       'p_day_id': dayId,
     });
     final report = parseFinancialDayReport(jsonDecode(response.body));
@@ -2119,12 +2119,13 @@ class HttpOpeningGateway
       throw const FormatException('page');
     }
     try {
-      final response = await _post(callerUserId, 'get_ledger_operation_page', {
-        'p_day_id': dayId,
-        'p_before_sequence': beforeSequence,
-        'p_after_sequence': afterSequence,
-        'p_limit': limit,
-      });
+      final response =
+          await _post(callerUserId, 'get_ledger_operation_page_v2', {
+            'p_day_id': dayId,
+            'p_before_sequence': beforeSequence,
+            'p_after_sequence': afterSequence,
+            'p_limit': limit,
+          });
       if (!_callerStill(callerUserId)) {
         throw const LedgerReadException('session_expired');
       }

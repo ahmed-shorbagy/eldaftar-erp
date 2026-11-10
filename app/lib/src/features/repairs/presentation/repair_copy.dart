@@ -5,7 +5,7 @@ import '../domain/repair_rules.dart';
 
 const repairStatusLabels = <String, String>{
   'received': 'مستلم',
-  'in_progress': 'قيد الإصلاح',
+  'in_progress': 'قيد العمل',
   'ready': 'جاهز للتسليم',
   'delivered': 'تم التسليم',
   'cancelled': 'ملغى',
@@ -65,8 +65,8 @@ String repairFailureText(String code) => switch (code) {
   'repair_not_active' => 'الإلغاء متاح للسجلات النشطة فقط.',
   'repair_not_terminal' => 'الأرشفة للسجلات المسلّمة أو الملغاة فقط.',
   'shop_not_active' => 'الاشتراك منتهٍ. العرض للقراءة فقط.',
-  'rpc_unavailable' => 'الصيانة غير متاحة في هذا الاتصال حاليًا.',
-  'shop_unavailable' => 'الإصلاحات غير متاحة قبل تفعيل الاشتراك.',
+  'rpc_unavailable' => 'المرمات غير متاحة في هذا الاتصال حاليًا.',
+  'shop_unavailable' => 'المرمات غير متاحة قبل تفعيل الاشتراك.',
   'day_closed' => 'اليوم مغلق. لا يمكن تحصيل الأجرة.',
   'stale_day' => 'تغيّر اليوم. أعد التحميل ثم أعد المحاولة.',
   'payload_mismatch' => 'الطلب المحفوظ لا يطابق الخادم.',

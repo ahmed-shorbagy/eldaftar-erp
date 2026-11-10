@@ -6,22 +6,7 @@ import '../application/idempotency_key.dart';
 import '../domain/opening_catalog.dart';
 import 'ledger_form_fields.dart';
 
-/// The thirteen built-in «أخرى» jewelry names, shared by sale, purchase, and scrap.
-const tradeOtherJewelryNames = <String>[
-  'دبلة',
-  'محبس',
-  'غويشة',
-  'إسورة',
-  'انسيال',
-  'خلخال',
-  'كوليه',
-  'طقم',
-  'نص طقم',
-  'بروش',
-  'توينز',
-  'كف',
-  'ميدالية',
-];
+export '../domain/jewelry_items.dart' show tradeOtherJewelryNames;
 
 /// A selectable trade item name and its stock category.
 final class TradeItemChoice {

@@ -376,7 +376,7 @@ InventoryFormScope _scope({
 );
 
 Future<void> _fillAddition(WidgetTester tester) async {
-  await tester.enterText(find.byKey(const Key('add-name')), 'خاتم');
+  await tester.enterText(find.byKey(const Key('add-name')), 'خواتم');
   await tester.enterText(find.byKey(const Key('add-grams')), '10');
   await tester.enterText(find.byKey(const Key('add-count')), '1');
   await tester.enterText(find.byKey(const Key('add-reason')), 'جرد');

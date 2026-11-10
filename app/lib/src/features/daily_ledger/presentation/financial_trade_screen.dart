@@ -14,6 +14,7 @@ import '../application/opening_gateway.dart';
 import '../application/pending_financial_command.dart';
 import '../data/pending_financial_command.dart';
 import '../domain/financial_draft.dart';
+import '../domain/jewelry_items.dart';
 import '../domain/nominal_weight_suggestions.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
@@ -22,6 +23,7 @@ import '../domain/quantities.dart';
 import '../domain/invoice_pricing.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../../customers/domain/phone_countries.dart';
+import '../../customers/domain/shop_phone_country.dart';
 import '../../customers/presentation/customer_phone_field.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../../theme/amount_format.dart';
@@ -56,6 +58,7 @@ class FinancialTradeScreen extends StatefulWidget {
     this.canRead,
     this.canWrite,
     this.syncTicks,
+    this.defaultPhoneCountry,
   });
 
   final FinancialKind kind;
@@ -65,6 +68,7 @@ class FinancialTradeScreen extends StatefulWidget {
   final String shopId;
   final bool Function()? canRead, canWrite;
   final Listenable? syncTicks;
+  final PhoneCountry? defaultPhoneCountry;
   final bool practice;
   final Map<String, Object?>? exchangeReturnPayload;
   final PartialReturnReview? exchangeReturnReview;
@@ -179,6 +183,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   int _bookedKarat(String category, int karat) =>
       category == 'scrap' && !ScrapKarats.allowed.contains(karat) ? 18 : karat;
+
+  /// Every entry path (page, sheet, edit, return) starts an empty customer
+  /// phone on the shop owner's country (ADR 0044 C-D10).
+  PhoneCountry get _defaultPhoneCountry =>
+      widget.defaultPhoneCountry ??
+      ShopPhoneCountryCache.forShop(widget.shopId);
 
   String get _title => widget.initialPayload != null
       ? 'تعديل العملية'
@@ -1136,6 +1146,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           controller: _customerPhone,
           fieldKey: const Key('trade-customer-phone'),
           label: 'رقم الهاتف',
+          defaultCountry: _defaultPhoneCountry,
         ),
         const SizedBox(height: 16),
         TextField(
@@ -1194,11 +1205,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       ExpansionTile(
         key: const Key('trade-customer-disclosure'),
         childrenPadding: const EdgeInsetsDirectional.only(top: 12, bottom: 8),
-        title: Text(
-          widget.kind == FinancialKind.purchase
-              ? 'تفاصيل البائع (اختياري)'
-              : 'تفاصيل العميل (اختياري)',
-        ),
+        title: const Text('تفاصيل العميل (اختياري)'),
         children: [
           if (widget.initialPayload != null) ...[
             TextField(
@@ -1214,9 +1221,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             onChanged: (_) => setState(() {}),
             decoration: ledgerFieldDecoration(
               context,
-              label: widget.kind == FinancialKind.purchase
-                  ? 'اسم البائع (اختياري)'
-                  : 'اسم العميل (اختياري)',
+              label: 'اسم العميل (اختياري)',
             ),
           ),
           const SizedBox(height: 12),
@@ -1225,6 +1230,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             controller: _customerPhone,
             fieldKey: const Key('trade-customer-phone'),
             label: 'رقم الهاتف',
+            defaultCountry: _defaultPhoneCountry,
             onChanged: (_) => setState(() {}),
           ),
           if ((widget.kind == FinancialKind.sale ||
@@ -1234,9 +1240,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             const SizedBox(height: 8),
             Text(
               key: const Key('trade-customer-capture-hint'),
-              widget.kind == FinancialKind.purchase
-                  ? 'يُحفظ البائع تلقائيًا في بيانات العملاء بعد تأكيد العملية.'
-                  : 'يُحفظ العميل تلقائيًا في بيانات العملاء بعد تأكيد العملية.',
+              'يُحفظ العميل تلقائيًا في بيانات العملاء بعد تأكيد العملية.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -1276,20 +1280,23 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   ];
 
   List<(String, String)> get _otherChoices {
-    final seen = <String>{'خاتم', 'حلق', 'سلسلة', 'تعليقة'};
+    // Built-ins (main tiles and «أخرى») first; a stored singular such as
+    // «دبلة» joins its built-in «دبل» instead of showing twice (C-D3).
+    final seen = {...jewelryBuiltIns};
     return [
       for (final name in tradeOtherJewelryNames) (name, 'worked_jewelry'),
       for (final product in _products)
         if (product.category == 'worked_jewelry' &&
-            !tradeOtherJewelryNames.contains(product.name) &&
-            seen.add(product.name))
-          (product.name, product.category),
+            seen.add(canonicalJewelryName(product.name)))
+          (canonicalJewelryName(product.name), product.category),
     ];
   }
 
   int _categoryKarat(String name) {
+    final wanted = canonicalJewelryName(name);
     for (final product in _products) {
-      if (product.category == 'worked_jewelry' && product.name == name) {
+      if (product.category == 'worked_jewelry' &&
+          canonicalJewelryName(product.name) == wanted) {
         return product.karat;
       }
     }
@@ -1297,10 +1304,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   static const _mainNames = {
-    'خاتم',
-    'حلق',
-    'سلسلة',
-    'تعليقة',
+    'خواتم',
+    'حلقان',
+    'سلاسل',
+    'تعاليق',
     'جنيهات',
     'سبائك',
     'كسر',
@@ -1310,22 +1317,22 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   List<TradeItemChoice> _mainChoices({required bool includeOther}) => [
     if (widget.kind != FinancialKind.scrapSale) ...[
       const TradeItemChoice(
-        'خاتم',
+        'خواتم',
         'worked_jewelry',
         icon: JewelryGlyph(JewelryKind.ring),
       ),
       const TradeItemChoice(
-        'حلق',
+        'حلقان',
         'worked_jewelry',
         icon: JewelryGlyph(JewelryKind.earrings),
       ),
       const TradeItemChoice(
-        'سلسلة',
+        'سلاسل',
         'worked_jewelry',
         icon: JewelryGlyph(JewelryKind.necklace),
       ),
       const TradeItemChoice(
-        'تعليقة',
+        'تعاليق',
         'worked_jewelry',
         icon: JewelryGlyph(JewelryKind.pendant),
       ),
@@ -1524,6 +1531,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
         return;
       }
       if (!add && !_items.contains(row)) return;
+      final created = <_ItemEntry>[];
       setState(() {
         if (add) _items.add(row);
         final position = _items.indexOf(row);
@@ -1540,11 +1548,19 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               gramEntryValue(entry.$2.milligrams.gramsText, decimalPlaces: 2) ??
               entry.$2.milligrams.gramsText;
           if (entry.$1 > 0) _items.insert(position + entry.$1, line);
+          created.add(line);
         }
         _showOther = false;
         _error = null;
         if (!_fastEntry) _step = 1;
       });
+      if (widget.kind == FinancialKind.purchase &&
+          (category == 'coin' || category == 'bullion')) {
+        for (final line in created) {
+          if (!mounted || !_items.contains(line)) continue;
+          await _askPurchaseStockOrScrap(line, category);
+        }
+      }
     } else {
       setState(() {
         if (add) _items.add(row);
@@ -1575,6 +1591,108 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             ? Duration.zero
             : const Duration(milliseconds: 180),
       );
+    });
+  }
+
+  String _purchaseEffectLine(Map<String, Object?> item) {
+    final karat = item['karat'];
+    final weight = displayGoldEffect(
+      BigInt.parse(item['milligrams'] as String),
+    );
+    if (item['category'] == 'scrap') {
+      return 'يزيد الكسر عيار $karat: $weight';
+    }
+    if (item['category'] == 'coin') {
+      return 'يزيد مخزون الجنيهات عيار $karat: $weight · ${item['count']} قطعة';
+    }
+    if (item['category'] == 'bullion') {
+      return 'يزيد مخزون السبائك عيار $karat: $weight · ${item['count']} قطعة';
+    }
+    return 'يزيد مخزون ${item['item_name']} عيار $karat: $weight · ${item['count']} قطعة';
+  }
+
+  Future<void> _askPurchaseStockOrScrap(
+    _ItemEntry line,
+    String originalCategory,
+  ) async {
+    final stockLabel = originalCategory == 'coin' ? 'الجنيهات' : 'السبائك';
+    final keep = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: false,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'هل تريد إضافتها لمخزون $stockLabel؟',
+                key: const Key('purchase-stock-question'),
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppTokens.spaceMd),
+              FilledButton(
+                key: const Key('purchase-stock-yes'),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('نعم'),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              OutlinedButton(
+                key: const Key('purchase-stock-no'),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('لا، تُحسب كسر'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || keep == null || keep || !_items.contains(line)) return;
+
+    final karat = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: false,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'اختر عيار الكسر',
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppTokens.spaceMd),
+              Wrap(
+                spacing: AppTokens.spaceSm,
+                runSpacing: AppTokens.spaceSm,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (final value in const [24, 21, 22, 18, 14])
+                    ActionChip(
+                      key: Key('purchase-scrap-karat-$value'),
+                      label: Text('$value'),
+                      onPressed: () => Navigator.pop(context, value),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || karat == null || !_items.contains(line)) return;
+    setState(() {
+      line.category = 'scrap';
+      line.karat = karat;
+      line.name.text = 'كسر';
+      line.count.clear();
+      line.countFromPicker = false;
+      line.customName = false;
     });
   }
 
@@ -2336,11 +2454,13 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                     if (draft.items.isEmpty) const Text('لا يتغير الذهب'),
                     for (final item in draft.items)
                       Text(
-                        '${widget.kind == FinancialKind.purchase ? 'يزيد' : 'ينقص'} '
-                        '${item['category'] == 'scrap' ? 'كسر' : 'مخزون ${item['item_name']}'} '
-                        'عيار ${item['karat']}: '
-                        '${displayGoldEffect(BigInt.parse(item['milligrams'] as String))}'
-                        '${item['category'] == 'scrap' ? '' : ' · ${item['count']} قطعة'}',
+                        widget.kind == FinancialKind.purchase
+                            ? _purchaseEffectLine(item)
+                            : 'ينقص '
+                                  '${item['category'] == 'scrap' ? 'كسر' : 'مخزون ${item['item_name']}'} '
+                                  'عيار ${item['karat']}: '
+                                  '${displayGoldEffect(BigInt.parse(item['milligrams'] as String))}'
+                                  '${item['category'] == 'scrap' ? '' : ' · ${item['count']} قطعة'}',
                       ),
                   ],
                 ),
@@ -2382,7 +2502,10 @@ Future<bool?> showFinancialTradeSheet({
   bool Function()? canRead,
   bool Function()? canWrite,
   Listenable? syncTicks,
+  PhoneCountry? defaultPhoneCountry,
 }) {
+  final phoneCountry =
+      defaultPhoneCountry ?? ShopPhoneCountryCache.forShop(shopId);
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -2427,6 +2550,7 @@ Future<bool?> showFinancialTradeSheet({
                       canRead: canRead,
                       canWrite: canWrite,
                       syncTicks: syncTicks,
+                      defaultPhoneCountry: phoneCountry,
                     ),
                   ),
                 ),

@@ -176,7 +176,7 @@ String ledgerMetricLabel(String id) {
     'sale_gold' => 'وزن مباع',
     'purchase_gold' => 'وزن مشترى',
     'expense' => 'المصروفات',
-    'repair' => 'إيراد الصيانة',
+    'repair' => 'إيراد المرمات',
     _ => id,
   };
 }

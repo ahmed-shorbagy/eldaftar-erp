@@ -15,28 +15,28 @@ import 'inventory_widget_test.dart'
 const _contract = {
   'rows': [
     {
-      'item_name': 'سلسلة',
+      'item_name': 'سلاسل',
       'karat': 21,
       'count': '2',
       'count_known': true,
       'milligrams': '9500',
     },
     {
-      'item_name': 'خاتم',
+      'item_name': 'خواتم',
       'karat': 18,
       'count': '3',
       'count_known': true,
       'milligrams': '4250',
     },
     {
-      'item_name': 'خاتم',
+      'item_name': 'خواتم',
       'karat': 21,
       'count': '12',
       'count_known': true,
       'milligrams': '45230',
     },
     {
-      'item_name': 'دبلة',
+      'item_name': 'دبل',
       'karat': 22,
       'count': '0',
       'count_known': false,
@@ -153,13 +153,23 @@ void main() {
   group('domain', () {
     test('codec reads the contract and orders built-in items first', () {
       final grid = parseInventoryItemGrid(_contract);
-      expect(grid.rows.map((row) => row.itemName), [
-        'خاتم',
-        'سلسلة',
-        'دبلة',
-        'رصيد افتتاحي مجمّع',
+      expect(grid.rows.map((row) => row.itemName).take(12).toList(), [
+        'جنيهات',
+        'محابس',
+        'توينز',
+        'غوايش',
+        'سلاسل',
+        'انسيالات',
+        'حلقان',
+        'اساور',
+        'تعاليق',
+        'كوليهات',
+        'دبل',
+        'خواتم',
       ]);
-      expect(grid.rows.first.cells[21]!.count, BigInt.from(12));
+      expect(grid.rows.last.itemName, 'رصيد افتتاحي مجمّع');
+      final rings = grid.rows.singleWhere((row) => row.itemName == 'خواتم');
+      expect(rings.cells[21]!.count, BigInt.from(12));
       expect(grid.scrapByKarat[21], BigInt.from(100000));
       expect(grid.totals[21]!.count, BigInt.from(14));
       expect(grid.totals[21]!.milligrams, BigInt.from(54730));
@@ -313,7 +323,9 @@ void main() {
     await _pump(tester);
     await tester.tap(find.byKey(const Key('inventory-grid-more-karats')));
     await tester.pumpAndSettle();
-    final ring21 = find.byKey(const Key('inventory-grid-cell-خاتم-21'));
+    final ring21 = find.byKey(const Key('inventory-grid-cell-خواتم-21'));
+    await tester.ensureVisible(ring21);
+    await tester.pumpAndSettle();
     expect(
       find.descendant(of: ring21, matching: find.text('12')),
       findsOneWidget,
@@ -322,7 +334,9 @@ void main() {
       find.descendant(of: ring21, matching: find.text('45.23')),
       findsOneWidget,
     );
-    final unknown = find.byKey(const Key('inventory-grid-cell-دبلة-22'));
+    final unknown = find.byKey(const Key('inventory-grid-cell-دبل-22'));
+    await tester.ensureVisible(unknown);
+    await tester.pumpAndSettle();
     expect(
       find.descendant(of: unknown, matching: find.text('—')),
       findsOneWidget,
@@ -352,28 +366,125 @@ void main() {
   ) async {
     final inventory = await _pump(tester);
     inventory.lotQueries.clear();
-    await tester.tap(find.byKey(const Key('inventory-grid-cell-خاتم-21')));
+    final cell = find.byKey(const Key('inventory-grid-cell-خواتم-21'));
+    await tester.ensureVisible(cell);
+    await tester.pumpAndSettle();
+    await tester.tap(cell);
     await tester.pumpAndSettle();
     expect(inventory.lotQueries.last, (
       category: 'worked_jewelry',
       karat: 21,
-      query: 'خاتم',
+      query: 'خواتم',
     ));
   });
 
-  testWidgets('six insight tiles show the totals', (tester) async {
-    await _pump(tester);
-    expect(find.byKey(const Key('inventory-insights')), findsOneWidget);
+  test('figure values follow the old-app carousel order', () {
+    final figures = inventoryFigures([
+      (
+        category: 'worked_jewelry',
+        karat: 21,
+        milligrams: BigInt.from(54730),
+        count: BigInt.from(14),
+      ),
+      (
+        category: 'worked_jewelry',
+        karat: 18,
+        milligrams: BigInt.from(4250),
+        count: BigInt.from(3),
+      ),
+      (
+        category: 'scrap',
+        karat: 21,
+        milligrams: BigInt.from(100000),
+        count: null,
+      ),
+      (
+        category: 'bullion',
+        karat: 24,
+        milligrams: BigInt.from(8000),
+        count: BigInt.one,
+      ),
+      (
+        category: 'coin',
+        karat: 21,
+        milligrams: BigInt.from(16000),
+        count: BigInt.two,
+      ),
+    ], const {});
+    expect(figures.map((figure) => figure.id).toList(), [
+      'karat_18',
+      'karat_21',
+      'bullion_count',
+      'bullion_weight',
+      'cash',
+      'scrap_18',
+      'scrap_21',
+      'scrap_as_21',
+      'weight_21',
+      'weight_21_with_scrap',
+      'weight_21_with_cash',
+    ]);
+    expect(
+      figures.firstWhere((f) => f.id == 'karat_18').milligrams,
+      BigInt.from(4250),
+    );
+    // Jewelry only (C-D5): coins are not part of «عيار 21».
+    expect(
+      figures.firstWhere((f) => f.id == 'karat_21').milligrams,
+      BigInt.from(54730),
+    );
+    expect(
+      figures.firstWhere((f) => f.id == 'bullion_count').count,
+      BigInt.one,
+    );
+    expect(
+      figures.firstWhere((f) => f.id == 'bullion_weight').milligrams,
+      BigInt.from(8000),
+    );
+    expect(figures.firstWhere((f) => f.id == 'cash').count, BigInt.zero);
+    expect(
+      figures.firstWhere((f) => f.id == 'scrap_21').milligrams,
+      BigInt.from(100000),
+    );
+    expect(figures.last.cashCalculator, isTrue);
+    expect(figures.last.awaitingPrice, isTrue);
+    // Jewelry and bullion only, Σ(mg × karat) ÷ 21 rounded half-up to
+    // centigrams: (4250×18 + 54730×21 + 8000×24) ÷ 21 = 67.5157 g → 67.520.
+    final without = figures.firstWhere((f) => f.id == 'weight_21');
+    expect(without.label, 'اجمالي الوزنة 21 (مشغولات + سبائك)');
+    expect(without.milligrams, BigInt.from(67520));
+    final withScrap = figures.firstWhere((f) => f.id == 'weight_21_with_scrap');
+    expect(withScrap.milligrams, without.milligrams + BigInt.from(100000));
+    final priced = inventoryFigures(
+      [
+        (
+          category: 'worked_jewelry',
+          karat: 21,
+          milligrams: BigInt.from(10000),
+          count: BigInt.one,
+        ),
+      ],
+      {'cash': BigInt.from(500000)},
+      cashPricePiastresPerGram: BigInt.from(250000),
+    ).last;
+    // 10 g + 5,000 EGP ÷ 2,500 EGP/g = 12.000 g.
+    expect(priced.awaitingPrice, isFalse);
+    expect(priced.milligrams, BigInt.from(12000));
+  });
+
+  testWidgets('figure carousel shows the first tiles and cash calculator', (
+    tester,
+  ) async {
+    await _pump(tester, width: 1280);
+    expect(find.byKey(const Key('inventory-figures')), findsOneWidget);
     Finder tile(String name, String text) => find.descendant(
-      of: find.byKey(Key('inventory-insight-$name')),
+      of: find.byKey(Key('inventory-figure-$name')),
       matching: find.text(text),
     );
-    expect(tile('worked', '58.98'), findsOneWidget);
-    expect(tile('pieces', '17'), findsOneWidget);
-    expect(tile('scrap', '100.00'), findsOneWidget);
-    expect(tile('bullion', '8.00'), findsOneWidget);
-    expect(tile('coins', '2'), findsOneWidget);
-    expect(tile('cash', '0'), findsOneWidget);
+    expect(tile('karat_18', '4.25'), findsOneWidget);
+    expect(tile('karat_21', '54.73'), findsOneWidget);
+    expect(tile('bullion_count', '1'), findsOneWidget);
+    expect(tile('bullion_weight', '8.00'), findsOneWidget);
   });
 
   testWidgets('a failed table read keeps the page and offers a retry', (

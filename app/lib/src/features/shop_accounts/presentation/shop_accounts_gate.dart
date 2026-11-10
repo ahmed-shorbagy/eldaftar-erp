@@ -23,6 +23,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
 import '../../../theme/app_tokens.dart';
+import '../../customers/domain/shop_phone_country.dart';
+import '../../shop_profile/application/shop_profile_gateway.dart';
 import '../../shop_profile/data/supabase_shop_profile_gateway.dart';
 import '../../shop_profile/presentation/shop_profile_screen.dart';
 import '../../shop_staff/data/supabase_shop_staff_gateway.dart';
@@ -264,6 +266,14 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         }
       });
       _dismissResolvedActivation();
+      final profileShop = _selected;
+      final profileUser = widget.currentUserId?.call();
+      if (profileShop != null &&
+          profileShop.isOwner &&
+          profileUser != null &&
+          profileUser.isNotEmpty) {
+        unawaited(_cacheOwnerPhoneCountry(profileUser, profileShop.id));
+      }
       final reminderShop = _selected;
       unawaited(
         widget.reminders?.bind(
@@ -481,6 +491,18 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       await coordinator.dispose();
       if (identical(_sync, coordinator)) _sync = null;
     }
+  }
+
+  Future<void> _cacheOwnerPhoneCountry(String userId, String shopId) async {
+    try {
+      final profile = await SupabaseShopProfileGateway(
+        Supabase.instance.client,
+      ).getProfile(userId: userId);
+      if (!mounted || _selected?.id != shopId) return;
+      ShopPhoneCountryCache.remember(shopId, profile.phone);
+    } on ShopProfileException {
+      // Keep Egypt until the owner opens بيانات المتجر.
+    } catch (_) {}
   }
 
   Future<void> _ensureShopImage() async {

@@ -12,6 +12,7 @@ class CustomerPhoneField extends StatefulWidget {
     this.enabled = true,
     this.allowEmpty = true,
     this.emptyMessage = 'أدخل رقم الهاتف.',
+    this.defaultCountry,
     this.onChanged,
   });
 
@@ -21,6 +22,9 @@ class CustomerPhoneField extends StatefulWidget {
   final bool enabled;
   final bool allowEmpty;
   final String emptyMessage;
+
+  /// Used when [controller] is empty (ADR 0044 C-D10).
+  final PhoneCountry? defaultCountry;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -35,7 +39,7 @@ class CustomerPhoneFieldState extends State<CustomerPhoneField> {
   @override
   void initState() {
     super.initState();
-    final split = splitCustomerPhone(widget.controller.text);
+    final split = _split(widget.controller.text);
     _country = split.country;
     _national = TextEditingController(text: split.national);
   }
@@ -43,9 +47,17 @@ class CustomerPhoneFieldState extends State<CustomerPhoneField> {
   @override
   void didUpdateWidget(CustomerPhoneField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.defaultCountry != widget.defaultCountry) {
       _applyStored(widget.controller.text);
     }
+  }
+
+  ({PhoneCountry country, String national}) _split(String raw) {
+    if (raw.trim().isEmpty) {
+      return (country: widget.defaultCountry ?? egypt, national: '');
+    }
+    return splitCustomerPhone(raw);
   }
 
   @override
@@ -55,7 +67,7 @@ class CustomerPhoneFieldState extends State<CustomerPhoneField> {
   }
 
   void _applyStored(String raw) {
-    final split = splitCustomerPhone(raw);
+    final split = _split(raw);
     _country = split.country;
     _national.text = split.national;
   }

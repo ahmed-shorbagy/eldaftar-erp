@@ -220,7 +220,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(of: sales, matching: find.text('خاتم')),
+      find.descendant(of: sales, matching: find.text('خواتم')),
       findsOneWidget,
     );
     expect(find.textContaining('عدد القطع'), findsNothing);
@@ -279,12 +279,12 @@ void main() {
       await pumpTrade(tester, gateway, FinancialKind.purchase);
       await tapVisible(tester, find.byKey(const Key('trade-select-أخرى')));
       expect(find.byKey(const Key('trade-other-grid')), findsOneWidget);
-      expect(find.byKey(const Key('trade-select-غويشة')), findsOneWidget);
-      expect(find.byKey(const Key('trade-select-دبلة')), findsOneWidget);
+      expect(find.byKey(const Key('trade-select-غوايش')), findsOneWidget);
+      expect(find.byKey(const Key('trade-select-دبل')), findsOneWidget);
       expect(find.byKey(const Key('trade-select-name')), findsNothing);
       expect(find.byKey(const Key('trade-catalog-table')), findsNothing);
       expect(find.byKey(const Key('trade-open-inventory')), findsNothing);
-      await tapVisible(tester, find.byKey(const Key('trade-select-دبلة')));
+      await tapVisible(tester, find.byKey(const Key('trade-select-دبل')));
       expect(find.byKey(const Key('trade-name-0')), findsNothing);
       await tester.enterText(find.byKey(const Key('trade-grams-0')), '1.830');
       await nextTrade(tester);

@@ -196,8 +196,7 @@ class InventoryItemGridView extends StatelessWidget {
               ),
             ],
           )
-        else if (grid == null ||
-            (grid.rows.isEmpty && grid.scrapByKarat.isEmpty))
+        else if (grid == null)
           Text(
             'لا توجد أصناف متاحة في المخزون.',
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -357,15 +356,11 @@ class _Table extends StatelessWidget {
             ),
             cells: [
               for (final karat in karats)
-                item.cells[karat] == null
+                item.cells[karat] == null ||
+                        item.cells[karat]!.milligrams == BigInt.zero
                     ? Center(
                         key: Key('inventory-grid-cell-${item.itemName}-$karat'),
-                        child: Text(
-                          '·',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
+                        child: value(count: '0', grams: '0.00'),
                       )
                     : InkWell(
                         key: Key('inventory-grid-cell-${item.itemName}-$karat'),

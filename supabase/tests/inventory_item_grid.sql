@@ -96,7 +96,7 @@ begin
   v_grid := public.get_inventory_item_grid_v1();
   select item into v_row
   from jsonb_array_elements(v_grid -> 'rows') as item
-  where item ->> 'item_name' = 'خاتم' and (item ->> 'karat')::int = 21;
+  where item ->> 'item_name' = 'خواتم' and (item ->> 'karat')::int = 21;
   if v_row ->> 'count' is distinct from '5'
     or v_row ->> 'count_known' is distinct from 'true'
     or v_row ->> 'milligrams' is distinct from '5000' then
@@ -106,9 +106,19 @@ begin
     select 1 from jsonb_array_elements(v_grid -> 'rows') as item
     where item ->> 'item_name' in ('دفلة', 'طقم')
       or item ->> 'item_name' ilike '%سبيكة%'
-      or item ->> 'item_name' ilike '%جنيه%'
+      or item ->> 'category' = 'bullion'
+      or (item ->> 'item_name' ilike '%جنيه%' and item ->> 'item_name' <> 'جنيهات')
   ) then
     raise exception 'grid_listed_excluded_stock %', v_grid -> 'rows';
+  end if;
+  -- ADR 0044 C-D4: owned coins are one «جنيهات» row per karat.
+  select item into v_row
+  from jsonb_array_elements(v_grid -> 'rows') as item
+  where item ->> 'item_name' = 'جنيهات' and (item ->> 'karat')::int = 21;
+  if v_row ->> 'category' is distinct from 'coin'
+    or v_row ->> 'count' is distinct from '1'
+    or v_row ->> 'milligrams' is distinct from '8000' then
+    raise exception 'coin_row_wrong %', v_row;
   end if;
 
   v_totals := public.get_inventory_totals_v1();

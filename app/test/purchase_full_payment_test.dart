@@ -14,7 +14,7 @@ const _ring = FinancialItemInput(
   karat: 21,
   grams: '10.000',
   count: '',
-  name: 'خاتم',
+  name: 'خواتم',
 );
 
 void main() {

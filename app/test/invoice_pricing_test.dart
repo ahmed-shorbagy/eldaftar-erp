@@ -78,7 +78,7 @@ void main() {
                 karat: 18,
                 grams: '1.830',
                 count: '1',
-                name: 'خاتم',
+                name: 'خواتم',
                 linePricePounds: '1000',
               ),
             ],

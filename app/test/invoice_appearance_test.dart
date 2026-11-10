@@ -436,7 +436,7 @@ Map<String, Object?> _source({String kind = 'sale'}) => {
     'customer_name': 'طرف معاينة',
     'items': [
       {
-        'item_name': 'خاتم',
+        'item_name': 'خواتم',
         'category': 'worked_jewelry',
         'karat': 18,
         'milligrams': '1830',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../customers/domain/shop_phone_country.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
 import '../application/shop_profile_gateway.dart';
@@ -54,6 +55,7 @@ class _ShopProfileScreenState extends State<ShopProfileScreen> {
       _name.text = profile.name;
       _owner.text = profile.ownerDisplayName;
       _phone.text = profile.phone;
+      ShopPhoneCountryCache.remember(profile.shopId, profile.phone);
       setState(() => _loading = false);
     } on ShopProfileException catch (error) {
       if (!mounted) return;
@@ -97,6 +99,7 @@ class _ShopProfileScreenState extends State<ShopProfileScreen> {
       _name.text = saved.name;
       _owner.text = saved.ownerDisplayName;
       _phone.text = saved.phone;
+      ShopPhoneCountryCache.remember(saved.shopId, saved.phone);
       setState(() {
         _saving = false;
         _error = false;

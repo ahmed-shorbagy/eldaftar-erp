@@ -67,6 +67,10 @@ bool matchesCustomerEnvelope(
     keys.addAll(['is_vip', 'has_open_request']);
     if (p['is_vip'] is! bool || p['has_open_request'] is! bool) return false;
   }
+  if (kind == 'customer_status') {
+    keys.add('in_whatsapp_group');
+    if (p['in_whatsapp_group'] is! bool) return false;
+  }
   if (kind == 'customer_note') {
     keys.add('body');
     if (p['body'] is! String || !validCustomerNote(p['body'] as String)) {

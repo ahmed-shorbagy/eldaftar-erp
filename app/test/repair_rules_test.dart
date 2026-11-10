@@ -8,7 +8,7 @@ void main() {
       final reviewed = RepairRules.reviewIntake(
         customerName: '  عميل الإصلاح  ',
         customerPhone: '01001234567',
-        itemDescription: 'خاتم',
+        itemDescription: 'خواتم',
         gramsText: '1.255',
         karat: 21,
         issue: 'مفصص',
@@ -27,7 +27,7 @@ void main() {
       final omitted = RepairRules.reviewIntake(
         customerName: 'عميل',
         customerPhone: '',
-        itemDescription: 'سلسلة',
+        itemDescription: 'سلاسل',
         gramsText: '1.000',
         karat: 18,
         issue: 'لحام',
@@ -44,7 +44,7 @@ void main() {
         (RepairRules.reviewIntake(
                   customerName: 'عميل',
                   customerPhone: 'abc',
-                  itemDescription: 'سلسلة',
+                  itemDescription: 'سلاسل',
                   gramsText: '1.000',
                   karat: 18,
                   issue: 'لحام',
@@ -59,7 +59,7 @@ void main() {
         (RepairRules.reviewIntake(
                   customerName: 'عميل',
                   customerPhone: '',
-                  itemDescription: 'سلسلة',
+                  itemDescription: 'سلاسل',
                   gramsText: '1.000',
                   karat: 12,
                   issue: 'لحام',
@@ -74,7 +74,7 @@ void main() {
         (RepairRules.reviewIntake(
                   customerName: 'عميل',
                   customerPhone: '',
-                  itemDescription: 'سلسلة',
+                  itemDescription: 'سلاسل',
                   gramsText: '0',
                   karat: 21,
                   issue: 'لحام',

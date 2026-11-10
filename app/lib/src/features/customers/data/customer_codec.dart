@@ -226,6 +226,9 @@ CustomerRecord parseCustomer(
     status: status,
     vip: _bool(m['is_vip']),
     openRequest: _bool(m['has_open_request']),
+    inWhatsappGroup: m.containsKey('in_whatsapp_group')
+        ? _bool(m['in_whatsapp_group'])
+        : false,
     phones: phones,
     updatedAt: _utc(m['updated_at']),
     updatedAtShop: updatedLocal,

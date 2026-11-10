@@ -116,7 +116,7 @@ $fn$;
 do $priv$
 begin
   if private.ledger_operation_label('debt_settlement') is distinct from 'سداد دين'
-    or private.ledger_operation_label('repair_fee') is distinct from 'أجرة إصلاح'
+    or private.ledger_operation_label('repair_fee') is distinct from 'أجرة مرمة'
     or private.ledger_operation_label('purchase_settlement') is distinct from 'سداد شراء'
     or private.ledger_operation_label('gold_obligation_acquisition') is distinct from 'استلام ذهب مقابل التزام'
     or private.ledger_operation_label('gold_obligation_settlement') is distinct from 'سداد التزام ذهب' then
@@ -1307,7 +1307,7 @@ declare v_result jsonb;
 begin
   v_result := public.get_daily_ledger_v2();
   if v_result is null then raise exception 'debt_ledger_missing'; end if;
-  v_result := public.get_ledger_operation_page(null, null, '1', 100);
+  v_result := public.get_ledger_operation_page_v2(null, null, '1', 100);
   if not exists (select 1 from jsonb_array_elements(v_result -> 'items') row where row ->> 'kind' = 'debt_settlement') then
     raise exception 'debt_ledger_asc_missing';
   end if;

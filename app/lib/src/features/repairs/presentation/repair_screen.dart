@@ -3,6 +3,8 @@ import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_tokens.dart';
+import '../../customers/domain/shop_phone_country.dart';
+import '../../customers/presentation/customer_phone_field.dart';
 import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
@@ -709,7 +711,7 @@ class _RepairScreenState extends State<RepairScreen> {
                 if (_pending != null) _pendingBanner(),
                 if (_otherPending)
                   _banner(
-                    'يوجد طلب دفتر محفوظ. افتح الدفتر للتحقق منه قبل تسجيل صيانة جديدة.',
+                    'يوجد طلب دفتر محفوظ. افتح الدفتر للتحقق منه قبل تسجيل مرمة جديدة.',
                   ),
                 if (_pendingLoadFailed) ...[
                   _banner(
@@ -754,13 +756,13 @@ class _RepairScreenState extends State<RepairScreen> {
   }
 
   String get _title => switch (_stage) {
-    _Stage.list || _Stage.success => 'الصيانة',
-    _Stage.intake || _Stage.intakeReview => 'استلام إصلاح',
-    _Stage.detail => 'تفاصيل الإصلاح',
-    _Stage.handover || _Stage.handoverReview => 'تسليم الإصلاح',
+    _Stage.list || _Stage.success => 'المرمات',
+    _Stage.intake || _Stage.intakeReview => 'استلام مرمة',
+    _Stage.detail => 'تفاصيل المرمة',
+    _Stage.handover || _Stage.handoverReview => 'تسليم المرمة',
     _Stage.collect || _Stage.collectReview => 'تحصيل المتبقي',
-    _Stage.cancelReview => 'إلغاء الإصلاح',
-    _Stage.archiveReview => 'أرشفة الإصلاح',
+    _Stage.cancelReview => 'إلغاء المرمة',
+    _Stage.archiveReview => 'أرشفة المرمة',
   };
 
   Widget _body() => switch (_stage) {
@@ -797,8 +799,8 @@ class _RepairScreenState extends State<RepairScreen> {
         children: [
           Text(
             _pendingUnknown
-                ? 'نتيجة طلب الصيانة غير مؤكدة. أعد التحقق من الطلب المحفوظ.'
-                : 'طلب صيانة محفوظ بانتظار التأكيد.',
+                ? 'نتيجة طلب المرمة غير مؤكدة. أعد التحقق من الطلب المحفوظ.'
+                : 'طلب مرمة محفوظ بانتظار التأكيد.',
           ),
           const SizedBox(height: AppTokens.spaceSm),
           const Text('إعادة المحاولة تتابع الطلب المحفوظ دون تكرار أثره.'),
@@ -827,7 +829,7 @@ class _RepairScreenState extends State<RepairScreen> {
           controller: _query,
           textInputAction: TextInputAction.search,
           decoration: const InputDecoration(
-            labelText: 'بحث في الصيانة',
+            labelText: 'بحث في المرمات',
             helperText: 'الاسم أو الهاتف أو القطعة أو العطل',
             helperMaxLines: 2,
           ),
@@ -904,11 +906,16 @@ class _RepairScreenState extends State<RepairScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _field(_name, 'اسم العميل', key: const Key('repair-customer-name')),
-        _field(
-          _phone,
-          'هاتف العميل',
-          key: const Key('repair-phone'),
-          requiredField: false,
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+          // Same phone field as customers, sale, and purchase: starts on the
+          // shop owner's country and stores E.164 (ADR 0044 C-D10).
+          child: CustomerPhoneField(
+            controller: _phone,
+            fieldKey: const Key('repair-phone'),
+            label: 'هاتف العميل',
+            defaultCountry: ShopPhoneCountryCache.forShop(widget.shopId),
+          ),
         ),
         _field(_item, 'وصف القطعة', key: const Key('repair-item')),
         _field(
@@ -1043,7 +1050,7 @@ class _RepairScreenState extends State<RepairScreen> {
         if (!_readOnly && item.status == 'received')
           _statusButton(
             'in_progress',
-            'بدء الإصلاح',
+            'بدء المرمة',
             'repair-status-in-progress',
           ),
         if (!_readOnly && item.status == 'in_progress')
@@ -1377,9 +1384,7 @@ class _RepairScreenState extends State<RepairScreen> {
       children: [
         Text('الأجرة النهائية: ${repairMoney(command.finalFeePiastres)}'),
         Text('المحصّل: ${repairMoney(command.collectedPiastres)}'),
-        Text(
-          'المتبقي على الإصلاح: ${repairMoney(command.outstandingPiastres)}',
-        ),
+        Text('المتبقي على المرمة: ${repairMoney(command.outstandingPiastres)}'),
         Text(
           'تحرير الحيازة: ${repairWeight(command.custodyMilligrams, exact: true)}',
         ),
@@ -1391,7 +1396,7 @@ class _RepairScreenState extends State<RepairScreen> {
             Text(
               '${repairMethodLabels[tender.method] ?? tender.method}: ${repairMoney(tender.piastres)}',
             ),
-        const Text('المتبقي محفوظ على سجل الصيانة.'),
+        const Text('المتبقي محفوظ على سجل المرمة.'),
         if (_reviewStale) _staleReview(),
         const SizedBox(height: AppTokens.spaceMd),
         FilledButton(

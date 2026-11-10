@@ -101,7 +101,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('متابعة طلب العميل'), findsOneWidget);
-      expect(find.text('متابعة طلب الصيانة'), findsNothing);
+      expect(find.text('متابعة طلب المرمات'), findsNothing);
       await tester.ensureVisible(find.byKey(const Key('ledger-retry-pending')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('ledger-retry-pending')));

@@ -65,7 +65,7 @@ const syntheticRemainder = <String, Object?>{
       'item_index': '0',
       'category': 'worked_jewelry',
       'karat': 18,
-      'item_name': 'خاتم',
+      'item_name': 'خواتم',
       'original_milligrams': '4000',
       'original_count': '2',
       'returned_milligrams': '0',
@@ -236,7 +236,7 @@ Future<void> preparePartial(WidgetTester tester) async {
 Future<void> prepareExchange(WidgetTester tester) async {
   await preparePartial(tester);
   await tap(tester, 'partial-exchange');
-  await tap(tester, 'trade-select-خاتم');
+  await tap(tester, 'trade-select-خواتم');
   await tap(tester, 'trade-next');
   await enter(tester, 'trade-grams-0', '1.500');
   await tap(tester, 'trade-next');
