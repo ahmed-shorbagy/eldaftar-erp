@@ -19,6 +19,8 @@ export const shellCopy = {
   failedTitle: 'تعذرت تهيئة Supabase',
   failedBody:
     'وُجدت القيمتان، لكن إنشاء العميل فشل. راجع العنوان والمفتاح العام ثم أعد تحميل الصفحة.',
+  navigationLabel: 'أقسام الإدارة',
+  openNavigation: 'فتح قائمة الأقسام',
   toggleToDark: 'التبديل إلى الوضع الداكن',
   toggleToLight: 'التبديل إلى الوضع الفاتح',
 } as const

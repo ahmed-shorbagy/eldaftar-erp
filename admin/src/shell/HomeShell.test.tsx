@@ -120,6 +120,7 @@ test('missing public config shows the Arabic setup message in RTL', () => {
 })
 
 test('a signed-in admin sees the subscriber directory instead of the prototype shell', async () => {
+  window.history.replaceState(null, '', '/subscribers')
   render(
     <App
       supabaseStatus="ready"
@@ -163,7 +164,7 @@ test('a signed-in admin sees the subscriber directory instead of the prototype s
     />,
   )
   expect(await screen.findByRole('heading', { name: 'المشتركون' })).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'تحديث التطبيق' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'تحديث التطبيق' })).toBeInTheDocument()
   expect(screen.queryByText(shellCopy.prototypeLabel)).not.toBeInTheDocument()
   expect(screen.queryByText(shellCopy.readyBody)).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'تسجيل الخروج' })).toBeInTheDocument()

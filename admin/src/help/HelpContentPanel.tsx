@@ -32,35 +32,44 @@ export function HelpContentPanel({
   const [newTopicTitle, setNewTopicTitle] = useState('')
   const requestGen = useRef(0)
 
-  const load = useCallback(async () => {
+  // State changes only in the settled callbacks, so the mount effect stays a
+  // pure subscription; `load` adds the visible reset for user-triggered reloads.
+  const fetchContent = useCallback(() => {
     const gen = ++requestGen.current
-    setLoadError(false)
-    try {
-      const [catalog, ann] = await Promise.all([
-        gateway.listCatalog(),
-        gateway.getAnnouncement(),
-      ])
-      if (gen !== requestGen.current) return
-      setTopics(catalog)
-      setAnnouncement(ann)
-      setAnnDraft({
-        titleAr: ann.titleAr,
-        bodyAr: ann.bodyAr,
-        linkUrl: ann.linkUrl ?? '',
-      })
-    } catch (error) {
-      if (gen !== requestGen.current) return
-      if (error instanceof HelpError && error.code === 'unauthorized') {
-        onAccessLost?.()
-        return
-      }
-      setLoadError(true)
-    }
+    return Promise.all([
+      gateway.listCatalog(),
+      gateway.getAnnouncement(),
+    ]).then(
+      ([catalog, ann]) => {
+        if (gen !== requestGen.current) return
+        setLoadError(false)
+        setTopics(catalog)
+        setAnnouncement(ann)
+        setAnnDraft({
+          titleAr: ann.titleAr,
+          bodyAr: ann.bodyAr,
+          linkUrl: ann.linkUrl ?? '',
+        })
+      },
+      (error: unknown) => {
+        if (gen !== requestGen.current) return
+        if (error instanceof HelpError && error.code === 'unauthorized') {
+          onAccessLost?.()
+          return
+        }
+        setLoadError(true)
+      },
+    )
   }, [gateway, onAccessLost])
 
+  const load = useCallback(() => {
+    setLoadError(false)
+    return fetchContent()
+  }, [fetchContent])
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void fetchContent()
+  }, [fetchContent])
 
   const run = async (action: () => Promise<string>) => {
     if (busy) return
@@ -283,12 +292,15 @@ function TopicEditor({
   const [sortOrder, setSortOrder] = useState(String(topic.sortOrder))
   const [articleTitle, setArticleTitle] = useState('')
   const [articleBody, setArticleBody] = useState('')
-
-  useEffect(() => {
+  // Reset the topic fields when the server copy changes (adjusting state
+  // during render instead of in an effect avoids a cascading re-render).
+  const [seenTopic, setSeenTopic] = useState(topic)
+  if (seenTopic !== topic) {
+    setSeenTopic(topic)
     setTitleAr(topic.titleAr)
     setPublished(topic.published)
     setSortOrder(String(topic.sortOrder))
-  }, [topic])
+  }
 
   return (
     <Box

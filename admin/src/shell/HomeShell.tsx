@@ -1,17 +1,24 @@
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
+import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
+import { useTheme } from '@mui/material/styles'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
-import type { ReactNode } from 'react'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useState, type ReactNode } from 'react'
 import type { SupabaseStartupStatus } from '../config/supabaseStartup.ts'
 import { BrandMark } from '../theme/BrandMark.tsx'
 import { tokens } from '../theme/tokens.ts'
 import type { ResolvedTheme } from '../theme/themePreference.ts'
+import { AdminNavigation, type AdminNavItem } from './AdminNavigation.tsx'
 import { shellCopy } from './copy.ts'
+
+const railWidth = 232
 
 export function HomeShell({
   supabaseStatus,
@@ -26,8 +33,16 @@ export function HomeShell({
   onToggleTheme: () => void
   onSignOut?: () => void
   directory?: ReactNode
-  navigation?: ReactNode
+  navigation?: { items: AdminNavItem[]; onSelect: (key: string) => void }
 }) {
+  const theme = useTheme()
+  // The permanent rail takes 232px, so it appears only from the lg breakpoint
+  // (1200px); below that the directory table keeps its full width and the
+  // sections open from a menu drawer.
+  const narrow = useMediaQuery(theme.breakpoints.down('lg'), { noSsr: true })
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const showRail = navigation !== undefined && !narrow
+  const showDrawer = navigation !== undefined && narrow
   const isDark = themeMode === 'dark'
   const toggleLabel = isDark ? shellCopy.toggleToLight : shellCopy.toggleToDark
   const bannerBackground = isDark
@@ -61,7 +76,19 @@ export function HomeShell({
             gap: 1,
           }}
         >
-          <Box aria-hidden />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+            {showDrawer && (
+              <IconButton
+                aria-label={shellCopy.openNavigation}
+                aria-expanded={drawerOpen}
+                aria-controls="admin-navigation-drawer"
+                color="inherit"
+                onClick={() => setDrawerOpen(true)}
+              >
+                <MenuOutlinedIcon />
+              </IconButton>
+            )}
+          </Box>
           <Typography
             component="h1"
             variant="h6"
@@ -89,6 +116,51 @@ export function HomeShell({
           </Box>
         </Toolbar>
       </AppBar>
+      {showDrawer && navigation && (
+        <Drawer
+          id="admin-navigation-drawer"
+          anchor="left"
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          slotProps={{ paper: { sx: { width: railWidth + 32, maxWidth: '85vw', p: 2, bgcolor: 'background.default' } } }}
+        >
+          <Typography component="p" variant="subtitle1" sx={{ fontWeight: 700, mb: 1, px: 1.5 }}>
+            {shellCopy.navigationLabel}
+          </Typography>
+          <AdminNavigation
+            items={navigation.items}
+            onSelect={(key) => {
+              setDrawerOpen(false)
+              navigation.onSelect(key)
+            }}
+          />
+        </Drawer>
+      )}
+      <Box
+        sx={showRail
+          ? {
+            display: 'grid',
+            gridTemplateColumns: `${railWidth}px minmax(0, 1fr)`,
+            alignItems: 'start',
+          }
+          : undefined}
+      >
+      {showRail && navigation && (
+        <Box
+          component="aside"
+          sx={{
+            position: 'sticky',
+            top: 64,
+            alignSelf: 'start',
+            p: 2,
+            minHeight: 'calc(100vh - 64px)',
+            borderInlineEnd: 1,
+            borderColor: 'divider',
+          }}
+        >
+          <AdminNavigation items={navigation.items} onSelect={navigation.onSelect} />
+        </Box>
+      )}
       <Box
         component="main"
         sx={{
@@ -102,7 +174,6 @@ export function HomeShell({
           minWidth: 0,
         }}
       >
-        {navigation}
         {directory ?? (
           <>
             <Box
@@ -127,6 +198,7 @@ export function HomeShell({
             <StatusCard status={supabaseStatus} />
           </>
         )}
+      </Box>
       </Box>
     </Box>
   )

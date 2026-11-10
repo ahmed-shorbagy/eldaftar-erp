@@ -64,8 +64,10 @@ export function createAppTheme(mode: ResolvedTheme) {
       MuiCssBaseline: {
         styleOverrides: {
           html: { colorScheme: mode },
+          // No `direction` here: stylis-plugin-rtl mirrors `direction: rtl`
+          // into `ltr`, which made portaled dialogs and drawers lay out LTR.
+          // The `dir="rtl"` attribute on <html> sets the direction instead.
           body: {
-            direction: 'rtl',
             backgroundColor: surface,
             color: onSurface,
           },

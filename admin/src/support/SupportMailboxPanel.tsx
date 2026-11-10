@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { formatServerInstant } from '../subscribers/subscriptionFormat.ts'
 import { tokens } from '../theme/tokens.ts'
 import {
   SupportError,
@@ -75,42 +76,55 @@ export function SupportMailboxPanel({
     [onAccessLost],
   )
 
-  const load = useCallback(async () => {
+  // State changes only in the settled callbacks, so the effect below stays a
+  // pure subscription; callers that change the query reset the visible state first.
+  const fetchInquiries = useCallback(() => {
     const gen = ++requestGen.current
+    return gateway.list({
+      status: statusFilter,
+      search: appliedSearch,
+      cursorAt: null,
+      cursorId: null,
+    }).then(
+      (page) => {
+        if (gen !== requestGen.current) return
+        setRows(page.inquiries)
+        setCursor(
+          page.nextCursorAt !== null && page.nextCursorId !== null
+            ? { at: page.nextCursorAt, id: page.nextCursorId }
+            : null,
+        )
+        setSnapshotAt(page.snapshotAt)
+      },
+      (error: unknown) => {
+        if (gen !== requestGen.current) return
+        if (applyError(error)) return
+        setListFailed(true)
+      },
+    ).finally(() => {
+      if (gen === requestGen.current) setLoading(false)
+    })
+  }, [gateway, statusFilter, appliedSearch, applyError])
+
+  const resetListState = () => {
     setLoading(true)
     setListFailed(false)
     setPageFailed(false)
     setStaleNotice(false)
-    try {
-      const page = await gateway.list({
-        status: statusFilter,
-        search: appliedSearch,
-        cursorAt: null,
-        cursorId: null,
-      })
-      if (gen !== requestGen.current) return
-      setRows(page.inquiries)
-      setCursor(
-        page.nextCursorAt !== null && page.nextCursorId !== null
-          ? { at: page.nextCursorAt, id: page.nextCursorId }
-          : null,
-      )
-      setSnapshotAt(page.snapshotAt)
-    } catch (error) {
-      if (gen !== requestGen.current) return
-      if (applyError(error)) return
-      setListFailed(true)
-    } finally {
-      if (gen === requestGen.current) setLoading(false)
-    }
-  }, [gateway, statusFilter, appliedSearch, applyError])
+  }
+
+  const load = () => {
+    resetListState()
+    return fetchInquiries()
+  }
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void fetchInquiries()
+  }, [fetchInquiries])
 
   const changeFilter = (next: SupportStatusFilter) => {
     if (next === statusFilter) return
+    resetListState()
     setStatusFilter(next)
     setRows(null)
     setCursor(null)
@@ -125,6 +139,7 @@ export function SupportMailboxPanel({
       void load()
       return
     }
+    resetListState()
     setAppliedSearch(next)
     setRows(null)
     setCursor(null)
@@ -349,7 +364,9 @@ export function SupportMailboxPanel({
       {snapshotAt && (
         <Typography variant="body2" color="text.secondary" data-testid="support-snapshot">
           {supportCopy.snapshot}:{' '}
-          <span dir="ltr">{supportRowDate(snapshotAt, 'UTC')}</span>
+          {/* Viewer's own time zone, like the subscriber directory. <bdi> keeps
+              the Arabic date in order; dir="ltr" moved the day to the end. */}
+          <bdi>{formatServerInstant(snapshotAt)}</bdi>
         </Typography>
       )}
 
@@ -399,7 +416,7 @@ export function SupportMailboxPanel({
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {supportCopy.registered}:{' '}
-              <span dir="ltr">{supportRowDate(row.shopCreatedAt, row.shopTimeZone)}</span>
+              <bdi>{supportRowDate(row.shopCreatedAt, row.shopTimeZone)}</bdi>
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {supportRowDate(row.createdAt, row.shopTimeZone)}

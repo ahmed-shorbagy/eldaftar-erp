@@ -1,4 +1,19 @@
-export type SubscriberStatusFilter = 'all' | 'pending' | 'active' | 'expired'
+export type SubscriberStatusFilter =
+  | 'all'
+  | 'pending'
+  | 'active'
+  | 'expired'
+  | 'expiring_3'
+  | 'expiring_7'
+  | 'expiring_30'
+
+export const subscriberStatusFilters: readonly SubscriberStatusFilter[] = [
+  'all', 'pending', 'active', 'expired', 'expiring_3', 'expiring_7', 'expiring_30',
+]
+
+export function isSubscriberStatusFilter(value: unknown): value is SubscriberStatusFilter {
+  return typeof value === 'string' && (subscriberStatusFilters as readonly string[]).includes(value)
+}
 
 export type SubscriberDirectoryErrorCode =
   | 'access_lost'

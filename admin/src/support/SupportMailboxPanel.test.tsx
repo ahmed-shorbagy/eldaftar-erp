@@ -12,6 +12,7 @@ import type {
 import { SupportError, normalizeSupportReply } from './SupportGateway.ts'
 import { SupportMailboxPanel } from './SupportMailboxPanel.tsx'
 import { supportCopy, supportStatusLabel } from './copy.ts'
+import { formatServerInstant } from '../subscribers/subscriptionFormat.ts'
 
 const shopId = 'a1100000-0000-4000-8000-000000000001'
 const inquiryId = 'e1100000-0000-4000-8000-000000000001'
@@ -134,7 +135,12 @@ test('renders rows with bounded shop context and saved reply', async () => {
   )
   expect(screen.getByText('مشكلة تقنية')).toBeInTheDocument()
   expect(screen.getByText(/تم حل المشكلة/)).toBeInTheDocument()
-  expect(screen.getByTestId('support-snapshot')).toBeInTheDocument()
+  // Regression: the snapshot was shown in UTC inside dir="ltr", which put the
+  // Arabic day number at the end. It now uses the viewer's zone in a <bdi>.
+  const snapshot = screen.getByTestId('support-snapshot')
+  expect(snapshot).toHaveTextContent(formatServerInstant('2026-10-27T09:30:00.000Z'))
+  expect(snapshot.querySelector('[dir="ltr"]')).toBeNull()
+  expect(snapshot.querySelector('bdi')).not.toBeNull()
   expect(screen.queryByTestId('support-triage-close-' + inquiryId)).toBeNull()
 })
 

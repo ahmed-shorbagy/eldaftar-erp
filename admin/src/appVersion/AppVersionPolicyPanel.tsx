@@ -72,26 +72,35 @@ export function AppVersionPolicyPanel({
     })
   }, [])
 
-  const load = useCallback(async () => {
+  // State changes only in the settled callbacks, so the mount effect stays a
+  // pure subscription; `load` adds the visible reset for user-triggered reloads.
+  const fetchPolicies = useCallback(() => {
     const gen = ++requestGen.current
-    setLoadError(false)
-    try {
-      const next = await gateway.list()
-      if (gen !== requestGen.current) return
-      applyRows(next)
-    } catch (error) {
-      if (gen !== requestGen.current) return
-      if (error instanceof AppVersionError && error.code === 'unauthorized') {
-        onAccessLost?.()
-        return
-      }
-      setLoadError(true)
-    }
+    return gateway.list().then(
+      (next) => {
+        if (gen !== requestGen.current) return
+        setLoadError(false)
+        applyRows(next)
+      },
+      (error: unknown) => {
+        if (gen !== requestGen.current) return
+        if (error instanceof AppVersionError && error.code === 'unauthorized') {
+          onAccessLost?.()
+          return
+        }
+        setLoadError(true)
+      },
+    )
   }, [applyRows, gateway, onAccessLost])
 
+  const load = useCallback(() => {
+    setLoadError(false)
+    return fetchPolicies()
+  }, [fetchPolicies])
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void fetchPolicies()
+  }, [fetchPolicies])
 
   const save = async (platform: AppVersionPlatform, clear: boolean) => {
     if (busyPlatform) return

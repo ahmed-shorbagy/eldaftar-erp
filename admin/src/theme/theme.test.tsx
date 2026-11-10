@@ -74,3 +74,25 @@ test('table borders stay in the brown-gold palette and remain visible', () => {
   expect(contrast(tokens.darkTableBorder, tokens.darkCard)).toBeGreaterThanOrEqual(3)
   expect(contrast(tokens.darkTableBorder, tokens.darkSurface)).toBeGreaterThanOrEqual(3)
 })
+
+test('global body styles never force left-to-right through the RTL style plugin', async () => {
+  // Regression: `body { direction: rtl }` was mirrored to `ltr` by
+  // stylis-plugin-rtl, so portaled dialogs and drawers laid out LTR.
+  const { render } = await import('@testing-library/react')
+  const { CacheProvider } = await import('@emotion/react')
+  const CssBaseline = (await import('@mui/material/CssBaseline')).default
+  const { ThemeProvider } = await import('@mui/material/styles')
+  const { rtlCache } = await import('./rtlCache.ts')
+  for (const mode of ['light', 'dark'] as const) {
+    render(
+      <CacheProvider value={rtlCache}>
+        <ThemeProvider theme={createAppTheme(mode)}>
+          <CssBaseline />
+        </ThemeProvider>
+      </CacheProvider>,
+    )
+    const css = [...document.querySelectorAll('style')].map((style) => style.textContent ?? '').join('\n')
+    expect(css).toMatch(/body\s*\{/)
+    expect(css).not.toMatch(/direction\s*:\s*ltr/)
+  }
+})

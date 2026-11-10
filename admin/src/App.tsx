@@ -1,10 +1,14 @@
 import { CacheProvider } from '@emotion/react'
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined'
+import SupportAgentOutlinedIcon from '@mui/icons-material/SupportAgentOutlined'
+import SystemUpdateAltOutlinedIcon from '@mui/icons-material/SystemUpdateAltOutlined'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
-import ButtonGroup from '@mui/material/ButtonGroup'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ThemeProvider } from '@mui/material/styles'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppVersionPolicyPanel } from './appVersion/AppVersionPolicyPanel.tsx'
 import type { AppVersionGateway } from './appVersion/AppVersionGateway.ts'
 import { appVersionCopy } from './appVersion/copy.ts'
@@ -21,6 +25,13 @@ import { SupabaseSupportGateway } from './support/SupabaseSupportGateway.ts'
 import { SupportMailboxPanel } from './support/SupportMailboxPanel.tsx'
 import type { SupportGateway } from './support/SupportGateway.ts'
 import { supportCopy } from './support/copy.ts'
+import { formatAdminPath, subscribersRoute, type AdminArea, type AdminRoute } from './navigation/adminRoutes.ts'
+import { overviewCopy } from './overview/copy.ts'
+import type { OverviewGateway } from './overview/OverviewGateway.ts'
+import { OverviewPanel } from './overview/OverviewPanel.tsx'
+import { SupabaseOverviewGateway } from './overview/SupabaseOverviewGateway.ts'
+import { useAdminRoute } from './navigation/useAdminRoute.ts'
+import type { AdminNavItem } from './shell/AdminNavigation.tsx'
 import { HomeShell } from './shell/HomeShell.tsx'
 import { shellCopy } from './shell/copy.ts'
 import { SubscriberDirectory } from './subscribers/SubscriberDirectory.tsx'
@@ -35,7 +46,17 @@ import type { ThemeController } from './theme/themeController.ts'
 import { resolveThemeChoice } from './theme/themePreference.ts'
 import { useSystemDark } from './theme/useSystemDark.ts'
 
-type AdminDestination = 'subscribers' | 'appVersion' | 'help' | 'support'
+const navAreas: Array<{ area: AdminArea; label: string; icon: ReactNode }> = [
+  { area: 'overview', label: overviewCopy.navLabel, icon: <DashboardOutlinedIcon /> },
+  { area: 'subscribers', label: helpCopy.subscribersNav, icon: <PeopleAltOutlinedIcon /> },
+  { area: 'appVersion', label: appVersionCopy.navLabel, icon: <SystemUpdateAltOutlinedIcon /> },
+  { area: 'help', label: helpCopy.navLabel, icon: <HelpOutlineOutlinedIcon /> },
+  { area: 'support', label: supportCopy.navLabel, icon: <SupportAgentOutlinedIcon /> },
+]
+
+function areaRoute(area: AdminArea): AdminRoute {
+  return area === 'subscribers' ? subscribersRoute() : { area }
+}
 
 export function App({
   supabaseStatus,
@@ -46,6 +67,7 @@ export function App({
   appVersionGateway,
   helpGateway,
   supportGateway,
+  overviewGateway,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeController: ThemeController
@@ -55,12 +77,13 @@ export function App({
   appVersionGateway?: AppVersionGateway | null
   helpGateway?: HelpGateway | null
   supportGateway?: SupportGateway | null
+  overviewGateway?: OverviewGateway | null
 }) {
   const [choice, setChoice] = useState(themeController.mode)
   const [access, setAccess] = useState<AdminAccess>(authGateway?.status ?? 'unavailable')
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState(false)
-  const [destination, setDestination] = useState<AdminDestination>('subscribers')
+  const { route, navigate } = useAdminRoute()
   const signOutPending = useRef(false)
   const systemDark = useSystemDark()
   const resolved = resolveThemeChoice(choice, systemDark)
@@ -106,6 +129,11 @@ export function App({
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseSupportGateway(client)
   }, [supportGateway])
+  const overviewReadGateway = useMemo(() => {
+    if (overviewGateway !== undefined) return overviewGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseOverviewGateway(client)
+  }, [overviewGateway])
   const reportAccessLoss = useCallback(() => {
     void authGateway?.refresh()
   }, [authGateway])
@@ -128,23 +156,41 @@ export function App({
 
   const directory = (() => {
     if (!(supabaseStatus === 'ready' && access === 'admin')) return undefined
-    if (destination === 'subscribers') {
+    if (route.area === 'overview') {
+      return overviewReadGateway
+        ? (
+          <OverviewPanel
+            gateway={overviewReadGateway}
+            onAccessLost={reportAccessLoss}
+            onOpen={(next) => {
+              navigate(next)
+              window.scrollTo({ top: 0 })
+            }}
+          />
+        )
+        : <DirectoryUnavailable />
+    }
+    if (route.area === 'subscribers') {
       return directoryGateway
         ? (
           <SubscriberDirectory
             gateway={directoryGateway}
             contactGateway={piiGateway}
             onAccessLost={reportAccessLoss}
+            selectedShopId={route.shopId}
+            onSelectedShopChange={(shopId) => navigate(subscribersRoute(route.status, shopId))}
+            statusFilter={route.status}
+            onStatusFilterChange={(status) => navigate(subscribersRoute(status, null), { replace: true })}
           />
         )
         : <DirectoryUnavailable />
     }
-    if (destination === 'appVersion') {
+    if (route.area === 'appVersion') {
       return versionGateway
         ? <AppVersionPolicyPanel gateway={versionGateway} onAccessLost={reportAccessLoss} />
         : <DirectoryUnavailable />
     }
-    if (destination === 'support') {
+    if (route.area === 'support') {
       return supportMailboxGateway
         ? <SupportMailboxPanel gateway={supportMailboxGateway} onAccessLost={reportAccessLoss} />
         : <DirectoryUnavailable />
@@ -177,38 +223,24 @@ export function App({
             onToggleTheme={toggleTheme}
             onSignOut={supabaseStatus !== 'ready' || authGateway === null ? undefined : signOut}
             navigation={
-              supabaseStatus === 'ready' && access === 'admin' ? (
-                <ButtonGroup variant="outlined" fullWidth sx={{ minHeight: 48 }}>
-                  <Button
-                    variant={destination === 'subscribers' ? 'contained' : 'outlined'}
-                    onClick={() => setDestination('subscribers')}
-                    sx={{ minHeight: 48 }}
-                  >
-                    {helpCopy.subscribersNav}
-                  </Button>
-                  <Button
-                    variant={destination === 'appVersion' ? 'contained' : 'outlined'}
-                    onClick={() => setDestination('appVersion')}
-                    sx={{ minHeight: 48 }}
-                  >
-                    {appVersionCopy.navLabel}
-                  </Button>
-                  <Button
-                    variant={destination === 'help' ? 'contained' : 'outlined'}
-                    onClick={() => setDestination('help')}
-                    sx={{ minHeight: 48 }}
-                  >
-                    {helpCopy.navLabel}
-                  </Button>
-                  <Button
-                    variant={destination === 'support' ? 'contained' : 'outlined'}
-                    onClick={() => setDestination('support')}
-                    sx={{ minHeight: 48 }}
-                  >
-                    {supportCopy.navLabel}
-                  </Button>
-                </ButtonGroup>
-              ) : undefined
+              supabaseStatus === 'ready' && access === 'admin'
+                ? {
+                  items: navAreas.map((item): AdminNavItem => ({
+                    key: item.area,
+                    label: item.label,
+                    icon: item.icon,
+                    href: formatAdminPath(areaRoute(item.area)),
+                    selected: route.area === item.area,
+                  })),
+                  onSelect: (key) => {
+                    const target = navAreas.find((item) => item.area === key)
+                    if (!target) return
+                    navigate(areaRoute(target.area))
+                    // A new section starts at its top, not at the previous scroll offset.
+                    if (target.area !== route.area) window.scrollTo({ top: 0 })
+                  },
+                }
+                : undefined
             }
             directory={directory}
           />

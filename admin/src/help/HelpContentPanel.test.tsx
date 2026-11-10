@@ -78,7 +78,7 @@ async function openHelp(helpGateway: HelpGateway) {
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,
   )
-  await userEvent.click(screen.getByRole('button', { name: helpCopy.navLabel }))
+  await userEvent.click(screen.getByRole('link', { name: helpCopy.navLabel }))
   expect(await screen.findByRole('heading', { name: helpCopy.title })).toBeInTheDocument()
 }
 

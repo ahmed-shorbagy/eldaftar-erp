@@ -77,7 +77,7 @@ async function openPanel(versionGateway: AppVersionGateway, expectTitle = true) 
       themeController={new ThemeController(new MemoryThemePreferenceStore())}
     />,
   )
-  await userEvent.click(screen.getByRole('button', { name: appVersionCopy.navLabel }))
+  await userEvent.click(screen.getByRole('link', { name: appVersionCopy.navLabel }))
   if (expectTitle) {
     expect(await screen.findByRole('heading', { name: appVersionCopy.title })).toBeInTheDocument()
   }

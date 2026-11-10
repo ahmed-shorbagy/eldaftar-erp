@@ -1,5 +1,6 @@
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -80,20 +81,45 @@ export function SubscriberDirectory({
   gateway,
   contactGateway = null,
   onAccessLost,
+  selectedShopId = null,
+  onSelectedShopChange,
+  statusFilter = 'all',
+  onStatusFilterChange,
 }: {
   gateway: SubscriberDirectoryGateway
   contactGateway?: SubscriberContactGateway | null
   onAccessLost: () => void
+  /** When `onSelectedShopChange` is given, the open detail follows this id (for example from the URL). */
+  selectedShopId?: string | null
+  onSelectedShopChange?: (shopId: string | null) => void
+  /** When `onStatusFilterChange` is given, the status filter follows this value (for example from the URL). */
+  statusFilter?: SubscriberStatusFilter
+  onStatusFilterChange?: (status: SubscriberStatusFilter) => void
 }) {
+  const controlled = onSelectedShopChange !== undefined
   const theme = useTheme()
   const narrow = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true })
-  const [query, setQuery] = useState<DirectoryQuery>(initialQuery)
+  const statusControlled = onStatusFilterChange !== undefined
+  const [query, setQuery] = useState<DirectoryQuery>(() => (
+    statusControlled ? { ...initialQuery, status: statusFilter } : initialQuery
+  ))
   const [draftSearch, setDraftSearch] = useState('')
   const [refreshToken, setRefreshToken] = useState(0)
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error' | 'accessLost'>('loading')
   const [page, setPage] = useState<SubscriberPage | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [detail, setDetail] = useState<DetailState | null>(null)
+  const [detailReload, setDetailReload] = useState(0)
+  // Adopt a status that arrives from outside (a link or back/forward) during
+  // render, the same way the load key below resets the page.
+  const [seenStatusFilter, setSeenStatusFilter] = useState(statusFilter)
+  if (statusControlled && seenStatusFilter !== statusFilter) {
+    setSeenStatusFilter(statusFilter)
+    if (query.status !== statusFilter) {
+      setNotice(null)
+      setQuery({ ...query, status: statusFilter, cursor: null, previousCursors: [] })
+    }
+  }
   const requestRef = useRef(0)
   const detailRef = useRef(0)
   const loadKey = `${query.status}\u0000${query.search}\u0000${query.cursor ?? ''}\u0000${refreshToken}`
@@ -157,6 +183,48 @@ export function SubscriberDirectory({
     return () => document.removeEventListener('visibilitychange', revalidate)
   }, [])
 
+  const wantedShopId = controlled ? selectedShopId : null
+  useEffect(() => {
+    if (wantedShopId === null) return
+    let active = true
+    const requestId = ++detailRef.current
+    void gateway.get(wantedShopId).then(
+      (result) => {
+        if (!active || requestId !== detailRef.current) return
+        setDetail({ phase: 'ready', detail: result })
+      },
+      (error: unknown) => {
+        if (!active || requestId !== detailRef.current) return
+        if (error instanceof SubscriberDirectoryError && error.code === 'access_lost') {
+          requestRef.current += 1
+          detailRef.current += 1
+          setPage(null)
+          setDetail(null)
+          setNotice(null)
+          setPhase('accessLost')
+          onAccessLost()
+          return
+        }
+        setDetail({
+          phase: 'error',
+          shopId: wantedShopId,
+          shopName: '',
+          notFound: error instanceof SubscriberDirectoryError && error.code === 'not_found',
+        })
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [gateway, onAccessLost, wantedShopId, detailReload, loadKey])
+
+  const shownDetail: DetailState | null = (() => {
+    if (!controlled) return detail
+    if (wantedShopId === null || phase === 'accessLost') return null
+    if (detail !== null && detailShopId(detail) === wantedShopId) return detail
+    return { phase: 'loading', shopId: wantedShopId, shopName: '' }
+  })()
+
   function replaceQuery(next: DirectoryQuery) {
     setNotice(null)
     setPage(null)
@@ -173,6 +241,10 @@ export function SubscriberDirectory({
       cursor: null,
       previousCursors: [],
     })
+    if (statusControlled) {
+      setSeenStatusFilter(next)
+      onStatusFilterChange(next)
+    }
   }
 
   function applySearch() {
@@ -196,7 +268,20 @@ export function SubscriberDirectory({
     setRefreshToken((value) => value + 1)
   }
 
-  async function openDetail(row: SubscriberRow) {
+  function openDetail(row: SubscriberRow) {
+    if (!controlled) {
+      void loadDetail(row)
+      return
+    }
+    if (row.shopId === wantedShopId) {
+      setDetail(null)
+      setDetailReload((value) => value + 1)
+      return
+    }
+    onSelectedShopChange(row.shopId)
+  }
+
+  async function loadDetail(row: SubscriberRow) {
     const requestId = ++detailRef.current
     setDetail({ phase: 'loading', shopId: row.shopId, shopName: row.shopName })
     try {
@@ -227,6 +312,7 @@ export function SubscriberDirectory({
   function closeDetail() {
     detailRef.current += 1
     setDetail(null)
+    if (controlled && wantedShopId !== null) onSelectedShopChange(null)
   }
 
   const pageNumber = query.previousCursors.length + 1
@@ -284,6 +370,20 @@ export function SubscriberDirectory({
           {subscriberCopy.refresh}
         </Button>
       </Box>
+
+      {expiringLabel(query.status) !== null && (
+        <Alert
+          severity="info"
+          role="status"
+          action={(
+            <Button color="inherit" onClick={() => changeStatus('all')} sx={{ minHeight: `${tokens.minControlSize}px` }}>
+              {subscriberCopy.clearExpiringFilter}
+            </Button>
+          )}
+        >
+          {expiringLabel(query.status)}
+        </Alert>
+      )}
 
       <ToggleButtonGroup
         exclusive
@@ -369,7 +469,7 @@ export function SubscriberDirectory({
         narrow ? (
           <Box sx={{ display: 'grid', gap: `${tokens.spaceMd}px`, minWidth: 0 }}>
             {page.rows.map((row) => (
-              <ShopCard key={row.shopId} row={row} onOpen={() => void openDetail(row)} />
+              <ShopCard key={row.shopId} row={row} onOpen={() => openDetail(row)} />
             ))}
           </Box>
         ) : (
@@ -401,7 +501,7 @@ export function SubscriberDirectory({
                     <TableCell><TermValue value={row.entitlementStartsAt} missingTerm={row.entitlementStartsAt === null && row.entitlementExpiresAt === null} /></TableCell>
                     <TableCell><TermValue value={row.entitlementExpiresAt} missingTerm={row.entitlementStartsAt === null && row.entitlementExpiresAt === null} /></TableCell>
                     <TableCell>
-                      <Button variant="outlined" aria-label={subscriberCopy.detailsName(row.shopName)} onClick={() => void openDetail(row)}>
+                      <Button variant="outlined" aria-label={subscriberCopy.detailsName(row.shopName)} onClick={() => openDetail(row)}>
                         {subscriberCopy.details}
                       </Button>
                     </TableCell>
@@ -445,7 +545,7 @@ export function SubscriberDirectory({
       )}
 
       <Dialog
-        open={detail !== null}
+        open={shownDetail !== null}
         onClose={closeDetail}
         fullWidth
         maxWidth="sm"
@@ -464,20 +564,20 @@ export function SubscriberDirectory({
             '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -4 },
           }}
         >
-          {detail?.phase === 'loading' && (
+          {shownDetail?.phase === 'loading' && (
             <Typography role="status">{subscriberCopy.loadingDetail}</Typography>
           )}
-          {detail?.phase === 'error' && (
+          {shownDetail?.phase === 'error' && (
             <Typography role="alert">
-              {detail.notFound ? subscriberCopy.notFound : subscriberCopy.detailError}
+              {shownDetail.notFound ? subscriberCopy.notFound : subscriberCopy.detailError}
             </Typography>
           )}
-          {detail?.phase === 'ready' && (
+          {shownDetail?.phase === 'ready' && (
             <>
-              <DetailFields detail={detail.detail} />
+              <DetailFields detail={shownDetail.detail} />
               {contactGateway && (
                 <SubscriberContactReveal
-                  shopId={detail.detail.shopId}
+                  shopId={shownDetail.detail.shopId}
                   gateway={contactGateway}
                   onAccessLost={() => {
                     requestRef.current += 1
@@ -491,8 +591,8 @@ export function SubscriberDirectory({
                 />
               )}
               <SubscriptionCodesPanel
-                shopId={detail.detail.shopId}
-                shopName={detail.detail.shopName}
+                shopId={shownDetail.detail.shopId}
+                shopName={shownDetail.detail.shopName}
                 gateway={gateway}
                 onAccessLost={() => {
                   requestRef.current += 1
@@ -508,12 +608,12 @@ export function SubscriberDirectory({
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          {detail?.phase === 'error' && !detail.notFound && (
+          {shownDetail?.phase === 'error' && !shownDetail.notFound && (
             <Button
               variant="contained"
-              onClick={() => void openDetail({
-                shopId: detail.shopId,
-                shopName: detail.shopName,
+              onClick={() => openDetail({
+                shopId: shownDetail.shopId,
+                shopName: shownDetail.shopName,
                 registeredAt: '',
                 entitlementStartsAt: null,
                 entitlementExpiresAt: null,
@@ -657,5 +757,22 @@ function statusLabel(status: SubscriptionStatus): string {
       return subscriberCopy.statusPending
     case 'expired':
       return subscriberCopy.statusExpired
+  }
+}
+
+function detailShopId(state: DetailState): string {
+  return state.phase === 'ready' ? state.detail.shopId : state.shopId
+}
+
+function expiringLabel(status: SubscriberStatusFilter): string | null {
+  switch (status) {
+    case 'expiring_3':
+      return subscriberCopy.expiringFilter3
+    case 'expiring_7':
+      return subscriberCopy.expiringFilter7
+    case 'expiring_30':
+      return subscriberCopy.expiringFilter30
+    default:
+      return null
   }
 }

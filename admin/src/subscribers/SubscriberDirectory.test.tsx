@@ -89,6 +89,7 @@ function renderDirectory(gateway: Omit<
   | 'releaseBoundSession'
 >, mode = 'light') {
   const authGateway = new StableAuth()
+  window.history.replaceState(null, '', '/subscribers')
   render(
     <App
       supabaseStatus="ready"
