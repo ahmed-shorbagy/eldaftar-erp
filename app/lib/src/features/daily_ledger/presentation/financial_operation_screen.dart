@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
+import '../../../theme/app_banner.dart';
+import '../../../theme/message_tone.dart';
 import '../../../theme/whatsapp_icon.dart';
 import '../../invoice_message/application/message_gateway.dart';
 import '../../invoice_message/data/url_message_launcher.dart';
@@ -252,9 +254,6 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
             _accessLost = true;
           }
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
       }
       return false;
     }
@@ -612,9 +611,13 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           label: const Text('مسح العملية'),
                         ),
                         if (_changeError != null)
-                          Text(
-                            _changeError!,
-                            key: const Key('operation-change-error'),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: AppBanner(
+                              tone: MessageTone.error,
+                              title: _changeError!,
+                              titleKey: const Key('operation-change-error'),
+                            ),
                           ),
                       ],
                       if (_active &&

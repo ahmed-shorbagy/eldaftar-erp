@@ -5,8 +5,10 @@ import '../application/daily_ledger_view.dart';
 import '../application/ledger_activity.dart';
 import '../application/ledger_home_metrics.dart';
 import '../application/ledger_line_items.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/detail_surface.dart';
+import '../../../theme/feedback_copy.dart';
 import 'ledger_balance_sections.dart';
 import 'ledger_metric_specs.dart';
 import 'ledger_journal_table.dart';
@@ -152,12 +154,11 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
       await preferences.setStringList(key, snapshot);
     } catch (_) {
       if (mounted && key == _preferenceKey) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'تعذر حفظ تخصيص الدفتر على الجهاز. يسري اختيارك في هذه الجلسة.',
-            ),
-          ),
+        AppMessages.info(
+          context,
+          'تعذر حفظ تخصيص الدفتر على هذا الجهاز',
+          body: FeedbackCopy.devicePreferenceBody,
+          id: 'ledger-layout-preference',
         );
       }
     }
@@ -1260,10 +1261,11 @@ class _JournalEmptyState extends StatelessWidget {
                   onPressed:
                       onAdd ??
                       () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تعذر إضافة العملية الآن.'),
-                          ),
+                        AppMessages.warning(
+                          context,
+                          'تعذر بدء العملية الآن',
+                          body: 'تأكد من فتح يوم العمل ثم أعد المحاولة.',
+                          id: 'ledger-add-unavailable',
                         );
                       },
                   icon: const Icon(Icons.add),

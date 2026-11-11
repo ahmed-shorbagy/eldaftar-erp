@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../config/supabase_startup.dart';
 import '../../../shell/home_shell.dart';
 import '../../../shell/shell_copy.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/brand_mark.dart';
 import '../../daily_ledger/application/opening_gateway.dart';
 import '../../daily_ledger/application/pending_opening_store.dart';
@@ -237,6 +238,7 @@ class _AuthGateState extends State<AuthGate> {
         auditTrailGateway: widget.auditTrailGateway,
         appVersion: widget.appVersion,
         onSignOut: () async {
+          AppMessages.clear(context);
           await gateway.signOut();
           if (mounted) setState(() => _status = AuthStatus.signedOut);
         },

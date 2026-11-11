@@ -22,6 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shell/shell_copy.dart';
 import '../../../theme/brand_mark.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
 import '../../customers/domain/shop_phone_country.dart';
 import '../../shop_profile/application/shop_profile_gateway.dart';
@@ -360,12 +361,11 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       await reminders.dismissTap();
       if (!mounted) return;
       if (detail == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'التذكير غير متاح لهذا الحساب. أعد فتح الديون للمراجعة.',
-            ),
-          ),
+        AppMessages.warning(
+          context,
+          'التذكير غير متاح لهذا الحساب',
+          body: 'افتح الديون لمراجعة المستحقات.',
+          id: 'debt-reminder-tap',
         );
         return;
       }
@@ -397,12 +397,11 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'تعذر قراءة التذكير بإذن حديث. افتح الديون عند عودة الاتصال.',
-            ),
-          ),
+        AppMessages.warning(
+          context,
+          'تعذر فتح التذكير الآن',
+          body: 'افتح الديون عند عودة الاتصال.',
+          id: 'debt-reminder-tap',
         );
       }
     } finally {

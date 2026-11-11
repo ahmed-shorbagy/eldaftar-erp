@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../theme/app_messages.dart';
 import '../../../theme/detail_surface.dart';
+import '../../../theme/feedback_copy.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/ledger_home_metrics.dart';
@@ -267,10 +269,11 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
       ]);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر حفظ اختيار العيار على هذا الجهاز.'),
-          ),
+        AppMessages.info(
+          context,
+          'تعذر حفظ اختيار العيار على هذا الجهاز',
+          body: FeedbackCopy.devicePreferenceBody,
+          id: 'ledger-karat-preference',
         );
       }
     }

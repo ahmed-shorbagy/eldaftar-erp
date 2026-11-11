@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../theme/amount_format.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/feedback_copy.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
@@ -1001,28 +1003,28 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       if (!mounted) return;
       if (result is NoteChangeCommitted) {
         _changeKeys.remove(note.noteId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              action == 'edit' ? 'تم حفظ التعديل.' : 'تم مسح الملاحظة.',
-            ),
-          ),
+        AppMessages.success(
+          context,
+          action == 'edit' ? 'تم حفظ تعديل الملاحظة' : 'تم مسح الملاحظة',
+          id: 'note-change:${note.noteId}',
         );
         await _load();
       } else if (result is NoteChangeRejected) {
         _changeKeys.remove(note.noteId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر حفظ التغيير. أعد المحاولة.')),
+        AppMessages.error(
+          context,
+          action == 'edit' ? 'تعذر حفظ تعديل الملاحظة' : 'تعذر مسح الملاحظة',
+          body: 'رفض الخادم التغيير ولم يُحفظ شيء.',
+          id: 'note-change:${note.noteId}',
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تعذر حفظ التغيير. أعد المحاولة.'),
-            action: SnackBarAction(
-              label: 'إعادة المحاولة',
-              onPressed: () => _submitChange(note, action, text),
-            ),
-          ),
+        AppMessages.error(
+          context,
+          FeedbackCopy.unknownOutcome,
+          body: 'لم نتأكد من حفظ تغيير الملاحظة. أعد المحاولة بنفس الطلب.',
+          id: 'note-change:${note.noteId}',
+          actionLabel: FeedbackCopy.retry,
+          onAction: () => _submitChange(note, action, text),
         );
       }
     } finally {

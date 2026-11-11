@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/message_tone.dart';
+
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../application/inventory_command_flow.dart';
@@ -316,7 +318,13 @@ class _CommandHostState extends State<CommandHost> {
           key: Key('command-no-day'),
         ),
       if (_message != null) ...[
-        InventoryNotice(message: _message!, error: _error),
+        InventoryNotice(
+          message: _message!,
+          error: _error,
+          tone: _error
+              ? (_unconfirmed ? MessageTone.warning : MessageTone.error)
+              : (_saved ? MessageTone.success : MessageTone.info),
+        ),
         const SizedBox(height: 12),
       ],
       ...widget.fields.map(

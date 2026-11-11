@@ -1115,7 +1115,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('note-edit-text')), 'نص جديد');
     await tester.tap(find.byKey(const Key('note-edit-save')));
     await tester.pumpAndSettle();
-    expect(find.text('تم حفظ التعديل.'), findsOneWidget);
+    expect(find.text('تم حفظ تعديل الملاحظة'), findsOneWidget);
     expect(find.text('نص جديد'), findsOneWidget);
     expect(find.text('معدّلة'), findsOneWidget);
     expect(notes.changes.single.action, 'edit');
@@ -1140,7 +1140,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('note-delete-confirm')));
     await tester.pumpAndSettle();
-    expect(find.text('تم مسح الملاحظة.'), findsOneWidget);
+    expect(find.text('تم مسح الملاحظة'), findsOneWidget);
     expect(find.byKey(Key('daily-note-$noteId')), findsNothing);
     expect(notes.changes.single.action, 'delete');
   });
@@ -1166,7 +1166,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(notes.changes, hasLength(2));
     expect(notes.changes[1].key, key);
-    expect(find.text('تم حفظ التعديل.'), findsOneWidget);
+    expect(find.text('تم حفظ تعديل الملاحظة'), findsOneWidget);
   });
 
   testWidgets('a partner does not see the note menu', (tester) async {

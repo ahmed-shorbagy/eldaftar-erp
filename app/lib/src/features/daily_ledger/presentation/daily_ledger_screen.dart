@@ -7,7 +7,11 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_banner.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/feedback_copy.dart';
+import '../../../theme/message_tone.dart';
 import '../../shop_accounts/domain/shop_account.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../../daily_notes/application/notes_gateway.dart';
@@ -175,9 +179,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
   void _requestTrade(FinancialKind kind) {
     final reason = _tradeBlockedReason;
     if (reason != null) {
-      ScaffoldMessenger.of(
+      final closed = _financialDay?.isClosed == true;
+      AppMessages.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(reason)));
+        tone: closed ? MessageTone.warning : MessageTone.info,
+        title: reason,
+        id: 'ledger-trade-blocked',
+      );
       return;
     }
     _startTrade(kind);
@@ -604,11 +612,12 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final catalog = gateway is InventoryGateway
         ? gateway as InventoryGateway
         : null;
-    final bool? saved;
+    // Trades show their own outcome page (tier 1), so the result needs no
+    // extra toast here.
     if (kind == FinancialKind.sale ||
         kind == FinancialKind.purchase ||
         kind == FinancialKind.customerReturn) {
-      saved = await showFinancialTradeSheet(
+      await showFinancialTradeSheet(
         context: context,
         kind: kind,
         gateway: gateway,
@@ -622,7 +631,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         syncTicks: Listenable.merge([widget.syncTicks, _formInvalidations]),
       );
     } else {
-      saved = await Navigator.of(context).push<bool>(
+      await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) => FinancialTradeScreen(
             kind: kind,
@@ -638,11 +647,6 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       );
     }
     if (!mounted) return;
-    if (saved == true) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
-    }
     _dropItemCache();
     await _controller?.refresh();
     await _maybeLoadFinancialDay(force: true);
@@ -671,9 +675,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
+      AppMessages.success(context, FeedbackCopy.dayClosed);
       _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
@@ -704,9 +706,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
+      AppMessages.success(context, FeedbackCopy.cashTransferred);
       _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
@@ -743,9 +743,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم حفظ العملية بنجاح')));
+      AppMessages.success(context, FeedbackCopy.scrapToStock);
       _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
@@ -1953,7 +1951,11 @@ class _PendingNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text('بانتظار تأكيد الحفظ', key: Key('opening-pending'));
+    return const AppBanner(
+      tone: MessageTone.pending,
+      title: 'بانتظار تأكيد الحفظ',
+      titleKey: Key('opening-pending'),
+    );
   }
 }
 
@@ -1962,14 +1964,10 @@ class _RefreshFailedNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('تم تأكيد الأرصدة الافتتاحية'),
-        SizedBox(height: 8),
-        Text('تعذر تحديث الدفتر بعد التأكيد.'),
-      ],
+    return const AppBanner(
+      tone: MessageTone.warning,
+      title: 'تم تأكيد الأرصدة الافتتاحية',
+      message: 'تعذر تحديث الدفتر بعد التأكيد.',
     );
   }
 }

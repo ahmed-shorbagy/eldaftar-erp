@@ -1,7 +1,9 @@
 import '../../../theme/cash_input.dart';
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_banner.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/message_tone.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
 import '../../onboarding/presentation/guide_card.dart';
 import '../domain/inventory_models.dart';
@@ -54,27 +56,23 @@ class InventoryNotice extends StatelessWidget {
     super.key,
     required this.message,
     this.error = false,
+    this.tone,
     this.messageKey = const Key('inventory-status'),
   });
 
   final String message;
   final bool error;
+
+  /// Overrides the tone derived from [error] (info or error).
+  final MessageTone? tone;
   final Key messageKey;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      liveRegion: true,
-      container: true,
-      child: Text(
-        message,
-        key: messageKey,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: error ? scheme.error : scheme.onSurface,
-          height: 1.5,
-        ),
-      ),
+    return AppBanner(
+      tone: tone ?? (error ? MessageTone.error : MessageTone.info),
+      title: message,
+      titleKey: messageKey,
     );
   }
 }

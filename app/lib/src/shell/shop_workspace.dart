@@ -18,6 +18,7 @@ import '../features/support/domain/support_models.dart';
 import '../features/support/presentation/support_screen.dart';
 import '../features/shop_accounts/domain/shop_account.dart';
 import '../features/shop_accounts/presentation/subscription_notice_banner.dart';
+import '../theme/app_messages.dart';
 import '../theme/app_tokens.dart';
 import '../theme/brand_mark.dart';
 
@@ -174,8 +175,10 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       case ApplyLogoOutcome.applied:
       case ApplyLogoOutcome.alreadyApplied:
         setState(() => _logoApply = _LogoApply.done);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تمت إضافة لوجو المحل إلى الفاتورة.')),
+        AppMessages.success(
+          context,
+          'تمت إضافة لوجو المحل إلى الفاتورة',
+          id: 'invoice-logo-applied',
         );
       case ApplyLogoOutcome.failed:
         setState(() => _logoApply = _LogoApply.failed);

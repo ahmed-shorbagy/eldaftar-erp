@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:phone_form_field/phone_form_field.dart';
 
 import '../../../shell/shell_copy.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/brand_mark.dart';
 import '../../invoice_appearance/domain/logo_bytes.dart';
@@ -531,12 +532,11 @@ class _AuthScreenState extends State<AuthScreen> {
           await widget.saveRegistrationInvoiceLogo!(image);
         } catch (_) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'تم إنشاء الحساب، وتعذر تجهيز اللوجو للفاتورة. سيُعاد المحاولة تلقائياً.',
-                ),
-              ),
+            AppMessages.warning(
+              context,
+              'تم إنشاء الحساب',
+              body: 'تعذر تجهيز اللوجو للفاتورة، وستُعاد المحاولة تلقائيًا.',
+              id: 'signup-invoice-logo',
             );
           }
         }

@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_banner.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/message_tone.dart';
 import '../application/idempotency_key.dart';
 import '../domain/opening_catalog.dart';
 import 'ledger_form_fields.dart';
@@ -794,40 +796,10 @@ class _InlineNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final foreground = error ? scheme.onErrorContainer : scheme.onSurface;
-    return Semantics(
-      liveRegion: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: error ? scheme.errorContainer : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(AppTokens.fieldRadius),
-        ),
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 4, 8),
-          child: Row(
-            children: [
-              Icon(
-                error
-                    ? Icons.error_outline_rounded
-                    : Icons.info_outline_rounded,
-                size: 20,
-                color: foreground,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: foreground),
-                ),
-              ),
-              ?action,
-            ],
-          ),
-        ),
-      ),
+    return AppBanner(
+      tone: error ? MessageTone.error : MessageTone.info,
+      title: message,
+      action: action,
     );
   }
 }
