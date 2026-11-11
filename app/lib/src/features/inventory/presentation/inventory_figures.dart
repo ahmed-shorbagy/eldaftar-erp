@@ -40,61 +40,10 @@ class _InventoryFigureCarouselState extends State<InventoryFigureCarousel> {
   }
 
   Future<void> _askPrice() async {
-    final field = TextEditingController();
     final price = await showDialog<BigInt?>(
       context: context,
-      builder: (context) {
-        var error = false;
-        return StatefulBuilder(
-          builder: (context, setDialogState) => Directionality(
-            textDirection: TextDirection.rtl,
-            child: AlertDialog(
-              title: const Text('أدخل سعر الجرام'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    key: const Key('inventory-cash-price'),
-                    controller: field,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [CashInputFormatter()],
-                    decoration: InputDecoration(
-                      labelText: 'سعر الجرام',
-                      errorText: error
-                          ? 'أدخل سعرًا صحيحًا أكبر من صفر.'
-                          : null,
-                    ),
-                    autofocus: true,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('إلغاء'),
-                ),
-                FilledButton(
-                  key: const Key('inventory-cash-price-calc'),
-                  onPressed: () {
-                    final parsed = Piastres.parsePounds(field.text.trim());
-                    if (parsed is! Accepted<Piastres> ||
-                        parsed.value.value <= BigInt.zero) {
-                      setDialogState(() => error = true);
-                      return;
-                    }
-                    Navigator.pop(context, parsed.value.value);
-                  },
-                  child: const Text('احسب'),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (context) => const _CashPriceDialog(),
     );
-    field.dispose();
     if (price != null) widget.onCashPrice?.call(price);
   }
 
@@ -107,9 +56,10 @@ class _InventoryFigureCarouselState extends State<InventoryFigureCarousel> {
       builder: (context, constraints) {
         final visible = constraints.maxWidth >= 600 ? 4 : 2;
         final gap = AppTokens.spaceSm;
-        final tileWidth =
-            (constraints.maxWidth - gap * (visible - 1)) / visible;
         final pageWidth = constraints.maxWidth;
+        // Each slot carries half a gap on both sides, so `visible` slots are
+        // exactly one viewport wide and page snapping lands on whole tiles.
+        final slotWidth = pageWidth / visible;
         return Column(
           children: [
             SizedBox(
@@ -127,15 +77,22 @@ class _InventoryFigureCarouselState extends State<InventoryFigureCarousel> {
                   if (page != _page) setState(() => _page = page);
                   return false;
                 },
-                child: ListView.separated(
+                // The ambient RTL direction already starts a horizontal list
+                // at the right edge, so the first figure («عيار 18», C-D5)
+                // is the rightmost tile; `reverse` used to put it on the left.
+                child: ListView.builder(
                   key: const Key('inventory-figures-page'),
                   controller: _controller,
                   scrollDirection: Axis.horizontal,
-                  reverse: true,
+                  physics: const PageScrollPhysics(),
                   itemCount: figures.length,
-                  separatorBuilder: (_, _) => SizedBox(width: gap),
-                  itemBuilder: (context, index) =>
-                      SizedBox(width: tileWidth, child: _tile(figures[index])),
+                  itemBuilder: (context, index) => SizedBox(
+                    width: slotWidth,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: gap / 2),
+                      child: _tile(figures[index]),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -202,4 +159,71 @@ class _InventoryFigureCarouselState extends State<InventoryFigureCarousel> {
       child: tile,
     );
   }
+}
+
+/// Asks for the gram price. It owns its controller so the field is not
+/// disposed while the dialog's exit animation still rebuilds it.
+class _CashPriceDialog extends StatefulWidget {
+  const _CashPriceDialog();
+
+  @override
+  State<_CashPriceDialog> createState() => _CashPriceDialogState();
+}
+
+class _CashPriceDialogState extends State<_CashPriceDialog> {
+  final _field = TextEditingController();
+  var _error = false;
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    // The field groups digits («2,500»); parse the plain value.
+    final parsed = Piastres.parsePounds(cashInputValue(_field.text));
+    if (parsed is! Accepted<Piastres> || parsed.value.value <= BigInt.zero) {
+      setState(() => _error = true);
+      return;
+    }
+    Navigator.pop(context, parsed.value.value);
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.rtl,
+    child: AlertDialog(
+      title: const Text('أدخل سعر الجرام'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            key: const Key('inventory-cash-price'),
+            controller: _field,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: const [CashInputFormatter()],
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+            decoration: InputDecoration(
+              labelText: 'سعر الجرام',
+              errorText: _error ? 'أدخل سعرًا صحيحًا أكبر من صفر.' : null,
+            ),
+            autofocus: true,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(
+          key: const Key('inventory-cash-price-calc'),
+          onPressed: _submit,
+          child: const Text('احسب'),
+        ),
+      ],
+    ),
+  );
 }

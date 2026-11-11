@@ -51,3 +51,18 @@ String displayGoldEffect(BigInt milligrams) {
 
 String _groupThousands(String digits) =>
     digits.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+
+/// Keeps phone-like runs («+201001234567») left to right inside Arabic text.
+/// In an RTL line a leading «+» otherwise lands after the digits, for example
+/// in the automatic customer name «عميل +201001234567».
+String isolatePhoneRuns(String text) => text.replaceAllMapped(
+  RegExp(
+    '\\+?[0-9\u0660-\u0669][0-9\u0660-\u0669 \\-]*[0-9\u0660-\u0669]|\\+?[0-9\u0660-\u0669]',
+  ),
+  (match) => '\u2066${match[0]}\u2069',
+);
+
+/// Wraps a value of unknown direction (a person's name, a formatted date) so
+/// it does not reorder its neighbours in a «·»-separated Arabic line. A Latin
+/// actor name otherwise pulled the day of an Arabic date beside it.
+String isolateText(String text) => '\u2068$text\u2069';

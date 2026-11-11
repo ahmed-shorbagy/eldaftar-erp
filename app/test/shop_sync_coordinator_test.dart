@@ -139,4 +139,73 @@ void main() {
     await Future<void>.delayed(const Duration(seconds: 2));
     expect(attempts, 3);
   });
+
+  // Regression (2026-11-11 device pass): the poll invalidated every scope on
+  // each tick, so open screens reloaded every 45 s and an open edit/delete
+  // review turned stale before the owner could confirm it.
+  test('poll with an unchanged revision invalidates nothing', () async {
+    final gateway = MemorySyncGateway(snap());
+    final seen = <Set<ShopSyncScope>>[];
+    final coordinator = ShopSyncCoordinator(
+      gateway: gateway,
+      shopId: 'shop-1',
+      userId: 'user-1',
+      onInvalidate: (scopes) async => seen.add(Set.of(scopes)),
+      pollInterval: const Duration(milliseconds: 60),
+      coalesceWindow: const Duration(milliseconds: 10),
+    );
+    await coordinator.start();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(seen, hasLength(1));
+    seen.clear();
+    final readsBefore = gateway.reads;
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    expect(gateway.reads, greaterThan(readsBefore));
+    expect(seen, isEmpty);
+    await coordinator.dispose();
+  });
+
+  test('poll invalidates only the scopes whose revision moved', () async {
+    final gateway = MemorySyncGateway(snap());
+    final seen = <Set<ShopSyncScope>>[];
+    final coordinator = ShopSyncCoordinator(
+      gateway: gateway,
+      shopId: 'shop-1',
+      userId: 'user-1',
+      onInvalidate: (scopes) async => seen.add(Set.of(scopes)),
+      pollInterval: const Duration(milliseconds: 60),
+      coalesceWindow: const Duration(milliseconds: 10),
+    );
+    await coordinator.start();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    seen.clear();
+    gateway.initial = snap(revision: 2, inventory: 1);
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    expect(seen, isNotEmpty);
+    expect(seen.first, contains(ShopSyncScope.inventory));
+    expect(seen.first, isNot(contains(ShopSyncScope.ledger)));
+    expect(seen.expand((s) => s), isNot(contains(ShopSyncScope.ledger)));
+    await coordinator.dispose();
+  });
+
+  test('poll falls back to a full refresh when the read fails', () async {
+    final gateway = MemorySyncGateway(snap());
+    final seen = <Set<ShopSyncScope>>[];
+    final coordinator = ShopSyncCoordinator(
+      gateway: gateway,
+      shopId: 'shop-1',
+      userId: 'user-1',
+      onInvalidate: (scopes) async => seen.add(Set.of(scopes)),
+      pollInterval: const Duration(milliseconds: 60),
+      coalesceWindow: const Duration(milliseconds: 10),
+    );
+    await coordinator.start();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    seen.clear();
+    gateway.initial = null;
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(seen, isNotEmpty);
+    expect(seen.first, unorderedEquals(ShopSyncScope.values));
+    await coordinator.dispose();
+  });
 }

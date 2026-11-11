@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/amount_format.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
@@ -1224,7 +1225,9 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${note.actorDisplayName} · ${formatServerCairoTimestamp(note.occurredAtShop)} · ${note.shopSequence}',
+                      // Isolate each part so a Latin author name does not
+                      // pull the day number of the Arabic date beside it.
+                      '${isolateText(note.actorDisplayName)} · ${isolateText(formatServerCairoTimestamp(note.occurredAtShop))} · \u2066${note.shopSequence}\u2069',
                     ),
                     if (note.edited)
                       Text('معدّلة', style: theme.textTheme.labelSmall),

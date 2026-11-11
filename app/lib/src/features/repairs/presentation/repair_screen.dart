@@ -1,3 +1,4 @@
+import '../../../theme/amount_format.dart';
 import '../../../theme/cash_input.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
@@ -1024,7 +1025,7 @@ class _RepairScreenState extends State<RepairScreen> {
           'ملاحظات الاستلام: ${detail.intakeNotes.isEmpty ? '—' : detail.intakeNotes}',
         ),
         Text(
-          'الهاتف: ${item.customerPhone.isEmpty ? '—' : item.customerPhone}',
+          'الهاتف: ${item.customerPhone.isEmpty ? '—' : isolatePhoneRuns(item.customerPhone)}',
         ),
         Text('أجرة تقديرية: ${repairMoney(item.estimatedFeePiastres)}'),
         if (item.finalFeePiastres != null) ...[
@@ -1044,7 +1045,7 @@ class _RepairScreenState extends State<RepairScreen> {
         Text('سجل المالك', style: Theme.of(context).textTheme.titleMedium),
         for (final event in detail.events)
           Text(
-            '${event.actorDisplayName} · ${formatServerCairoTimestamp(event.createdAtShop)} · ${repairEventLabel(event.eventType)}',
+            '${isolateText(event.actorDisplayName)} · ${isolateText(formatServerCairoTimestamp(event.createdAtShop))} · ${repairEventLabel(event.eventType)}',
           ),
         const SizedBox(height: AppTokens.spaceMd),
         if (!_readOnly && item.status == 'received')

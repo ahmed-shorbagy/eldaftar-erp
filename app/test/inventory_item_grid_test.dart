@@ -2,6 +2,7 @@
 import 'package:eldafttar/src/features/inventory/application/inventory_gateway.dart';
 import 'package:eldafttar/src/features/inventory/data/inventory_codec.dart';
 import 'package:eldafttar/src/features/inventory/domain/inventory_models.dart';
+import 'package:eldafttar/src/features/inventory/presentation/inventory_figures.dart';
 import 'package:eldafttar/src/features/inventory/presentation/inventory_screen.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -485,6 +486,95 @@ void main() {
     expect(tile('karat_21', '54.73'), findsOneWidget);
     expect(tile('bullion_count', '1'), findsOneWidget);
     expect(tile('bullion_weight', '8.00'), findsOneWidget);
+  });
+
+  // Regression (2026-11-11 device pass): the price field groups digits as
+  // «2,500», and the dialog parsed the grouped text, so every price of 1,000
+  // or more was rejected as invalid.
+  testWidgets('the cash calculator accepts a grouped gram price', (
+    tester,
+  ) async {
+    BigInt? priced;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: InventoryFigureCarousel(
+              figures: [
+                InventoryFigure(
+                  id: 'weight_21_with_cash',
+                  label: 'اجمالي الوزنة 21 مع النقدية',
+                  milligrams: BigInt.from(10000),
+                  cashCalculator: true,
+                  awaitingPrice: true,
+                ),
+              ],
+              onCashPrice: (value) => priced = value,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const Key('inventory-figure-weight_21_with_cash')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('inventory-cash-price')),
+      '2500',
+    );
+    await tester.pump();
+    expect(find.text('2,500'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('inventory-cash-price-calc')));
+    await tester.pumpAndSettle();
+    expect(find.text('أدخل سعرًا صحيحًا أكبر من صفر.'), findsNothing);
+    expect(priced, BigInt.from(250000));
+  });
+
+  // Regression (2026-11-11 device pass): the list was reversed, so in RTL
+  // the first figure («عيار 18», ADR 0044 C-D5) sat on the far left.
+  testWidgets('the first figure is the rightmost tile in RTL', (tester) async {
+    tester.view.physicalSize = const Size(375, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            body: InventoryFigureCarousel(
+              figures: [
+                InventoryFigure(
+                  id: 'karat_18',
+                  label: 'عيار 18',
+                  milligrams: BigInt.from(1000),
+                ),
+                InventoryFigure(
+                  id: 'karat_21',
+                  label: 'عيار 21',
+                  milligrams: BigInt.from(2000),
+                ),
+                InventoryFigure(
+                  id: 'bullion_count',
+                  label: 'عدد السبائك',
+                  milligrams: BigInt.zero,
+                  count: BigInt.one,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    final first = tester.getCenter(
+      find.byKey(const Key('inventory-figure-karat_18')),
+    );
+    final second = tester.getCenter(
+      find.byKey(const Key('inventory-figure-karat_21')),
+    );
+    expect(first.dx, greaterThan(second.dx));
+    expect(first.dx, greaterThan(375 / 2));
   });
 
   testWidgets('a failed table read keeps the page and offers a retry', (

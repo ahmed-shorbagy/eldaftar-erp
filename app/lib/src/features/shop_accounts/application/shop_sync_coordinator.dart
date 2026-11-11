@@ -36,7 +36,10 @@ class ShopSyncCoordinator {
     _subscription = gateway
         .watch(shopId: shopId, userId: userId)
         .listen(_onEvent, onError: (_) => _scheduleCatchUp());
-    _poll = Timer.periodic(pollInterval, (_) => _scheduleCatchUp());
+    // The poll reads the server revision and invalidates only the scopes that
+    // changed. Invalidating everything here made every open screen reload
+    // every interval and expired open edit/delete reviews.
+    _poll = Timer.periodic(pollInterval, (_) => unawaited(_catchUp()));
     await _catchUp();
   }
 

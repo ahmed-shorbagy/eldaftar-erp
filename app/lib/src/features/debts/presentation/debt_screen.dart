@@ -6,6 +6,7 @@ import 'debt_native_time_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../theme/amount_format.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
@@ -1108,7 +1109,7 @@ class _DebtScreenState extends State<DebtScreen> {
     );
     final remaining = BigInt.tryParse('${payload['remaining_amount']}');
     final lines = <String>[
-      '${event.actorDisplayName ?? 'المالك'} · ${formatServerCairoTimestamp(event.atShop)}',
+      '${isolateText(event.actorDisplayName ?? 'المالك')} · ${isolateText(formatServerCairoTimestamp(event.atShop))}',
       if (delta != null)
         '${const {'declared', 'posted'}.contains(event.eventType)
             ? 'الأصل'

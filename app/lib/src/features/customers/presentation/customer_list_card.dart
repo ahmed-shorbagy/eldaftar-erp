@@ -58,7 +58,7 @@ class CustomerListCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          c.name,
+                          isolatePhoneRuns(c.name),
                           // The name is the card's detail target in tests
                           // and for screen readers; buttons sit beside it.
                           key: Key('customer-${c.id}'),
