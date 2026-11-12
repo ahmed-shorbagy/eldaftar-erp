@@ -159,7 +159,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('scrap-stock-item-خواتم')));
     await tester.pump();
-    await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '0.501');
+    await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '0.51');
     await tester.ensureVisible(find.byKey(const Key('scrap-stock-review')));
     tester
         .widget<FilledButton>(find.byKey(const Key('scrap-stock-review')))
@@ -168,7 +168,7 @@ void main() {
     expect(find.text('راجع الوزن المتاح والعدد واسم الصنف.'), findsOneWidget);
     expect(gateway.payload, isNull);
 
-    await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '0.375');
+    await tester.enterText(find.byKey(const Key('scrap-stock-grams')), '0.38');
     await tester.enterText(find.byKey(const Key('scrap-stock-count')), '2');
     await tester.ensureVisible(find.byKey(const Key('scrap-stock-review')));
     tester
@@ -176,7 +176,7 @@ void main() {
         .onPressed!();
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('ينقص الكسر: 0.38 جرام (375 ملليجرام) · عيار 21'),
+      find.textContaining('ينقص الكسر: 0.38 جرام · عيار 21'),
       findsOneWidget,
     );
     expect(find.textContaining('يزيد مخزون خواتم عيار 21:'), findsOneWidget);
@@ -184,7 +184,10 @@ void main() {
     await tester.tap(find.byKey(const Key('scrap-stock-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.pendingSavedBeforePost, isTrue);
-    expect(gateway.payload?['milligrams'], '375');
+    expect(gateway.payload?['milligrams'], '380');
+    // U20: a confirmed conversion shows its own result page.
+    expect(find.byKey(const Key('scrap-stock-success')), findsOneWidget);
+    expect(find.byKey(const Key('scrap-stock-done')), findsOneWidget);
     expect(gateway.payload?['count'], '2');
     expect(gateway.payload?['karat'], 21);
     expect(gateway.payload?['note'], '');
@@ -353,7 +356,7 @@ void main() {
         await tester.pump();
         await tester.enterText(
           find.byKey(const Key('scrap-stock-grams')),
-          '0.125',
+          '0.13',
         );
         tester
             .widget<FilledButton>(find.byKey(const Key('scrap-stock-review')))

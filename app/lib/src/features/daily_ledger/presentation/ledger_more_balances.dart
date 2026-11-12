@@ -123,9 +123,9 @@ class _LedgerMoreBalancesState extends State<LedgerMoreBalances> {
                 if (view == null || !view.isConfirmed)
                   const Text('بيانات الدفتر غير متاحة.')
                 else if (cash)
-                  LedgerCashBreakdown(view: view)
+                  LedgerCashBreakdown(view: view, showTitle: false)
                 else
-                  LedgerGoldBreakdown(view: view),
+                  LedgerGoldBreakdown(view: view, showTitle: false),
               ],
             );
           },

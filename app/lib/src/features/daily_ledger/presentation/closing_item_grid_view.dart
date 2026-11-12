@@ -189,12 +189,6 @@ class _GridRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget cell(int karat, {required bool weight}) {
-      final last =
-          fields.isNotEmpty &&
-          fields.last.name == row.name &&
-          fields.last.karat == karat &&
-          fields.last.weight == weight &&
-          fields.last.rowIndex == index;
       return ClosingCountCell(
         fieldKey: Key(
           weight ? 'close-weight-$index-$karat' : 'close-count-$index-$karat',
@@ -208,14 +202,10 @@ class _GridRow extends StatelessWidget {
         readOnly: readOnly,
         weight: weight,
         width: cellWidth,
-        textInputAction: last ? TextInputAction.done : TextInputAction.next,
-        onSubmitted: (_) {
-          if (last) {
-            FocusScope.of(context).unfocus();
-          } else {
-            FocusScope.of(context).nextFocus();
-          }
-        },
+        // U15: the number pad's ✓ closes the keyboard; it no longer jumps
+        // into the next cell, where the owner could type without noticing.
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => FocusScope.of(context).unfocus(),
       );
     }
 

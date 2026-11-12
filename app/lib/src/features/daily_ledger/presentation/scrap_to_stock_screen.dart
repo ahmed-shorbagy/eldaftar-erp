@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../theme/amount_format.dart';
+import '../../../theme/app_outcome.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/gram_input.dart';
 import '../../inventory/application/inventory_gateway.dart';
 import '../application/daily_ledger_view.dart';
 import '../application/financial_gateway.dart';
@@ -68,6 +70,8 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
   String? _key;
   String? _message;
   bool _busy = false;
+  // U20: confirmed conversions show their own outcome page.
+  bool _committed = false;
   bool _unknown = false;
 
   static const _jewelry = <_ScrapItem>[
@@ -160,6 +164,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
           if (product.category == 'worked_jewelry' &&
               product.karat == _karat &&
               !tradeOtherJewelryNames.contains(product.name) &&
+              !isPooledOpeningItem(product.name) &&
               !reserved.contains(canonicalJewelryName(product.name)))
             TradeItemChoice(
               canonicalJewelryName(product.name),
@@ -309,7 +314,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
       if (!mounted) return;
       if (result is FinancialCommitted) {
         await _pending.clear(widget.userId, widget.shopId, key);
-        if (mounted) Navigator.pop(context, true);
+        if (mounted) setState(() => _committed = true);
       } else if (result is FinancialRejected) {
         await _pending.clear(widget.userId, widget.shopId, key);
         if (!mounted) return;
@@ -351,7 +356,7 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
       if (!mounted) return;
       if (status is StatusCompleted) {
         await _pending.clear(widget.userId, widget.shopId, key);
-        if (mounted) Navigator.pop(context, true);
+        if (mounted) setState(() => _committed = true);
       } else if (status is StatusAbsent) {
         setState(() {
           _unknown = false;
@@ -384,7 +389,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
         ? ''
         : displayGoldEffect(_reviewWeight!.value);
     return PopScope(
-      canPop: !_busy && !_unknown,
+      canPop: !_busy && !_unknown && !_committed,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _committed) Navigator.pop(context, true);
+      },
       child: Scaffold(
         appBar: AppBar(title: const Text('تحويل كسر إلى مخزون')),
         body: SafeArea(
@@ -396,136 +404,157 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16),
-                children: [
-                  Text(
-                    'تحويل داخلي للذهب',
-                    style: theme.textTheme.headlineSmall,
-                  ),
-                  const Text(
-                    'يخرج نفس العيار والوزن من الكسر ويدخل المخزون دون أثر نقدي.',
-                  ),
-                  const SizedBox(height: 20),
-                  if (_message != null) ...[
-                    Text(
-                      _message!,
-                      key: const Key('scrap-stock-message'),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: _unknown
-                            ? theme.colorScheme.onSurfaceVariant
-                            : theme.colorScheme.error,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.spaceSm + 4),
-                  ],
-                  if (!reviewing) ...[
-                    DropdownButtonFormField<int>(
-                      key: const Key('scrap-stock-karat'),
-                      initialValue: _karat,
-                      isExpanded: true,
-                      decoration: ledgerFieldDecoration(
-                        context,
-                        label: 'عيار الكسر',
-                      ),
-                      items: [
-                        for (final karat in _availableKarats)
-                          DropdownMenuItem(
-                            value: karat,
-                            child: Text('عيار $karat'),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() {
-                          _karat = value;
-                          _itemName = null;
-                          _itemCategory = null;
-                        });
-                        _publishOthers();
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'المتاح: ${_gramsText(_availableWeight(_karat).toString())} جرام',
-                    ),
-                    const SizedBox(height: AppTokens.spaceSm + 4),
-                    Text('الصنف', style: theme.textTheme.titleSmall),
-                    const SizedBox(height: AppTokens.spaceSm),
-                    TradeChoiceGrid(
-                      columns: 4,
-                      compactColumns: 3,
-                      children: [
-                        for (final item in _choices)
-                          TradeChoiceTile(
-                            key: Key(
-                              item.other
-                                  ? 'scrap-stock-item-other'
-                                  : 'scrap-stock-item-${item.label}',
+                children: _committed
+                    ? [
+                        AppOutcome(
+                          title: 'تمت إضافة الكسر إلى المخزون',
+                          titleKey: const Key('scrap-stock-success'),
+                          subtitle: 'أكد الخادم التحويل. النقدية لا تتغير.',
+                          figures: [
+                            OutcomeFigure('ينقص الكسر · عيار $_karat', grams),
+                            OutcomeFigure(
+                              'يزيد مخزون $_itemName · عيار $_karat',
+                              '$grams · ${_reviewCount!.wire} قطعة',
                             ),
-                            label: item.label,
-                            icon: item.icon,
-                            selected:
-                                !item.other &&
-                                _itemName == item.label &&
-                                _itemCategory == item.category,
-                            onTap: () => _choose(item),
-                          ),
-                      ],
-                    ),
-                    if (_itemCategory == 'worked_jewelry' &&
-                        _itemName != null &&
-                        !_jewelry.any((item) => item.label == _itemName))
-                      Padding(
-                        padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                        child: Text('الصنف المختار: $_itemName'),
-                      ),
-                    const SizedBox(height: AppTokens.spaceSm + 4),
-                    LedgerFieldPair(
-                      first: ledgerGramsField(
-                        key: const Key('scrap-stock-grams'),
-                        context: context,
-                        controller: _grams,
-                        label: 'الوزن بالجرام',
-                        helper: 'حتى ثلاث منازل عشرية',
-                        textInputAction: TextInputAction.next,
-                      ),
-                      second: ledgerCountField(
-                        key: const Key('scrap-stock-count'),
-                        context: context,
-                        controller: _count,
-                        label: 'عدد القطع',
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                      ),
-                    ),
-                  ] else ...[
-                    Card(
-                      color: theme.colorScheme.primaryContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text('ينقص الكسر: $grams · عيار $_karat'),
-                            Text(
-                              'يزيد مخزون $_itemName عيار $_karat: $grams · ${_reviewCount!.wire} قطعة',
-                            ),
-                            const Text('النقدية لا تتغير.'),
                           ],
                         ),
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _busy || _unknown
-                          ? null
-                          : () => setState(() {
-                              _reviewWeight = null;
-                              _reviewCount = null;
-                            }),
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('تعديل التحويل'),
-                    ),
-                  ],
-                ],
+                      ]
+                    : [
+                        Text(
+                          'تحويل داخلي للذهب',
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const Text(
+                          'يخرج نفس العيار والوزن من الكسر ويدخل المخزون دون أثر نقدي.',
+                        ),
+                        const SizedBox(height: 20),
+                        if (_message != null) ...[
+                          Text(
+                            _message!,
+                            key: const Key('scrap-stock-message'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: _unknown
+                                  ? theme.colorScheme.onSurfaceVariant
+                                  : theme.colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(height: AppTokens.spaceSm + 4),
+                        ],
+                        if (!reviewing) ...[
+                          DropdownButtonFormField<int>(
+                            key: const Key('scrap-stock-karat'),
+                            initialValue: _karat,
+                            isExpanded: true,
+                            decoration: ledgerFieldDecoration(
+                              context,
+                              label: 'عيار الكسر',
+                            ),
+                            items: [
+                              for (final karat in _availableKarats)
+                                DropdownMenuItem(
+                                  value: karat,
+                                  child: Text('عيار $karat'),
+                                ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+                              setState(() {
+                                _karat = value;
+                                _itemName = null;
+                                _itemCategory = null;
+                              });
+                              _publishOthers();
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'المتاح: ${_gramsText(_availableWeight(_karat).toString())} جرام',
+                          ),
+                          const SizedBox(height: AppTokens.spaceSm + 4),
+                          Text('الصنف', style: theme.textTheme.titleSmall),
+                          const SizedBox(height: AppTokens.spaceSm),
+                          TradeChoiceGrid(
+                            columns: 4,
+                            compactColumns: 3,
+                            children: [
+                              for (final item in _choices)
+                                TradeChoiceTile(
+                                  key: Key(
+                                    item.other
+                                        ? 'scrap-stock-item-other'
+                                        : 'scrap-stock-item-${item.label}',
+                                  ),
+                                  label: item.label,
+                                  icon: item.icon,
+                                  selected:
+                                      !item.other &&
+                                      _itemName == item.label &&
+                                      _itemCategory == item.category,
+                                  onTap: () => _choose(item),
+                                ),
+                            ],
+                          ),
+                          if (_itemCategory == 'worked_jewelry' &&
+                              _itemName != null &&
+                              !_jewelry.any((item) => item.label == _itemName))
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppTokens.spaceSm,
+                              ),
+                              child: Text('الصنف المختار: $_itemName'),
+                            ),
+                          const SizedBox(height: AppTokens.spaceSm + 4),
+                          LedgerFieldPair(
+                            first: ledgerGramsField(
+                              key: const Key('scrap-stock-grams'),
+                              context: context,
+                              controller: _grams,
+                              label: 'الوزن بالجرام',
+                              helper: 'حتى منزلتين عشريتين',
+                              inputFormatters: const [
+                                GramInputFormatter(decimalPlaces: 2),
+                              ],
+                              textInputAction: TextInputAction.next,
+                            ),
+                            second: ledgerCountField(
+                              key: const Key('scrap-stock-count'),
+                              context: context,
+                              controller: _count,
+                              label: 'عدد القطع',
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) =>
+                                  FocusScope.of(context).unfocus(),
+                            ),
+                          ),
+                        ] else ...[
+                          Card(
+                            color: theme.colorScheme.primaryContainer,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text('ينقص الكسر: $grams · عيار $_karat'),
+                                  Text(
+                                    'يزيد مخزون $_itemName عيار $_karat: $grams · ${_reviewCount!.wire} قطعة',
+                                  ),
+                                  const Text('النقدية لا تتغير.'),
+                                ],
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _busy || _unknown
+                                ? null
+                                : () => setState(() {
+                                    _reviewWeight = null;
+                                    _reviewCount = null;
+                                  }),
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('تعديل التحويل'),
+                          ),
+                        ],
+                      ],
               ),
             ),
           ),
@@ -543,13 +572,17 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     key: Key(
-                      _unknown
+                      _committed
+                          ? 'scrap-stock-done'
+                          : _unknown
                           ? 'scrap-stock-check'
                           : reviewing
                           ? 'scrap-stock-confirm'
                           : 'scrap-stock-review',
                     ),
-                    onPressed: _busy
+                    onPressed: _committed
+                        ? () => Navigator.pop(context, true)
+                        : _busy
                         ? null
                         : _unknown
                         ? _reconcile
@@ -557,7 +590,9 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                         ? _submit
                         : _startReview,
                     child: Text(
-                      _busy
+                      _committed
+                          ? 'العودة إلى الدفتر'
+                          : _busy
                           ? 'جارٍ المعالجة...'
                           : _unknown
                           ? 'التحقق من الحالة'

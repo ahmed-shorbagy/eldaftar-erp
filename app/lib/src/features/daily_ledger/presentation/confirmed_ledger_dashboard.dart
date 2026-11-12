@@ -5,10 +5,12 @@ import '../application/daily_ledger_view.dart';
 import '../application/ledger_activity.dart';
 import '../application/ledger_home_metrics.dart';
 import '../application/ledger_line_items.dart';
+import '../../../theme/app_banner.dart';
 import '../../../theme/app_messages.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/detail_surface.dart';
 import '../../../theme/feedback_copy.dart';
+import '../../../theme/message_tone.dart';
 import 'ledger_balance_sections.dart';
 import 'ledger_metric_specs.dart';
 import 'ledger_journal_table.dart';
@@ -216,12 +218,18 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     _detailContext = null;
   }
 
-  void _showCashMethods() =>
-      _details('وسائل الدفع', (_) => LedgerCashBreakdown(view: widget.ledger!));
+  void _showCashMethods() => _details(
+    'وسائل الدفع',
+    (_) => LedgerCashBreakdown(view: widget.ledger!, showTitle: false),
+  );
 
   void _showTradeWeight(String kind) => _details(
     kind == 'sale' ? 'وزن مباع' : 'وزن مشترى',
-    (_) => LedgerTradeWeightBreakdown(view: widget.ledger!, kind: kind),
+    (_) => LedgerTradeWeightBreakdown(
+      view: widget.ledger!,
+      kind: kind,
+      showTitle: false,
+    ),
   );
 
   void _showHistory([String filter = 'all']) => _details(
@@ -457,7 +465,6 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   Widget build(BuildContext context) {
     final view = widget.ledger;
     if (view == null) return const SizedBox.shrink();
-    final theme = Theme.of(context);
     return LedgerQuickActions(
       shopId: widget.shopId,
       enabled: [
@@ -517,14 +524,20 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                     ),
                   ],
                 ),
-                if (widget.dayClosed) ...[
+                if (widget.dayClosed &&
+                    !(view.dayReset &&
+                        view.lastClosedBusinessDate != null)) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    'يوم العمل مغلق',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.4,
-                    ),
+                  AppBanner(
+                    key: const Key('ledger-day-closed'),
+                    tone: MessageTone.warning,
+                    title: 'يوم العمل مغلق',
+                    message: 'افتح يومًا جديدًا لتسجيل البيع والشراء.',
+                    actionLabel: widget.onOpenDay == null
+                        ? null
+                        : 'فتح يوم جديد',
+                    onAction: widget.onOpenDay,
+                    actionKey: const Key('ledger-day-closed-open'),
                   ),
                 ],
               ],
@@ -1258,16 +1271,9 @@ class _JournalEmptyState extends StatelessWidget {
                 alignment: AlignmentDirectional.centerStart,
                 child: FilledButton.icon(
                   key: Key(sale ? 'ledger-new-sale' : 'ledger-new-purchase'),
-                  onPressed:
-                      onAdd ??
-                      () {
-                        AppMessages.warning(
-                          context,
-                          'تعذر بدء العملية الآن',
-                          body: 'تأكد من فتح يوم العمل ثم أعد المحاولة.',
-                          id: 'ledger-add-unavailable',
-                        );
-                      },
+                  // Disabled while no day is open (U16); the day-closed
+                  // banner or reset card offers «فتح يوم جديد».
+                  onPressed: onAdd,
                   icon: const Icon(Icons.add),
                   label: Text(sale ? 'إضافة بيع' : 'إضافة شراء'),
                 ),

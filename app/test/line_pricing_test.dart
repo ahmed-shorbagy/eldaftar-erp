@@ -1,5 +1,6 @@
 import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/financial_trade_screen.dart';
+import 'package:eldafttar/src/features/daily_ledger/presentation/trade_item_picker.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -67,6 +68,60 @@ void main() {
     expect(gateway.payloads, isEmpty);
   });
 
+  testWidgets('U4: the payment amount follows the line-price total', (
+    tester,
+  ) async {
+    final gateway = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: gateway,
+      statusGateway: gateway,
+      kind: FinancialKind.sale,
+    );
+    await tester.tap(find.byKey(const Key('trade-line-pricing')));
+    await tester.pumpAndSettle();
+    await chooseTradeItem(tester, 'خواتم');
+    await _addItem(tester, 'حلقان');
+    await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
+    await enterTradeField(tester, const Key('trade-line-price-0'), '5000');
+    await enterTradeField(tester, const Key('trade-grams-1'), '2.00');
+    await enterTradeField(tester, const Key('trade-line-price-1'), '3000');
+    await revealTrade(tester, find.byKey(const Key('trade-tender-amount-0')));
+    String amount() => tester
+        .widget<TextField>(find.byKey(const Key('trade-tender-amount-0')))
+        .controller!
+        .text;
+    expect(amount(), '8,000');
+    await reviewTrade(tester);
+    await tester.tap(find.byKey(const Key('trade-confirm')));
+    await tester.pumpAndSettle();
+    final tenders = gateway.payloads.single['tenders'] as List;
+    expect(tenders.single['piastres'], '800000');
+  });
+
+  testWidgets('U4: an amount the owner typed is not replaced', (tester) async {
+    final gateway = Batch2TradeGateway();
+    await pumpTradeScreen(
+      tester,
+      gateway: gateway,
+      statusGateway: gateway,
+      kind: FinancialKind.sale,
+    );
+    await tester.tap(find.byKey(const Key('trade-line-pricing')));
+    await tester.pumpAndSettle();
+    await chooseTradeItem(tester, 'خواتم');
+    await enterTradeField(tester, const Key('trade-grams-0'), '3.50');
+    await enterTradeField(tester, const Key('trade-tender-amount-0'), '4500');
+    await enterTradeField(tester, const Key('trade-line-price-0'), '5000');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('trade-tender-amount-0')))
+          .controller!
+          .text,
+      '4,500',
+    );
+  });
+
   testWidgets('line pricing off submits null prices', (tester) async {
     final gateway = Batch2TradeGateway();
     await pumpTradeScreen(
@@ -114,6 +169,74 @@ void main() {
     );
     expect(find.byKey(const Key('trade-line-price-0')), findsOneWidget);
   });
+
+  testWidgets(
+    'U7: editing lines has no extra category field and follows the touched line',
+    (tester) async {
+      final gateway = Batch2TradeGateway();
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      Map<String, Object?> line(String name, String mg) => {
+        'category': 'worked_jewelry',
+        'karat': 18,
+        'milligrams': mg,
+        'count': '1',
+        'item_name': name,
+        'line_price_piastres': null,
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('ar'),
+          theme: AppTheme.light(),
+          home: FinancialTradeScreen(
+            kind: FinancialKind.sale,
+            gateway: gateway,
+            statusGateway: gateway,
+            userId: 'owner-1',
+            shopId: 'shop-1',
+            initialPayload: {
+              'version': 1,
+              'kind': 'sale',
+              'total_piastres': '2500000',
+              'tenders': [
+                {'method': 'cash', 'piastres': '2500000'},
+              ],
+              'items': [line('خواتم', '3500'), line('سلاسل', '2000')],
+              'description': '',
+              'customer_name': '',
+              'customer_phone': '',
+              'note': '',
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('trade-category-0')), findsNothing);
+      expect(find.byKey(const Key('trade-category-1')), findsNothing);
+      bool selected(String label) => tester
+          .widget<TradeChoiceTile>(find.byKey(Key('trade-select-$label')))
+          .selected;
+      // The first line is the one being edited, not the last-added one.
+      expect(selected('خواتم'), isTrue);
+      expect(selected('سلاسل'), isFalse);
+      await revealTrade(tester, find.byKey(const Key('trade-grams-1')));
+      await tester.tap(find.byKey(const Key('trade-grams-1')));
+      await tester.pumpAndSettle();
+      expect(selected('سلاسل'), isTrue);
+      expect(selected('خواتم'), isFalse);
+      // The tender amount is grouped.
+      await revealTrade(tester, find.byKey(const Key('trade-tender-amount-0')));
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('trade-tender-amount-0')))
+            .controller!
+            .text,
+        '25,000',
+      );
+    },
+  );
 
   testWidgets('editing a priced operation shows line prices without saving', (
     tester,

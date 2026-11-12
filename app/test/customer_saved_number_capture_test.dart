@@ -125,8 +125,6 @@ void main() {
           await t.tap(find.byKey(const Key('customer-retry')));
           await t.pumpAndSettle();
           await savedCapture(t, key, 'confirmed-$suffix');
-          await t.tap(find.text('عرض ملف العميل'));
-          await t.pumpAndSettle();
           await showSavedControl(t);
           await t.drag(find.byType(ListView).last, const Offset(0, 300));
           await savedCapture(t, key, 'detail-saved-$suffix');

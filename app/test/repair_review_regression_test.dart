@@ -260,10 +260,6 @@ void main() {
       await tester.tap(find.byKey(const Key('repair-collection-part')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('repair-collected')), '80');
-      await tester.enterText(
-        find.byKey(const Key('repair-tender-amount-0')),
-        '80',
-      );
       await tester.tap(find.byKey(const Key('repair-collection-none')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(

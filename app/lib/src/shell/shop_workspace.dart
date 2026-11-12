@@ -136,6 +136,10 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         widget.shop.entitlement == ShopEntitlement.active) {
       _applyRegistrationLogo();
     }
+    // The shop image arrives after the first frame; try the O3 backfill then.
+    if (oldWidget.shopImageBytes == null && widget.shopImageBytes != null) {
+      _applyRegistrationLogo();
+    }
   }
 
   void _readLogoDraft() {
@@ -157,7 +161,11 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       return;
     }
     final draft = await (_logoDraft ?? Future<LogoUploadRecord?>.value());
-    if (!mounted || draft?.fromRegistration != true) return;
+    if (!mounted) return;
+    if (draft?.fromRegistration != true) {
+      await _backfillShopLogo(apply, user);
+      return;
+    }
     final bytes = await const FileLogoUploadStore().readBytes(
       user,
       widget.shop.id,
@@ -183,8 +191,39 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       case ApplyLogoOutcome.failed:
         setState(() => _logoApply = _LogoApply.failed);
       case ApplyLogoOutcome.notAllowed:
+      case ApplyLogoOutcome.skipped:
         _logoApplyStarted = false;
         setState(() => _logoApply = _LogoApply.idle);
+    }
+  }
+
+  /// O3 (ADR 0047 D5): shops whose logo predates automatic application get
+  /// it once on their invoice, only while no invoice appearance was saved.
+  /// Quiet unless it succeeds; a failure retries on the next visit.
+  Future<void> _backfillShopLogo(
+    ApplyShopLogoToInvoice apply,
+    String user,
+  ) async {
+    final bytes = widget.shopImageBytes;
+    if (bytes == null || bytes.isEmpty || _logoApplyStarted) return;
+    _logoApplyStarted = true;
+    final outcome = await apply.call(
+      userId: user,
+      shopId: widget.shop.id,
+      logoBytes: bytes,
+      onlyWhenUnset: true,
+    );
+    if (!mounted) return;
+    if (outcome == ApplyLogoOutcome.applied) {
+      setState(() => _logoApply = _LogoApply.done);
+      AppMessages.success(
+        context,
+        'تمت إضافة لوجو المحل إلى الفاتورة',
+        id: 'invoice-logo-applied',
+      );
+    } else if (outcome != ApplyLogoOutcome.skipped &&
+        outcome != ApplyLogoOutcome.alreadyApplied) {
+      _logoApplyStarted = false;
     }
   }
 

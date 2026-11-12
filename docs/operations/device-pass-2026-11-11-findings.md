@@ -24,35 +24,35 @@ Severity: **S1** blocks a core workflow or corrupts data, **S2** wrong result or
 
 | # | Sev | Area | Finding | Suggested direction |
 |---|---|---|---|---|
-| O1 | S1 | Stock lots (B-D14) | When a sale line's weight differs from the last piece of its named lot (for example an edit 10.50 g → 10.00 g, or a real sale whose weight differs from the recorded piece), `consume_fifo_named` skips that lot (it may not leave weight with zero pieces) and takes the weight from the oldest lots of other items. Observed: the edited chain sale took 8.80 g + 1.20 g from «خاتم» lots; «سلاسل 18» still shows 1 piece / 10.50 g, «خواتم 18» lost a piece. | **Decision**: when the last piece of a named lot is sold, either take the whole remaining weight (difference becomes a stock adjustment), or allow a residue, or block with a clear message. Then fix the edit path too. |
-| O2 | S2 | Stock lots / grid | The test shop's pooled opening lots are named «رصيد سابق مجمّع» (`legacy_aggregate = true`, from an older backfill). B-D14's pooled-second preference and C-D4's row label only recognize «رصيد افتتاحي مجمّع», so this shop shows «رصيد سابق مجمع» in the table, never prefers the pooled lot, and offers «رصيد سابق مجمع» as a sellable item under «أخرى». Only one shop has such lots. | Treat `legacy_aggregate` lots as the pooled opening lot in `consume_fifo_named`, `get_inventory_item_grid_v1`, and the product list; hide the pooled pseudo-product from «أخرى». |
-| O3 | S2 | Invoice logo (ADR 0039) | The shop has a logo and an active entitlement, but no invoice appearance revision exists, so invoices print the generic diamond. Automatic application runs only for a signup draft or a logo saved after 2026-11-08; logos saved before are never applied. | One-time: apply the current shop logo to invoice appearance for active shops without a revision (client on first owner workspace, or a reviewed server backfill). |
-| O4 | S3 | Weight display | The edit screen shows stored weights with three decimals («10.500») while new entry allows two; the weight sheets order karats differently (22, 21, 18, 14) from the choice lists (18, 21, 22, 14). | Align display rules with design-system.md. |
+| O1 | S1 | Stock lots (B-D14) (**Fixed**, ADR 0047 D1) | When a sale line's weight differs from the last piece of its named lot (for example an edit 10.50 g → 10.00 g, or a real sale whose weight differs from the recorded piece), `consume_fifo_named` skips that lot (it may not leave weight with zero pieces) and takes the weight from the oldest lots of other items. Observed: the edited chain sale took 8.80 g + 1.20 g from «خاتم» lots; «سلاسل 18» still shows 1 piece / 10.50 g, «خواتم 18» lost a piece. | **Decision**: when the last piece of a named lot is sold, either take the whole remaining weight (difference becomes a stock adjustment), or allow a residue, or block with a clear message. Then fix the edit path too. |
+| O2 | S2 | Stock lots / grid (**Fixed**, 2026-11-12) | The test shop's pooled opening lots are named «رصيد سابق مجمّع» (`legacy_aggregate = true`, from an older backfill). B-D14's pooled-second preference and C-D4's row label only recognize «رصيد افتتاحي مجمّع», so this shop shows «رصيد سابق مجمع» in the table, never prefers the pooled lot, and offers «رصيد سابق مجمع» as a sellable item under «أخرى». Only one shop has such lots. | Treat `legacy_aggregate` lots as the pooled opening lot in `consume_fifo_named`, `get_inventory_item_grid_v1`, and the product list; hide the pooled pseudo-product from «أخرى». |
+| O3 | S2 | Invoice logo (ADR 0039) (**Fixed**, ADR 0047 D5) | The shop has a logo and an active entitlement, but no invoice appearance revision exists, so invoices print the generic diamond. Automatic application runs only for a signup draft or a logo saved after 2026-11-08; logos saved before are never applied. | One-time: apply the current shop logo to invoice appearance for active shops without a revision (client on first owner workspace, or a reviewed server backfill). |
+| O4 | S3 | Weight display (**Fixed**, ADR 0047 D6–D7) | The edit screen shows stored weights with three decimals («10.500») while new entry allows two; the weight sheets order karats differently (22, 21, 18, 14) from the choice lists (18, 21, 22, 14). | Align display rules with design-system.md. |
 
 ### UX and visual (owner-facing)
 
 | # | Sev | Screen | Finding |
 |---|---|---|---|
-| U1 | S2 | Daily close | One Back press (or swipe back) discards every count entered, with no confirmation and no saved draft. This is the owner's longest daily form. Add a discard confirmation and keep a local draft (M1 tier 5). |
-| U2 | S3 | Ledger home | The ⚡ quick-actions button covers the weight column of the cards and fully hides values on some rows. Reserve bottom padding or move the default position. |
-| U3 | S3 | Sale/purchase review | The review does not show per-line prices (when «سعر لكل صنف» is on) or the customer phone. |
-| U4 | S3 | Sale/purchase form | With per-line prices, the payment amount is not prefilled with the line-price total. |
-| U5 | S3 | Expense | Expense cards show only «مصروف» and the amount, not the description. The expense form puts «طرق الدفع» above the description; the expense review shows the five-step sale stepper and an empty divider block; the detail says «لا توجد بيانات عميل». |
-| U6 | S3 | Trade-change review | Shows «التغير في مستحقات الشراء» on sales (and on every purchase now that purchases are fully paid). Hide when zero / not a purchase with a legacy payable. |
-| U7 | S3 | Edit screen | Extra «الفئة» dropdown not on the add form; the category grid highlights the last-added category, not the line being edited; prices show «25000.00» instead of «25,000». |
-| U8 | S3 | Card labels | «اسم البائع» on a purchase card names the staff member, but on a purchase the seller is the customer. Use «المسجِّل» or similar. |
-| U9 | S3 | Operation detail | Title «بيع» appears twice (app bar and body); the body is a plain text list. |
-| U10 | S3 | Payment methods sheet | Title «وسائل الدفع» repeated as the sheet title and the section title. |
-| U11 | S3 | Inventory carousel | Order and snapping fixed (F7). Still open: tiles are tall with empty space below the value. |
-| U12 | S3 | Repairs | After every status change the owner lands on a bare «تم حفظ الطلب» page and must go back and reopen the repair. Handover with «تحصيل الكل» does not prefill the amount or method (later collection does). Collection asks for the same amount twice for a single tender. Review lists weight twice («الوزن» and «الوزن المدخل»). «العيار» and «العطل» fields touch with no gap. Status changes follow M1 (toast and stay on the repair). |
-| U13 | S3 | Customers | After a status change the success page is cramped (icon and text not centered). The selected filter chip scrolls half off-screen. The success page is replaced under M1. |
-| U14 | S3 | Daily notes | The edit sheet has no title. A previous unsent draft image appears preloaded on entry. |
-| U15 | S3 | Day close | Pressing Done moves focus to the next cell, which is easy to mistype into (owner should see where the cursor is). Tapping outside a count cell does not close the keyboard. |
-| U16 | S3 | Ledger after close | «إضافة بيع» / «إضافة شراء» stay styled as active while no day is open; tapping shows «يوم العمل مغلق…». Disable them or replace with «فتح يوم جديد» (M1 day-closed banner). |
-| U17 | S3 | Ledger header after close | The header still reads «يوم العمل 30 سبتمبر 2026» after that day is closed. Show «لا يوجد يوم مفتوح» or the last closed date as such. |
-| U18 | S3 | «الدفاتر» list | Each closed day shows only «مقفول · فُتح 14:19»; the close time is not shown. |
-| U19 | S3 | Admin sign-in | A valid shop-owner account gets «تعذر تسجيل الدخول. تحقق من البيانات» (reads as wrong password). **Decision**: keep generic (no account enumeration) or say the account has no admin access. |
-| U20 | S3 | Scrap-to-stock | Returns straight to the ledger with a snackbar, unlike sale/purchase which show a success page; weight there accepts three decimals while sale/purchase accept two. Align (M1 outcome screen). |
+| U1 | S2 | Daily close (**Fixed**, M1) | One Back press (or swipe back) discards every count entered, with no confirmation and no saved draft. This is the owner's longest daily form. Add a discard confirmation and keep a local draft (M1 tier 5). |
+| U2 | S3 | Ledger home (**Decided: keep**, ADR 0047 D9) | The ⚡ quick-actions button covers the weight column of the cards and fully hides values on some rows. Reserve bottom padding or move the default position. |
+| U3 | S3 | Sale/purchase review (**Fixed**, ADR 0047 D12) | The review does not show per-line prices (when «سعر لكل صنف» is on) or the customer phone. |
+| U4 | S3 | Sale/purchase form (**Fixed**, 2026-11-12) | With per-line prices, the payment amount is not prefilled with the line-price total. |
+| U5 | S3 | Expense (**Fixed**, 2026-11-12) | Expense cards show only «مصروف» and the amount, not the description. The expense form puts «طرق الدفع» above the description; the expense review shows the five-step sale stepper and an empty divider block; the detail says «لا توجد بيانات عميل». |
+| U6 | S3 | Trade-change review (**Fixed**, 2026-11-12) | Shows «التغير في مستحقات الشراء» on sales (and on every purchase now that purchases are fully paid). Hide when zero / not a purchase with a legacy payable. |
+| U7 | S3 | Edit screen (**Fixed**, 2026-11-12) | Extra «الفئة» dropdown not on the add form; the category grid highlights the last-added category, not the line being edited; prices show «25000.00» instead of «25,000». |
+| U8 | S3 | Card labels (**Fixed**, ADR 0047 D8) | «اسم البائع» on a purchase card names the staff member, but on a purchase the seller is the customer. Use «المسجِّل» or similar. |
+| U9 | S3 | Operation detail (**Fixed**, 2026-11-12) | Title «بيع» appears twice (app bar and body); the body is a plain text list. |
+| U10 | S3 | Payment methods sheet (**Fixed**, 2026-11-12) | Title «وسائل الدفع» repeated as the sheet title and the section title. |
+| U11 | S3 | Inventory carousel (**Fixed**, 2026-11-12) | Order and snapping fixed (F7). Still open: tiles are tall with empty space below the value. |
+| U12 | S3 | Repairs (status flow **Fixed**, M1; handover prefill **Fixed**, ADR 0047 D11; the rest **Fixed**, 2026-11-12) | After every status change the owner lands on a bare «تم حفظ الطلب» page and must go back and reopen the repair. Handover with «تحصيل الكل» does not prefill the amount or method (later collection does). Collection asks for the same amount twice for a single tender. Review lists weight twice («الوزن» and «الوزن المدخل»). «العيار» and «العطل» fields touch with no gap. Status changes follow M1 (toast and stay on the repair). |
+| U13 | S3 | Customers (success page **Fixed**, M1; chip scroll **Fixed**, 2026-11-12) | After a status change the success page is cramped (icon and text not centered). The selected filter chip scrolls half off-screen. The success page is replaced under M1. |
+| U14 | S3 | Daily notes (**Fixed**, 2026-11-12) | The edit sheet has no title. A previous unsent draft image appears preloaded on entry. |
+| U15 | S3 | Day close (**Fixed**, 2026-11-12) | Pressing Done moves focus to the next cell, which is easy to mistype into (owner should see where the cursor is). Tapping outside a count cell does not close the keyboard. |
+| U16 | S3 | Ledger after close (**Fixed**, M1) | «إضافة بيع» / «إضافة شراء» stay styled as active while no day is open; tapping shows «يوم العمل مغلق…». Disable them or replace with «فتح يوم جديد» (M1 day-closed banner). |
+| U17 | S3 | Ledger header after close (**Fixed**, M1) | The header still reads «يوم العمل 30 سبتمبر 2026» after that day is closed. Show «لا يوجد يوم مفتوح» or the last closed date as such. |
+| U18 | S3 | «الدفاتر» list (**Fixed**, 2026-11-12) | Each closed day shows only «مقفول · فُتح 14:19»; the close time is not shown. |
+| U19 | S3 | Admin sign-in (**Fixed**, ADR 0047 D3) | A valid shop-owner account gets «تعذر تسجيل الدخول. تحقق من البيانات» (reads as wrong password). **Decision**: keep generic (no account enumeration) or say the account has no admin access. |
+| U20 | S3 | Scrap-to-stock (**Fixed**, ADR 0047 D10) | Returns straight to the ledger with a snackbar, unlike sale/purchase which show a success page; weight there accepts three decimals while sale/purchase accept two. Align (M1 outcome screen). |
 
 ### M1 — Production messaging and feedback system (owner request, 2026-11-11)
 
@@ -135,9 +135,9 @@ The admin dashboard has 18 MUI `Snackbar`/`Alert` uses in 8 files. It should fol
 
 **Done when** every user-visible outcome in the app goes through one of the six tiers, no raw snackbar remains, the copy catalog is reviewed in Arabic, and the emulator review above passes in both themes.
 
-#### M1 progress (2026-11-11, working tree, not committed)
+#### M1 progress (2026-11-11)
 
-Done, in the first milestone:
+First milestone (commit `583fa75`):
 
 - `app/lib/src/theme/message_tone.dart` (tones, colour roles, icons, Arabic screen-reader labels), `app_messages.dart` (`AppMessages` toast messenger and `AppToast`), `app_banner.dart` (`AppBanner`), `feedback_copy.dart` (shared copy). The design guide's «Feedback and messaging — 2026-11-11» section describes them.
 - Every raw snack-bar call is migrated (the 32 `SnackBar`/`ScaffoldMessenger` matches in 8 files). Ledger trades no longer add a toast on top of their own outcome page. Day close, cash transfer and scrap-to-stock show «تم إقفال يوم العمل», «تم تحويل النقدية» and «تمت إضافة الكسر إلى المخزون». The day-closed or loading block on «إضافة بيع/شراء» shows a warning or info toast. The trade-change failure shows only its in-form error banner (it used to appear twice). Notes get specific success and error toasts, and the unknown-outcome toast keeps its retry. Device-preference failures and debt-reminder taps show info or warning toasts, and signup and logo outcomes show warning or success toasts.
@@ -145,21 +145,62 @@ Done, in the first milestone:
 - Sign-out clears every visible and queued toast.
 - `test/app_messages_test.dart` (18 tests): the source guard against raw snack bars, durations, auto-dismiss, pause on press, close and action, no auto-dismiss under a screen reader, merge, replace, queue, clear, survival across a route pop, position above the bottom bar and in the wide start corner, every tone at 200 % text in light and dark (this caught an overflow, now fixed by stacking the action), banner tone/action/spinner, and 4.5:1 text contrast for every tone in both themes.
 
-Still open under M1:
+Second milestone (working tree, not committed):
 
-- One shared outcome-screen widget for the trade sheet, and the repair, debt and customer success pages. U12 and U13 (repair and customer status changes should show a toast and stay on the record) still need their flows changed.
-- The shared confirm dialog and migration of the ~30 dialogs; U1 (discard confirmation and draft for the daily close).
-- U16 and U17: disable «إضافة بيع/شراء» and show the day-closed banner with «فتح يوم جديد», instead of the toast on tap.
-- Wiring each gateway's failure kinds through one mapping table. Today the migrated call sites use `FeedbackCopy`, but `inventoryFailureCopy`, `tradeChangeFailure` and other feature copy remain separate.
-- Assertive announcement for error toasts. They use the snack bar's polite live region today.
-- The full emulator review (light theme, wide layout, TalkBack, rejection and offline cases), and the admin dashboard pass (18 MUI `Snackbar`/`Alert` uses). Checked so far: a debug build on the emulator (dark, 1080×2400) showed the «تم مسح الملاحظة» success toast after a real note delete on development, placed above the gesture bar.
-- Plain-text inline statuses that are not snack bars, for example «تم حفظ الملاحظة» after adding a note. It stays visible even after that note is deleted. These still need the banner or toast tier.
+- **U16/U17, closed day:** «إضافة بيع» / «إضافة شراء» are disabled while no day is open. The header reads «لا يوجد يوم مفتوح · آخر يوم مقفول …». When the day-reset card is not shown, a warning banner «يوم العمل مغلق» offers «فتح يوم جديد». The toast that appeared after tapping is gone.
+- **Outcome screen:** `theme/app_outcome.dart` (`AppOutcome`, `OutcomeFigure`) has a tinted tone icon, a specific title, the server-confirmed subtitle and a figures card. The trade sheet shows «تم حفظ البيع / الشراء / المصروف / بيع الكسر / المرتجع» with the total and each item's weight. The debt page shows «تم حفظ طلب الديون» with its status and effects.
+- **U12, repairs:** the bare «تم حفظ الطلب» page is removed. Status, handover, collection and return show a specific toast and reopen the repair. Intake and archive show a toast and return to the list.
+- **U13, customers:** the success page is removed. Every customer command shows a specific toast (`customerSavedCopy`) and opens the customer's file.
+- **Shared confirm dialog:** `theme/app_confirm.dart` (`showAppConfirm`). It has a question title, a consequence message, the safe button autofocused, an error-coloured action for destructive choices, and Back always returns false. It is used for opening a day, deleting a note, changing repair status, revoking staff and closing-staff requests. The remaining `AlertDialog`s are tools rather than decisions (invoice preview and zoom, PDF share, WhatsApp hand-off, subscription code, inventory price, note editor), so they stay as they are.
+- **U1, day close:** typed counts, including grid cells and added items, are kept as a device-local draft keyed to user, shop, day and day version (`CloseCountDrafts`, `SharedPreferencesCloseCountDrafts`). Back with counts asks «الخروج من التقفيل؟» with «خروج», which keeps the draft, or «متابعة العدّ». Reopening restores the draft under the banner «استُعيدت مسودة العدّ من هذا الجهاز» with «مسح المسودة». A successful close or correction clears the draft. Errors on this screen are banners.
+- **Failure mapping:** `theme/failure_feedback.dart` maps gateway codes to `FailureKind`: offline, unknown outcome, rejected, access lost, read-only, stale, device storage and unexpected. Each kind gets a tone, generic Arabic copy and its action. Repair notices, operation edit/delete errors and inventory command banners take their tone from it. A feature's own reason text stays the title.
+- **Accessibility:** error and warning toasts also send an assertive screen-reader announcement.
+- **Notes:** «تم حفظ الملاحظة» is now a toast, so it no longer lingers after the note is deleted. Pending and draft states are banners, and a rejection shows once, as an error banner.
+- **Admin:** MUI `Alert` (the dashboard's inline banner) gets the same tint, border, radius and 600-weight treatment through `MuiAlert` theme overrides. `palette.info` uses the brand accent instead of MUI blue. The dashboard has no snack bars.
+- **Tests:** `failure_feedback_test.dart` (code mapping, Arabic-only copy, confirm dialog defaults in both themes, outcome at 170 % text), `daily_close_draft_test.dart` (5 tests: leave without counts, ask with counts, «خروج» keeps and restores, clear draft, other day version ignored), an assertive-announcement test in `app_messages_test.dart`, and an admin theme test. Repair, customer, notes and collect tests now expect the toasts.
+- **Emulator (dark, 1080×2400, development):** the discard dialog appeared on Back with counts, the draft survived an app restart and came back under its banner, and «مسح المسودة» cleared it.
 
-### Questions for the owner
+Remaining limits (not code work in this repository):
 
-- «المزيد ← المساعدة» opens platform Help articles. The owner's 2026-10-05 feedback removed guides and help cards; confirm the Help page itself should stay.
-- O1 (which stock a sale takes when the weight differs from the recorded piece) needs a rule before code changes.
-- M1: confirm that operations changing cash or stock keep a full outcome screen with the confirmed net effect, while non-financial saves (notes, repair or customer status, settings) return the owner to the record with a short toast.
+- TalkBack, light theme and the wide layout were not checked on a device for these screens. Automated tests cover both themes, 200 % text and wide placement.
+- Admin pages behind sign-in still need a platform-admin test account for a visual check (see «Not covered in this pass»).
+
+### Questions for the owner (answered 2026-11-11, [ADR 0047](../adr/0047-owner-answers-2026-11-11.md))
+
+All twelve questions were answered and implemented:
+
+- **O1:** take the whole recorded weight, book the difference as a stock correction, and tell the owner in the sale review. Migration `20261111100000_last_piece_weight_rule.sql` was deployed to development and recorded in the hosted history. An edit or delete restores the recorded weight.
+- **M1 split:** keep it as it is.
+- **U19:** say plainly that the account has no admin access. Other sign-in failures also name their cause.
+- **Help page:** «المساعدة» stays (HELP-01, ADR 0031). Guides, tours and help cards stay removed, as requested on 2026-10-05.
+- **O3:** apply the existing shop logo once, only where no invoice appearance was ever saved.
+- **O4:** karats in the order 18، 21، 22، 14. The edit screen shows two decimals, keeping a real third decimal, and prices are grouped.
+- **U8:** «المسجِّل» on purchases and other non-sale entries.
+- **U2:** keep the ⚡ position.
+- **U20:** result page, and two-decimal weight.
+- **U12:** «تحصيل الكل» fills the payment line with the final fee.
+- **U3:** the review shows line prices and the customer phone.
+
+Every finding in this record is now fixed or decided (see «Follow-up fixes» below).
+
+### Follow-up fixes (2026-11-12, working tree, not committed)
+
+- **O2, legacy pooled lots:** migration `20261112090000_legacy_pooled_lot_name.sql` maps «رصيد سابق مجمّع» to «رصيد افتتاحي مجمّع» in `private.canonical_jewelry_name`, so the item grid shows one pooled row. `private.consume_fifo_named` takes a `legacy_aggregate` or pooled lot second (after the named item, before other items). In Flutter, `canonicalJewelryName` maps the same alias, and `isPooledOpeningItem` keeps the pooled pseudo-item out of «أخرى» in sale/purchase, scrap-to-stock and day close. Tests: `supabase/tests/legacy_pooled_lot_name.sql`, and «the legacy pooled name joins the pooled opening row (O2)» in `inventory_item_grid_test.dart`.
+- **U4, payment from line prices:** with «سعر لكل صنف» on and one payment line, the amount follows the line-price total (grouped, for example «8,000»). It updates as prices change or a line is removed, and stops once the owner types a different amount. Turning line pricing off clears only an amount the app filled in. Tests: two U4 cases in `line_pricing_test.dart`.
+- **U5, expenses:** migration `20261112091000_expense_feed_description.sql` adds the expense description (one line, at most 200 characters) to `item_summary` in the current-app home, date and operation-page reads. It uses an existing key, so installed builds still parse the feed, and the 361ad2e reads are unchanged. Cards show «الوصف: …» under the title. The form asks for the description before «طرق الدفع». The review has no five-step stepper and no empty divider, and it shows the description. The operation detail and the trade-change review show the description and no longer say «لا توجد بيانات عميل». Tests: `supabase/tests/expense_feed_description.sql`, plus additions to `ledger_journal_table_test.dart`, `batch2_trade_form_test.dart` and `ledger_trade_change_test.dart`.
+- **U12, the rest of repairs:** with one payment method, collection and handover ask for the amount once («المبلغ المحصّل» or the final fee) and the method row has no amount field. With two or more methods, each has its own amount. The intake review shows the weight once. «العيار» has the same 8 px gap as the other fields. The collection review used to parse the grouped amount («1,500») as typed, which rejected any collection of 1,000 or more. It now uses `cashInputValue`, like every other cash field. Tests: «U12: a grouped amount over 1,000 is entered once and splits» in `repair_collect_test.dart`, plus weight-once and field-gap checks in `repair_capture_test.dart`. The existing repair tests now enter the amount once.
+- **U18, close time:** migration `20261112092000_report_days_closed_at.sql` adds `closed_at_shop` (in the shop's zone) to `list_financial_report_days_v1`. Older builds ignore the key. «الدفاتر» shows «مقفول · فُتح 09:30 · أُقفل 17:45». A close after midnight also shows its date, and a server without the key shows the opening time only. Tests: `supabase/tests/report_days_closed_at.sql`, the U18 codec test in `report_test.dart`, and `ledger_archive_test.dart`.
+
+- **U6, trade-change review:** «التغير في مستحقات الشراء» shows only when the change is not zero, which happens only for a purchase with a legacy payable. It no longer shows on sales or on fully paid purchases. Test: `ledger_trade_change_test.dart`.
+- **U7, edit screen:** stored lines open like the add form, with no extra «الفئة» dropdown. The category grid shows and edits the line the owner last touched, which starts as the first line, and outlines it when there are several lines. Amounts are grouped («25,000»). Tests: the U7 case in `line_pricing_test.dart`. `purchase_to_scrap_test.dart` now checks the kept category without the dropdown.
+- **U9, operation detail:** the title appears only in the app bar. The number, recorder, time and customer (or expense description) are icon rows in one card, with the copy unchanged. Test: `financial_operation_dispatch_test.dart`.
+- **U10, payment sheet:** `LedgerCashBreakdown`, `LedgerTradeWeightBreakdown` and `LedgerGoldBreakdown` take `showTitle`. The sheets that already carry the title pass `false`, so «وسائل الدفع», «وزن مباع / مشترى» and «المخزون والكسر» each appear once. Test: `confirmed_ledger_dashboard_test.dart`.
+- **U11, carousel tiles:** the compact tile measures 94 px at 100 % text, 116 px at 130 % and 166 px at 200 %. The slot is now `scale(100).clamp(100, 184)` instead of 148–196 px, so the empty band under the value is gone. Test: «U11: figure tiles fit their slot» at 1× and 2× in `inventory_item_grid_test.dart`.
+- **U13, customer filters:** choosing a chip scrolls it to the centre of the row, so it is never left half off-screen. Test: `customer_widget_test.dart`, at 320 px.
+- **U14, notes:** the edit sheet and dialog are titled «تعديل الملاحظة». If a draft on this device was never received by the server and belongs to an earlier day, it is removed on entry, both its text and its image. The info toast «حُذفت مسودة لم تُرسل من يوم سابق» says so. Such a draft could no longer be sent. A same-day draft, or one whose outcome is uncertain, is still restored and frozen as before. Tests: `daily_notes_widget_test.dart`.
+- **U15, day close:** on Android the number pad's ✓ used to move focus to the next count cell. Now every count cell and every cash, stock and scrap field closes the keyboard on ✓, and tapping outside a field also closes it. Test: `closing_count_cell_test.dart`.
+
+Gates (2026-11-12): `dart format --set-exit-if-changed lib test` clean; `dart analyze --fatal-infos` no issues; `flutter test` 1,877 passed. The three migrations and tests ran first together in one rolled-back transaction on development. Then they were applied with `supabase db query --linked` and recorded with `migration repair --status applied`. Hosted history now ends at `20261112092000`. Hosted rolled-back runs passed: `legacy_pooled_lot_name`, `expense_feed_description`, `report_days_closed_at`, `last_piece_weight_rule`, `sale_named_item_and_day_read`, `expense_return_change`, `financial_day_report`, `financial_week_report`, `jewelry_item_names`, `daily_ledger_trades`, `milestone_3_inventory`, `shop_staff_grants`, `ledger_home_day_reset`, `batch_c_review_fixes` and `legacy_read_shapes`. `ledger_date_read` runs only on a local disposable database, which this machine does not have, so it was not run. No admin code changed, so React gates were not needed. Second batch (U6–U15) gates: format clean, analyze no issues, `flutter test` 1,884 passed. That batch has no server change. These fixes were not reviewed on the emulator. Widget tests cover the changed screens in Arabic RTL, and the repair captures cover light and dark at 320, 390 and 1440 px.
 
 ## Previously recorded open items (from earlier validation notes)
 

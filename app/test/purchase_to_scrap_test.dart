@@ -217,12 +217,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('مشغولات'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('trade-category-0')));
-    await tester.pumpAndSettle();
-    expect(find.text('مشغولات'), findsWidgets);
-    await tester.tap(find.text('مشغولات').last);
-    await tester.pumpAndSettle();
+    // U7: a stored line has no extra «الفئة» field; it keeps its category.
+    expect(find.byKey(const Key('trade-category-0')), findsNothing);
     await reviewTrade(tester);
     final line = (reviewed!['items'] as List).single as Map<String, Object?>;
     expect(line['category'], 'worked_jewelry');

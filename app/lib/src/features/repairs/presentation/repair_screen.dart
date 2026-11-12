@@ -1,9 +1,14 @@
 import '../../../theme/amount_format.dart';
 import '../../../theme/cash_input.dart';
 import '../../../theme/keyboard_dismiss.dart';
+import '../../../theme/app_confirm.dart';
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_banner.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/failure_feedback.dart';
+import '../../../theme/message_tone.dart';
 import '../../customers/domain/shop_phone_country.dart';
 import '../../customers/presentation/customer_phone_field.dart';
 import '../../daily_ledger/domain/opening_catalog.dart';
@@ -61,7 +66,6 @@ enum _Stage {
   collectReview,
   cancelReview,
   archiveReview,
-  success,
 }
 
 class _TenderDraft {
@@ -94,6 +98,8 @@ class _RepairScreenState extends State<RepairScreen> {
   bool _reviewStale = false;
   String? _error;
   String? _notice;
+  // M1: the gateway code behind [_notice], when there is one, picks its tone.
+  String? _noticeCode;
   RepairPage? _page;
   RepairDetail? _detail;
   RepairContext? _context;
@@ -109,7 +115,6 @@ class _RepairScreenState extends State<RepairScreen> {
   RepairCollectCommand? _collectCommand;
   String? _frozenKey;
   String? _frozenKind;
-  String? _success;
   int _readGeneration = 0;
   bool _refreshQueued = false;
   String get _identity => "${widget.userId}:${widget.shopId}";
@@ -387,9 +392,34 @@ class _RepairScreenState extends State<RepairScreen> {
     }
   }
 
+  /// U12 / M1: a saved repair command confirms with a toast and keeps the
+  /// owner on the record they changed; intake and archive return to the list.
+  void _afterSaved(String kind, String message) {
+    AppMessages.success(context, message, id: 'repair-saved');
+    final id = _detail?.summary.id;
+    if (id != null && kind != 'repair_intake' && kind != 'repair_archive') {
+      _openDetail(id);
+      return;
+    }
+    _go(_Stage.list);
+    _loadList();
+  }
+
+  static String _savedCopy(String kind, bool collected) => switch (kind) {
+    'repair_intake' => 'تم استلام المرمة',
+    'repair_status' => 'تم تغيير حالة المرمة',
+    'repair_handover' =>
+      collected ? 'تم تسليم المرمة وتحصيل المبلغ' : 'تم تسليم المرمة',
+    'repair_collect' => 'تم تحصيل المبلغ وإضافته إلى النقدية',
+    'repair_cancel' => 'تم إرجاع المرمة دون إصلاح',
+    'repair_archive' => 'تمت أرشفة المرمة',
+    _ => 'تم حفظ الطلب',
+  };
+
   void _go(_Stage stage) => setState(() {
     _stage = stage;
     _showErrors = false;
+    _noticeCode = null;
     _notice = null;
     _reviewStale = false;
   });
@@ -420,7 +450,7 @@ class _RepairScreenState extends State<RepairScreen> {
     required String kind,
     required Map<String, Object?> payload,
     required bool collected,
-    String success = 'تم حفظ الطلب.',
+    String? success,
   }) async {
     if (_writesBlocked || _reviewStale) return;
     final identity = _identity;
@@ -440,9 +470,8 @@ class _RepairScreenState extends State<RepairScreen> {
       setState(() {
         _releaseBusy();
         _pending = null;
-        _success = success;
-        _stage = _Stage.success;
       });
+      _afterSaved(kind, success ?? _savedCopy(kind, collected));
       return;
     }
     if (result is RepairFailed) {
@@ -450,6 +479,7 @@ class _RepairScreenState extends State<RepairScreen> {
       setState(() {
         _releaseBusy();
         _pending = null;
+        _noticeCode = result.code;
         _notice = repairFailureText(result.code);
       });
       return;
@@ -458,6 +488,7 @@ class _RepairScreenState extends State<RepairScreen> {
       if (result.code != 'other_pending') _clearKey();
       setState(() {
         _releaseBusy();
+        _noticeCode = result.code;
         _notice = repairFailureText(result.code);
       });
       return;
@@ -468,6 +499,7 @@ class _RepairScreenState extends State<RepairScreen> {
       _pending = unconfirmed.command;
       _pendingUnknown = unconfirmed.statusUnknown;
       _stage = _Stage.list;
+      _noticeCode = null;
       _notice = unconfirmed.statusUnknown
           ? 'النتيجة غير مؤكدة. أعد المحاولة بنفس الطلب.'
           : 'الطلب محفوظ على الجهاز ولم يُؤكد بعد.';
@@ -503,11 +535,13 @@ class _RepairScreenState extends State<RepairScreen> {
       setState(() {
         _releaseBusy();
         _pending = null;
-        _success = result.replayed
-            ? 'تم التأكد من الطلب المحفوظ.'
-            : 'تم حفظ الطلب.';
-        _stage = _Stage.success;
       });
+      _afterSaved(
+        pending.kind,
+        result.replayed
+            ? 'تم التأكد من حفظ الطلب'
+            : _savedCopy(pending.kind, false),
+      );
       return;
     }
     if (result is RepairFailed) {
@@ -515,6 +549,7 @@ class _RepairScreenState extends State<RepairScreen> {
       setState(() {
         _releaseBusy();
         _pending = null;
+        _noticeCode = result.code;
         _notice = repairFailureText(result.code);
       });
       return;
@@ -522,6 +557,7 @@ class _RepairScreenState extends State<RepairScreen> {
     if (result is RepairNotSent) {
       setState(() {
         _releaseBusy();
+        _noticeCode = result.code;
         _notice = repairFailureText(result.code);
       });
       return;
@@ -531,6 +567,7 @@ class _RepairScreenState extends State<RepairScreen> {
         _releaseBusy();
         _pending = result.command;
         _pendingUnknown = result.statusUnknown;
+        _noticeCode = null;
         _notice = 'ما زالت النتيجة غير مؤكدة.';
       });
     }
@@ -551,6 +588,7 @@ class _RepairScreenState extends State<RepairScreen> {
     if (!fieldsValid || reviewed is RepairRejected<RepairIntakeCommand>) {
       setState(() {
         _showErrors = true;
+        _noticeCode = null;
         _notice = reviewed is RepairRejected<RepairIntakeCommand>
             ? repairIssueText(reviewed.issue)
             : repairIssueText(RepairIssue.invalidInput);
@@ -560,6 +598,7 @@ class _RepairScreenState extends State<RepairScreen> {
     setState(() {
       _intake = (reviewed as RepairAccepted<RepairIntakeCommand>).value;
       _stage = _Stage.intakeReview;
+      _noticeCode = null;
       _notice = null;
       _reviewStale = false;
     });
@@ -569,6 +608,7 @@ class _RepairScreenState extends State<RepairScreen> {
     final detail = _detail;
     final day = _context?.day;
     if (detail == null) return;
+    if (_mode != RepairCollectionMode.none) _syncSingleTender();
     final tenders = <RepairTender>[];
     for (final row
         in _mode == RepairCollectionMode.none ? <_TenderDraft>[] : _tenders) {
@@ -585,6 +625,7 @@ class _RepairScreenState extends State<RepairScreen> {
       if (row.method == null || parsed is! Accepted<Piastres>) {
         setState(() {
           _showErrors = true;
+          _noticeCode = null;
           _notice = repairIssueText(RepairIssue.collectionMismatch);
         });
         return;
@@ -616,18 +657,23 @@ class _RepairScreenState extends State<RepairScreen> {
     if (reviewed is RepairRejected<RepairHandoverCommand>) {
       setState(() {
         _showErrors = true;
+        _noticeCode = null;
         _notice = repairIssueText(reviewed.issue);
       });
       return;
     }
     final command = (reviewed as RepairAccepted<RepairHandoverCommand>).value;
     if (command.collectedPiastres > BigInt.zero && day?.isOpen != true) {
-      setState(() => _notice = repairFailureText('day_closed'));
+      setState(() {
+        _noticeCode = null;
+        _notice = repairFailureText('day_closed');
+      });
       return;
     }
     setState(() {
       _handover = command;
       _stage = _Stage.handoverReview;
+      _noticeCode = null;
       _notice = null;
       _reviewStale = false;
     });
@@ -639,26 +685,14 @@ class _RepairScreenState extends State<RepairScreen> {
         !RepairRules.canAdvanceStatus(detail.summary.status, status)) {
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('تأكيد الحالة: ${repairStatusLabel(status)}'),
-        content: const Text(
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'تغيير الحالة إلى «${repairStatusLabel(status)}»؟',
+      message:
           'تبقى القطعة في الحيازة. لا يتغير المخزون القابل للبيع ولا النقد.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
+      confirmLabel: 'تأكيد',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     final command = RepairStatusCommand(
       repairId: detail.summary.id,
       expectedVersion: detail.summary.recordVersion,
@@ -708,7 +742,11 @@ class _RepairScreenState extends State<RepairScreen> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(AppTokens.spaceMd),
               children: [
-                if (_readOnly) _banner(repairFailureText('shop_not_active')),
+                if (_readOnly)
+                  _banner(
+                    repairFailureText('shop_not_active'),
+                    tone: MessageTone.warning,
+                  ),
                 if (_pending != null) _pendingBanner(),
                 if (_otherPending)
                   _banner(
@@ -724,7 +762,7 @@ class _RepairScreenState extends State<RepairScreen> {
                     child: const Text('إعادة قراءة الطلب المحفوظ'),
                   ),
                 ],
-                if (_notice != null) _banner(_notice!, error: true),
+                if (_notice != null) _banner(_notice!, tone: _noticeTone),
                 if (_error != null) ...[
                   _banner(_error!, error: true),
                   TextButton(
@@ -757,7 +795,7 @@ class _RepairScreenState extends State<RepairScreen> {
   }
 
   String get _title => switch (_stage) {
-    _Stage.list || _Stage.success => 'المرمات',
+    _Stage.list => 'المرمات',
     _Stage.intake || _Stage.intakeReview => 'استلام مرمة',
     _Stage.detail => 'تفاصيل المرمة',
     _Stage.handover || _Stage.handoverReview => 'تسليم المرمة',
@@ -777,20 +815,22 @@ class _RepairScreenState extends State<RepairScreen> {
     _Stage.collectReview => _collectReview(),
     _Stage.cancelReview => _cancelReview(),
     _Stage.archiveReview => _archiveReview(),
-    _Stage.success => _successView(),
   };
 
-  Widget _banner(String text, {bool error = false}) => Padding(
-    padding: const EdgeInsets.only(bottom: AppTokens.spaceMd),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: error
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.onSurface,
-      ),
-    ),
-  );
+  Widget _banner(String text, {bool error = false, MessageTone? tone}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: AppTokens.spaceMd),
+        child: AppBanner(
+          tone: tone ?? (error ? MessageTone.error : MessageTone.info),
+          title: text,
+        ),
+      );
+
+  MessageTone get _noticeTone => _noticeCode != null
+      ? failureTone(_noticeCode)
+      : _pending != null
+      ? MessageTone.warning
+      : MessageTone.error;
 
   Widget _pendingBanner() => Card(
     child: Padding(
@@ -926,17 +966,21 @@ class _RepairScreenState extends State<RepairScreen> {
           hint: 'ثلاث خانات، مثل 1.255',
           keyboard: const TextInputType.numberWithOptions(decimal: true),
         ),
-        DropdownButtonFormField<int>(
-          key: const Key('repair-karat'),
-          initialValue: _karat,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'العيار'),
-          items: [
-            for (final karat in orderedKarats(repairKarats))
-              DropdownMenuItem(value: karat, child: Text('$karat')),
-          ],
-          onChanged: (value) => setState(() => _karat = value),
-          validator: (value) => value == null ? 'اختر العيار.' : null,
+        // U12: same spacing as the text fields above and below.
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+          child: DropdownButtonFormField<int>(
+            key: const Key('repair-karat'),
+            initialValue: _karat,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'العيار'),
+            items: [
+              for (final karat in orderedKarats(repairKarats))
+                DropdownMenuItem(value: karat, child: Text('$karat')),
+            ],
+            onChanged: (value) => setState(() => _karat = value),
+            validator: (value) => value == null ? 'اختر العيار.' : null,
+          ),
         ),
         _field(_issue, 'العطل', key: const Key('repair-issue')),
         _field(
@@ -973,8 +1017,11 @@ class _RepairScreenState extends State<RepairScreen> {
       children: [
         Text('العميل: ${command.customerName}'),
         Text('القطعة: ${command.itemDescription}'),
-        Text('الوزن: ${repairWeight(command.measuredMilligrams, exact: true)}'),
-        Text('الوزن المدخل: ${repairGramsExact(command.measuredMilligrams)}'),
+        // U12: the weight once, exactly as entered.
+        Text(
+          'الوزن: ${repairWeight(command.measuredMilligrams, exact: true)}',
+          key: const Key('repair-review-weight'),
+        ),
         Text('العيار: ${command.karat}'),
         Text('العطل: ${command.issue}'),
         Text('الأجرة التقديرية: ${repairMoney(command.estimatedFeePiastres)}'),
@@ -1083,6 +1130,9 @@ class _RepairScreenState extends State<RepairScreen> {
                         );
                       }
                     }
+                    if (_mode == RepairCollectionMode.all) {
+                      _prefillFullTender();
+                    }
                     _go(_Stage.handover);
                   },
             child: const Text('تسليم القطعة'),
@@ -1112,6 +1162,44 @@ class _RepairScreenState extends State<RepairScreen> {
     return _context?.day.isOpen == true;
   }
 
+  /// U12 (ADR 0047 D11): «تحصيل الكل» fills one tender with the final fee,
+  /// paid in cash when cash is available.
+  void _prefillFullTender() {
+    final methods = _context?.cashMethods ?? const <RepairCashMethod>[];
+    for (final tender in _tenders) {
+      tender.dispose();
+    }
+    _tenders
+      ..clear()
+      ..add(_TenderDraft());
+    if (methods.isEmpty) return;
+    final cash = methods.where((method) => method.method == 'cash');
+    _tenders.first.method = cash.isNotEmpty ? 'cash' : methods.first.method;
+    _tenders.first.amount.text = _finalFee.text;
+  }
+
+  /// U12: with one payment method the amount is entered once (the collected
+  /// amount or the final fee); the method row carries only the method.
+  bool get _singleTender => _tenders.length == 1;
+
+  void _syncSingleTender() {
+    if (!_singleTender) return;
+    final source = switch (_stage) {
+      _Stage.collect || _Stage.collectReview => _collectAmount.text,
+      _ => switch (_mode) {
+        RepairCollectionMode.all => _finalFee.text,
+        RepairCollectionMode.part => _collected.text,
+        RepairCollectionMode.none => '',
+      },
+    };
+    _tenders.first.amount.text = source;
+  }
+
+  void _addTender() => setState(() {
+    _syncSingleTender();
+    _tenders.add(_TenderDraft());
+  });
+
   void _openCollect() {
     final item = _detail?.summary;
     if (item == null) return;
@@ -1139,16 +1227,22 @@ class _RepairScreenState extends State<RepairScreen> {
     final detail = _detail;
     final day = _context?.day;
     if (detail == null || day?.isOpen != true || day?.dayId == null) {
-      setState(() => _notice = repairFailureText('day_closed'));
+      setState(() {
+        _noticeCode = null;
+        _notice = repairFailureText('day_closed');
+      });
       return;
     }
+    _syncSingleTender();
     final tenders = <RepairTender>[];
     for (final tender in _tenders) {
-      final parsed = Piastres.parsePounds(tender.amount.text.trim());
+      // Grouped text («1,500») parses like every other cash field.
+      final parsed = Piastres.parsePounds(cashInputValue(tender.amount.text));
       if (tender.method == null || parsed is! Accepted<Piastres>) {
-        setState(
-          () => _notice = repairIssueText(RepairIssue.collectionMismatch),
-        );
+        setState(() {
+          _noticeCode = null;
+          _notice = repairIssueText(RepairIssue.collectionMismatch);
+        });
         return;
       }
       tenders.add(
@@ -1159,16 +1253,20 @@ class _RepairScreenState extends State<RepairScreen> {
       repairId: detail.summary.id,
       expectedVersion: detail.summary.recordVersion,
       outstandingPiastres: detail.summary.outstandingPiastres,
-      amountPounds: _collectAmount.text,
+      amountPounds: cashInputValue(_collectAmount.text),
       tenders: tenders,
       dayId: day!.dayId!,
       dayVersion: day.dayVersion!,
     );
     if (reviewed is RepairRejected<RepairCollectCommand>) {
-      setState(() => _notice = repairIssueText(reviewed.issue));
+      setState(() {
+        _noticeCode = null;
+        _notice = repairIssueText(reviewed.issue);
+      });
       return;
     }
     setState(() {
+      _noticeCode = null;
       _notice = null;
       _collectCommand =
           (reviewed as RepairAccepted<RepairCollectCommand>).value;
@@ -1200,7 +1298,8 @@ class _RepairScreenState extends State<RepairScreen> {
             _tenderRow(index, methods),
           if (_tenders.length < 4 && _tenders.length < methods.length)
             TextButton(
-              onPressed: () => setState(() => _tenders.add(_TenderDraft())),
+              key: const Key('repair-add-tender'),
+              onPressed: _addTender,
               child: const Text('إضافة طريقة دفع'),
             ),
         ],
@@ -1238,7 +1337,6 @@ class _RepairScreenState extends State<RepairScreen> {
                   kind: 'repair_collect',
                   payload: command.payload(),
                   collected: true,
-                  success: 'تم تحصيل المبلغ وإضافته إلى النقدية.',
                 ),
           child: const Text('تأكيد التحصيل'),
         ),
@@ -1282,6 +1380,12 @@ class _RepairScreenState extends State<RepairScreen> {
             inputFormatters: const [CashInputFormatter()],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'الأجرة النهائية'),
+            onChanged: (_) {
+              // Keep «تحصيل الكل» equal to the final fee while one method pays.
+              if (_mode == RepairCollectionMode.all && _tenders.length == 1) {
+                _tenders.first.amount.text = _finalFee.text;
+              }
+            },
           ),
           const SizedBox(height: AppTokens.spaceSm),
           Wrap(
@@ -1292,7 +1396,10 @@ class _RepairScreenState extends State<RepairScreen> {
                   key: Key('repair-collection-${mode.name}'),
                   label: Text(repairCollectionLabels[mode]!),
                   selected: _mode == mode,
-                  onSelected: (_) => setState(() => _mode = mode),
+                  onSelected: (_) => setState(() {
+                    _mode = mode;
+                    if (mode == RepairCollectionMode.all) _prefillFullTender();
+                  }),
                 ),
             ],
           ),
@@ -1316,7 +1423,8 @@ class _RepairScreenState extends State<RepairScreen> {
               _tenderRow(index, methods),
             if (_tenders.length < 4 && _tenders.length < methods.length)
               TextButton(
-                onPressed: () => setState(() => _tenders.add(_TenderDraft())),
+                key: const Key('repair-add-tender'),
+                onPressed: _addTender,
                 child: const Text('إضافة طريقة دفع'),
               ),
           ],
@@ -1333,6 +1441,7 @@ class _RepairScreenState extends State<RepairScreen> {
 
   Widget _tenderRow(int index, List<RepairCashMethod> methods) {
     final row = _tenders[index];
+    final showAmount = !_singleTender;
     final methodField = DropdownButtonFormField<String>(
       key: Key('repair-tender-method-$index'),
       initialValue: row.method,
@@ -1357,6 +1466,12 @@ class _RepairScreenState extends State<RepairScreen> {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: const InputDecoration(labelText: 'المبلغ'),
     );
+    if (!showAmount) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+        child: methodField,
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) => constraints.maxWidth < 480
           ? Column(
@@ -1449,7 +1564,10 @@ class _RepairScreenState extends State<RepairScreen> {
                     confirmReturn: true,
                   );
                   if (reviewed is RepairRejected<RepairCancelCommand>) {
-                    setState(() => _notice = repairIssueText(reviewed.issue));
+                    setState(() {
+                      _noticeCode = null;
+                      _notice = repairIssueText(reviewed.issue);
+                    });
                     return;
                   }
                   final command =
@@ -1495,7 +1613,10 @@ class _RepairScreenState extends State<RepairScreen> {
                     confirmArchive: true,
                   );
                   if (reviewed is RepairRejected<RepairArchiveCommand>) {
-                    setState(() => _notice = repairIssueText(reviewed.issue));
+                    setState(() {
+                      _noticeCode = null;
+                      _notice = repairIssueText(reviewed.issue);
+                    });
                     return;
                   }
                   final command =
@@ -1511,26 +1632,6 @@ class _RepairScreenState extends State<RepairScreen> {
       ],
     );
   }
-
-  Widget _successView() => Column(
-    key: const Key('repair-success'),
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        _success ?? 'تم حفظ الطلب.',
-        style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
-      ),
-      const SizedBox(height: AppTokens.spaceMd),
-      FilledButton(
-        key: const Key('repair-back-to-list'),
-        onPressed: () {
-          _go(_Stage.list);
-          _loadList();
-        },
-        child: const Text('العودة إلى السجلات'),
-      ),
-    ],
-  );
 
   Widget _field(
     TextEditingController controller,

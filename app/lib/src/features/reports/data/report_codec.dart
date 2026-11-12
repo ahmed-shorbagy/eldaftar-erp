@@ -18,9 +18,13 @@ ReportDay parseReportDay(Object? raw) {
     _string(m['date']),
     _string(m['status']),
     _string(m['opened_at_shop']),
+    closedAtShop: m['closed_at_shop'] == null
+        ? null
+        : _string(m['closed_at_shop']),
   );
   if (!{'open', 'closed'}.contains(day.status) ||
       day.openedAtShop.length != 19 ||
+      (day.closedAtShop != null && day.closedAtShop!.length != 19) ||
       !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(day.date)) {
     throw const FormatException('report_day');
   }

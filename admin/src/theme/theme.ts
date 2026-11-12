@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles'
+import { alpha, createTheme } from '@mui/material/styles'
 import { tokens } from './tokens.ts'
 import type { ResolvedTheme } from './themePreference.ts'
 
@@ -23,6 +23,8 @@ export function createAppTheme(mode: ResolvedTheme) {
       mode,
       primary: { main: isLight ? tokens.lightAccent : tokens.darkAccent, contrastText: isLight ? tokens.lightSurface : tokens.darkSurface },
       success: { main: isLight ? tokens.lightSuccess : tokens.darkSuccess },
+      // M1: neutral notices use the brand accent, never MUI's default blue.
+      info: { main: isLight ? tokens.lightAccent : tokens.darkAccent },
       background: {
         default: surface,
         paper: isLight ? surface : tokens.darkCard,
@@ -52,6 +54,29 @@ export function createAppTheme(mode: ResolvedTheme) {
         styleOverrides: {
           root: { borderRadius: tokens.fieldRadius, minHeight: tokens.minControlSize, fontSize: tokens.bodySize },
           input: { padding: '16px', fontVariantNumeric: 'tabular-nums' },
+        },
+      },
+      // M1 messaging: inline notices match the Flutter AppBanner — a light
+      // tint of the tone over the surface, a tone border, field radius, a
+      // tone icon and 600-weight text in the main text colour.
+      MuiAlert: {
+        styleOverrides: {
+          root: ({ theme, ownerState }) => {
+            const tone = theme.palette[ownerState.severity ?? 'success'].main
+            if (ownerState.variant === 'filled' || ownerState.variant === 'outlined') {
+              return { borderRadius: tokens.fieldRadius }
+            }
+            return {
+              borderRadius: tokens.fieldRadius,
+              border: `1px solid ${alpha(tone, 0.55)}`,
+              backgroundColor: alpha(tone, isLight ? 0.11 : 0.18),
+              color: onSurface,
+              alignItems: 'center',
+              '& .MuiAlert-icon': { color: tone, opacity: 1 },
+            }
+          },
+          message: { fontSize: tokens.detailSize, fontWeight: 600, lineHeight: 1.5 },
+          action: { paddingTop: 0, alignItems: 'center' },
         },
       },
       MuiFormHelperText: { styleOverrides: { root: { fontSize: tokens.labelSize, lineHeight: 1.5 } } },

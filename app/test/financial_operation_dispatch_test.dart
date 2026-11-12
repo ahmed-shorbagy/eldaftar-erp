@@ -111,6 +111,15 @@ void main() {
     await tester.pumpWidget(screen(false));
     await tester.pumpAndSettle();
     expect(find.text('اسم البائع: المالك'), findsOneWidget);
+    // U9: the title appears once (app bar) and the facts sit in one card.
+    expect(find.text('بيع'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('operation-summary-card')),
+        matching: find.byKey(const Key('operation-time')),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('operation-time')), findsOneWidget);
     expect(find.textContaining('سبتمبر'), findsNothing);
     expect(find.text('اسم العميل: عميل تجريبي'), findsOneWidget);

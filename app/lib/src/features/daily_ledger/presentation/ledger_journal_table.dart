@@ -121,6 +121,11 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
       height: 1.3,
     );
     final showNote = line.hasNote && !line.isDailyNote;
+    final summary = line.itemSummary?.trim();
+    final expenseDescription =
+        line.kind == 'expense' && summary != null && summary.isNotEmpty
+        ? summary
+        : null;
     // Prices are all-or-none per invoice; without them the card total stands.
     final priced = items?.any((item) => item.linePricePounds != null) ?? false;
     return Padding(
@@ -220,11 +225,24 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'اسم البائع: ${line.actorDisplayName}',
+                                  '${actorLabel(line.kind)}: ${line.actorDisplayName}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: metaStyle,
                                 ),
+                                // U5: what the expense was for.
+                                if (expenseDescription != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'الوصف: ${isolateText(expenseDescription)}',
+                                    key: Key(
+                                      'ledger-expense-description-${line.operationId}',
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: metaStyle,
+                                  ),
+                                ],
                                 if (hasPartyName) ...[
                                   const SizedBox(height: 2),
                                   Text(
@@ -454,7 +472,10 @@ class _LedgerOperationTableState extends State<LedgerOperationTable> {
                       label: Text(_showAllItems ? 'إظهار أقل' : 'إظهار المزيد'),
                     ),
                   ),
-                if (items == null && !_loading && line.itemSummary != null)
+                if (items == null &&
+                    !_loading &&
+                    expenseDescription == null &&
+                    line.itemSummary != null)
                   Text(line.itemSummary!, style: theme.textTheme.bodySmall),
               ],
             ),
@@ -482,3 +503,8 @@ Widget _cell(
     ),
   );
 }
+
+/// U8 (ADR 0047 D8): on a sale the staff member is the seller; on a purchase
+/// or any other entry the seller is the customer, so name the recorder.
+String actorLabel(String kind) =>
+    kind == 'sale' || kind == 'scrap_sale' ? 'اسم البائع' : 'المسجِّل';

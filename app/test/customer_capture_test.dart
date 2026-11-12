@@ -155,8 +155,9 @@ void main() {
         await t.pumpAndSettle();
         await t.tap(find.byKey(const Key('customer-retry')));
         await t.pumpAndSettle();
+        expect(find.text('تمت إضافة العميل'), findsOneWidget);
         await capture(t, key, 'success-$suffix');
-        await t.tap(find.text('قائمة بيانات العملاء'));
+        await t.tap(find.byTooltip('رجوع'));
         await t.pumpAndSettle();
         await t.tap(find.byKey(const Key('customer-create')));
         await t.pumpAndSettle();

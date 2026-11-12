@@ -113,6 +113,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('123.45'), findsOneWidget);
     expect(find.textContaining('0.55'), findsOneWidget);
+    // U10: the sheet title only; the section does not repeat it.
+    expect(find.text('وسائل الدفع'), findsOneWidget);
     await tester.tap(find.byKey(const Key('detail-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ledger-gold-chart')), findsNothing);

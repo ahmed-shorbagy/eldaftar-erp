@@ -1,12 +1,20 @@
+import 'dart:async';
+
+import '../../../theme/keyboard_dismiss.dart';
+import '../../../theme/app_banner.dart';
+import '../../../theme/app_confirm.dart';
 import '../../../theme/cash_input.dart';
+import '../../../theme/message_tone.dart';
 import 'package:flutter/material.dart';
 import '../../../theme/gram_input.dart';
 
+import '../application/close_count_drafts.dart';
 import '../application/financial_gateway.dart';
 import '../application/idempotency_key.dart';
 import '../application/opening_gateway.dart';
 import '../application/pending_financial_command.dart';
 import '../data/pending_financial_command.dart';
+import '../data/shared_preferences_close_drafts.dart';
 import '../domain/opening_catalog.dart';
 import '../domain/opening_issue.dart';
 import '../domain/quantities.dart';
@@ -27,9 +35,11 @@ class DailyCloseScreen extends StatefulWidget {
     required this.userId,
     required this.shopId,
     required this.day,
+    this.drafts = const SharedPreferencesCloseCountDrafts(),
   });
 
   final FinancialGateway gateway;
+  final CloseCountDrafts drafts;
   final OpeningGateway statusGateway;
   final String userId;
   final String shopId;
@@ -58,26 +68,155 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
   bool _unknown = false;
   final _pending = const PendingFinancialCommands();
 
+  // U1: counts survive Back and app restarts as a device-local draft.
+  Map<String, String> _draft = const {};
+  bool _draftRestored = false;
+  Timer? _draftTimer;
+  bool _leaving = false;
+
+  DraftScope? get _draftScope {
+    final dayId = widget.day.dayId;
+    final version = widget.day.dayVersion;
+    if (dayId == null || version == null) return null;
+    return DraftScope(
+      userId: widget.userId,
+      shopId: widget.shopId,
+      dayId: dayId,
+      dayVersion: version,
+    );
+  }
+
+  TextEditingController _field(String draftKey) {
+    final controller = TextEditingController(text: _draft[draftKey]);
+    controller.addListener(_scheduleDraft);
+    _draftKeys[controller] = draftKey;
+    return controller;
+  }
+
+  final _draftKeys = <TextEditingController, String>{};
+
+  Iterable<TextEditingController> get _allFields => _draftKeys.keys;
+
+  bool get _hasEntries =>
+      _allFields.any((field) => field.text.trim().isNotEmpty) ||
+      _extraNames.isNotEmpty;
+
+  Map<String, String> get _draftFields => {
+    for (final entry in _draftKeys.entries)
+      if (entry.key.text.trim().isNotEmpty) entry.value: entry.key.text,
+    for (final extra in _extraNames) 'extra:${extra.name}': '${extra.karat}',
+  };
+
+  void _scheduleDraft() {
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 400), _saveDraft);
+  }
+
+  Future<void> _saveDraft() async {
+    final scope = _draftScope;
+    if (scope == null || _leaving) return;
+    await widget.drafts.write(scope, _draftFields);
+  }
+
+  Future<void> _clearDraft() async {
+    _draftTimer?.cancel();
+    final scope = _draftScope;
+    if (scope != null) await widget.drafts.clear(scope);
+  }
+
+  void _applyDraft(Map<String, String> draft) {
+    _draft = draft;
+    for (final entry in _draftKeys.entries) {
+      final text = draft[entry.value];
+      if (text != null && entry.key.text.isEmpty) entry.key.text = text;
+    }
+    for (final entry in draft.entries) {
+      if (!entry.key.startsWith('extra:')) continue;
+      final name = entry.key.substring(6);
+      final karat = int.tryParse(entry.value);
+      if (karat == null || _extraNames.any((e) => e.name == name)) continue;
+      _extraNames.add((name: name, category: 'worked_jewelry', karat: karat));
+    }
+    if (_namedCounts) _rebuildGrid();
+  }
+
+  Future<void> _restoreDraft() async {
+    final scope = _draftScope;
+    if (scope == null) return;
+    final draft = await widget.drafts.read(scope);
+    if (!mounted || draft == null || draft.isEmpty) return;
+    setState(() {
+      _applyDraft(draft);
+      _draftRestored = true;
+    });
+  }
+
+  Future<void> _discardDraft() async {
+    await _clearDraft();
+    if (!mounted) return;
+    setState(() {
+      for (final field in _allFields) {
+        field.clear();
+      }
+      _extraNames.clear();
+      if (_namedCounts) _rebuildGrid();
+      _draft = const {};
+      _draftRestored = false;
+      _review = null;
+      _error = null;
+    });
+  }
+
+  /// Back with counts asks first. Leaving keeps the draft on this device; the
+  /// restored-draft banner offers «مسح المسودة».
+  Future<void> _handleBack() async {
+    if (_busy || _unknown) return;
+    if (!_hasEntries) {
+      _leave();
+      return;
+    }
+    final leave = await showAppConfirm(
+      context,
+      title: 'الخروج من التقفيل؟',
+      message:
+          'تبقى الأعداد المدخلة مسودة على هذا الجهاز وتعود عند فتح التقفيل مرة أخرى. لم يُقفل اليوم.',
+      confirmLabel: 'خروج',
+      cancelLabel: 'متابعة العدّ',
+      confirmKey: const Key('close-leave-confirm'),
+      cancelKey: const Key('close-leave-cancel'),
+    );
+    if (!mounted || !leave) return;
+    _draftTimer?.cancel();
+    await _saveDraft();
+    if (mounted) _leave();
+  }
+
+  void _leave([bool? result]) {
+    _leaving = true;
+    _draftTimer?.cancel();
+    Navigator.pop(context, result);
+  }
+
   @override
   void initState() {
     super.initState();
     final counts = widget.day.counts!;
     final cash = counts['cash'] as Map;
     for (final method in cash.keys) {
-      _cash[method as String] = TextEditingController();
+      _cash[method as String] = _field('cash:$method');
     }
     for (final row in counts['stock'] as List) {
       final item = row as Map;
-      _stock['${item['category']}:${item['karat']}'] = [
-        TextEditingController(),
-        TextEditingController(),
-      ];
+      final key = '${item['category']}:${item['karat']}';
+      _stock[key] = [_field('stock:$key:count'), _field('stock:$key:grams')];
     }
     if (_namedCounts) _rebuildGrid();
     for (final row in counts['scrap'] as List) {
-      _scrap[(row as Map)['karat'] as int] = TextEditingController();
+      final karat = (row as Map)['karat'] as int;
+      _scrap[karat] = _field('scrap:$karat');
     }
     if (_namedCounts) _loadNames();
+    _restoreDraft();
   }
 
   Future<void> _loadNames() async {
@@ -100,6 +239,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
     for (final field in _cellCounts.values) {
       field.dispose();
     }
@@ -249,8 +389,8 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     for (final row in _grid.rows) {
       for (final karat in row.karats) {
         final key = ClosingItemGridView.cellKey(row.name, karat);
-        _cellCounts.putIfAbsent(key, TextEditingController.new);
-        _cellGrams.putIfAbsent(key, TextEditingController.new);
+        _cellCounts.putIfAbsent(key, () => _field('cell:$key'));
+        _cellGrams.putIfAbsent(key, () => _field('gram:$key'));
       }
     }
   }
@@ -267,7 +407,8 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
             for (final name in tradeOtherJewelryNames)
               TradeItemChoice(name, 'worked_jewelry'),
             for (final product in _products)
-              if (product.category == 'worked_jewelry')
+              if (product.category == 'worked_jewelry' &&
+                  !isPooledOpeningItem(product.name))
                 TradeItemChoice(product.name, product.category),
           ],
         ),
@@ -309,7 +450,10 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     );
     // Returning closes this stale count. Opening close-day again obtains a fresh
     // version and blank physical-count fields; a correction never closes the day.
-    if (mounted && saved == true) Navigator.pop(context, true);
+    if (mounted && saved == true) {
+      await _clearDraft();
+      if (mounted) _leave(true);
+    }
   }
 
   bool _sameCounts(
@@ -366,8 +510,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
       if (!mounted) return;
       if (result is FinancialCommitted) {
         await _pending.clear(widget.userId, widget.shopId, _key!);
+        await _clearDraft();
         if (!mounted) return;
-        Navigator.pop(context, true);
+        _leave(true);
       } else if (result is FinancialCountMismatch) {
         await _pending.clear(widget.userId, widget.shopId, _key!);
         if (!mounted) return;
@@ -410,8 +555,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     if (!mounted) return;
     if (status is StatusCompleted) {
       await _pending.clear(widget.userId, widget.shopId, key);
+      await _clearDraft();
       if (!mounted) return;
-      Navigator.pop(context, true);
+      _leave(true);
     } else if (status is StatusAbsent) {
       setState(() {
         _unknown = false;
@@ -430,7 +576,10 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     final theme = Theme.of(context);
     final counts = widget.day.counts!;
     return PopScope(
-      canPop: !_busy && !_unknown,
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
       child: Scaffold(
         appBar: AppBar(title: const Text('تقفيل اليومية')),
         body: SafeArea(
@@ -444,6 +593,18 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text('عدّ يوم العمل', style: theme.textTheme.headlineSmall),
+                  if (_draftRestored) ...[
+                    const SizedBox(height: 8),
+                    AppBanner(
+                      key: const Key('close-draft-restored'),
+                      tone: MessageTone.info,
+                      title: 'استُعيدت مسودة العدّ من هذا الجهاز',
+                      message: 'راجع الأعداد قبل المراجعة.',
+                      actionLabel: 'مسح المسودة',
+                      actionKey: const Key('close-draft-discard'),
+                      onAction: _busy || _key != null ? null : _discardDraft,
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   const Text(
                     'أدخل ما عُدّ فعلياً. يمنع أي فرق التقفيل حتى تتم تسويته.',
@@ -459,6 +620,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       readOnly: _review != null,
                       textDirection: TextDirection.ltr,
                       autocorrect: false,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => dismissKeyboard(),
+                      onTapOutside: dismissKeyboardOnTapOutside,
                       enableSuggestions: false,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -500,6 +664,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                             readOnly: _review != null,
                             textDirection: TextDirection.ltr,
                             autocorrect: false,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => dismissKeyboard(),
+                            onTapOutside: dismissKeyboardOnTapOutside,
                             enableSuggestions: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -518,6 +685,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                             readOnly: _review != null,
                             textDirection: TextDirection.ltr,
                             autocorrect: false,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => dismissKeyboard(),
+                            onTapOutside: dismissKeyboardOnTapOutside,
                             enableSuggestions: false,
                             keyboardType: TextInputType.number,
                             inputFormatters: const [
@@ -547,6 +717,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                         readOnly: _review != null,
                         textDirection: TextDirection.ltr,
                         autocorrect: false,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => dismissKeyboard(),
+                        onTapOutside: dismissKeyboardOnTapOutside,
                         enableSuggestions: false,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -590,9 +763,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                     ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      style: TextStyle(color: theme.colorScheme.error),
+                    AppBanner(
+                      tone: _unknown ? MessageTone.warning : MessageTone.error,
+                      title: _error!,
                     ),
                   ],
                 ],

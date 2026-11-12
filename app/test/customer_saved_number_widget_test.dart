@@ -76,7 +76,7 @@ void main() {
     await reviewSaved(t);
     await t.tap(find.byKey(const Key('customer-confirm')));
     await t.pumpAndSettle();
-    expect(find.byKey(const Key('customer-success')), findsNothing);
+    expect(find.byKey(const Key('app-toast')), findsNothing);
     expect(find.byKey(const Key('customer-$customerId')), findsNothing);
     expect(find.textContaining('انتهى الوصول'), findsWidgets);
   });
@@ -155,11 +155,9 @@ void main() {
         expect(g.sent, isEmpty);
         await t.tap(find.byKey(const Key('customer-confirm')));
         await t.pumpAndSettle();
-        expect(find.byKey(const Key('customer-success')), findsOneWidget);
+        expect(find.byKey(const Key('app-toast')), findsOneWidget);
         expect((g.sent.single.body['p_payload'] as Map)['state'], state);
         expect(store.stored, isNull);
-        await t.tap(find.text('عرض ملف العميل'));
-        await t.pumpAndSettle();
         expect(g.row['record_version'], '2');
       },
     );
@@ -199,13 +197,13 @@ void main() {
     commit.complete();
     await t.pumpAndSettle();
     expect(find.byKey(const Key('customer-pending')), findsOneWidget);
-    expect(find.byKey(const Key('customer-success')), findsNothing);
+    expect(find.byKey(const Key('app-toast')), findsNothing);
     expect(g.sent.length, 1);
     g.unknown = false;
     g.hold = null;
     await t.tap(find.byKey(const Key('customer-retry')));
     await t.pumpAndSettle();
-    expect(find.byKey(const Key('customer-success')), findsOneWidget);
+    expect(find.byKey(const Key('app-toast')), findsOneWidget);
     expect(g.sent.length, 1);
   });
   testWidgets(
@@ -353,7 +351,7 @@ void main() {
       g.stamp = null;
       held.complete();
       await t.pumpAndSettle();
-      expect(find.byKey(const Key('customer-success')), findsNothing);
+      expect(find.byKey(const Key('app-toast')), findsNothing);
       expect(find.textContaining('انتهى الوصول'), findsWidgets);
       expect(find.byKey(const Key('customer-$customerId')), findsNothing);
     },

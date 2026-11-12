@@ -3,12 +3,20 @@ import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_theme.dart';
 import '../application/daily_ledger_view.dart';
+import '../domain/opening_catalog.dart';
 
 /// Confirmed cash methods. Honest when the shop has no method balances.
 class LedgerCashBreakdown extends StatelessWidget {
-  const LedgerCashBreakdown({super.key, required this.view});
+  const LedgerCashBreakdown({
+    super.key,
+    required this.view,
+    this.showTitle = true,
+  });
 
   final DailyLedgerView view;
+
+  /// U10: false inside a sheet that already carries the title.
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +24,10 @@ class LedgerCashBreakdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('وسائل الدفع', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
+        if (showTitle) ...[
+          Text('وسائل الدفع', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+        ],
         Text(
           'توزيع الأرصدة حسب نقدي وانستا وفيزا والمحفظة',
           style: theme.textTheme.bodySmall?.copyWith(
@@ -64,10 +74,14 @@ class LedgerTradeWeightBreakdown extends StatelessWidget {
     super.key,
     required this.view,
     required this.kind,
+    this.showTitle = true,
   });
 
   final DailyLedgerView view;
   final String kind;
+
+  /// U10: false inside a sheet that already carries the title.
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +93,7 @@ class LedgerTradeWeightBreakdown extends StatelessWidget {
       groups.putIfAbsent(row.category, () => []).add(row);
     }
     for (final rows in groups.values) {
-      rows.sort((a, b) => b.karat.compareTo(a.karat));
+      rows.sort((a, b) => compareKaratDisplay(a.karat, b.karat));
     }
     const preferred = ['worked_jewelry', 'jewelry', 'bullion', 'coin', 'scrap'];
     final categories = [
@@ -92,8 +106,10 @@ class LedgerTradeWeightBreakdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
+        if (showTitle) ...[
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+        ],
         Text(
           'الوزن الفعلي لكل صنف وعيار.',
           style: theme.textTheme.bodySmall?.copyWith(
@@ -124,9 +140,16 @@ class LedgerTradeWeightBreakdown extends StatelessWidget {
 
 /// Confirmed stock and scrap. Honest when both are empty.
 class LedgerGoldBreakdown extends StatelessWidget {
-  const LedgerGoldBreakdown({super.key, required this.view});
+  const LedgerGoldBreakdown({
+    super.key,
+    required this.view,
+    this.showTitle = true,
+  });
 
   final DailyLedgerView view;
+
+  /// U10: false inside a sheet that already carries the title.
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +169,7 @@ class LedgerGoldBreakdown extends StatelessWidget {
         ifAbsent: () => BigInt.parse(line.milligrams),
       );
     }
-    final karats = byKarat.keys.toList()..sort((a, b) => b.compareTo(a));
+    final karats = byKarat.keys.toList()..sort(compareKaratDisplay);
     final groups = <String, List<({int karat, String grams, String? count})>>{};
     final labels = <String, String>{};
     for (final line in view.stock) {
@@ -189,8 +212,10 @@ class LedgerGoldBreakdown extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('المخزون والكسر', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
+        if (showTitle) ...[
+          Text('المخزون والكسر', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+        ],
         Text(
           'أرصدة الذهب المؤكدة حسب العيار والصنف',
           style: theme.textTheme.bodySmall?.copyWith(

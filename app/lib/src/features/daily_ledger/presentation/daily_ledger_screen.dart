@@ -5,6 +5,7 @@ import '../../../theme/amount_format.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
+import '../../../theme/app_confirm.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_banner.dart';
@@ -743,7 +744,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     );
     if (!mounted) return;
     if (saved == true) {
-      AppMessages.success(context, FeedbackCopy.scrapToStock);
+      // U20: the screen showed its own outcome page.
       _dropItemCache();
       await _controller?.refresh();
       await _maybeLoadFinancialDay(force: true);
@@ -893,26 +894,14 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         _financialPending != null) {
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('فتح يوم عمل جديد'),
-        content: const Text(
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'فتح يوم عمل جديد؟',
+      message:
           'ستبدأ العمليات التالية في يوم عمل جديد. سيظهر تاريخه بعد تأكيد الفتح.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('فتح اليوم'),
-          ),
-        ],
-      ),
+      confirmLabel: 'فتح اليوم',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() => _dayCommandBusy = true);
     try {
       final key = newIdempotencyKey();
@@ -1022,8 +1011,11 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     final businessDay =
         controller?.ledger?.journalContext?.businessDate ??
         controller?.ledger?.businessDay?.businessDate;
+    // U17: a closed day is not the work day any more; say so.
     final daySubtitle = businessDay == null
         ? null
+        : _financialDay?.isClosed == true
+        ? 'لا يوجد يوم مفتوح · آخر يوم مقفول ${formatServerDate(businessDay)}'
         : 'يوم العمل ${formatServerDate(businessDay)}';
     return Scaffold(
       appBar: LedgerAppBar(
@@ -1204,8 +1196,13 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       !_expired &&
                       !controller.readOnly &&
                       _financialPending == null,
-                  onSale: () => _requestTrade(FinancialKind.sale),
-                  onPurchase: () => _requestTrade(FinancialKind.purchase),
+                  // U16: no sale or purchase entry while no day is open.
+                  onSale: _financialDay?.isClosed == true
+                      ? null
+                      : () => _requestTrade(FinancialKind.sale),
+                  onPurchase: _financialDay?.isClosed == true
+                      ? null
+                      : () => _requestTrade(FinancialKind.purchase),
                   onAddReturn:
                       _financialGateway is CustomerReturnGateway &&
                           widget.shop.hasPermission(ShopPermission.sale) &&

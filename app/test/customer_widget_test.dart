@@ -59,9 +59,29 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const Key('customer-save')));
     await t.pumpAndSettle();
-    expect(find.byKey(const Key('customer-success')), findsOneWidget);
+    expect(find.byKey(const Key('app-toast')), findsOneWidget);
     expect((g.sent.single.body['p_payload'] as Map)['phones'], isEmpty);
     expect(store.stored, isNull);
+  });
+  testWidgets('U13: the chosen filter chip scrolls fully into view', (t) async {
+    size(t, width: 320);
+    final g = FakeCustomers();
+    await t.pumpWidget(customerHost(customerScreen(g, MemoryLocker())));
+    await t.pumpAndSettle();
+    final chip = find.byKey(const Key('customer-filter-whatsapp_group'));
+    final screen = t.view.physicalSize.width / t.view.devicePixelRatio;
+    Rect rect() => t.getRect(chip);
+    // Leave only part of the chip on screen (its right end, in RTL).
+    await t.drag(
+      find.byKey(const Key('customer-filter-active')),
+      Offset(80 - rect().right, 0),
+    );
+    await t.pumpAndSettle();
+    expect(rect().left, lessThan(0));
+    await t.tapAt(Offset(rect().right - 20, rect().center.dy));
+    await t.pumpAndSettle();
+    expect(rect().left, greaterThanOrEqualTo(0));
+    expect(rect().right, lessThanOrEqualTo(screen));
   });
   testWidgets('normalized duplicate phones never reach gateway', (t) async {
     size(t);
@@ -102,7 +122,7 @@ void main() {
       await t.tap(find.byKey(const Key('customer-save')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('customer-pending')), findsOneWidget);
-      expect(find.byKey(const Key('customer-success')), findsNothing);
+      expect(find.byKey(const Key('app-toast')), findsNothing);
       expect(
         t
             .widget<FilledButton>(find.byKey(const Key('customer-save')))
@@ -115,7 +135,7 @@ void main() {
       await t.tap(find.byKey(const Key('customer-retry')));
       await t.pumpAndSettle();
       expect(g.sent, hasLength(1));
-      expect(find.byKey(const Key('customer-success')), findsOneWidget);
+      expect(find.byKey(const Key('app-toast')), findsOneWidget);
     },
   );
   testWidgets('duplicate taps while transport in flight submit once', (
@@ -136,7 +156,7 @@ void main() {
     expect(g.sent, hasLength(1));
     hold.complete();
     await t.pumpAndSettle();
-    expect(find.byKey(const Key('customer-success')), findsOneWidget);
+    expect(find.byKey(const Key('app-toast')), findsOneWidget);
   });
   testWidgets('sync preserves edit draft and disables stale save', (t) async {
     size(t);

@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 
+import '../../../theme/app_confirm.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/amount_format.dart';
+import '../../../theme/app_banner.dart';
 import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/feedback_copy.dart';
 import '../../../theme/keyboard_dismiss.dart';
+import '../../../theme/message_tone.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../application/daily_note_submission.dart';
@@ -241,6 +244,11 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
     if (!_sameScreen(generation, user, shop) || status == null) return;
     if (status is NoteStatusCompleted) {
       await _markConfirmed(draft);
+    } else if (status is NoteStatusAbsent &&
+        draft.businessDayId != widget.businessDayId) {
+      // U14: the server never received this draft and its day is over, so it
+      // can no longer be sent; do not preload its text or image.
+      await _discardStaleDraft(draft, generation, user, shop);
     } else if (status is NoteStatusAbsent) {
       setState(() {
         _pending = null;
@@ -258,6 +266,50 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
         setState(() => _error = noteFailureCopy(status.code));
       }
     }
+  }
+
+  Future<void> _discardStaleDraft(
+    DailyNoteDraft draft,
+    int generation,
+    String user,
+    String shop,
+  ) async {
+    try {
+      await widget.drafts.clear(
+        userId: user,
+        shopId: shop,
+        idempotencyKey: draft.idempotencyKey,
+      );
+    } catch (_) {}
+    final image = draft.attachment;
+    if (image != null) {
+      try {
+        await widget.files.delete(
+          userId: user,
+          shopId: shop,
+          clientObjectId: image.clientObjectId,
+        );
+      } catch (_) {}
+    }
+    if (!mounted || !_sameScreen(generation, user, shop)) return;
+    setState(() {
+      _pending = null;
+      _pendingUncertain = false;
+      _pendingUserId = null;
+      _pendingShopId = null;
+      _recorded = null;
+      _idempotencyKey = null;
+      _text.clear();
+      _attachment = null;
+      _bytes = null;
+      _status = null;
+      _error = null;
+    });
+    AppMessages.info(
+      context,
+      'حُذفت مسودة لم تُرسل من يوم سابق',
+      id: 'note-stale-draft',
+    );
   }
 
   Future<void> _clearAttachment() async {
@@ -464,9 +516,12 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
       _bytes = null;
       _idempotencyKey = null;
       _previewUrl = null;
-      _status = DailyNoteCopy.confirmed;
+      _status = null;
       _error = null;
     });
+    if (mounted) {
+      AppMessages.success(context, DailyNoteCopy.confirmed, id: 'note-saved');
+    }
     await _load();
   }
 
@@ -821,16 +876,21 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
         _idempotencyKey = null;
         _previewUrl = null;
       }
+      // M1: a confirmed note is a toast; failures show once, as the error
+      // banner, instead of repeating in the status line.
       _status = switch (outcome.phase) {
-        NoteSubmitPhase.confirmed => DailyNoteCopy.confirmed,
+        NoteSubmitPhase.confirmed => null,
         NoteSubmitPhase.uploading => DailyNoteCopy.uploading,
-        NoteSubmitPhase.uploadFailed => outcome.messageAr,
+        NoteSubmitPhase.uploadFailed => null,
         NoteSubmitPhase.confirming => DailyNoteCopy.confirming,
         NoteSubmitPhase.localDraft => DailyNoteCopy.localDraft,
-        NoteSubmitPhase.rejected => outcome.messageAr,
+        NoteSubmitPhase.rejected => null,
       };
       _error = outcome.isConfirmed ? null : outcome.messageAr;
     });
+    if (outcome.isConfirmed && mounted) {
+      AppMessages.success(context, DailyNoteCopy.confirmed, id: 'note-saved');
+    }
     if (outcome.isConfirmed && generation == _screenGeneration) await _load();
   }
 
@@ -957,30 +1017,15 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
   }
 
   Future<void> _delete(DailyNoteView note) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('مسح الملاحظة؟'),
-        content: const Text(
-          'ستختفي الملاحظة من الدفتر. يبقى سجل التدقيق محفوظًا.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          TextButton(
-            key: const Key('note-delete-confirm'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('مسح'),
-          ),
-        ],
-      ),
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'مسح الملاحظة؟',
+      message: 'ستختفي الملاحظة من الدفتر. يبقى سجل التدقيق محفوظًا.',
+      confirmLabel: 'مسح',
+      destructive: true,
+      confirmKey: const Key('note-delete-confirm'),
     );
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       await _submitChange(note, 'delete', null);
     }
   }
@@ -1164,18 +1209,22 @@ class _DailyNotesScreenState extends State<DailyNotesScreen> {
                   : DailyNoteCopy.save,
             ),
           ),
-          if (_status != null) ...[
+          if (_status != null && _status != _error) ...[
             const SizedBox(height: 12),
-            Text(_status!, key: const Key('daily-note-status')),
+            AppBanner(
+              tone: _status == DailyNoteCopy.localDraft
+                  ? MessageTone.info
+                  : MessageTone.pending,
+              title: _status!,
+              titleKey: const Key('daily-note-status'),
+            ),
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _error!,
-              key: const Key('daily-note-error'),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.error,
-              ),
+            AppBanner(
+              tone: MessageTone.error,
+              title: _error!,
+              titleKey: const Key('daily-note-error'),
             ),
           ],
           if (_restoreFailed || _pendingUncertain) ...[
@@ -1364,7 +1413,7 @@ class _NoteEditFormState extends State<_NoteEditForm> {
     );
     if (widget.wide) {
       return AlertDialog(
-        title: const Text('تعديل'),
+        title: const Text('تعديل الملاحظة'),
         content: field,
         actions: [cancel, save],
       );
@@ -1380,6 +1429,13 @@ class _NoteEditFormState extends State<_NoteEditForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // U14: the sheet says what it edits.
+          Text(
+            'تعديل الملاحظة',
+            key: const Key('note-edit-title'),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTokens.spaceSm),
           field,
           const SizedBox(height: AppTokens.spaceSm),
           save,

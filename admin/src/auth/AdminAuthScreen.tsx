@@ -1,3 +1,4 @@
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
@@ -8,6 +9,7 @@ import Typography from '@mui/material/Typography'
 import { useState, type FormEvent } from 'react'
 import { BrandMark } from '../theme/BrandMark.tsx'
 import type { AdminAccess, AdminAuthGateway } from './AdminAuthGateway.ts'
+import { signInFailureCopy } from './signInFailureCopy.ts'
 import type { ResolvedTheme } from '../theme/themePreference.ts'
 
 export function AdminAuthScreen({
@@ -24,17 +26,17 @@ export function AdminAuthScreen({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy || gateway === null) return
     setBusy(true)
-    setError(false)
+    setError(null)
     try {
       await gateway.signIn(email, password)
-    } catch {
-      setError(true)
+    } catch (failure) {
+      setError(signInFailureCopy(failure))
     } finally {
       setBusy(false)
     }
@@ -45,7 +47,7 @@ export function AdminAuthScreen({
     : status === 'unavailable'
       ? 'خدمة الإدارة غير متاحة الآن. حاول مجددًا.'
       : status === 'denied'
-        ? 'ليس لهذا الحساب صلاحية إدارة المنصة.'
+        ? 'هذا الحساب ليس له صلاحية الإدارة. سجّل الدخول بحساب مدير المنصة.'
         : null
 
   return (
@@ -68,8 +70,10 @@ export function AdminAuthScreen({
         <Box component="form" onSubmit={submit} sx={{ display: 'grid', gap: 2 }}>
           <TextField label="البريد الإلكتروني" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} slotProps={{ htmlInput: { dir: 'ltr' } }} />
           <TextField label="كلمة المرور" type="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} />
-          {message && <Typography role="status" color={status === 'checking' ? 'text.secondary' : 'error'}>{message}</Typography>}
-          {error && <Typography role="alert" color="error">تعذر تسجيل الدخول. تحقق من البيانات وحاول مجددًا.</Typography>}
+          {message && (status === 'checking'
+            ? <Typography role="status" color="text.secondary">{message}</Typography>
+            : <Alert severity={status === 'denied' ? 'warning' : 'error'} role="alert">{message}</Alert>)}
+          {error && <Alert severity="error" role="alert">{error}</Alert>}
           <Button type="submit" variant="contained" disabled={busy || gateway === null || status === 'checking'}>
             {busy ? 'جارٍ تسجيل الدخول…' : 'دخول'}
           </Button>

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../theme/amount_format.dart';
+import '../../../theme/app_outcome.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
@@ -1477,18 +1478,24 @@ class _DebtScreenState extends State<DebtScreen> {
   List<Widget> _successView() {
     final saved = _saved;
     return [
-      Text(
-        'تم حفظ الطلب بعد تأكيد الخادم.',
-        key: const Key('debt-success'),
-        style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
+      AppOutcome(
+        title: 'تم حفظ طلب الديون',
+        titleKey: const Key('debt-success'),
+        subtitle: saved == null
+            ? 'أكد الخادم الحفظ.'
+            : saved.replayed
+            ? 'هذا الطلب محفوظ سابقًا ولم يتكرر.'
+            : 'أكد الخادم الحفظ.',
+        figures: [
+          if (saved != null)
+            OutcomeFigure(
+              'الحالة',
+              debtStatusLabels[saved.displayStatus] ?? 'حالة غير متاحة',
+            ),
+        ],
       ),
-      if (saved != null) ...[
-        Text(saved.replayed ? 'أُعيدت نتيجة الطلب السابق.' : 'طلب جديد.'),
-        Text(
-          'الحالة: ${debtStatusLabels[saved.displayStatus] ?? 'حالة غير متاحة'}',
-        ),
-        _effectLines(saved.effect),
-      ],
+      if (saved != null) _effectLines(saved.effect),
+      const SizedBox(height: AppTokens.spaceMd),
       _button('العودة إلى الديون', () {
         setState(() => _stage = _Stage.list);
         _load();

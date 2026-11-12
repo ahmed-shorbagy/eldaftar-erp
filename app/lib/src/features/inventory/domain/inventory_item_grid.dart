@@ -95,7 +95,7 @@ List<InventoryGridRow> orderInventoryGridRows(Iterable<InventoryGridRow> rows) {
       byName.remove(name) ?? InventoryGridRow(itemName: name, cells: const {}),
     );
   }
-  final opening = byName.remove('رصيد افتتاحي مجمّع');
+  final opening = byName.remove(pooledOpeningItemName);
   final rest = byName.values.toList()
     ..sort((a, b) => a.itemName.compareTo(b.itemName));
   // Custom items with stock only (no empty custom rows).

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/failure_feedback.dart';
 import '../../../theme/message_tone.dart';
 
 import '../../daily_ledger/application/idempotency_key.dart';
@@ -105,6 +106,8 @@ class _CommandHostState extends State<CommandHost> {
   bool _unconfirmed = false;
   bool _saved = false;
   bool _error = false;
+  // M1: the gateway code behind an error message picks the banner tone.
+  String? _errorCode;
 
   @override
   void initState() {
@@ -142,6 +145,7 @@ class _CommandHostState extends State<CommandHost> {
       setState(() {
         _review = null;
         _error = true;
+        _errorCode = null;
         _message = dayStaleCopy;
       });
     }
@@ -152,6 +156,7 @@ class _CommandHostState extends State<CommandHost> {
     setState(() {
       _review = null;
       _error = true;
+      _errorCode = null;
       _message = reviewStaleCopy;
     });
   }
@@ -163,10 +168,12 @@ class _CommandHostState extends State<CommandHost> {
     setState(() {
       if (result is InventoryAccepted<ReviewedCommand>) {
         _review = result.value;
+        _errorCode = null;
         _message = 'راجع العملية ثم أكد الحفظ. لم تُحفظ بعد.';
         _error = false;
       } else if (result is InventoryRejected<ReviewedCommand>) {
         _review = null;
+        _errorCode = null;
         _message = inventoryIssueCopy(result.code);
         _error = true;
       }
@@ -198,6 +205,7 @@ class _CommandHostState extends State<CommandHost> {
       setState(() {
         _review = null;
         _error = true;
+        _errorCode = null;
         _message = fresh is InventoryAccepted<ReviewedCommand>
             ? (fresh.value.payload['expected_day_id'] == day.dayId &&
                       fresh.value.payload['expected_day_version'] ==
@@ -213,6 +221,7 @@ class _CommandHostState extends State<CommandHost> {
     setState(() {
       _busy = true;
       _key = key;
+      _errorCode = null;
       _message = null;
     });
     final result = await widget.flow.submit(
@@ -247,6 +256,7 @@ class _CommandHostState extends State<CommandHost> {
         _saved = true;
         _unconfirmed = false;
         _error = false;
+        _errorCode = null;
         _message = result.replayed
             ? 'تم حفظ هذه العملية سابقًا، ولم تتكرر.'
             : 'تم حفظ العملية بنجاح.';
@@ -266,6 +276,7 @@ class _CommandHostState extends State<CommandHost> {
         _review = result.rereview ? null : _review;
         _day = day;
         _error = true;
+        _errorCode = result.code;
         _message = inventoryFailureCopy(result.code);
       });
       return;
@@ -277,6 +288,7 @@ class _CommandHostState extends State<CommandHost> {
         _pending = result.command;
         _key = result.command.key;
         _error = true;
+        _errorCode = null;
         _message = result.statusUnknown
             ? 'لم يتأكد الحفظ. الطلب محفوظ على الجهاز ولم يُحتسب في الأرصدة.'
             : 'لم نتأكد من حفظ العملية. أعد المحاولة دون تغيير البيانات أو بدء عملية جديدة.';
@@ -288,6 +300,7 @@ class _CommandHostState extends State<CommandHost> {
         _busy = false;
         _error = true;
         _key = null;
+        _errorCode = result.code;
         _message = inventoryFailureCopy(result.code);
       });
     }
@@ -322,7 +335,7 @@ class _CommandHostState extends State<CommandHost> {
           message: _message!,
           error: _error,
           tone: _error
-              ? (_unconfirmed ? MessageTone.warning : MessageTone.error)
+              ? (_unconfirmed ? MessageTone.warning : failureTone(_errorCode))
               : (_saved ? MessageTone.success : MessageTone.info),
         ),
         const SizedBox(height: 12),

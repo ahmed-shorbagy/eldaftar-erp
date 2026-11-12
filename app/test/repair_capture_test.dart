@@ -138,10 +138,6 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.textContaining('نقدي').last);
         await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const Key('repair-tender-amount-0')),
-          '80',
-        );
         await _capture(tester, capture, 'paid-form-$suffix');
         await tester.ensureVisible(
           find.byKey(const Key('repair-handover-review')),
@@ -274,6 +270,31 @@ void main() {
         await _capture(tester, capture, 'pending-$suffix');
       });
 
+      testWidgets('repair intake field spacing $suffix', (tester) async {
+        await _openSized(tester, width);
+        await tester.pumpWidget(
+          _host(
+            child: RepairScreen(
+              gateway: FakeRepairs(),
+              store: MemoryLocker(),
+              userId: userId,
+              shopId: shopId,
+              readOnly: false,
+              newKey: () => key,
+            ),
+            brightness: brightness,
+            capture: GlobalKey(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('repair-new')));
+        await tester.pumpAndSettle();
+        // U12: «العيار» and «العطل» no longer touch.
+        final karat = tester.getRect(find.byKey(const Key('repair-karat')));
+        final issue = tester.getRect(find.byKey(const Key('repair-issue')));
+        expect(issue.top - karat.bottom, greaterThanOrEqualTo(8));
+      });
+
       testWidgets('repair success $suffix', (tester) async {
         await _openSized(tester, width);
         final capture = GlobalKey();
@@ -297,9 +318,12 @@ void main() {
         await _fillIntake(tester);
         await tester.tap(find.byKey(const Key('repair-intake-submit')));
         await tester.pumpAndSettle();
+        // U12: the review states the weight once.
+        expect(find.byKey(const Key('repair-review-weight')), findsOneWidget);
+        expect(find.textContaining('الوزن المدخل'), findsNothing);
         await tester.tap(find.byKey(const Key('repair-intake-confirm')));
         await tester.pumpAndSettle();
-        expect(find.byKey(const Key('repair-success')), findsOneWidget);
+        expect(find.text('تم استلام المرمة'), findsOneWidget);
         await _capture(tester, capture, 'success-$suffix');
       });
 

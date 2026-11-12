@@ -68,6 +68,30 @@ void main() {
     },
   );
 
+  testWidgets('U5: an expense card shows its description once', (tester) async {
+    const expense = LedgerFeedLine(
+      kind: 'expense',
+      labelAr: 'مصروف',
+      operationId: '00000000-0000-4000-8000-0000000000e5',
+      actorDisplayName: 'مالك اختبار',
+      occurredAt: '2026-10-12T09:00:00Z',
+      occurredAtCairo: '2026-10-12T12:00:00',
+      totalPounds: '250.00',
+      itemSummary: 'إيجار المحل',
+    );
+    await tester.pumpWidget(surface(const LedgerOperationTable(line: expense)));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const Key(
+          'ledger-expense-description-00000000-0000-4000-8000-0000000000e5',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('إيجار المحل'), findsOneWidget);
+  });
+
   for (final dark in [false, true]) {
     testWidgets(
       'two items, full total and disclosure in ${dark ? 'dark' : 'light'} RTL',

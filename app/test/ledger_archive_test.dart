@@ -27,8 +27,20 @@ class _Reports implements ReportGateway {
   Future<List<ReportDay>> reportDays(String userId, String shopId) async =>
       const [
         ReportDay('1', '2026-11-07', 'closed', '2026-11-07T08:00:00'),
-        ReportDay('2', '2026-11-08', 'closed', '2026-11-08T09:30:00'),
-        ReportDay('3', '2026-11-08', 'closed', '2026-11-08T18:00:00'),
+        ReportDay(
+          '2',
+          '2026-11-08',
+          'closed',
+          '2026-11-08T09:30:00',
+          closedAtShop: '2026-11-08 17:45:00',
+        ),
+        ReportDay(
+          '3',
+          '2026-11-08',
+          'closed',
+          '2026-11-08T18:00:00',
+          closedAtShop: '2026-11-09 01:10:00',
+        ),
         ReportDay('4', '2026-11-09', 'open', '2026-11-09T08:00:00'),
       ];
 
@@ -169,9 +181,15 @@ void main() {
         find.byKey(const Key('ledger-archive-2026-11-07')),
         findsOneWidget,
       );
-      expect(find.text('مقفول · فُتح 18:00'), findsOneWidget);
+      // U18: the close time; a close after midnight names its date.
+      expect(
+        find.text('مقفول · فُتح 18:00 · أُقفل 9 نوفمبر 2026 01:10'),
+        findsOneWidget,
+      );
       // Two sessions closed on 2026-11-08 are two entries.
-      expect(find.text('مقفول · فُتح 09:30'), findsOneWidget);
+      expect(find.text('مقفول · فُتح 09:30 · أُقفل 17:45'), findsOneWidget);
+      // An older server without a close time keeps the opening only.
+      expect(find.text('مقفول · فُتح 08:00'), findsOneWidget);
       expect(find.byKey(const Key('ledger-archive-2')), findsOneWidget);
       final tiles = find.byType(ListTile);
       expect(

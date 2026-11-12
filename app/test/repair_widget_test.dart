@@ -230,7 +230,9 @@ void main() {
     final payload = gateway.posted!.body['p_payload']! as Map;
     expect(payload['measured_milligrams'], '1255');
     expect(payload['estimated_fee_piastres'], '15000');
-    expect(find.byKey(const Key('repair-success')), findsOneWidget);
+    // M1: a toast confirms and the owner returns to the list.
+    expect(find.text('تم استلام المرمة'), findsOneWidget);
+    expect(find.byKey(const Key('repair-new')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -273,9 +275,13 @@ void main() {
     expect(payload['collected_piastres'], '0');
     expect(payload.containsKey('expected_day_id'), isFalse);
 
+    // U12: the owner stays on the repair with a toast.
+    expect(find.text('تم تسليم المرمة'), findsOneWidget);
+    expect(find.textContaining('الوزن الأصلي'), findsOneWidget);
+
     gateway.posts = 0;
     gateway.summary = sample(status: 'in_progress');
-    await tester.tap(find.byKey(const Key('repair-back-to-list')));
+    await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
     await tester.tap(find.text('عميل الإصلاح'));
     await tester.pumpAndSettle();
@@ -358,8 +364,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(gateway.posts, 1);
     expect(gateway.posted?.key, key);
-    await tester.tap(find.byKey(const Key('repair-back-to-list')));
-    await tester.pumpAndSettle();
 
     gateway.posts = 0;
     locker.stored = null;

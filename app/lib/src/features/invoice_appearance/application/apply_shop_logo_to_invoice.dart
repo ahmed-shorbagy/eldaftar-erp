@@ -11,7 +11,10 @@ import 'invoice_appearance_gateway.dart';
 import 'logo_codec.dart';
 
 /// Result of putting the shop logo on the saved invoice appearance.
-enum ApplyLogoOutcome { applied, alreadyApplied, notAllowed, failed }
+///
+/// `skipped`: [ApplyShopLogoToInvoice.call] with `onlyWhenUnset` found an
+/// appearance the owner already saved, so nothing was changed.
+enum ApplyLogoOutcome { applied, alreadyApplied, notAllowed, failed, skipped }
 
 /// Upload result shared by the appearance screen and [ApplyShopLogoToInvoice].
 sealed class ShopLogoUploadOutcome {
@@ -156,9 +159,10 @@ final class ApplyShopLogoToInvoice {
     required String userId,
     required String shopId,
     required Uint8List logoBytes,
+    bool onlyWhenUnset = false,
   }) async {
     try {
-      return await _run(userId, shopId, logoBytes);
+      return await _run(userId, shopId, logoBytes, onlyWhenUnset);
     } catch (_) {
       return ApplyLogoOutcome.failed;
     }
@@ -168,6 +172,7 @@ final class ApplyShopLogoToInvoice {
     String userId,
     String shopId,
     Uint8List logoBytes,
+    bool onlyWhenUnset,
   ) async {
     if (_pending != null) {
       return _finish(
@@ -187,6 +192,12 @@ final class ApplyShopLogoToInvoice {
       shopId: shopId,
     );
     if (!snapshot.canWrite) return ApplyLogoOutcome.notAllowed;
+    // O3 (ADR 0047 D5): the one-time backfill never overrides an appearance
+    // the owner already saved, with or without a logo.
+    if (onlyWhenUnset &&
+        (snapshot.value.revision != 0 || snapshot.value.logoSha256 != null)) {
+      return ApplyLogoOutcome.skipped;
+    }
     final PreparedLogo prepared;
     try {
       prepared = await prepareLogo(logoBytes);

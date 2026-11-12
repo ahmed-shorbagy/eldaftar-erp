@@ -318,6 +318,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('نقص \u2066100'), findsOneWidget);
+      // U6: a zero purchase-payable change is not shown on a sale.
+      expect(find.byKey(const Key('trade-change-payable')), findsNothing);
+      expect(find.textContaining('مستحقات الشراء'), findsNothing);
       expect(gateway.posts, isEmpty);
       final confirm = find.byKey(const Key('trade-change-confirm'));
       await t.ensureVisible(confirm);
@@ -460,6 +463,18 @@ void main() {
         );
         expect(find.byKey(const Key('operation-edit')), findsOneWidget);
         expect(find.byKey(const Key('operation-delete')), findsOneWidget);
+        if (entry.$1 == 'expense') {
+          // U5: an expense shows its description, not «لا توجد بيانات عميل».
+          expect(
+            find.byKey(const Key('operation-customer-absent')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const Key('operation-expense-description')),
+            findsOneWidget,
+          );
+          expect(find.textContaining('إيجار المحل'), findsWidgets);
+        }
       }
       final linked = RevisionGateway()
         ..operationKind = 'sale_return'

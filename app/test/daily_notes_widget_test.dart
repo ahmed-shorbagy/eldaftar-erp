@@ -731,6 +731,46 @@ void main() {
     expect(find.text(DailyNoteCopy.confirmed), findsNothing);
   });
 
+  testWidgets('U14: an unsent draft from an earlier day is not preloaded', (
+    tester,
+  ) async {
+    final drafts = MemoryDrafts();
+    await drafts.save(
+      userId: userId,
+      draft: composeDailyNote(
+        idempotencyKey: pendingKey,
+        shopId: shopId,
+        businessDayId: '77777777-7777-4777-8777-777777777777',
+        text: 'مسودة أمس',
+      ).draft!,
+    );
+    final notes = NoteScript()..statusResult = const NoteStatusAbsent();
+    await pumpApp(
+      tester,
+      DailyNotesScreen(
+        gateway: notes,
+        userId: userId,
+        shopId: shopId,
+        businessDayId: dayId,
+        drafts: drafts,
+        files: MemoryFiles(),
+        images: ScriptImages(),
+        newKey: () => pendingKey,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('daily-note-text')))
+          .controller!
+          .text,
+      isEmpty,
+    );
+    expect(drafts.saved, isNull);
+    expect(find.text('حُذفت مسودة لم تُرسل من يوم سابق'), findsOneWidget);
+    expect(notes.posts, 0);
+  });
+
   testWidgets(
     'an uncertain note keeps the stored payload when the day and text change',
     (tester) async {
@@ -1112,6 +1152,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('تعديل'));
     await tester.pumpAndSettle();
+    // U14: the edit sheet has a title.
+    expect(find.byKey(const Key('note-edit-title')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('note-edit-text')), 'نص جديد');
     await tester.tap(find.byKey(const Key('note-edit-save')));
     await tester.pumpAndSettle();

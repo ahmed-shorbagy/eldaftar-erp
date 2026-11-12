@@ -10,6 +10,19 @@ import 'financial_operation_screen.dart';
 import 'ledger_date_screen.dart';
 import 'opening_copy.dart';
 
+/// U18: «مقفول · فُتح 09:30 · أُقفل 21:15». A close after midnight names its
+/// date; an older server without a close time shows the opening only.
+String archiveDaySubtitle(ReportDay day) {
+  final opened = 'مقفول · فُتح ${day.openedAtShop.substring(11, 16)}';
+  final closed = day.closedAtShop;
+  if (closed == null) return opened;
+  final time = closed.substring(11, 16);
+  final closedDate = closed.substring(0, 10);
+  return closedDate == day.openedAtShop.substring(0, 10)
+      ? '$opened · أُقفل $time'
+      : '$opened · أُقفل ${formatServerDate(closedDate)} $time';
+}
+
 /// Read-only list of closed financial days. Nothing here reopens a day.
 class LedgerArchiveScreen extends StatefulWidget {
   const LedgerArchiveScreen({
@@ -190,9 +203,7 @@ class _LedgerArchiveScreenState extends State<LedgerArchiveScreen> {
                                 : 'ledger-archive-${_days[index].date}',
                           ),
                           title: Text(formatLedgerHeading(_days[index].date)),
-                          subtitle: Text(
-                            'مقفول · فُتح ${_days[index].openedAtShop.substring(11, 16)}',
-                          ),
+                          subtitle: Text(archiveDaySubtitle(_days[index])),
                           trailing: const Icon(Icons.chevron_left),
                           onTap: () => _open(_days[index]),
                         ),

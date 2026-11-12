@@ -172,7 +172,7 @@ void main() {
       await t.pumpAndSettle();
       expect(find.textContaining('تم تسليم'), findsNothing);
       expect(g.sent, isEmpty);
-      expect(find.byKey(const Key('customer-success')), findsNothing);
+      expect(find.byKey(const Key('app-toast')), findsNothing);
     });
   }
   testWidgets(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
@@ -95,6 +96,24 @@ class _PhoneDraft {
 }
 
 class _CustomerScreenState extends State<CustomerScreen> {
+  // U13: each filter chip, so the chosen one can be scrolled fully into view.
+  final _filterChipKeys = <String, GlobalKey>{};
+
+  void _revealFilterChip(String key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _filterChipKeys[key]?.currentContext;
+      if (!mounted || target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 0.5,
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   final _search = TextEditingController(),
       _name = TextEditingController(),
       _note = TextEditingController(),
@@ -378,7 +397,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       _stale = false;
       _review = null;
       _operation = null;
-      _stage = _stage == 'detail' || _stage == 'success'
+      _stage = _stage == 'detail'
           ? 'list'
           : _detail == null
           ? 'list'
@@ -451,15 +470,27 @@ class _CustomerScreenState extends State<CustomerScreen> {
       return;
     }
     if (result.receipt != null) {
+      // U13 / M1: confirm with a toast and land on the customer's file
+      // instead of a separate success page.
+      final receipt = result.receipt!;
       _detail = CustomerDetail(
-        result.receipt!.customer,
+        receipt.customer,
         const CustomerSection([], null),
         const CustomerSection([], null),
         const CustomerSection([], null),
       );
-      _stage = 'success';
       _review = null;
       _stale = false;
+      _operation = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppMessages.success(
+          context,
+          customerSavedCopy(receipt.kind),
+          id: 'customer-saved',
+        );
+        _openCustomer(receipt.customer);
+      });
     } else if (result.error == 'stale_customer' ||
         result.error == 'stale_number') {
       _stale = true;
@@ -1064,14 +1095,17 @@ class _CustomerScreenState extends State<CustomerScreen> {
               'all': 'الكل',
             }.entries)
               Padding(
+                key: _filterChipKeys.putIfAbsent(entry.key, GlobalKey.new),
                 padding: const EdgeInsetsDirectional.only(end: 8),
                 child: FilterChip(
+                  key: Key('customer-filter-${entry.key}'),
                   label: Text(entry.value),
                   selected: _filter == entry.key,
                   onSelected: _loading
                       ? null
                       : (_) {
                           setState(() => _filter = entry.key);
+                          _revealFilterChip(entry.key);
                           _reload();
                         },
                 ),
@@ -1730,34 +1764,6 @@ class _CustomerScreenState extends State<CustomerScreen> {
         primary: true,
       ),
     ],
-    'success' => [
-      Icon(
-        Icons.check_circle_outline,
-        size: 48,
-        color: Theme.of(context).colorScheme.tertiary,
-      ),
-      Text(
-        'تم تأكيد التغيير وحفظه',
-        key: const Key('customer-success'),
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
-      if (_detail != null) Text(_detail!.customer.name),
-      _action(
-        'عرض ملف العميل',
-        _pending != null || _detail == null
-            ? null
-            : () => _openCustomer(_detail!.customer),
-      ),
-      _action(
-        'قائمة بيانات العملاء',
-        _pending != null
-            ? null
-            : () {
-                setState(() => _stage = 'list');
-                _reload();
-              },
-      ),
-    ],
     _ => [],
   };
   @override
@@ -1864,3 +1870,17 @@ class _CustomerScreenState extends State<CustomerScreen> {
     ),
   );
 }
+
+/// Toast copy for a confirmed customer command (M1).
+String customerSavedCopy(String kind) => switch (kind) {
+  'customer_create' => 'تمت إضافة العميل',
+  'customer_edit' => 'تم حفظ بيانات العميل',
+  'customer_status' => 'تم تغيير حالة العميل',
+  'customer_note' => 'تمت إضافة الملاحظة إلى ملف العميل',
+  'customer_link' => 'تم ربط العملية بالعميل',
+  'customer_unlink' => 'تم إلغاء ربط العملية بالعميل',
+  'customer_archive' => 'تمت أرشفة العميل',
+  'customer_restore' => 'تمت استعادة العميل',
+  'customer_saved_number' => 'تم حفظ حالة الرقم',
+  _ => 'تم حفظ التغيير',
+};

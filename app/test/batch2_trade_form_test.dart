@@ -618,11 +618,21 @@ void main() {
       kind: FinancialKind.expense,
     );
     expect(find.byKey(const Key('trade-customer-disclosure')), findsNothing);
+    // U5: the description comes before the payment section.
+    expect(
+      tester.getTopLeft(find.byKey(const Key('trade-description'))).dy,
+      lessThan(tester.getTopLeft(find.text('طرق الدفع')).dy),
+    );
     await enterTradeField(tester, const Key('trade-description'), 'نقل');
     await enterTradeField(tester, const Key('trade-tender-amount-0'), '10');
     await reviewTrade(tester);
     expect(find.byKey(const Key('trade-confirm')), findsOneWidget);
     expect(find.textContaining('لا يتغير الذهب'), findsOneWidget);
+    // U5: no five-step sale stepper and an explicit description line.
+    expect(find.text('الصنف'), findsNothing);
+    expect(find.text('البيانات'), findsNothing);
+    expect(find.byKey(const Key('trade-review-description')), findsOneWidget);
+    expect(find.textContaining('نقل'), findsWidgets);
 
     final scrap = Batch2TradeGateway();
     await pumpTradeScreen(

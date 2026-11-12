@@ -8,7 +8,8 @@ import '../application/idempotency_key.dart';
 import '../domain/opening_catalog.dart';
 import 'ledger_form_fields.dart';
 
-export '../domain/jewelry_items.dart' show tradeOtherJewelryNames;
+export '../domain/jewelry_items.dart'
+    show isPooledOpeningItem, tradeOtherJewelryNames;
 
 /// A selectable trade item name and its stock category.
 final class TradeItemChoice {

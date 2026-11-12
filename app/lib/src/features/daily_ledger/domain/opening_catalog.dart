@@ -73,6 +73,17 @@ abstract final class ScrapKarats {
 /// Owner order: the common Egyptian karats first, 22 and 14 last.
 const karatDisplayOrder = <int>[18, 21, 24, 22, 14];
 
+/// Sort comparator for [karatDisplayOrder]; unknown karats go last, highest
+/// first (O4: weight sheets match the choice lists).
+int compareKaratDisplay(int a, int b) {
+  final ia = karatDisplayOrder.indexOf(a);
+  final ib = karatDisplayOrder.indexOf(b);
+  if (ia == -1 && ib == -1) return b.compareTo(a);
+  if (ia == -1) return 1;
+  if (ib == -1) return -1;
+  return ia.compareTo(ib);
+}
+
 List<int> orderedKarats(Iterable<int> allowed) => [
   for (final karat in karatDisplayOrder)
     if (allowed.contains(karat)) karat,

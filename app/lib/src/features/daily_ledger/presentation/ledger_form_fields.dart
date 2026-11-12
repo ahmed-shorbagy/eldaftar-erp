@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../theme/keyboard_dismiss.dart';
 import '../../../theme/cash_input.dart';
 import '../../../theme/gram_input.dart';
 
@@ -187,7 +188,7 @@ class ClosingCountCell extends StatelessWidget {
     this.fieldKey,
     this.readOnly = false,
     this.weight = false,
-    this.textInputAction = TextInputAction.next,
+    this.textInputAction = TextInputAction.done,
     this.onSubmitted,
     this.width,
   });
@@ -226,7 +227,9 @@ class ClosingCountCell extends StatelessWidget {
                   const GramInputFormatter(decimalPlaces: 0),
                   LengthLimitingTextInputFormatter(4),
                 ],
-          onSubmitted: onSubmitted,
+          onSubmitted: onSubmitted ?? (_) => dismissKeyboard(),
+          // U15: tapping anywhere else closes the keyboard.
+          onTapOutside: dismissKeyboardOnTapOutside,
           decoration: ledgerFieldDecoration(context, label: ' ').copyWith(
             labelText: null,
             floatingLabelBehavior: FloatingLabelBehavior.never,

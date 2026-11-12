@@ -1,3 +1,4 @@
+import '../../../theme/app_confirm.dart';
 import 'package:flutter/material.dart';
 
 import '../../daily_ledger/application/idempotency_key.dart';
@@ -141,24 +142,15 @@ class _ShopStaffScreenState extends State<ShopStaffScreen> {
 
   Future<void> _revoke(ShopStaffMember member) async {
     if (_busy || !widget.canWrite()) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialog) => AlertDialog(
-        title: const Text('إيقاف الموظف'),
-        content: Text('إيقاف ${member.displayName} من الوصول للمتجر؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialog, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialog, true),
-            child: const Text('إيقاف'),
-          ),
-        ],
-      ),
+    final ok = await showAppConfirm(
+      context,
+      title: 'إيقاف الموظف؟',
+      message:
+          'سيفقد ${member.displayName} الوصول إلى المتجر فورًا. تبقى عملياته السابقة محفوظة.',
+      confirmLabel: 'إيقاف',
+      destructive: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     setState(() => _busy = true);
     try {
       await widget.gateway.revokeStaff(

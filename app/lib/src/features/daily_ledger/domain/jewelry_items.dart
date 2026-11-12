@@ -28,8 +28,21 @@ const jewelryLegacyNames = <String, String>{
   'كوليه': 'كوليهات',
 };
 
-String canonicalJewelryName(String name) =>
-    jewelryLegacyNames[name.trim()] ?? name.trim();
+/// Stock confirmed before item names existed (opening balances, ADR 0043).
+const pooledOpeningItemName = 'رصيد افتتاحي مجمّع';
+
+/// O2: an older backfill named the pooled opening lots this way.
+const legacyPooledOpeningItemName = 'رصيد سابق مجمّع';
+
+String canonicalJewelryName(String name) {
+  final trimmed = name.trim();
+  if (trimmed == legacyPooledOpeningItemName) return pooledOpeningItemName;
+  return jewelryLegacyNames[trimmed] ?? trimmed;
+}
+
+/// The pooled opening stock is not an item the owner can choose.
+bool isPooledOpeningItem(String name) =>
+    canonicalJewelryName(name) == pooledOpeningItemName;
 
 /// Built-ins shown as the four main trade tiles (glyphs).
 const jewelryMainTileNames = <String>['خواتم', 'حلقان', 'سلاسل', 'تعاليق'];

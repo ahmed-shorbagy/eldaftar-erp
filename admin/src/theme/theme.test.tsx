@@ -96,3 +96,23 @@ test('global body styles never force left-to-right through the RTL style plugin'
     expect(css).not.toMatch(/direction\s*:\s*ltr/)
   }
 })
+
+test('inline notices use tinted tone surfaces and the brand accent for info', () => {
+  for (const mode of ['light', 'dark'] as const) {
+    const theme = createAppTheme(mode)
+    const accent = mode === 'light' ? tokens.lightAccent : tokens.darkAccent
+    expect(theme.palette.info.main).toBe(accent)
+    const overrides = theme.components?.MuiAlert?.styleOverrides
+    const root = overrides?.root as (props: {
+      theme: typeof theme
+      ownerState: { severity: 'error' | 'info' | 'success' | 'warning'; variant: 'standard' }
+    }) => Record<string, unknown>
+    for (const severity of ['error', 'info', 'success', 'warning'] as const) {
+      const style = root({ theme, ownerState: { severity, variant: 'standard' } })
+      expect(style.borderRadius).toBe(tokens.fieldRadius)
+      expect(style.color).toBe(mode === 'light' ? tokens.lightOnSurface : tokens.darkOnSurface)
+      expect(String(style.border)).toContain('rgba(')
+      expect(String(style.backgroundColor)).toContain('rgba(')
+    }
+  }
+})

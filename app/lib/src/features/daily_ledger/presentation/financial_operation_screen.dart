@@ -4,8 +4,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_banner.dart';
+import '../../../theme/failure_feedback.dart';
 import '../../../theme/message_tone.dart';
 import '../../../theme/whatsapp_icon.dart';
+import 'ledger_journal_table.dart';
 import '../../invoice_message/application/message_gateway.dart';
 import '../../invoice_message/data/url_message_launcher.dart';
 import '../../invoice_message/domain/message_template.dart';
@@ -191,6 +193,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
 
   bool _changeBusy = false;
   String? _changeError;
+  MessageTone _changeErrorTone = MessageTone.error;
   bool get _active => _operation?['trade_change'] == null;
 
   Future<bool> _reviewChange(
@@ -244,6 +247,9 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         );
         setState(() {
           _changeError = message;
+          _changeErrorTone = failureTone(
+            e is LedgerReadException ? e.code : null,
+          );
           if (e is LedgerReadException &&
               const {
                 'forbidden',
@@ -341,11 +347,11 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
           _operation = null;
           _dispatch = null;
         }
-        setState(
-          () => _changeError = tradeChangeFailure(
-            e is LedgerReadException ? e.code : null,
-          ),
-        );
+        setState(() {
+          final code = e is LedgerReadException ? e.code : null;
+          _changeError = tradeChangeFailure(code);
+          _changeErrorTone = failureTone(code);
+        });
       }
     } finally {
       if (mounted) setState(() => _changeBusy = false);
@@ -390,19 +396,54 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                 : ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Text(
-                        widget.line.labelAr,
-                        style: theme.textTheme.headlineSmall,
+                      // U9: the app bar already names the operation; the
+                      // facts sit in one card instead of a plain text list.
+                      Card(
+                        key: const Key('operation-summary-card'),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (sequence is String)
+                                _infoRow(
+                                  theme,
+                                  Icons.tag_rounded,
+                                  Text('رقم العملية: $sequence'),
+                                ),
+                              _infoRow(
+                                theme,
+                                Icons.person_outline_rounded,
+                                Text(
+                                  '${actorLabel(widget.line.kind)}: ${operation?['actor_display_name'] ?? widget.line.actorDisplayName}',
+                                ),
+                              ),
+                              _infoRow(
+                                theme,
+                                Icons.schedule_rounded,
+                                Text(
+                                  'الوقت: ${formatShopTwelveHourTime(widget.line.displayTime)}',
+                                  key: const Key('operation-time'),
+                                ),
+                              ),
+                              // U5: an expense has a description, not a
+                              // customer.
+                              for (final row
+                                  in widget.line.kind == 'expense'
+                                      ? _expenseDescription(details)
+                                      : _customerBlock(details))
+                                _infoRow(
+                                  theme,
+                                  widget.line.kind == 'expense'
+                                      ? Icons.notes_rounded
+                                      : Icons.badge_outlined,
+                                  row,
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
-                      if (sequence is String) Text('رقم العملية: $sequence'),
-                      Text(
-                        'اسم البائع: ${operation?['actor_display_name'] ?? widget.line.actorDisplayName}',
-                      ),
-                      Text(
-                        'الوقت: ${formatShopTwelveHourTime(widget.line.displayTime)}',
-                        key: const Key('operation-time'),
-                      ),
-                      ..._customerBlock(details),
+                      const SizedBox(height: 8),
                       ..._notesBlock(theme, details, widget.line.hasNote),
                       const SizedBox(height: 16),
                       if (details['total_piastres'] is String) ...[
@@ -614,7 +655,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
                             child: AppBanner(
-                              tone: MessageTone.error,
+                              tone: _changeErrorTone,
                               title: _changeError!,
                               titleKey: const Key('operation-change-error'),
                             ),
@@ -654,6 +695,31 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         ),
       ),
     );
+  }
+
+  Widget _infoRow(ThemeData theme, IconData icon, Widget text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 10),
+        Expanded(child: text),
+      ],
+    ),
+  );
+
+  List<Widget> _expenseDescription(Map details) {
+    final description = details['description'] is String
+        ? (details['description'] as String).trim()
+        : '';
+    if (description.isEmpty) return const [];
+    return [
+      Text(
+        'الوصف: ${isolateText(description)}',
+        key: const Key('operation-expense-description'),
+      ),
+    ];
   }
 
   List<Widget> _customerBlock(Map details) {

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import 'app_tokens.dart';
 import 'message_tone.dart';
@@ -140,6 +141,19 @@ abstract final class AppMessages {
           ? AnimationStyle.noAnimation
           : null,
     );
+    // Errors and warnings interrupt the screen reader (the toast's own live
+    // region is polite).
+    if (tone == MessageTone.error || tone == MessageTone.warning) {
+      final view = View.maybeOf(context);
+      if (view != null) {
+        SemanticsService.sendAnnouncement(
+          view,
+          '${messageToneLabel(tone)}: $title${body == null ? '' : '. $body'}',
+          direction,
+          assertiveness: Assertiveness.assertive,
+        );
+      }
+    }
     controller.closed.whenComplete(() {
       log.queued -= 1;
       if (identical(log.visible, entry)) log.visible = null;

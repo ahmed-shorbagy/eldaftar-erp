@@ -1,7 +1,17 @@
 /// Exact server report values. No Flutter, transport or storage dependencies.
 class ReportDay {
-  const ReportDay(this.id, this.date, this.status, this.openedAtShop);
+  const ReportDay(
+    this.id,
+    this.date,
+    this.status,
+    this.openedAtShop, {
+    this.closedAtShop,
+  });
   final String id, date, status, openedAtShop;
+
+  /// Server close time in the shop zone; null while open or from older
+  /// servers (U18).
+  final String? closedAtShop;
   String get label =>
       '$date • ${status == 'open' ? 'مفتوح' : 'مغلق'} • ${openedAtShop.substring(11)}';
 }

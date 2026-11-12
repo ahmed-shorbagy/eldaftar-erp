@@ -267,10 +267,16 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
                     if ((effects['stock'] as List).isEmpty &&
                         (effects['scrap'] as List).isEmpty)
                       const Text('لا تغيير في المخزون أو الكسر.'),
-                    const SizedBox(height: 12),
-                    Text(
-                      'التغير في مستحقات الشراء: ${signed(effects['payable_delta_piastres'] as String)}',
-                    ),
+                    // U6: only a legacy purchase payable can change; zero
+                    // (every sale and fully paid purchase) is not shown.
+                    if (BigInt.tryParse('${effects['payable_delta_piastres']}')
+                        case final payable? when payable != BigInt.zero) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'التغير في مستحقات الشراء: ${signed(effects['payable_delta_piastres'] as String)}',
+                        key: const Key('trade-change-payable'),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     if (widget.replacement != null) ...[
                       Text(
@@ -406,15 +412,17 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
           '${_method(raw['method'])}: \u2066${_money(raw['piastres'] as String)}\u2069',
         ),
       ),
-    Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: Text(
-        (payload['customer_name'] as String? ?? '').isEmpty &&
-                (payload['customer_phone'] as String? ?? '').isEmpty
-            ? 'لا توجد بيانات عميل'
-            : 'العميل: ${payload['customer_name']} · \u2066${payload['customer_phone']}\u2069',
+    // U5: an expense has a description (below), never a customer line.
+    if (payload['kind'] != 'expense')
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          (payload['customer_name'] as String? ?? '').isEmpty &&
+                  (payload['customer_phone'] as String? ?? '').isEmpty
+              ? 'لا توجد بيانات عميل'
+              : 'العميل: ${payload['customer_name']} · \u2066${payload['customer_phone']}\u2069',
+        ),
       ),
-    ),
     if ((payload['description'] as String? ?? '').isNotEmpty)
       Align(
         alignment: AlignmentDirectional.centerStart,

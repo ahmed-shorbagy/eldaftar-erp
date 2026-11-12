@@ -62,10 +62,13 @@ class _InventoryFigureCarouselState extends State<InventoryFigureCarousel> {
         final slotWidth = pageWidth / visible;
         return Column(
           children: [
+            // U11: the compact tile needs 94 px at 100 % text (116 px at
+            // 130 %, 166 px at 200 %); the old 148 px slot left empty space
+            // under every value.
             SizedBox(
               height: MediaQuery.textScalerOf(
                 context,
-              ).scale(148).clamp(148, 196),
+              ).scale(100).clamp(100, 184),
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   if (notification.metrics.axis != Axis.horizontal) {

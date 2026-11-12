@@ -13,6 +13,48 @@ import 'package:eldafttar/src/features/media/data/r2_media_client.dart';
 import 'report_fixtures.dart';
 
 void main() {
+  test('U18: report days read the optional close time', () {
+    const shop = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    final days = parseReportDays({
+      'shop_id': shop,
+      'days': [
+        {
+          'id': '1',
+          'date': '2026-11-08',
+          'status': 'closed',
+          'opened_at_shop': '2026-11-08 09:30:00',
+          'closed_at_shop': '2026-11-08 17:45:00',
+        },
+        {
+          'id': '2',
+          'date': '2026-11-09',
+          'status': 'open',
+          'opened_at_shop': '2026-11-09 09:00:00',
+          'closed_at_shop': null,
+        },
+        {
+          'id': '3',
+          'date': '2026-11-07',
+          'status': 'closed',
+          'opened_at_shop': '2026-11-07 09:00:00',
+        },
+      ],
+    }, shop);
+    expect(days[0].closedAtShop, '2026-11-08 17:45:00');
+    expect(days[1].closedAtShop, isNull);
+    expect(days[2].closedAtShop, isNull);
+    expect(
+      () => parseReportDay({
+        'id': '4',
+        'date': '2026-11-08',
+        'status': 'closed',
+        'opened_at_shop': '2026-11-08 09:30:00',
+        'closed_at_shop': '17:45',
+      }),
+      throwsFormatException,
+    );
+  });
+
   test(
     'exact report preserves values beyond binary integer precision and milligrams',
     () {

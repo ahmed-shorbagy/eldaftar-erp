@@ -1,4 +1,5 @@
 // «الجرد الفوري»: item × karat table, karat order and insights (ADR 0043).
+import 'package:eldafttar/src/features/daily_ledger/domain/jewelry_items.dart';
 import 'package:eldafttar/src/features/inventory/application/inventory_gateway.dart';
 import 'package:eldafttar/src/features/inventory/data/inventory_codec.dart';
 import 'package:eldafttar/src/features/inventory/domain/inventory_models.dart';
@@ -175,6 +176,30 @@ void main() {
       expect(grid.totals[21]!.count, BigInt.from(14));
       expect(grid.totals[21]!.milligrams, BigInt.from(54730));
       expect(grid.totals[22]!.countKnown, isFalse);
+    });
+    test('the legacy pooled name joins the pooled opening row (O2)', () {
+      InventoryGridCell cell(int mg, int count) => InventoryGridCell(
+        count: BigInt.from(count),
+        countKnown: true,
+        milligrams: BigInt.from(mg),
+      );
+      final rows = orderInventoryGridRows([
+        InventoryGridRow(
+          itemName: 'رصيد سابق مجمّع',
+          cells: {21: cell(2000, 2)},
+        ),
+        InventoryGridRow(
+          itemName: pooledOpeningItemName,
+          cells: {21: cell(1000, 1)},
+        ),
+      ]);
+      expect(rows.where((row) => row.itemName == 'رصيد سابق مجمّع'), isEmpty);
+      final pooled = rows.last;
+      expect(pooled.itemName, pooledOpeningItemName);
+      expect(pooled.cells[21]!.milligrams, BigInt.from(3000));
+      expect(pooled.cells[21]!.count, BigInt.from(3));
+      expect(isPooledOpeningItem('رصيد سابق مجمّع'), isTrue);
+      expect(isPooledOpeningItem('خاتم'), isFalse);
     });
     test('visible karats: first two, all when expanded', () {
       expect(visibleInventoryKarats([18, 21, 22, 14], expanded: false), [
@@ -487,6 +512,52 @@ void main() {
     expect(tile('bullion_count', '1'), findsOneWidget);
     expect(tile('bullion_weight', '8.00'), findsOneWidget);
   });
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('U11: figure tiles fit their slot at ${scale}x text', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                body: InventoryFigureCarousel(
+                  figures: [
+                    InventoryFigure(
+                      id: 'weight_21',
+                      label: 'اجمالي الوزنة 21 (مشغولات + سبائك)',
+                      milligrams: BigInt.from(12345670),
+                    ),
+                    InventoryFigure(
+                      id: 'karat_18',
+                      label: 'عيار 18',
+                      milligrams: BigInt.from(4250),
+                    ),
+                  ],
+                  onCashPrice: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final slot = tester.getSize(
+        find.byKey(const Key('inventory-figures-page')),
+      );
+      // No tall empty band under the value (the slot used to be 148 px).
+      expect(slot.height, lessThanOrEqualTo(scale == 1 ? 100 : 184));
+    });
+  }
 
   // Regression (2026-11-11 device pass): the price field groups digits as
   // «2,500», and the dialog parsed the grouped text, so every price of 1,000

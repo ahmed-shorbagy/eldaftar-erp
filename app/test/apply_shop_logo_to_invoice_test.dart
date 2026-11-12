@@ -72,6 +72,58 @@ void main() {
     expect(gateway.sends, 0);
   });
 
+  test('O3 backfill skips a shop that already saved an appearance', () async {
+    final gateway = _Gateway(
+      _snapshot(
+        const InvoiceAppearanceValue(
+          revision: 3,
+          template: InvoiceTemplate.compact,
+          accent: InvoiceAccent.gold,
+        ),
+      ),
+    );
+    final outcome =
+        await ApplyShopLogoToInvoice(
+          gateway: gateway,
+          store: _Locker(),
+          logoStore: MemoryLogoUploadStore(),
+        ).call(
+          userId: _user,
+          shopId: _shop,
+          logoBytes: _png(),
+          onlyWhenUnset: true,
+        );
+    expect(outcome, ApplyLogoOutcome.skipped);
+    expect(gateway.uploads, 0);
+    expect(gateway.sends, 0);
+  });
+
+  test('O3 backfill applies the logo when no appearance was saved', () async {
+    final gateway = _Gateway(
+      _snapshot(
+        const InvoiceAppearanceValue(
+          revision: 0,
+          template: InvoiceTemplate.compact,
+          accent: InvoiceAccent.gold,
+        ),
+      ),
+    );
+    final outcome =
+        await ApplyShopLogoToInvoice(
+          gateway: gateway,
+          store: _Locker(),
+          logoStore: MemoryLogoUploadStore(),
+        ).call(
+          userId: _user,
+          shopId: _shop,
+          logoBytes: _png(),
+          onlyWhenUnset: true,
+        );
+    expect(outcome, ApplyLogoOutcome.applied);
+    expect(gateway.sends, 1);
+    expect(gateway.savedPayload!['logo_asset_id'], _asset);
+  });
+
   test('inactive entitlement is not allowed and writes nothing', () async {
     final gateway = _Gateway(
       _snapshot(InvoiceAppearanceValue.defaults, canWrite: false),

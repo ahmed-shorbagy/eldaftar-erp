@@ -5,6 +5,7 @@ import 'package:eldafttar/src/theme/app_messages.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:eldafttar/src/theme/message_tone.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _host({
@@ -416,6 +417,55 @@ void main() {
         );
       }
     }
+  });
+
+  testWidgets('error toasts are announced assertively; success is not', (
+    tester,
+  ) async {
+    final announced = <Map<Object?, Object?>>[];
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
+      SystemChannels.accessibility,
+      (message) async {
+        if (message is Map) announced.add(message);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<Object?>(
+            SystemChannels.accessibility,
+            null,
+          ),
+    );
+    var error = false;
+    await tester.pumpWidget(
+      _host(
+        onPressed: (c) => error
+            ? AppMessages.error(c, 'تعذر الحفظ', body: 'لم يُحفظ شيء.')
+            : AppMessages.success(c, 'تم الحفظ'),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('raise')));
+    await tester.pumpAndSettle();
+    expect(
+      announced.where(
+        (m) =>
+            m['type'] == 'announce' && (m['data'] as Map)['assertiveness'] == 1,
+      ),
+      isEmpty,
+    );
+    error = true;
+    await tester.tap(find.byKey(const Key('raise')));
+    await tester.pumpAndSettle();
+    final assertive = announced.where(
+      (m) =>
+          m['type'] == 'announce' && (m['data'] as Map)['assertiveness'] == 1,
+    );
+    expect(assertive, hasLength(1));
+    expect(
+      (assertive.single['data'] as Map)['message'],
+      'خطأ: تعذر الحفظ. لم يُحفظ شيء.',
+    );
   });
 }
 

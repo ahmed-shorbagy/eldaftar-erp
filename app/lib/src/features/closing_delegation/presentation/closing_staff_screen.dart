@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../theme/app_confirm.dart';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
 import '../../auth/domain/account_identifiers.dart';
@@ -138,25 +139,12 @@ class _ClosingStaffScreenState extends State<ClosingStaffScreen>
     }
   }
 
-  Future<bool> _confirm(String text) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (dialog) => AlertDialog(
-          title: const Text('مراجعة الطلب'),
-          content: Text(text),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialog, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialog, true),
-              child: const Text('تأكيد'),
-            ),
-          ],
-        ),
-      ) ==
-      true;
+  Future<bool> _confirm(String text) => showAppConfirm(
+    context,
+    title: 'مراجعة الطلب',
+    message: text,
+    confirmLabel: 'تأكيد',
+  );
   Future<void> _create() async {
     if (!_editable) return;
     final name = _name.text.trim(),
