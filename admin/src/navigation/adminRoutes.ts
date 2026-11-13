@@ -8,7 +8,7 @@ import {
  * back/forward and shared links working. Hosting must rewrite unknown paths to
  * `index.html` (single-page fallback); Vite's dev server already does.
  */
-export type AdminArea = 'overview' | 'subscribers' | 'appVersion' | 'help' | 'support' | 'audit'
+export type AdminArea = 'overview' | 'subscribers' | 'appVersion' | 'help' | 'support' | 'audit' | 'broadcasts'
 
 export type AdminRoute =
   | { area: 'overview' }
@@ -17,6 +17,11 @@ export type AdminRoute =
   | { area: 'help' }
   | { area: 'support' }
   | { area: 'audit' }
+  | { area: 'broadcasts'; shopId: string | null }
+
+export function broadcastsRoute(shopId: string | null = null): AdminRoute {
+  return { area: 'broadcasts', shopId }
+}
 
 export const defaultAdminRoute: AdminRoute = { area: 'overview' }
 
@@ -34,6 +39,7 @@ const areaSegments: Record<AdminArea, string> = {
   help: 'help',
   support: 'support',
   audit: 'audit',
+  broadcasts: 'broadcasts',
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -60,6 +66,11 @@ export function parseAdminPath(pathname: string, search = ''): AdminRoute | null
     return uuidPattern.test(decoded) ? subscribersRoute(status, decoded.toLowerCase()) : null
   }
   if (second !== undefined) return null
+  if (first === areaSegments.broadcasts) {
+    // A malformed `shop` value opens the composer-free list.
+    const shop = new URLSearchParams(search).get('shop')
+    return broadcastsRoute(shop !== null && uuidPattern.test(shop) ? shop.toLowerCase() : null)
+  }
   if (first === areaSegments.overview) return { area: 'overview' }
   if (first === areaSegments.appVersion) return { area: 'appVersion' }
   if (first === areaSegments.help) return { area: 'help' }
@@ -76,6 +87,11 @@ export function formatAdminPath(route: AdminRoute): string {
       ? `/${areaSegments.subscribers}`
       : `/${areaSegments.subscribers}/${encodeURIComponent(route.shopId)}`
     return route.status === 'all' ? base : `${base}?status=${route.status}`
+  }
+  if (route.area === 'broadcasts') {
+    return route.shopId === null
+      ? `/${areaSegments.broadcasts}`
+      : `/${areaSegments.broadcasts}?shop=${encodeURIComponent(route.shopId)}`
   }
   return `/${areaSegments[route.area]}`
 }

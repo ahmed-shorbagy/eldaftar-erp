@@ -15,8 +15,26 @@ export const durationDaysMax = 3660
 export const codeTtlDaysMin = 1
 export const codeTtlDaysMax = 365
 export const defaultCodeTtlDays = 30
+export const revokeReasonMin = 3
+export const revokeReasonMax = 200
 
-export type SubscriptionCodeStatus = 'unused' | 'expired' | 'redeemed'
+/** Duration shortcuts (ADR 0048, D-A2): one month = 30 days, a year = 360. */
+export type DurationPreset = 'month1' | 'month3' | 'month6' | 'year1' | 'custom'
+export const durationPresetDays: Record<Exclude<DurationPreset, 'custom'>, number> = {
+  month1: 30,
+  month3: 90,
+  month6: 180,
+  year1: 360,
+}
+export const durationPresets: readonly DurationPreset[] = ['month1', 'month3', 'month6', 'year1', 'custom']
+
+export function presetForDays(days: string): DurationPreset {
+  const match = (Object.keys(durationPresetDays) as Array<keyof typeof durationPresetDays>)
+    .find((key) => String(durationPresetDays[key]) === days.trim())
+  return match ?? 'custom'
+}
+
+export type SubscriptionCodeStatus = 'unused' | 'expired' | 'redeemed' | 'revoked'
 export type IssuedVia = 'platform_admin' | 'service_role'
 export type IssueStatus = 'issued' | 'replayed'
 
@@ -51,6 +69,17 @@ export interface SubscriptionCodeRow {
   issuedVia: IssuedVia
   codeStatus: SubscriptionCodeStatus
   redeemedAt: string | null
+  revokedAt: string | null
+  revokeReason: string | null
+}
+
+export type RevokeStatus = 'revoked' | 'replayed' | 'already_revoked' | 'redeemed' | 'expired'
+
+export interface RevokeResult {
+  status: RevokeStatus
+  codeId: string
+  shopId: string
+  revokedAt: string | null
 }
 
 export interface SubscriptionCodePage {
@@ -93,9 +122,13 @@ const historyRowKeys = [
   'issued_via',
   'code_status',
   'redeemed_at',
+  'revoked_at',
+  'revoke_reason',
 ] as const
 
-const codeStatuses: SubscriptionCodeStatus[] = ['unused', 'expired', 'redeemed']
+const codeStatuses: SubscriptionCodeStatus[] = ['unused', 'expired', 'redeemed', 'revoked']
+const revokeStatuses: RevokeStatus[] = ['revoked', 'replayed', 'already_revoked', 'redeemed', 'expired']
+const revokeKeys = ['status', 'code_id', 'shop_id', 'revoked_at'] as const
 const issuedViaValues: IssuedVia[] = ['platform_admin', 'service_role']
 
 export function parseIntegerDays(value: string, min: number, max: number): number {
@@ -250,6 +283,11 @@ export function parseSubscriptionCodePage(
     } else if (row.redeemedAt !== null) {
       throw new SubscriptionCodeError('invalid_response')
     }
+    if (row.codeStatus === 'revoked') {
+      if (row.revokedAt === null || row.revokeReason === null) throw new SubscriptionCodeError('invalid_response')
+    } else if (row.revokedAt !== null || row.revokeReason !== null) {
+      throw new SubscriptionCodeError('invalid_response')
+    }
   }
   if (BigInt(record.row_count) < BigInt(rows.length)) {
     throw new SubscriptionCodeError('invalid_response')
@@ -281,6 +319,35 @@ export function parseSubscriptionCodePage(
     rows,
     nextCursor,
   }
+}
+
+/** Trimmed single-line reason of 3–200 characters, as the server requires. */
+export function normalizeRevokeReason(value: string): string {
+  const trimmed = value.trim()
+  // eslint-disable-next-line no-control-regex
+  if (trimmed.length < revokeReasonMin || trimmed.length > revokeReasonMax || /[\u0000-\u001f\u007f]/.test(trimmed)) {
+    throw new SubscriptionCodeError('invalid_range')
+  }
+  return trimmed
+}
+
+export function parseRevokeResult(input: unknown, expected: { codeId: string; shopId: string }): RevokeResult {
+  const record = objectWithKeys(input, revokeKeys)
+  if (!revokeStatuses.includes(record.status as RevokeStatus)) {
+    throw new SubscriptionCodeError('invalid_response')
+  }
+  const status = record.status as RevokeStatus
+  const codeId = requireUuid(record.code_id)
+  const shopId = requireUuid(record.shop_id)
+  if (codeId.toLowerCase() !== expected.codeId.toLowerCase() || shopId.toLowerCase() !== expected.shopId.toLowerCase()) {
+    throw new SubscriptionCodeError('invalid_response')
+  }
+  const revokedAt = requireOptionalInstant(record.revoked_at)
+  const needsTime = status === 'revoked' || status === 'replayed' || status === 'already_revoked'
+  if (needsTime !== (revokedAt !== null)) {
+    throw new SubscriptionCodeError('invalid_response')
+  }
+  return { status, codeId, shopId, revokedAt }
 }
 
 export { subscriptionCodePageSize }
@@ -320,6 +387,8 @@ function parseHistoryRow(input: unknown): SubscriptionCodeRow {
     issuedVia: record.issued_via as IssuedVia,
     codeStatus: record.code_status as SubscriptionCodeStatus,
     redeemedAt: requireOptionalInstant(record.redeemed_at),
+    revokedAt: requireOptionalInstant(record.revoked_at),
+    revokeReason: requireOptionalText(record.revoke_reason),
   }
 }
 
@@ -354,6 +423,14 @@ function requireUuidV4(value: unknown): string {
 
 function requireInstant(value: unknown): string {
   if (typeof value !== 'string' || Number.isNaN(new Date(value).getTime())) {
+    throw new SubscriptionCodeError('invalid_response')
+  }
+  return value
+}
+
+function requireOptionalText(value: unknown): string | null {
+  if (value === null) return null
+  if (typeof value !== 'string' || value.trim() === '') {
     throw new SubscriptionCodeError('invalid_response')
   }
   return value

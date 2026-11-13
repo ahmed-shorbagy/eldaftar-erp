@@ -1,4 +1,5 @@
 import { CacheProvider } from '@emotion/react'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
@@ -19,6 +20,10 @@ import type { AuditGateway } from './audit/AuditGateway.ts'
 import { auditCopy } from './audit/copy.ts'
 import { SupabaseAuditGateway } from './audit/SupabaseAuditGateway.ts'
 import { AdminAuthScreen } from './auth/AdminAuthScreen.tsx'
+import type { BroadcastGateway } from './broadcasts/BroadcastGateway.ts'
+import { BroadcastsPanel } from './broadcasts/BroadcastsPanel.tsx'
+import { broadcastCopy } from './broadcasts/copy.ts'
+import { SupabaseBroadcastGateway } from './broadcasts/SupabaseBroadcastGateway.ts'
 import type { AdminAccess, AdminAuthGateway } from './auth/AdminAuthGateway.ts'
 import { getSupabaseClient } from './config/supabaseClient.ts'
 import type { SupabaseStartupStatus } from './config/supabaseStartup.ts'
@@ -30,7 +35,13 @@ import { SupabaseSupportGateway } from './support/SupabaseSupportGateway.ts'
 import { SupportMailboxPanel } from './support/SupportMailboxPanel.tsx'
 import type { SupportGateway } from './support/SupportGateway.ts'
 import { supportCopy } from './support/copy.ts'
-import { formatAdminPath, subscribersRoute, type AdminArea, type AdminRoute } from './navigation/adminRoutes.ts'
+import {
+  broadcastsRoute,
+  formatAdminPath,
+  subscribersRoute,
+  type AdminArea,
+  type AdminRoute,
+} from './navigation/adminRoutes.ts'
 import { overviewCopy } from './overview/copy.ts'
 import type { OverviewGateway } from './overview/OverviewGateway.ts'
 import { OverviewPanel } from './overview/OverviewPanel.tsx'
@@ -56,12 +67,15 @@ const navAreas: Array<{ area: AdminArea; label: string; icon: ReactNode }> = [
   { area: 'subscribers', label: helpCopy.subscribersNav, icon: <PeopleAltOutlinedIcon /> },
   { area: 'appVersion', label: appVersionCopy.navLabel, icon: <SystemUpdateAltOutlinedIcon /> },
   { area: 'help', label: helpCopy.navLabel, icon: <HelpOutlineOutlinedIcon /> },
+  { area: 'broadcasts', label: broadcastCopy.navLabel, icon: <CampaignOutlinedIcon /> },
   { area: 'support', label: supportCopy.navLabel, icon: <SupportAgentOutlinedIcon /> },
   { area: 'audit', label: auditCopy.navLabel, icon: <HistoryOutlinedIcon /> },
 ]
 
 function areaRoute(area: AdminArea): AdminRoute {
-  return area === 'subscribers' ? subscribersRoute() : { area }
+  if (area === 'subscribers') return subscribersRoute()
+  if (area === 'broadcasts') return broadcastsRoute()
+  return { area }
 }
 
 export function App({
@@ -75,6 +89,7 @@ export function App({
   supportGateway,
   overviewGateway,
   auditGateway,
+  broadcastGateway,
 }: {
   supabaseStatus: SupabaseStartupStatus
   themeController: ThemeController
@@ -86,6 +101,7 @@ export function App({
   supportGateway?: SupportGateway | null
   overviewGateway?: OverviewGateway | null
   auditGateway?: AuditGateway | null
+  broadcastGateway?: BroadcastGateway | null
 }) {
   const [choice, setChoice] = useState(themeController.mode)
   const [access, setAccess] = useState<AdminAccess>(authGateway?.status ?? 'unavailable')
@@ -147,6 +163,11 @@ export function App({
     const client = getSupabaseClient()
     return client === null ? null : new SupabaseAuditGateway(client)
   }, [auditGateway])
+  const broadcastAdminGateway = useMemo(() => {
+    if (broadcastGateway !== undefined) return broadcastGateway
+    const client = getSupabaseClient()
+    return client === null ? null : new SupabaseBroadcastGateway(client)
+  }, [broadcastGateway])
   const reportAccessLoss = useCallback(() => {
     void authGateway?.refresh()
   }, [authGateway])
@@ -194,6 +215,10 @@ export function App({
             onSelectedShopChange={(shopId) => navigate(subscribersRoute(route.status, shopId))}
             statusFilter={route.status}
             onStatusFilterChange={(status) => navigate(subscribersRoute(status, null), { replace: true })}
+            onComposeMessage={broadcastAdminGateway ? (shopId) => {
+              navigate(broadcastsRoute(shopId))
+              window.scrollTo({ top: 0 })
+            } : undefined}
           />
         )
         : <DirectoryUnavailable />
@@ -213,6 +238,18 @@ export function App({
               navigate(next)
               window.scrollTo({ top: 0 })
             }}
+          />
+        )
+        : <DirectoryUnavailable />
+    }
+    if (route.area === 'broadcasts') {
+      return broadcastAdminGateway
+        ? (
+          <BroadcastsPanel
+            key={route.shopId ?? 'all'}
+            gateway={broadcastAdminGateway}
+            onAccessLost={reportAccessLoss}
+            initialShopId={route.shopId}
           />
         )
         : <DirectoryUnavailable />

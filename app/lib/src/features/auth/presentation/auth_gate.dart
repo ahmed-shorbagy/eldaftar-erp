@@ -15,6 +15,7 @@ import '../../onboarding/application/onboarding_store.dart';
 import '../../invoice_appearance/application/logo_codec.dart';
 import '../../invoice_appearance/data/logo_upload_store.dart';
 import '../../audit_trail/domain/audit_trail.dart';
+import '../../broadcasts/domain/broadcast_models.dart';
 import '../../help/domain/help_models.dart';
 import '../../support/domain/support_models.dart';
 import '../../shop_accounts/domain/shop_account_gateway.dart';
@@ -46,6 +47,7 @@ class AuthGate extends StatefulWidget {
     this.helpGateway,
     this.supportGateway,
     this.auditTrailGateway,
+    this.broadcastGateway,
     this.appVersion,
   });
 
@@ -64,6 +66,7 @@ class AuthGate extends StatefulWidget {
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
   final AuditTrailGateway? auditTrailGateway;
+  final BroadcastGateway? broadcastGateway;
   final String? appVersion;
 
   @override
@@ -236,6 +239,7 @@ class _AuthGateState extends State<AuthGate> {
         helpGateway: widget.helpGateway,
         supportGateway: widget.supportGateway,
         auditTrailGateway: widget.auditTrailGateway,
+        broadcastGateway: widget.broadcastGateway,
         appVersion: widget.appVersion,
         onSignOut: () async {
           AppMessages.clear(context);

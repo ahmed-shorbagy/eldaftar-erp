@@ -63,6 +63,7 @@ function directory(seen: SubscriberQuery[]): SubscriberDirectoryGateway {
     },
     async get() { throw new Error('unused') },
     async issueSubscriptionCode() { throw new Error('unused') },
+    async revokeSubscriptionCode() { throw new Error('unused') },
     async listSubscriptionCodes() { throw new Error('unused') },
     async bindSelectedShopSession() { return { id: 'lease-1' } },
     async assertBoundSession() {},

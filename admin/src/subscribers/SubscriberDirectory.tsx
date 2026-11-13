@@ -85,6 +85,7 @@ export function SubscriberDirectory({
   onSelectedShopChange,
   statusFilter = 'all',
   onStatusFilterChange,
+  onComposeMessage,
 }: {
   gateway: SubscriberDirectoryGateway
   contactGateway?: SubscriberContactGateway | null
@@ -95,6 +96,8 @@ export function SubscriberDirectory({
   /** When `onStatusFilterChange` is given, the status filter follows this value (for example from the URL). */
   statusFilter?: SubscriberStatusFilter
   onStatusFilterChange?: (status: SubscriberStatusFilter) => void
+  /** Opens the broadcast composer for one shop (ADR 0048). */
+  onComposeMessage?: (shopId: string) => void
 }) {
   const controlled = onSelectedShopChange !== undefined
   const theme = useTheme()
@@ -575,6 +578,13 @@ export function SubscriberDirectory({
           {shownDetail?.phase === 'ready' && (
             <>
               <DetailFields detail={shownDetail.detail} />
+              {onComposeMessage && (
+                <Box>
+                  <Button variant="outlined" onClick={() => onComposeMessage(shownDetail.detail.shopId)}>
+                    {subscriberCopy.composeMessage}
+                  </Button>
+                </Box>
+              )}
               {contactGateway && (
                 <SubscriberContactReveal
                   shopId={shownDetail.detail.shopId}

@@ -75,3 +75,15 @@ test('maps refusals to access loss and a rejected cursor to a stale list', () =>
   expect(mapAuditError('invalid_cursor').code).toBe('stale')
   expect(mapAuditError('timeout').code).toBe('unavailable')
 })
+
+test('code revocations parse into the codes family with their reason', () => {
+  const parsed = parseAuditPage(page({
+    rows: [row({ action: 'subscription_code_revoked', details: { duration_days: 90, reason: 'رقم خطأ' } })],
+  }))
+  const event = parsed.rows[0]
+  expect(event?.family).toBe('codes')
+  expect(event?.details.reason).toBe('رقم خطأ')
+  expect(event && auditSummary(event.action, event.details)).toBe('السبب: رقم خطأ')
+  expect(() => parseAuditPage(page({ rows: [row({ family: 'help', action: 'subscription_code_revoked' })] })))
+    .toThrow(AuditError)
+})

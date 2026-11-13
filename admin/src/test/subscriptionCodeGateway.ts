@@ -10,6 +10,7 @@ export function unusedSubscriptionCodeMethods(): Pick<
   SubscriberDirectoryGateway,
   | 'issueSubscriptionCode'
   | 'listSubscriptionCodes'
+  | 'revokeSubscriptionCode'
   | 'bindSelectedShopSession'
   | 'assertBoundSession'
   | 'authorizeCopy'
@@ -18,6 +19,9 @@ export function unusedSubscriptionCodeMethods(): Pick<
 > {
   return {
     async issueSubscriptionCode() {
+      throw new Error('unused')
+    },
+    async revokeSubscriptionCode() {
       throw new Error('unused')
     },
     async listSubscriptionCodes(shopId: string): Promise<SubscriptionCodePage> {

@@ -13,6 +13,7 @@ import 'features/auth/presentation/auth_gate.dart';
 import 'features/daily_ledger/application/opening_gateway.dart';
 import 'features/daily_ledger/application/pending_opening_store.dart';
 import 'features/audit_trail/domain/audit_trail.dart';
+import 'features/broadcasts/domain/broadcast_models.dart';
 import 'features/help/domain/help_models.dart';
 import 'features/support/domain/support_models.dart';
 import 'features/onboarding/application/onboarding_store.dart';
@@ -41,6 +42,7 @@ class ElDafttarApp extends StatelessWidget {
     this.helpGateway,
     this.supportGateway,
     this.auditTrailGateway,
+    this.broadcastGateway,
     this.appVersionGateway,
     this.appVersion = '1.0.0',
     this.appVersionPlatform,
@@ -61,6 +63,7 @@ class ElDafttarApp extends StatelessWidget {
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
   final AuditTrailGateway? auditTrailGateway;
+  final BroadcastGateway? broadcastGateway;
   final AppVersionGateway? appVersionGateway;
   final String appVersion;
   final AppVersionPlatform? appVersionPlatform;
@@ -105,6 +108,7 @@ class ElDafttarApp extends StatelessWidget {
               helpGateway: helpGateway,
               supportGateway: supportGateway,
               auditTrailGateway: auditTrailGateway,
+              broadcastGateway: broadcastGateway,
               appVersion: appVersion,
               onToggleTheme: themeController.toggle,
             ),

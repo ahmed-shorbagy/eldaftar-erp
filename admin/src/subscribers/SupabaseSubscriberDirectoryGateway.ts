@@ -7,14 +7,17 @@ import {
   subscriberPageSize,
   subscriptionCodePageSize,
   type IssueSubscriptionCodeInput,
+  type RevokeSubscriptionCodeInput,
   type SubscriberDirectoryGateway,
   type SubscriberQuery,
   type SubscriptionSessionBinding,
 } from './SubscriberDirectoryGateway.ts'
 import {
   parseIssuedSubscriptionCode,
+  parseRevokeResult,
   parseSubscriptionCodePage,
   type IssuedSubscriptionCode,
+  type RevokeResult,
   type SubscriptionCodePage,
 } from './subscriptionCodes.ts'
 import {
@@ -161,7 +164,7 @@ export class SupabaseSubscriberDirectoryGateway implements SubscriberDirectoryGa
 
   async listSubscriptionCodes(shopId: string, cursor: string | null): Promise<SubscriptionCodePage> {
     return this.#read(
-      () => this.#client.rpc('admin_list_subscription_codes_v1', {
+      () => this.#client.rpc('admin_list_subscription_codes_v2', {
         p_shop_id: shopId,
         p_cursor: cursor,
         p_page_size: subscriptionCodePageSize,
@@ -193,6 +196,21 @@ export class SupabaseSubscriberDirectoryGateway implements SubscriberDirectoryGa
         requestKey: input.requestKey,
         durationDays: input.durationDays,
       }),
+    )
+  }
+
+  async revokeSubscriptionCode(
+    input: RevokeSubscriptionCodeInput,
+    binding: SubscriptionSessionBinding,
+  ): Promise<RevokeResult> {
+    return this.#write(
+      binding,
+      () => this.#client.rpc('admin_revoke_subscription_code_v1', {
+        p_code_id: input.codeId,
+        p_reason: input.reason,
+        p_request_key: input.requestKey,
+      }),
+      (data) => parseRevokeResult(data, { codeId: input.codeId, shopId: input.shopId }),
     )
   }
 

@@ -142,6 +142,9 @@ test('a signed-in admin sees the subscriber directory instead of the prototype s
         async issueSubscriptionCode() {
           throw new Error('unused')
         },
+        async revokeSubscriptionCode() {
+          throw new Error('unused')
+        },
         async listSubscriptionCodes() {
           return {
             snapshotAt: '2026-10-22T00:30:00.000Z',

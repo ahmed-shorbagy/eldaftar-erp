@@ -74,6 +74,7 @@ function withCodes(gateway: Omit<
   | 'authorizeCopy'
   | 'watchBoundSession'
   | 'releaseBoundSession'
+  | 'revokeSubscriptionCode'
 >): SubscriberDirectoryGateway {
   return { ...unusedSubscriptionCodeMethods(), ...gateway }
 }
@@ -87,7 +88,8 @@ function renderDirectory(gateway: Omit<
   | 'authorizeCopy'
   | 'watchBoundSession'
   | 'releaseBoundSession'
->, mode = 'light') {
+  | 'revokeSubscriptionCode'
+>,mode = 'light') {
   const authGateway = new StableAuth()
   window.history.replaceState(null, '', '/subscribers')
   render(

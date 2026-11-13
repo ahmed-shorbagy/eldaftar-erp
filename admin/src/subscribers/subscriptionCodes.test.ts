@@ -1,9 +1,12 @@
 import { expect, test } from 'vitest'
 import { SubscriptionCodeError } from './SubscriberDirectoryGateway.ts'
 import {
+  normalizeRevokeReason,
   parseIntegerDays,
   parseIssuedSubscriptionCode,
+  parseRevokeResult,
   parseSubscriptionCodePage,
+  presetForDays,
 } from './subscriptionCodes.ts'
 
 const issueRow = {
@@ -32,6 +35,8 @@ const historyRow = {
   issued_via: 'platform_admin',
   code_status: 'unused',
   redeemed_at: null,
+  revoked_at: null,
+  revoke_reason: null,
 }
 
 const expectedHistory = {
@@ -323,4 +328,77 @@ test('history parser keeps microsecond order and offset-equivalent instants', ()
     rows: [newer],
     next_cursor: null,
   }, { ...expectedHistory, cursor: inputCursor })).toThrow(SubscriptionCodeError)
+})
+
+function historyPage(rows: unknown[]) {
+  return {
+    snapshot_at: '2026-10-22T00:30:00.000Z',
+    shop_id: expectedHistory.shopId,
+    shop_name: 'متجر',
+    row_count: String(rows.length),
+    page_size: 20,
+    rows,
+    next_cursor: null,
+  }
+}
+
+test('history v2 accepts a revoked row only with its time and reason', () => {
+  const revoked = {
+    ...historyRow,
+    code_status: 'revoked',
+    revoked_at: '2026-10-23T00:00:00.000Z',
+    revoke_reason: 'أُرسل إلى رقم خطأ',
+  }
+  const page = parseSubscriptionCodePage(historyPage([revoked]), expectedHistory)
+  expect(page.rows[0]?.codeStatus).toBe('revoked')
+  expect(page.rows[0]?.revokeReason).toBe('أُرسل إلى رقم خطأ')
+
+  expect(() => parseSubscriptionCodePage(historyPage([{ ...revoked, revoke_reason: null }]), expectedHistory))
+    .toThrow(SubscriptionCodeError)
+  expect(() => parseSubscriptionCodePage(historyPage([{ ...revoked, revoked_at: null }]), expectedHistory))
+    .toThrow(SubscriptionCodeError)
+  expect(() => parseSubscriptionCodePage(historyPage([{ ...historyRow, revoked_at: '2026-10-23T00:00:00.000Z' }]), expectedHistory))
+    .toThrow(SubscriptionCodeError)
+  const { revoke_reason: _reason, ...withoutKey } = historyRow
+  void _reason
+  expect(() => parseSubscriptionCodePage(historyPage([withoutKey]), expectedHistory)).toThrow(SubscriptionCodeError)
+})
+
+test('duration presets map to the owner-approved day counts', () => {
+  expect(presetForDays('30')).toBe('month1')
+  expect(presetForDays('90')).toBe('month3')
+  expect(presetForDays(' 180 ')).toBe('month6')
+  expect(presetForDays('360')).toBe('year1')
+  expect(presetForDays('365')).toBe('custom')
+  expect(presetForDays('')).toBe('custom')
+})
+
+test('revoke reason is trimmed, bounded and single-line', () => {
+  expect(normalizeRevokeReason('  رقم خطأ  ')).toBe('رقم خطأ')
+  expect(() => normalizeRevokeReason('ab')).toThrow(SubscriptionCodeError)
+  expect(() => normalizeRevokeReason('س'.repeat(201))).toThrow(SubscriptionCodeError)
+  expect(() => normalizeRevokeReason(`سطر${String.fromCharCode(10)}ثانٍ`)).toThrow(SubscriptionCodeError)
+})
+
+test('revoke result is bound to the requested code and shop', () => {
+  const expected = { codeId: historyRow.id, shopId: expectedHistory.shopId }
+  const ok = parseRevokeResult({
+    status: 'revoked', code_id: historyRow.id, shop_id: expectedHistory.shopId, revoked_at: '2026-10-23T00:00:00.000Z',
+  }, expected)
+  expect(ok.status).toBe('revoked')
+  expect(parseRevokeResult({
+    status: 'redeemed', code_id: historyRow.id, shop_id: expectedHistory.shopId, revoked_at: null,
+  }, expected).status).toBe('redeemed')
+  expect(() => parseRevokeResult({
+    status: 'revoked', code_id: historyRow.id, shop_id: expectedHistory.shopId, revoked_at: null,
+  }, expected)).toThrow(SubscriptionCodeError)
+  expect(() => parseRevokeResult({
+    status: 'expired', code_id: historyRow.id, shop_id: expectedHistory.shopId, revoked_at: '2026-10-23T00:00:00.000Z',
+  }, expected)).toThrow(SubscriptionCodeError)
+  expect(() => parseRevokeResult({
+    status: 'revoked', code_id: 'c2400000-0000-4000-8000-000000000009', shop_id: expectedHistory.shopId, revoked_at: '2026-10-23T00:00:00.000Z',
+  }, expected)).toThrow(SubscriptionCodeError)
+  expect(() => parseRevokeResult({
+    status: 'unknown', code_id: historyRow.id, shop_id: expectedHistory.shopId, revoked_at: null,
+  }, expected)).toThrow(SubscriptionCodeError)
 })

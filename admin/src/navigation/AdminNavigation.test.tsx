@@ -68,6 +68,7 @@ function subscriberGateway(get = vi.fn(async (id: string) => ({
     },
     get,
     async issueSubscriptionCode() { throw new Error('unused') },
+    async revokeSubscriptionCode() { throw new Error('unused') },
     async listSubscriptionCodes() {
       return {
         snapshotAt: '2026-10-22T00:30:00.000Z',

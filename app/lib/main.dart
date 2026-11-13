@@ -19,6 +19,7 @@ import 'src/features/daily_ledger/data/http_opening_gateway.dart';
 import 'src/features/daily_ledger/data/shared_preferences_pending_store.dart';
 import 'src/features/help/data/supabase_help_gateway.dart';
 import 'src/features/audit_trail/data/supabase_audit_trail_gateway.dart';
+import 'src/features/broadcasts/data/supabase_broadcast_gateway.dart';
 import 'src/features/support/data/supabase_support_gateway.dart';
 import 'src/features/onboarding/data/shared_preferences_onboarding_store.dart';
 import 'src/features/media/data/r2_media_client.dart';
@@ -101,6 +102,9 @@ Future<void> main() async {
           : null,
       auditTrailGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseAuditTrailGateway(Supabase.instance.client)
+          : null,
+      broadcastGateway: supabaseStatus == SupabaseStartupStatus.ready
+          ? SupabaseBroadcastGateway(Supabase.instance.client)
           : null,
       syncGateway: supabaseStatus == SupabaseStartupStatus.ready
           ? SupabaseShopSyncGateway(Supabase.instance.client)

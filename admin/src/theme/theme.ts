@@ -79,6 +79,20 @@ export function createAppTheme(mode: ResolvedTheme) {
           action: { paddingTop: 0, alignItems: 'center' },
         },
       },
+      // Every toggle group in the dashboard wraps with a gap, so each button
+      // keeps its own full border and radius instead of MUI's joined edges.
+      MuiToggleButtonGroup: {
+        styleOverrides: {
+          grouped: ({ theme }) => ({
+            '&&&': {
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: tokens.fieldRadius,
+              marginInline: 0,
+            },
+            '&&&.Mui-selected': { borderColor: theme.palette.primary.main },
+          }),
+        },
+      },
       MuiFormHelperText: { styleOverrides: { root: { fontSize: tokens.labelSize, lineHeight: 1.5 } } },
       MuiDialog: { styleOverrides: { paper: { borderRadius: tokens.cardRadius, backgroundImage: 'none' } } },
       MuiIconButton: {

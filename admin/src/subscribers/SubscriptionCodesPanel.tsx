@@ -6,6 +6,8 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import TextField from '@mui/material/TextField'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { tokens } from '../theme/tokens.ts'
@@ -22,9 +24,15 @@ import {
   defaultCodeTtlDays,
   durationDaysMax,
   durationDaysMin,
+  durationPresetDays,
+  durationPresets,
   formatEstimatedExpiry,
+  normalizeRevokeReason,
   parseIntegerDays,
+  presetForDays,
+  type DurationPreset,
   type IssuedSubscriptionCode,
+  type RevokeStatus,
   type SubscriptionCodePage,
   type SubscriptionCodeRow,
   type SubscriptionCodeStatus,
@@ -61,6 +69,39 @@ function formPhase(): IssuePhase {
     ttl: String(defaultCodeTtlDays),
     rangeError: false,
   }
+}
+
+const presetLabel: Record<DurationPreset, string> = {
+  month1: subscriberCopy.presetMonth1,
+  month3: subscriberCopy.presetMonth3,
+  month6: subscriberCopy.presetMonth6,
+  year1: subscriberCopy.presetYear1,
+  custom: subscriberCopy.presetCustom,
+}
+
+interface RevokeEnvelope {
+  codeId: string
+  reason: string
+  requestKey: string
+}
+
+type RevokePhase =
+  | { step: 'form'; reason: string; invalid: boolean }
+  | { step: 'pending'; envelope: RevokeEnvelope }
+  | { step: 'done'; status: RevokeStatus }
+  | { step: 'timeout' | 'unknown'; envelope: RevokeEnvelope }
+  | { step: 'conflict' | 'not_found' }
+
+const revokeStatusCopy: Record<RevokeStatus, string> = {
+  revoked: subscriberCopy.revokeDone,
+  replayed: subscriberCopy.revokeReplayed,
+  already_revoked: subscriberCopy.revokeAlready,
+  redeemed: subscriberCopy.revokeRedeemed,
+  expired: subscriberCopy.revokeExpired,
+}
+
+function canShare(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 }
 
 function withoutCode(result: IssuedSubscriptionCode): IssuedMeta {
@@ -108,8 +149,13 @@ export function SubscriptionCodesPanel({
   const [seenBindAttempt, setSeenBindAttempt] = useState(bindAttempt)
   const historyRef = useRef(0)
   const dropAccessRef = useRef<() => void>(() => {})
+  const [revokeTarget, setRevokeTarget] = useState<SubscriptionCodeRow | null>(null)
+  const [revokePhase, setRevokePhase] = useState<RevokePhase>({ step: 'form', reason: '', invalid: false })
+  const revokeRef = useRef(0)
+  const revokingRef = useRef(false)
   if (seenShopId !== shopId) {
     setSeenShopId(shopId)
+    setRevokeTarget(null)
     setSecret(null)
     setCopied(false)
     setCopyError(null)
@@ -176,6 +222,9 @@ export function SubscriptionCodesPanel({
       setCopyError(null)
       setCopyPending(false)
       setOpen(false)
+      revokeRef.current += 1
+      revokingRef.current = false
+      setRevokeTarget(null)
       setHistory(null)
       const current = bindingRef.current
       bindingRef.current = null
@@ -383,6 +432,102 @@ export function SubscriptionCodesPanel({
     }
   }
 
+  function openRevoke(row: SubscriptionCodeRow) {
+    revokeRef.current += 1
+    revokingRef.current = false
+    setRevokeTarget(row)
+    setRevokePhase({ step: 'form', reason: '', invalid: false })
+  }
+
+  function closeRevoke() {
+    revokeRef.current += 1
+    revokingRef.current = false
+    setRevokeTarget(null)
+  }
+
+  function confirmRevoke() {
+    if (revokePhase.step !== 'form' || revokeTarget === null) return
+    let reason: string
+    try {
+      reason = normalizeRevokeReason(revokePhase.reason)
+    } catch {
+      setRevokePhase({ ...revokePhase, invalid: true })
+      return
+    }
+    void submitRevoke({ codeId: revokeTarget.id, reason, requestKey: createIssueRequestKey() })
+  }
+
+  async function submitRevoke(envelope: RevokeEnvelope) {
+    if (revokingRef.current) return
+    const currentBinding = bindingRef.current
+    if (currentBinding === null) return
+    revokingRef.current = true
+    const requestId = ++revokeRef.current
+    const requestShop = shopId
+    setRevokePhase({ step: 'pending', envelope })
+    try {
+      const result = await gateway.revokeSubscriptionCode({
+        codeId: envelope.codeId,
+        shopId: requestShop,
+        reason: envelope.reason,
+        requestKey: envelope.requestKey,
+      }, currentBinding)
+      if (requestId !== revokeRef.current || !mountedRef.current) return
+      setRevokePhase({ step: 'done', status: result.status })
+      setHistoryRefresh((value) => value + 1)
+    } catch (error: unknown) {
+      if (requestId !== revokeRef.current || !mountedRef.current) return
+      const code = error instanceof SubscriptionCodeError ? error.code : null
+      if (code === 'access_lost') {
+        lostAccess()
+        return
+      }
+      if (code === 'timeout') setRevokePhase({ step: 'timeout', envelope })
+      else if (code === 'request_conflict') setRevokePhase({ step: 'conflict' })
+      else if (code === 'not_found') setRevokePhase({ step: 'not_found' })
+      else setRevokePhase({ step: 'unknown', envelope })
+    } finally {
+      if (requestId === revokeRef.current) revokingRef.current = false
+    }
+  }
+
+  async function shareCode() {
+    const actionId = ++copyGen.current
+    const code = secretRef.current
+    const currentBinding = bindingRef.current
+    if (code === null || currentBinding === null || phase.step !== 'issued' || !canShare()) return
+    const days = phase.result.durationDays
+    setCopyPending(true)
+    try {
+      try {
+        await gateway.authorizeCopy(currentBinding, shopId)
+      } catch (error: unknown) {
+        if (actionId !== copyGen.current || !mountedRef.current) return
+        purgeSecret()
+        if (error instanceof SubscriptionCodeError && error.code === 'access_lost') {
+          setCopyError(subscriberCopy.copyBlocked)
+          lostAccess()
+          return
+        }
+        setCopyError(subscriberCopy.shareFailed)
+        return
+      }
+      if (actionId !== copyGen.current || !mountedRef.current) return
+      if (secretRef.current !== code || bindingRef.current?.id !== currentBinding.id) return
+      try {
+        await navigator.share({ text: subscriberCopy.shareText(days, code) })
+        if (actionId !== copyGen.current || !mountedRef.current) return
+        setCopyError(null)
+      } catch (error: unknown) {
+        if (actionId !== copyGen.current || !mountedRef.current) return
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setCopyError(subscriberCopy.shareFailed)
+      }
+    } finally {
+      if (actionId === copyGen.current) setCopyPending(false)
+    }
+  }
+
   async function copyCode() {
     const actionId = ++copyGen.current
     const code = secretRef.current
@@ -486,7 +631,11 @@ export function SubscriptionCodesPanel({
             ) : (
               <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0, display: 'grid', gap: `${tokens.spaceSm}px` }}>
                 {history.rows.map((row) => (
-                  <HistoryCard key={row.id} row={row} />
+                  <HistoryCard
+                    key={row.id}
+                    row={row}
+                    onRevoke={bound && row.codeStatus === 'unused' ? () => openRevoke(row) : null}
+                  />
                 ))}
               </Box>
             )}
@@ -547,6 +696,31 @@ export function SubscriptionCodesPanel({
         >
           {phase.step === 'form' && (
             <>
+              <Box sx={{ display: 'grid', gap: `${tokens.spaceSm}px` }}>
+                <Typography id="subscription-preset-label" variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  {subscriberCopy.presetGroup}
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  aria-labelledby="subscription-preset-label"
+                  value={presetForDays(phase.duration)}
+                  onChange={(_event, next: DurationPreset | null) => {
+                    if (next === null) return
+                    setPhase({
+                      ...phase,
+                      duration: next === 'custom' ? '' : String(durationPresetDays[next]),
+                      rangeError: false,
+                    })
+                  }}
+                  sx={{ display: 'flex', flexWrap: 'wrap', gap: `${tokens.spaceSm}px` }}
+                >
+                  {durationPresets.map((preset) => (
+                    <ToggleButton key={preset} value={preset} sx={{ minHeight: `${tokens.minControlSize}px`, px: 2 }}>
+                      {presetLabel[preset]}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </Box>
               <TextField
                 label={subscriberCopy.durationLabel}
                 helperText={subscriberCopy.durationHelp}
@@ -666,6 +840,15 @@ export function SubscriptionCodesPanel({
               {subscriberCopy.copyCode}
             </Button>
           )}
+          {phase.step === 'issued' && secret && canShare() && (
+            <Button
+              variant="outlined"
+              disabled={copyPending}
+              onClick={() => void shareCode()}
+            >
+              {subscriberCopy.shareCode}
+            </Button>
+          )}
           {canRetrySame && (
             <Button
               variant="contained"
@@ -676,6 +859,86 @@ export function SubscriptionCodesPanel({
             </Button>
           )}
           <Button variant="outlined" onClick={closeIssue}>
+            {subscriberCopy.close}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={revokeTarget !== null}
+        onClose={closeRevoke}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="subscription-revoke-title"
+      >
+        <DialogTitle id="subscription-revoke-title" sx={{ lineHeight: 1.4 }}>
+          {subscriberCopy.revokeTitle}
+        </DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: `${tokens.spaceMd}px` }}>
+          {revokeTarget && (
+            <Box component="dl" sx={{ display: 'grid', gap: `${tokens.spaceSm}px`, m: 0 }}>
+              <Field label={subscriberCopy.reviewShop} value={shopName} />
+              <Field label={subscriberCopy.columnIssuedAt} value={<TimeValue value={revokeTarget.issuedAt} />} />
+              <Field label={subscriberCopy.reviewDuration} value={subscriberCopy.daysValue(revokeTarget.durationDays)} />
+            </Box>
+          )}
+          {(revokePhase.step === 'form' || revokePhase.step === 'pending') && (
+            <Typography sx={{ lineHeight: 1.6 }}>{subscriberCopy.revokeIntro}</Typography>
+          )}
+          {revokePhase.step === 'form' && (
+            <TextField
+              label={subscriberCopy.revokeReasonLabel}
+              helperText={revokePhase.invalid ? subscriberCopy.revokeReasonError : subscriberCopy.revokeReasonHelp}
+              value={revokePhase.reason}
+              error={revokePhase.invalid}
+              onChange={(event) => setRevokePhase({ step: 'form', reason: event.target.value, invalid: false })}
+              slotProps={{ htmlInput: { maxLength: 200, autoComplete: 'off' } }}
+            />
+          )}
+          {revokePhase.step === 'pending' && (
+            <Typography role="status">{subscriberCopy.revokePending}</Typography>
+          )}
+          {revokePhase.step === 'done' && (
+            <Typography role="status">{revokeStatusCopy[revokePhase.status]}</Typography>
+          )}
+          {revokePhase.step === 'timeout' && (
+            <Typography role="alert">{subscriberCopy.revokeTimeout}</Typography>
+          )}
+          {revokePhase.step === 'unknown' && (
+            <Typography role="alert">{subscriberCopy.revokeUnknown}</Typography>
+          )}
+          {revokePhase.step === 'conflict' && (
+            <Typography role="alert">{subscriberCopy.revokeConflict}</Typography>
+          )}
+          {revokePhase.step === 'not_found' && (
+            <Typography role="alert">{subscriberCopy.revokeNotFound}</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
+          {revokePhase.step === 'form' && (
+            <Button variant="contained" color="error" disabled={!bound} onClick={confirmRevoke}>
+              {subscriberCopy.revokeConfirm}
+            </Button>
+          )}
+          {revokePhase.step === 'pending' && (
+            <Button variant="contained" color="error" disabled>
+              {subscriberCopy.revokeConfirm}
+            </Button>
+          )}
+          {(revokePhase.step === 'timeout' || revokePhase.step === 'unknown') && (
+            <Button
+              variant="contained"
+              disabled={!bound}
+              onClick={() => {
+                if (revokePhase.step === 'timeout' || revokePhase.step === 'unknown') {
+                  void submitRevoke(revokePhase.envelope)
+                }
+              }}
+            >
+              {subscriberCopy.retrySame}
+            </Button>
+          )}
+          <Button variant="outlined" onClick={closeRevoke}>
             {subscriberCopy.close}
           </Button>
         </DialogActions>
@@ -705,7 +968,7 @@ function ReviewFields({
   )
 }
 
-function HistoryCard({ row }: { row: SubscriptionCodeRow }) {
+function HistoryCard({ row, onRevoke }: { row: SubscriptionCodeRow; onRevoke: (() => void) | null }) {
   return (
     <Box
       component="li"
@@ -734,7 +997,20 @@ function HistoryCard({ row }: { row: SubscriptionCodeRow }) {
           label={subscriberCopy.columnRedeemedAt}
           value={row.redeemedAt ? <TimeValue value={row.redeemedAt} /> : subscriberCopy.missingDate}
         />
+        {row.revokedAt && (
+          <Field label={subscriberCopy.columnRevokedAt} value={<TimeValue value={row.revokedAt} />} />
+        )}
+        {row.revokeReason && (
+          <Field label={subscriberCopy.columnRevokeReason} value={row.revokeReason} />
+        )}
       </Box>
+      {onRevoke && (
+        <Box>
+          <Button variant="outlined" color="error" onClick={onRevoke}>
+            {subscriberCopy.revokeAction}
+          </Button>
+        </Box>
+      )}
     </Box>
   )
 }
@@ -759,6 +1035,7 @@ function TimeValue({ value }: { value: string }) {
 function statusLabel(status: SubscriptionCodeStatus): string {
   if (status === 'unused') return subscriberCopy.statusUnused
   if (status === 'redeemed') return subscriberCopy.statusRedeemed
+  if (status === 'revoked') return subscriberCopy.statusRevoked
   return subscriberCopy.statusExpired
 }
 

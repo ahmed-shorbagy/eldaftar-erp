@@ -59,7 +59,7 @@ Status 2026-11-10: implemented, locally verified and deployed to development und
 
 ## Phase 4 — subscription management extensions and broadcasts
 
-Needs owner decisions before implementation; record them in a new ADR.
+Status 2026-11-13: implemented, locally verified and deployed to development under [ADR 0048](../adr/0048-subscription-code-presets-revocation-and-broadcasts.md) ([validation and deployment](../reviews/admin-phase4-2026-11-13/validation.md)), which records D-A2 and D-A3. Codes gained presets, audited revocation and Web Share. Broadcasts have the dashboard composer and history and the owner «الرسائل» inbox and banner. Not committed. Owner acceptance pending. The original scope follows.
 
 - **Codes (ADM-02):** presets for 1, 3, 6 and 12 months at 30 days per month (D-A2); revoke an unredeemed code with an audited reason; copy and share a single issued code. Bulk send waits for ADM-06 channels.
 - **Broadcasts (ADM-06):** admin composes an Arabic message for all subscribers or a status or expiry segment; in-app delivery with durable per-shop read state; optional schedule and expiry; a sent history with counts. External channels (WhatsApp, email, push) are out of scope unless the owner adds them. Reuse the announcement banner component in Flutter.

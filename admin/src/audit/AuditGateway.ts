@@ -1,10 +1,18 @@
 /** Platform-admin action history contract (ADR 0046). */
 
-export type AuditFamily = 'codes' | 'contact' | 'support' | 'app_version' | 'help' | 'announcement'
+export type AuditFamily =
+  | 'codes'
+  | 'contact'
+  | 'support'
+  | 'app_version'
+  | 'help'
+  | 'announcement'
+  | 'broadcast'
 export type AuditFamilyFilter = 'all' | AuditFamily
 
 export type AuditAction =
   | 'subscription_code_issued'
+  | 'subscription_code_revoked'
   | 'subscriber_contact_revealed'
   | 'support_status_changed'
   | 'app_version_set'
@@ -18,6 +26,8 @@ export type AuditAction =
   | 'announcement_published'
   | 'announcement_updated'
   | 'announcement_cleared'
+  | 'broadcast_sent'
+  | 'broadcast_withdrawn'
 
 /** Safe summary fields; every field is optional and validated by type. */
 export interface AuditDetails {
@@ -30,6 +40,8 @@ export interface AuditDetails {
   previousMinVersion?: string | null
   titleAr?: string
   published?: boolean
+  reason?: string
+  recipientCount?: number
 }
 
 export interface AuditEvent {
@@ -75,11 +87,12 @@ export class AuditError extends Error {
 }
 
 export const auditFamilies: readonly AuditFamily[] = [
-  'codes', 'contact', 'support', 'app_version', 'help', 'announcement',
+  'codes', 'contact', 'support', 'app_version', 'help', 'announcement', 'broadcast',
 ]
 
 const actionFamily: Record<AuditAction, AuditFamily> = {
   subscription_code_issued: 'codes',
+  subscription_code_revoked: 'codes',
   subscriber_contact_revealed: 'contact',
   support_status_changed: 'support',
   app_version_set: 'app_version',
@@ -93,6 +106,8 @@ const actionFamily: Record<AuditAction, AuditFamily> = {
   announcement_published: 'announcement',
   announcement_updated: 'announcement',
   announcement_cleared: 'announcement',
+  broadcast_sent: 'broadcast',
+  broadcast_withdrawn: 'broadcast',
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -142,6 +157,10 @@ function parseDetails(value: unknown): AuditDetails {
   }
   if (typeof raw.title_ar === 'string') details.titleAr = raw.title_ar
   if (typeof raw.published === 'boolean') details.published = raw.published
+  if (typeof raw.reason === 'string') details.reason = raw.reason
+  if (typeof raw.recipient_count === 'number' && Number.isInteger(raw.recipient_count)) {
+    details.recipientCount = raw.recipient_count
+  }
   return details
 }
 

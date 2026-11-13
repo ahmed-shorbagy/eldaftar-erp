@@ -591,7 +591,7 @@ test('history list sends the selected shop and page size', async () => {
   const { client: supabase, rpc } = client({ data: history, error: null })
   const gateway = new SupabaseSubscriberDirectoryGateway(supabase)
   const page = await gateway.listSubscriptionCodes('a1100000-0000-4000-8000-000000000001', null)
-  expect(rpc).toHaveBeenCalledWith('admin_list_subscription_codes_v1', {
+  expect(rpc).toHaveBeenCalledWith('admin_list_subscription_codes_v2', {
     p_shop_id: 'a1100000-0000-4000-8000-000000000001',
     p_cursor: null,
     p_page_size: subscriptionCodePageSize,

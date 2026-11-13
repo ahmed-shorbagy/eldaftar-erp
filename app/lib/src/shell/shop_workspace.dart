@@ -9,6 +9,8 @@ import '../features/daily_ledger/presentation/ledger_more_balances.dart';
 import '../features/onboarding/application/onboarding_store.dart';
 import '../features/invoice_appearance/application/apply_shop_logo_to_invoice.dart';
 import '../features/invoice_appearance/data/logo_upload_store.dart';
+import '../features/broadcasts/domain/broadcast_models.dart';
+import '../features/broadcasts/presentation/broadcast_inbox_screen.dart';
 import '../features/help/domain/help_models.dart';
 import '../features/help/presentation/announcement_banner.dart';
 import '../features/help/presentation/help_screen.dart';
@@ -41,6 +43,11 @@ class ShopWorkspace extends StatefulWidget {
     this.onDismissSubscriptionNotice,
     this.platformAnnouncement,
     this.onDismissPlatformAnnouncement,
+    this.broadcastGateway,
+    this.broadcastInbox,
+    this.broadcastBanner,
+    this.onDismissBroadcast,
+    this.onBroadcastsChanged,
     this.helpGateway,
     this.supportGateway,
     this.auditTrailGateway,
@@ -81,6 +88,15 @@ class ShopWorkspace extends StatefulWidget {
   final Future<void> Function()? onDismissSubscriptionNotice;
   final PlatformAnnouncement? platformAnnouncement;
   final VoidCallback? onDismissPlatformAnnouncement;
+
+  /// Owner message inbox (ADR 0048); null hides «الرسائل».
+  final BroadcastGateway? broadcastGateway;
+  final BroadcastInbox? broadcastInbox;
+
+  /// Newest unread message shown as a banner; hiding it marks it read.
+  final OwnerBroadcast? broadcastBanner;
+  final VoidCallback? onDismissBroadcast;
+  final ValueChanged<BroadcastInbox>? onBroadcastsChanged;
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
   final AuditTrailGateway? auditTrailGateway;
@@ -280,6 +296,27 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
       ),
     ),
   );
+
+  String get _messagesLabel {
+    final unread = widget.broadcastInbox?.unreadCount ?? 0;
+    return unread > 0
+        ? '${BroadcastCopy.title} (${BroadcastCopy.unreadCount(unread)})'
+        : BroadcastCopy.title;
+  }
+
+  void _openBroadcasts() {
+    final gateway = widget.broadcastGateway;
+    if (gateway == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BroadcastInboxScreen(
+          gateway: gateway,
+          initial: widget.broadcastInbox,
+          onChanged: widget.onBroadcastsChanged,
+        ),
+      ),
+    );
+  }
 
   Widget _link(String label, IconData icon, VoidCallback onTap, {Key? key}) =>
       ListTile(
@@ -629,6 +666,15 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
                       () => widget.onToggleTheme(theme.brightness),
                       key: const Key('workspace-theme-toggle'),
                     ),
+                    if (widget.shop.isOwner && widget.broadcastGateway != null)
+                      _link(
+                        _messagesLabel,
+                        (widget.broadcastInbox?.unreadCount ?? 0) > 0
+                            ? Icons.mark_email_unread_outlined
+                            : Icons.mail_outline,
+                        _openBroadcasts,
+                        key: const Key('workspace-broadcasts'),
+                      ),
                     if (widget.helpGateway != null)
                       _link(
                         'المساعدة',
@@ -817,6 +863,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
   Widget _withNotice(Widget child) {
     final notice = widget.subscriptionNotice;
     final announcement = widget.platformAnnouncement;
+    final broadcast = widget.shop.isOwner ? widget.broadcastBanner : null;
     final banners = <Widget>[
       if (notice != null && widget.onDismissSubscriptionNotice != null)
         Padding(
@@ -845,6 +892,19 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
             key: const Key('platform-announcement-banner'),
             announcement: announcement,
             onDismiss: widget.onDismissPlatformAnnouncement!,
+          ),
+        ),
+      if (broadcast != null && widget.onDismissBroadcast != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: AnnouncementBanner(
+            key: const Key('broadcast-banner'),
+            announcement: PlatformAnnouncement(
+              titleAr: broadcast.titleAr,
+              bodyAr: broadcast.bodyAr,
+              linkUrl: broadcast.linkUrl,
+            ),
+            onDismiss: widget.onDismissBroadcast!,
           ),
         ),
     ];

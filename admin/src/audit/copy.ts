@@ -5,7 +5,7 @@ import type { AuditAction, AuditDetails, AuditFamilyFilter } from './AuditGatewa
 export const auditCopy = {
   navLabel: 'سجل الإدارة',
   title: 'سجل الإدارة',
-  intro: 'كل ما نفّذه مسؤولو المنصة، الأحدث أولًا: رموز الاشتراك، وعرض بيانات التواصل، والدعم الفني، وتحديث التطبيق، والمساعدة، والإعلان. السجل للقراءة فقط ولا يمكن تعديله.',
+  intro: 'كل ما نفّذه مسؤولو المنصة، الأحدث أولًا: رموز الاشتراك، وعرض بيانات التواصل، والدعم الفني، وتحديث التطبيق، والمساعدة، والإعلان، والرسائل. السجل للقراءة فقط ولا يمكن تعديله.',
   familyGroup: 'نوع العملية',
   actorLabel: 'المسؤول',
   actorAll: 'كل المسؤولين',
@@ -33,10 +33,12 @@ export const auditFamilyLabel: Record<AuditFamilyFilter, string> = {
   app_version: 'تحديث التطبيق',
   help: 'المساعدة',
   announcement: 'الإعلان',
+  broadcast: 'الرسائل',
 }
 
 export const auditActionLabel: Record<AuditAction, string> = {
   subscription_code_issued: 'إصدار رمز اشتراك',
+  subscription_code_revoked: 'إلغاء رمز اشتراك',
   subscriber_contact_revealed: 'عرض رقم الهاتف والموقع',
   support_status_changed: 'تغيير حالة استفسار',
   app_version_set: 'ضبط الحد الأدنى للإصدار',
@@ -50,6 +52,8 @@ export const auditActionLabel: Record<AuditAction, string> = {
   announcement_published: 'نشر إعلان المنصة',
   announcement_updated: 'تعديل إعلان المنصة',
   announcement_cleared: 'إلغاء إعلان المنصة',
+  broadcast_sent: 'إرسال رسالة للمشتركين',
+  broadcast_withdrawn: 'سحب رسالة',
 }
 
 const platformLabel: Record<string, string> = {
@@ -69,6 +73,8 @@ export function auditSummary(action: AuditAction, details: AuditDetails): string
   switch (action) {
     case 'subscription_code_issued':
       return details.durationDays === undefined ? null : `مدة الاشتراك ${details.durationDays} يومًا`
+    case 'subscription_code_revoked':
+      return details.reason === undefined ? null : `السبب: ${details.reason}`
     case 'subscriber_contact_revealed':
       return null
     case 'support_status_changed':
@@ -97,5 +103,14 @@ export function auditSummary(action: AuditAction, details: AuditDetails): string
       return details.titleAr ? `«${details.titleAr}»` : null
     case 'announcement_cleared':
       return null
+    case 'broadcast_sent': {
+      if (details.titleAr === undefined) return null
+      const count = details.recipientCount === undefined ? '' : ` — إلى ${details.recipientCount} من المتاجر`
+      return `«${details.titleAr}»${count}`
+    }
+    case 'broadcast_withdrawn': {
+      if (details.titleAr === undefined) return null
+      return details.reason === undefined ? `«${details.titleAr}»` : `«${details.titleAr}» — السبب: ${details.reason}`
+    }
   }
 }

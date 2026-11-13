@@ -48,6 +48,8 @@ function page(overrides: Partial<SubscriptionCodePage> = {}): SubscriptionCodePa
       issuedVia: 'platform_admin',
       codeStatus: 'unused',
       redeemedAt: null,
+      revokedAt: null,
+      revokeReason: null,
     }],
     ...overrides,
   }
@@ -59,6 +61,7 @@ function gateway(overrides: Partial<SubscriberDirectoryGateway> = {}): Subscribe
     async get() { throw new Error('unused') },
     async listSubscriptionCodes() { return emptyHistory },
     async issueSubscriptionCode() { return issued },
+    async revokeSubscriptionCode() { throw new Error('unused') },
     async bindSelectedShopSession() { return { id: 'lease-1' } },
     async assertBoundSession() {},
     async authorizeCopy() {},
@@ -291,6 +294,8 @@ test('history paging and retry after failure', async () => {
           issuedVia: 'service_role',
           codeStatus: 'redeemed',
           redeemedAt: '2026-10-22T08:00:00.000Z',
+          revokedAt: null,
+          revokeReason: null,
         }],
       })
     },
@@ -493,6 +498,8 @@ test('a late history result cannot overwrite a newer selected shop or resurrect 
           issuedVia: 'service_role',
           codeStatus: 'redeemed',
           redeemedAt: '2026-10-22T08:00:00.000Z',
+          revokedAt: null,
+          revokeReason: null,
         }],
       })
     },

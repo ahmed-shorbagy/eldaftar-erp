@@ -61,6 +61,13 @@ export interface IssueSubscriptionCodeInput {
   requestKey: string
 }
 
+export interface RevokeSubscriptionCodeInput {
+  codeId: string
+  shopId: string
+  reason: string
+  requestKey: string
+}
+
 export interface SubscriptionSessionBinding {
   readonly id: string
 }
@@ -76,6 +83,10 @@ export interface SubscriberDirectoryGateway {
     shopId: string,
     cursor: string | null,
   ): Promise<import('./subscriptionCodes.ts').SubscriptionCodePage>
+  revokeSubscriptionCode(
+    input: RevokeSubscriptionCodeInput,
+    binding: SubscriptionSessionBinding,
+  ): Promise<import('./subscriptionCodes.ts').RevokeResult>
   bindSelectedShopSession(): Promise<SubscriptionSessionBinding>
   assertBoundSession(binding: SubscriptionSessionBinding): Promise<void>
   authorizeCopy(binding: SubscriptionSessionBinding, shopId: string): Promise<void>

@@ -54,6 +54,7 @@ import '../../invoice_appearance/presentation/invoice_appearance_screen.dart';
 import '../../onboarding/application/onboarding_store.dart';
 import '../application/shop_sync_coordinator.dart';
 import '../application/shop_sync_ticks.dart';
+import '../../broadcasts/domain/broadcast_models.dart';
 import '../../help/domain/help_models.dart';
 import '../../support/domain/support_models.dart';
 import '../domain/shop_account.dart';
@@ -79,6 +80,7 @@ class ShopAccountsGate extends StatefulWidget {
     this.helpGateway,
     this.supportGateway,
     this.auditTrailGateway,
+    this.broadcastGateway,
     this.appVersion,
   });
 
@@ -95,6 +97,7 @@ class ShopAccountsGate extends StatefulWidget {
   final HelpGateway? helpGateway;
   final SupportGateway? supportGateway;
   final AuditTrailGateway? auditTrailGateway;
+  final BroadcastGateway? broadcastGateway;
   final String? appVersion;
 
   @override
@@ -135,6 +138,11 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
   bool _noticeDismissFailed = false;
   PlatformAnnouncement? _announcement;
   bool _announcementDismissed = false;
+  BroadcastInbox? _broadcasts;
+
+  /// Banner ids hidden this session while their read mark is in flight or
+  /// failed; the inbox still shows them as unread until the server confirms.
+  final Set<String> _hiddenBroadcastBanners = {};
 
   @override
   void initState() {
@@ -178,6 +186,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       _noticeDismissFailed = false;
       _announcement = null;
       _announcementDismissed = false;
+      _broadcasts = null;
+      _hiddenBroadcastBanners.clear();
       _ledgerGeneration++;
       _inventoryGeneration++;
       _traderGeneration++;
@@ -652,6 +662,8 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
     } catch (_) {
       if (!isCurrent()) return;
     }
+    await _refreshBroadcasts(isCurrent);
+    if (!isCurrent()) return;
     final help = widget.helpGateway;
     if (help == null) return;
     try {
@@ -670,6 +682,67 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
       });
     } catch (_) {
       if (!isCurrent()) return;
+    }
+  }
+
+  /// Owner-only inbox (ADR 0048). A transient failure keeps the last inbox.
+  Future<void> _refreshBroadcasts(bool Function() isCurrent) async {
+    final gateway = widget.broadcastGateway;
+    final selected = _selected;
+    if (gateway == null || selected == null || !selected.isOwner) {
+      if (_broadcasts != null) setState(() => _broadcasts = null);
+      return;
+    }
+    try {
+      final inbox = await gateway.listMine();
+      if (!isCurrent()) return;
+      setState(() => _broadcasts = inbox);
+    } on BroadcastException catch (error) {
+      if (!isCurrent()) return;
+      if (error.failure == BroadcastFailure.unauthorized) {
+        setState(() => _broadcasts = null);
+      }
+    } catch (_) {
+      if (!isCurrent()) return;
+    }
+  }
+
+  BroadcastInbox? get _selectedBroadcasts {
+    final inbox = _broadcasts;
+    final selected = _selected;
+    if (inbox == null || selected == null || inbox.shopId != selected.id) {
+      return null;
+    }
+    return inbox;
+  }
+
+  OwnerBroadcast? get _broadcastBanner {
+    final inbox = _selectedBroadcasts;
+    if (inbox == null) return null;
+    for (final item in inbox.items) {
+      if (item.isUnread && !_hiddenBroadcastBanners.contains(item.id)) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _dismissBroadcastBanner() async {
+    final item = _broadcastBanner;
+    final gateway = widget.broadcastGateway;
+    if (item == null || gateway == null) return;
+    final generation = _requestGeneration;
+    setState(() => _hiddenBroadcastBanners.add(item.id));
+    try {
+      final result = await gateway.markRead(item.id);
+      if (!mounted || generation != _requestGeneration) return;
+      final inbox = _broadcasts;
+      if (inbox != null) {
+        setState(() => _broadcasts = inbox.withRead(item.id, result.readAt));
+      }
+    } catch (_) {
+      // The banner stays hidden for this session; the inbox keeps the
+      // message unread until a read is confirmed by the server.
     }
   }
 
@@ -901,6 +974,16 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
             _announcement == null || _announcementDismissed
             ? null
             : () => setState(() => _announcementDismissed = true),
+        broadcastGateway: selected.isOwner ? widget.broadcastGateway : null,
+        broadcastInbox: _selectedBroadcasts,
+        broadcastBanner: _broadcastBanner,
+        onDismissBroadcast: _broadcastBanner == null
+            ? null
+            : () => unawaited(_dismissBroadcastBanner()),
+        onBroadcastsChanged: (inbox) {
+          if (!mounted || inbox.shopId != _selected?.id) return;
+          setState(() => _broadcasts = inbox);
+        },
         helpGateway: widget.helpGateway,
         supportGateway: widget.supportGateway,
         auditTrailGateway: widget.auditTrailGateway,
