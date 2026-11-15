@@ -12,8 +12,11 @@ class PendingInvoiceSendsScreen extends StatefulWidget {
     required this.gateway,
     required this.userId,
     this.syncTicks,
+    this.canChangeOperation = true,
   });
 
+  /// Trade edit and delete stay owner-only.
+  final bool canChangeOperation;
   final FinancialGateway gateway;
   final String userId;
   final Listenable? syncTicks;
@@ -102,6 +105,7 @@ class _PendingInvoiceSendsScreenState extends State<PendingInvoiceSendsScreen> {
           gateway: widget.gateway,
           userId: widget.userId,
           syncTicks: widget.syncTicks,
+          canChangeOperation: widget.canChangeOperation,
           line: LedgerFeedLine(
             kind: item.kind,
             labelAr: 'بيع',

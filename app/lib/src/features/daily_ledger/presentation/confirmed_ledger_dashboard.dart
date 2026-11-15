@@ -42,9 +42,18 @@ class ConfirmedLedgerDashboard extends StatefulWidget {
     this.dayClosed = false,
     this.canReturn = false,
     this.loadItems,
+    this.hideShopBalances = false,
+    this.ownerControls = true,
   });
 
   final DailyLedgerView? ledger;
+
+  /// Employees never receive the shop's cash: no cash tile or methods sheet.
+  /// Their other figures are their own operations only (server read model).
+  final bool hideShopBalances;
+
+  /// Owner-only books and day control (notes, opening a new day).
+  final bool ownerControls;
   final String shopId;
   final VoidCallback? onSale;
   final VoidCallback? onPurchase;
@@ -275,33 +284,35 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
           'اختر ست خانات تظهر في ملخص اليوم.',
           style: theme.textTheme.bodySmall,
         ),
-        for (final (slot, id) in _metricLayout.homeIds.indexed) ...[
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            key: ValueKey('ledger-slot-$slot-$id'),
-            initialValue: id,
-            isExpanded: true,
-            decoration: InputDecoration(labelText: 'الخانة ${slot + 1}'),
-            items: [
-              for (final metric in _metricLayout.availableIds)
-                DropdownMenuItem(
-                  value: metric,
-                  child: Text(ledgerMetricLabel(metric)),
-                ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(
-                () => _metricLayout = selectMetricForSlot(
-                  _metricLayout,
-                  slot,
-                  value,
-                ),
-              );
-              _saveLayout();
-            },
-          ),
-        ],
+        for (final (slot, id) in _metricLayout.homeIds.indexed)
+          if (!_hiddenMetric(id)) ...[
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              key: ValueKey('ledger-slot-$slot-$id'),
+              initialValue: id,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: 'الخانة ${slot + 1}'),
+              items: [
+                for (final metric in _metricLayout.availableIds)
+                  if (!_hiddenMetric(metric))
+                    DropdownMenuItem(
+                      value: metric,
+                      child: Text(ledgerMetricLabel(metric)),
+                    ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(
+                  () => _metricLayout = selectMetricForSlot(
+                    _metricLayout,
+                    slot,
+                    value,
+                  ),
+                );
+                _saveLayout();
+              },
+            ),
+          ],
         const SizedBox(height: 16),
         Text(
           'عيارات الكسر في الملخص وإدخال العمليات الجديدة',
@@ -353,9 +364,15 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
     );
   }
 
+  bool _hiddenMetric(String id) =>
+      widget.hideShopBalances && id == 'total_cash';
+
   Widget _metrics(DailyLedgerView view) {
     final values = ledgerMetricValues(view, _metricLayout.normalizationKarat);
-    final shown = _metricLayout.homeIds;
+    final shown = [
+      for (final id in _metricLayout.homeIds)
+        if (!_hiddenMetric(id)) id,
+    ];
     return LayoutBuilder(
       builder: (context, size) {
         final minimum = size.maxWidth < 390 ? 148.0 : 168.0;
@@ -532,7 +549,9 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                     key: const Key('ledger-day-closed'),
                     tone: MessageTone.warning,
                     title: 'يوم العمل مغلق',
-                    message: 'افتح يومًا جديدًا لتسجيل البيع والشراء.',
+                    message: widget.ownerControls
+                        ? 'افتح يومًا جديدًا لتسجيل البيع والشراء.'
+                        : 'يفتح مالك المحل يوم العمل الجديد، ثم يمكنك التسجيل.',
                     actionLabel: widget.onOpenDay == null
                         ? null
                         : 'فتح يوم جديد',
@@ -577,16 +596,19 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                   count: view.daySummary?.expenseCount,
                   onTap: () => _showHistory('expense'),
                 ),
-                _CompactBookRow(
-                  label: 'الملاحظات',
-                  book: 'notes',
-                  count:
-                      view.journalContext?.noteCount ??
-                      (view.feedCursor?.hasMore == true
-                          ? null
-                          : view.feed.where((line) => line.isDailyNote).length),
-                  onTap: widget.onDailyNotes,
-                ),
+                if (widget.ownerControls)
+                  _CompactBookRow(
+                    label: 'الملاحظات',
+                    book: 'notes',
+                    count:
+                        view.journalContext?.noteCount ??
+                        (view.feedCursor?.hasMore == true
+                            ? null
+                            : view.feed
+                                  .where((line) => line.isDailyNote)
+                                  .length),
+                    onTap: widget.onDailyNotes,
+                  ),
               ],
             ],
           if (!_visible['activity']!)

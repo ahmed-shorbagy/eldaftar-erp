@@ -63,8 +63,11 @@ class FinancialTradeScreen extends StatefulWidget {
     this.canWrite,
     this.syncTicks,
     this.defaultPhoneCountry,
+    this.canSendInvoice = true,
   });
 
+  /// Offering the invoice after a sale needs the `invoice_send` grant.
+  final bool canSendInvoice;
   final FinancialKind kind;
   final FinancialGateway gateway;
   final OpeningGateway statusGateway;
@@ -1791,6 +1794,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
   }
 
   bool get _canSendInvoice =>
+      widget.canSendInvoice &&
       widget.kind == FinancialKind.sale &&
       widget.gateway is InvoiceDispatchGateway &&
       _operationId != null &&
@@ -2633,6 +2637,7 @@ Future<bool?> showFinancialTradeSheet({
   bool Function()? canWrite,
   Listenable? syncTicks,
   PhoneCountry? defaultPhoneCountry,
+  bool canSendInvoice = true,
 }) {
   final phoneCountry =
       defaultPhoneCountry ?? ShopPhoneCountryCache.forShop(shopId);
@@ -2681,6 +2686,7 @@ Future<bool?> showFinancialTradeSheet({
                       canWrite: canWrite,
                       syncTicks: syncTicks,
                       defaultPhoneCountry: phoneCountry,
+                      canSendInvoice: canSendInvoice,
                     ),
                   ),
                 ),

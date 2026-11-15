@@ -35,8 +35,11 @@ class LedgerArchiveScreen extends StatefulWidget {
     required this.canRead,
     this.syncTicks,
     this.initialDate,
+    this.canSendInvoice = true,
   });
 
+  /// Invoice sharing needs the `invoice_send` grant (ADR 0033).
+  final bool canSendInvoice;
   final ReportGateway reportGateway;
   final LedgerDateGateway dateGateway;
   final FinancialGateway financialGateway;
@@ -141,6 +144,8 @@ class _LedgerArchiveScreenState extends State<LedgerArchiveScreen> {
                   shopId: widget.shopId,
                   canRead: widget.canRead,
                   canWrite: () => false,
+                  canChangeOperation: false,
+                  canSendInvoice: widget.canSendInvoice,
                   line: line,
                   syncTicks: widget.syncTicks,
                 ),

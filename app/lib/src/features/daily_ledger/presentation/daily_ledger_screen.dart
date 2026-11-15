@@ -32,6 +32,7 @@ import '../../customers/application/customer_contract.dart';
 import '../../invoice_appearance/application/invoice_appearance_contract.dart';
 import '../../repairs/application/repair_contract.dart';
 import '../application/ledger_activity.dart';
+import '../application/ledger_control_access.dart';
 import '../application/ledger_line_items.dart';
 import '../application/idempotency_key.dart';
 import '../application/pending_opening_store.dart';
@@ -110,6 +111,7 @@ bool _positiveWireAmount(String value) {
 
 class _DailyLedgerScreenState extends State<DailyLedgerScreen>
     with WidgetsBindingObserver {
+  LedgerControlAccess get _access => LedgerControlAccess.of(widget.shop);
   DailyLedgerController? _controller;
   final _scroll = ScrollController();
   FinancialDayState? _financialDay;
@@ -626,6 +628,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         userId: userId,
         shopId: widget.shop.id,
         catalog: catalog,
+        canSendInvoice: _access.sendInvoice,
         inventoryPage: widget.inventoryPage,
         canRead: () => mounted && widget.userId == userId,
         canWrite: () => _canStartEntry(userId),
@@ -643,6 +646,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
             canRead: () => mounted && widget.userId == userId,
             canWrite: () => _canStartEntry(userId),
             syncTicks: Listenable.merge([widget.syncTicks, _formInvalidations]),
+            canSendInvoice: _access.sendInvoice,
           ),
         ),
       );
@@ -792,6 +796,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           gateway: gateway,
           userId: userId,
           shopId: widget.shop.id,
+          canChangeOperation: widget.shop.isOwner,
+          canSendInvoice: _access.sendInvoice,
           canRead: () => mounted && widget.userId == userId,
           canWrite: () =>
               mounted &&
@@ -824,6 +830,8 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           gateway: gateway,
           userId: userId,
           shopId: widget.shop.id,
+          canChangeOperation: widget.shop.isOwner,
+          canSendInvoice: _access.sendInvoice,
           canRead: () => mounted && widget.userId == userId,
           canWrite: () =>
               mounted &&
@@ -865,6 +873,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           canRead: () => mounted && widget.userId == userId,
           syncTicks: widget.syncTicks,
           initialDate: date,
+          canSendInvoice: _access.sendInvoice,
         ),
       ),
     );
@@ -880,6 +889,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           gateway: gateway as FinancialGateway,
           userId: userId,
           syncTicks: widget.syncTicks,
+          canChangeOperation: widget.shop.isOwner,
         ),
       ),
     );
@@ -1197,15 +1207,18 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       !controller.readOnly &&
                       _financialPending == null,
                   // U16: no sale or purchase entry while no day is open.
-                  onSale: _financialDay?.isClosed == true
+                  // ADR 0033: each control follows the member's grants; the
+                  // server enforces them as well.
+                  onSale: _financialDay?.isClosed == true || !_access.sale
                       ? null
                       : () => _requestTrade(FinancialKind.sale),
-                  onPurchase: _financialDay?.isClosed == true
+                  onPurchase:
+                      _financialDay?.isClosed == true || !_access.purchase
                       ? null
                       : () => _requestTrade(FinancialKind.purchase),
                   onAddReturn:
                       _financialGateway is CustomerReturnGateway &&
-                          widget.shop.hasPermission(ShopPermission.sale) &&
+                          _access.customerReturn &&
                           _financialDay?.isOpen == true &&
                           !_expired &&
                           !controller.readOnly &&
@@ -1213,14 +1226,16 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       ? () => _startTrade(FinancialKind.customerReturn)
                       : null,
                   onExpense:
-                      _financialDay?.isOpen == true &&
+                      _access.expense &&
+                          _financialDay?.isOpen == true &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
                       ? () => _startTrade(FinancialKind.expense)
                       : null,
                   onCashTransfer:
-                      _financialDay?.isOpen == true &&
+                      _access.cashTransfer &&
+                          _financialDay?.isOpen == true &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null &&
@@ -1228,14 +1243,16 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       ? _transferCash
                       : null,
                   onScrapSale:
-                      _financialDay?.isOpen == true &&
+                      _access.scrapSale &&
+                          _financialDay?.isOpen == true &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
                       ? () => _startTrade(FinancialKind.scrapSale)
                       : null,
                   onScrapToStock:
-                      _financialDay?.isOpen == true &&
+                      _access.scrapToStock &&
+                          _financialDay?.isOpen == true &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null &&
@@ -1247,32 +1264,38 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                       ? _convertScrapToStock
                       : null,
                   onCloseDay:
-                      _financialDay?.isOpen == true &&
+                      _access.closeDay &&
+                          _financialDay?.isOpen == true &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
                       ? _closeDay
                       : null,
                   onOpenDay:
-                      _financialDay?.isClosed == true &&
+                      _access.openDay &&
+                          _financialDay?.isClosed == true &&
                           !_expired &&
                           !controller.readOnly &&
                           _financialPending == null
                       ? _openDay
                       : null,
-                  onOpenArchive:
-                      widget.shop.hasPermission(ShopPermission.reports)
-                      ? _openArchive
-                      : null,
+                  onOpenArchive: _access.archive ? _openArchive : null,
                   onOperation: _financialGateway == null
                       ? null
                       : _openOperation,
-                  onPendingInvoices: _financialGateway is InvoiceDispatchGateway
+                  onPendingInvoices:
+                      _access.pendingInvoices &&
+                          _financialGateway is InvoiceDispatchGateway
                       ? _openPendingInvoices
                       : null,
-                  onDailyNotes: _notesGateway != null && widget.userId != null
+                  onDailyNotes:
+                      _access.dailyNotes &&
+                          _notesGateway != null &&
+                          widget.userId != null
                       ? _openDailyNotes
                       : null,
+                  hideShopBalances: _access.hidesShopBalances,
+                  canEnterOpening: _access.openDay,
                   onLoadOlder:
                       _feedGateway != null &&
                           (_activity.state.hasOlder || _loadingOlder)
@@ -1318,9 +1341,15 @@ class _LedgerBody extends StatelessWidget {
     this.loadingOlder = false,
     this.activityLines,
     this.loadItems,
+    this.hideShopBalances = false,
+    this.canEnterOpening = true,
   });
 
   final DailyLedgerController controller;
+  final bool hideShopBalances;
+
+  /// Only the owner enters opening balances; staff wait for them.
+  final bool canEnterOpening;
   final bool expired;
   final FinancialDayState? day;
   final bool dayBusy;
@@ -1365,6 +1394,11 @@ class _LedgerBody extends StatelessWidget {
           LedgerPhase.form =>
             controller.readOnly
                 ? const Text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.')
+                : !canEnterOpening
+                ? const Text(
+                    'لم يُدخل مالك المحل الأرصدة الافتتاحية بعد.',
+                    key: Key('ledger-opening-owner-only'),
+                  )
                 : _EntryForm(controller: controller),
           LedgerPhase.review => _Review(
             controller: controller,
@@ -1403,6 +1437,8 @@ class _LedgerBody extends StatelessWidget {
             loadingOlder: loadingOlder,
             activityLines: activityLines,
             loadItems: loadItems,
+            hideShopBalances: hideShopBalances,
+            ownerControls: canEnterOpening,
           ),
           LedgerPhase.refreshFailed => const _RefreshFailedNotice(),
           LedgerPhase.accessDenied => const SizedBox.shrink(),

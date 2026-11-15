@@ -35,6 +35,8 @@ for (const name of [
   'daily_note_changes.sql',
   'expense_return_change.sql',
   'trade_change_tender_label.sql',
+  'staff_grant_entry_points.sql',
+  'employee_ledger_reads.sql',
   'last_piece_weight_rule.sql',
   'legacy_pooled_lot_name.sql',
   'expense_feed_description.sql',

@@ -212,6 +212,7 @@ Gates (2026-11-12): `dart format --set-exit-if-changed lib test` clean; `dart an
 ## Not covered in this pass
 
 - Admin dashboard pages behind sign-in (overview, subscribers, codes, audit history): the only test credentials are a shop owner, which the admin gate correctly refuses. Needs a platform-admin test account.
+- 2026-11-15 follow-up: an API-level run of sign-up, code issue and redemption, a business day and staff found that partners and employees could not record any trade, that the employee home could not load, and that staff operations were named as the owner's. All three were fixed on development the same day. See [staff grant entry points](../reviews/staff-grants-2026-11-15/validation.md).
 - Windows build at desktop size: access to the window was declined; the wide layout was checked on the emulator in landscape (≈914 dp, five-destination rail) instead.
 - Employee and partner accounts (grants, own-operations home), staff closing-count delegation, debts, traders, analytics and weekly reports, invoice appearance and message settings, shop profile and logo upload, sign-up and password recovery.
 - WhatsApp on a device with WhatsApp installed, iOS.

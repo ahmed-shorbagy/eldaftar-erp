@@ -141,4 +141,68 @@ void main() {
       expect(find.byKey(const Key('operation-whatsapp-share')), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'staff without invoice send or owner rights get no share, edit or delete (ADR 0033)',
+    (t) async {
+      size(t);
+      SharedPreferences.setMockInitialValues({});
+      FlutterSecureStorage.setMockInitialValues({});
+      final calls = <String>[];
+      final source = {
+        ...syntheticMessageOperation(),
+        'version': 1,
+        'shop_id': messageShop,
+        'actor_display_name': 'موظف تجريبي',
+        'occurred_at_cairo': '2026-10-18T10:30:00',
+        'content_sha256': 'a' * 64,
+        'message': profileJson(),
+      };
+      final gateway = HttpOpeningGateway(
+        client: MockClient((r) async {
+          calls.add(r.url.pathSegments.last);
+          if (r.url.pathSegments.last != 'get_daily_ledger_operation') {
+            fail('Unexpected RPC ${r.url.pathSegments.last}');
+          }
+          return http.Response.bytes(
+            utf8.encode(jsonEncode(source)),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+        supabaseUrl: 'https://synthetic.test',
+        publishableKey: 'public',
+        accessToken: () => 'epoch',
+        currentUserId: () => messageUser,
+      );
+      await t.pumpWidget(
+        customerHost(
+          FinancialOperationScreen(
+            gateway: gateway,
+            userId: messageUser,
+            shopId: messageShop,
+            canRead: () => true,
+            canWrite: () => true,
+            canSendInvoice: false,
+            canChangeOperation: false,
+            line: const LedgerFeedLine(
+              kind: 'sale',
+              labelAr: 'بيع',
+              operationId: messageOperation,
+              actorDisplayName: 'موظف تجريبي',
+              occurredAt: '2026-10-18T07:30:00Z',
+              occurredAtCairo: '2026-10-18T10:30:00',
+            ),
+          ),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('operation-whatsapp-share')), findsNothing);
+      expect(find.byKey(const Key('operation-edit')), findsNothing);
+      expect(find.byKey(const Key('operation-delete')), findsNothing);
+      // No dispatch read either: the server would refuse it.
+      expect(calls, ['get_daily_ledger_operation']);
+      expect(t.takeException(), isNull);
+    },
+  );
 }

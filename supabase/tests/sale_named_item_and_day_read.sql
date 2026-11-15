@@ -204,7 +204,9 @@ begin
   -- An employee keeps the employee rules: own rows only, no shop figures.
   perform set_config('request.jwt.claim.sub', 'f1100000-0000-4000-8000-000000000002', true);
   v_read := public.get_ledger_day_v1(v_closed_day, null, 100);
-  if v_read ? 'day_summary'
+  -- 2026-11-15: the summary is the employee's own (none on this day).
+  if v_read #>> '{day_summary,sale_piastres}' is distinct from '0'
+    or v_read #>> '{day_summary,sale_count}' is distinct from '0'
     or jsonb_array_length(v_read #> '{feed_page,items}') <> 0 then
     raise exception 'employee_day_read_leaks %', v_read;
   end if;

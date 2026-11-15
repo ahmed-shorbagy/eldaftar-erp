@@ -66,9 +66,15 @@ begin
   perform set_config('request.jwt.claim.sub', 'b1100000-0000-4000-8000-000000000002', true);
   perform public.post_daily_ledger_trade('b3300000-0000-4000-8000-000000000012', v_staff);
   v_home := public.get_daily_ledger_home_v2();
-  if v_home ->> 'employee_ledger' is distinct from 'true'
+  -- 2026-11-15: an employee gets the current read model built from their own
+  -- operations (own feed and totals, zero cash amounts, no stock or scrap).
+  if v_home ->> 'read_model_version' is distinct from '3'
     or jsonb_array_length(v_home -> 'feed') <> 1
-    or v_home ? 'day_summary'
+    or v_home #>> '{day_summary,sale_piastres}' is distinct from '1000'
+    or exists (select 1 from jsonb_array_elements(v_home -> 'cash') as line
+               where line ->> 'piastres' is distinct from '0')
+    or v_home -> 'stock' <> '[]'::jsonb
+    or v_home -> 'scrap' <> '[]'::jsonb
     or v_home ->> 'day_reset' is distinct from 'false' then
     raise exception 'employee_open_home_wrong %', v_home;
   end if;
@@ -123,8 +129,10 @@ begin
 
   perform set_config('request.jwt.claim.sub', 'b1100000-0000-4000-8000-000000000002', true);
   v_home := public.get_daily_ledger_home_v2();
+  -- After close: empty feed, zero own totals, no open day ids (2026-11-15 model).
   if v_home -> 'feed' is distinct from '[]'::jsonb
-    or v_home ? 'day_summary'
+    or v_home #>> '{day_summary,sale_piastres}' is distinct from '0'
+    or v_home #> '{journal_context,day_ids}' is distinct from '[]'::jsonb
     or v_home ->> 'day_reset' is distinct from 'true' then
     raise exception 'employee_closed_home_wrong %', v_home;
   end if;

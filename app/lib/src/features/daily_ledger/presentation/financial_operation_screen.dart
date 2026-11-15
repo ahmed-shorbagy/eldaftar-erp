@@ -37,8 +37,15 @@ class FinancialOperationScreen extends StatefulWidget {
     this.canWrite,
     this.messageLauncher = const UrlMessageLauncher(),
     this.pdfShare,
+    this.canChangeOperation = true,
+    this.canSendInvoice = true,
   });
 
+  /// Trade edit and delete stay owner-only (20261108160100).
+  final bool canChangeOperation;
+
+  /// Invoice sharing needs the `invoice_send` grant (ADR 0033).
+  final bool canSendInvoice;
   final FinancialGateway gateway;
   final String userId;
   final LedgerFeedLine line;
@@ -111,7 +118,8 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
         _operation = value;
         _accessLost = false;
       });
-      if (widget.gateway is InvoiceDispatchGateway &&
+      if (widget.canSendInvoice &&
+          widget.gateway is InvoiceDispatchGateway &&
           (widget.line.kind == 'sale' || widget.line.kind == 'purchase')) {
         await _loadDispatch();
       }
@@ -627,6 +635,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                               widget.line.kind == 'purchase' ||
                               widget.line.kind == 'expense' ||
                               widget.line.kind == 'customer_return') &&
+                          widget.canChangeOperation &&
                           widget.gateway is LedgerTradeChangeGateway &&
                           widget.gateway is OpeningGateway &&
                           widget.canWrite?.call() != false) ...[
@@ -662,6 +671,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                           ),
                       ],
                       if (_active &&
+                          widget.canSendInvoice &&
                           widget.gateway is InvoiceDispatchGateway &&
                           (widget.line.kind == 'sale' ||
                               widget.line.kind == 'purchase')) ...[
