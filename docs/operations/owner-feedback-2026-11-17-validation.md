@@ -394,3 +394,91 @@ Debug build from the working tree on `emulator-5554`, against development, Arabi
 - `LedgerGoldBreakdown` has no entry point after «المزيد» lost its sheet; it was not deleted.
 - New owner questions are drafted in the [owner glossary](../owner-glossary.md), section 2, questions 8 to 12. Nothing was sent.
 - Handoff steps 5 and 6 were not started.
+
+## Phone fit and alignment (before the owner build)
+
+Date: 2026-11-18 (fourth session). Asked by the developer after the step 4 device check: text that overflowed or sat out of line in tables, fields and the ledger's summary tiles, handled for the whole app before the first owner build. Flutter layout only. No wording, server, migration or deploy change. Not committed: the work waits for the developer's word.
+
+Scope agreed with the developer: start with «الجرد الفوري» tables, forms and fields, and «الدفتر» with its tiles, then the rest of the app; hold up at the default font and at 130 %.
+
+### How the problems were found
+
+- Emulator, 411 px wide, Arabic RTL, the second test shop of 2026-11-18, dark and light, Android font at 100 % and 130 %: «الدفتر», «الجرد الفوري», «إضافة مخزون», «إضافة بيع», «بيانات العملاء», «التقارير».
+- The whole widget suite at 130 % with the Cairo font (`flutter test --dart-define=LAYOUT_SWEEP=1.3`, through the new `app/test/flutter_test_config.dart`, which leaves normal runs unchanged). It reported **no row or column overflow** in any test. The problems were alignment and fit, which an overflow check does not see. 21 tests failed at the larger font for test reasons: rows below the fold of a lazy list are not built, so their finders miss. One is a real limit, kept as a note below.
+- Captures of the sale form and its review, and of «الجرد الفوري», from the existing capture tests with their sample data.
+
+### Found and fixed
+
+| Where | What was wrong | Now |
+| --- | --- | --- |
+| «الدفتر» summary | Fixed-width tiles: at 411 px the third tile was sliced at the screen edge; at 130 % one tile per page after a first fix | Whole tiles only, two per page on phones (three from 600 px), page snapping and dots, as on «الجرد الفوري». Labels may wrap; the amount stays on one line. The settings button sits at the end of the dots row. |
+| «الدفتر» bottom | The floating «إجراءات سريعة» button covered the last card («الملاحظات») and «عرض حركة الدفتر» | 80 px of space under the last card |
+| «الجرد الفوري» item table | Karat columns fixed at 58 px with all spare width to the name, so the numbers sat at the far edge; «عدد · وزن» wrapped with a dangling dot at 130 %; the «كسر» row was blank | The name column takes at most 40 %; karat columns share the rest and grow with the font; the subheading stays on one line; empty «كسر» and total cells read «— / 0.00» and «0 / 0.00» |
+| «الجرد الفوري» action groups | The catalog search label was cut at the top of its tile | 16 px inset above a tile's first child |
+| Number fields (25 in 12 files: sale, purchase, repairs, debts, close, correction, counts, inventory forms) | Digits sat on the left under right-aligned Arabic labels, beside right-aligned dropdown values | Right-aligned, left-to-right digits. Phone, email, password and the activation code are unchanged. |
+| Character counters | «0/200» under weight, count, name and search fields in the inventory forms, the trader search, the staff name, the other-charges name and the payment-method name, making the gaps between fields uneven | Shown only on long free text (reasons and notes, 1000 characters) and the invoice slogan and address |
+| «إضافة مخزون» | The «المعروض 1 منتجات…» line touched the next field's label | 16 px below the line |
+| «إضافة بيع» item card | An empty 12 px band between «الصنف 1» and the item name when no category line shows | The band only under a category line |
+| «إضافة بيع» payment card | The «وسيلة الدفع» label sat on the card border (8 px top inset); sides uneven (8 px on the text side) | 20 px top inset; 16 px on the text side |
+| Every list row with a value at its end (sale and purchase review, operation detail tenders, analytics, debts) | Material's smallest label style made the weight or amount the faintest text | Body size in bold through `listTileTheme`; review rows level with their headings |
+| «التقارير» error state | The message touched the buttons above and below it; the heading used a hard-coded style | Spaced with the spacing tokens; the heading uses `headlineSmall` |
+
+### Tests and gates
+
+- New: `app/test/layout_fit_test.dart` (10 tests, Cairo font): the ledger strip shows whole tiles, at least two, on its first and next page at 360 and 411 px and at 100 % and 130 %; room under the last card; the item table keeps «عدد · وزن» on one line, puts the first karat column within the table's right 60 %, and fills empty scrap cells; inventory number fields align right with no counter while a 1000-character reason keeps it; the sale count aligns right and the payment label clears its card; list-row values use body size in bold in both themes. Run against the code before this pass, all 10 failed; after it, all pass.
+- Updated: four tests in `inventory_widget_test.dart` now bring «مراجعة العملية» fully into view before tapping; the shorter forms left it 6 px below the 800 × 600 test screen.
+- `dart format lib test`: no changes left. `dart analyze` (whole app): no issues.
+- `flutter test` (full suite): **2012 passed** (2002 before, plus the 10 new tests).
+- 130 % sweep (`--dart-define=LAYOUT_SWEEP=1.3`): no overflow reported. It was run before the fixes; the fixes add no row that could overflow, and `layout_fit_test.dart` runs the changed screens at 130 %.
+- `git diff --check`: clean. The full run rewrote the invoice PNG captures under `docs/reviews/invoice-branding-2026-10-21/pdf/` and the Windows generated files; both were restored.
+- React, TypeScript and SQL gates: not run. `admin/` and `supabase/` are untouched.
+
+### Device check (Android emulator, after the fixes)
+
+- 130 %, dark: «الدفتر» shows two whole tiles with three dots and the last card clears the button; «الجرد الفوري» shows balanced columns with one-line headings; «إضافة مخزون» shows the count on the right, no short-field counters and even gaps; «إضافة بيع» shows the count on the right and the payment label inside its card.
+- 100 %, light: «الدفتر» shows two whole tiles; the item table shows every cell filled, including «كسر».
+- «بيانات العملاء» at 130 %: no problem seen.
+- Nothing was saved. The emulator was left at 100 % and in the dark theme.
+
+### Found and not fixed
+
+- **Report load failure.** «التقارير» on the test shop showed «تعذر تحميل التقرير من الخادم. تحقق من الاتصال وأعد المحاولة.». Fixed the same session; see the next section.
+- **Sign-in on a 320 × 640 phone at 130 %.** «إنشاء حساب» sits 20 px below the first view; the page scrolls to it. The compact sign-in layout already applies there.
+- In the ledger summary the cash tile's figure sits about 2 dp lower than its neighbour's, because of its arrow button. Left.
+- Not looked at on the device: repairs list and detail with data, «النوتة» with data, analytics, weekly reports, the closing count grid, staff, invoice settings, and the PDFs. The 130 % suite covers them for overflow only. The test shop is nearly empty, so populated journals were seen in captures, not on the device.
+
+## Fix: «التقارير» did not open on a day with a stock move
+
+Date: 2026-11-18 (fourth session). Flutter client only. No server change, migration or deploy. Not committed: the work waits for the developer's word. The developer marked it critical for the owner build.
+
+### Cause, confirmed on development `xchapwvmvoefriqcxtvn`
+
+- The screen makes two reads: `list_financial_report_days_v1`, then `get_financial_day_report_v2` for the chosen day. Both were run as the second test shop's owner in one rolled-back block. Both returned complete reports: the day of 2026-11-18 with two rows, the opening (`opening_balances`, «رصيد افتتاحي») and the «إضافة مخزون» of this morning (`inventory_addition`).
+- The server names rows through `private.ledger_operation_label`, which covers the cash and ledger kinds only. Ten kinds arrive with `"label": null`: `inventory_addition`, `inventory_removal`, `inventory_correction`, `inventory_conversion`, `inventory_receipt`, `inventory_recognition`, `ownership_transfer`, `receipt_manual_allocation`, `expense_reversal`, `customer_return_reversal`.
+- The app's parser (`reports/data/report_codec.dart`) read the label as a required string, threw `type 'Null' is not a subtype of type 'String'`, and the screen shows any error as «تعذر تحميل التقرير من الخادم…». The weekly report reuses that parser, so it failed the same way.
+- On development two shops have such a row today: this test shop (`inventory_addition`) and one other (`expense_reversal`). Any shop that adds stock, receives trader gold or edits an expense would lose its report for that day. The daily ledger had the same fault this morning and was fixed then.
+
+### Change
+
+The developer chose, on 2026-11-18, to treat these rows as the daily ledger does: they are not listed. The other two options shown were listing them under the app's button names, which would need new words for four kinds, and naming them on the server, which would bring them into the daily ledger and needs a migration.
+
+- A report row's `label` is optional. Every row still counts in the totals and in the integrity checks, including the check that the row count equals the server's `audit_row_count`, so a missing row is still refused.
+- `FinancialDayReport.listedTransactions` holds the rows with a label. The day screen, the weekly screen and both PDFs list only those. Totals are the server's, as before.
+
+### Tests and gates
+
+- New: `app/test/report_unlabeled_rows_test.dart` (5 tests): a day with all eight stock and trader kinds parses and keeps them for totals; the development shape (a new shop's opening plus «إضافة مخزون») parses; a missing unnamed row still fails the row count; the PDF builds; the screen opens with no «تعذر تحميل التقرير» and no «null». A scratch test of the parser and the screen with the development row, using only the old API, failed on the old code with `type 'Null' is not a subtype of type 'String'` and passed on the new code. It was deleted.
+- `dart format lib test`: no changes left. `dart analyze` (whole app): no issues.
+- `flutter test` (full suite): **2017 passed** (2012 before, plus 5).
+- `git diff --check`: clean. The files the full run rewrites were restored.
+
+### Device check (Android emulator)
+
+Debug build from the working tree, the second test shop of 2026-11-18. «المزيد» → «التقارير» opens the day of 2026-11-18 with its totals and «تصدير PDF عربي»; «فتح التقرير الأسبوعي» opens the week 2026-11-12 to 2026-11-18 with its totals. No PDF was exported, so nothing was written to the media store.
+
+### Not done
+
+- **Installed builds.** The owner's current build has the same parser and stays unable to open a day with such a row until he installs the new build. Only a server label would fix old builds; the developer chose the client fix.
+- **The heading «السجل الكامل الداعم للإجماليات»** above the list now sits over a list that leaves out stock moves and the two reversal kinds, whose cash effect stays in the totals. The wording is the owner's to settle on the reports page review.
+- The other development shop with an `expense_reversal` was not opened in the app; the parser change is kind-agnostic and the test covers the rule.
+- Not seen on the device: a day report with sales, purchases and stock moves together; the PDF export.
