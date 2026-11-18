@@ -401,7 +401,8 @@ void main() {
     expect(find.byKey(const Key('support-item-status-closed')), findsOneWidget);
     expect(find.byKey(const Key('support-item-reply')), findsOneWidget);
     expect(find.textContaining('تم حل المشكلة'), findsOneWidget);
-    expect(find.textContaining('2026-10-27'), findsWidgets);
+    expect(find.textContaining('27 أكتوبر 2026'), findsWidgets);
+    expect(find.textContaining('UTC'), findsNothing);
     expect(find.byKey(const Key('support-freshness')), findsOneWidget);
     expect(find.text(SupportCopy.openCount(1, 10)), findsOneWidget);
   });

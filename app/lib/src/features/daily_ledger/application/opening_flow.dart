@@ -506,14 +506,12 @@ class OpeningFlowCoordinator {
     return read;
   }
 
-  bool _matches(DailyLedgerView ledger, String operationId) {
-    if (!ledger.isConfirmed || ledger.businessDay == null) return false;
-    return ledger.feed.any(
-      (line) =>
-          line.kind == 'opening_balances_confirmed' &&
-          line.operationId == operationId,
-    );
-  }
+  /// The server already acknowledged the opening, so a confirmed ledger is
+  /// the refreshed one. The feed is not checked: it holds the open day's
+  /// page only, names the row `opening_balances` on the home read, and no
+  /// longer carries the opening once that day is closed.
+  bool _matches(DailyLedgerView ledger) =>
+      ledger.isConfirmed && ledger.businessDay != null;
 
   Future<OpeningFlow> _readAfterCommit(
     String userId,
@@ -521,7 +519,7 @@ class OpeningFlowCoordinator {
   ) async {
     try {
       final ledger = await _gateway.ledger(callerUserId: userId);
-      if (!_matches(ledger, operationId)) {
+      if (!_matches(ledger)) {
         return OpeningRefreshFailed(operationId: operationId);
       }
       return OpeningReady(ledger);

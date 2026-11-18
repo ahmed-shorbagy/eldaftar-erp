@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -306,7 +307,7 @@ final class _Body {
               'التاريخ',
               style: pw.TextStyle(color: style.muted, fontSize: 8.5),
             ),
-            _ltr(_clock(document.occurredAtShop), 11),
+            _ltr(shopNumericDateTimeLtr(document.occurredAtShop), 11),
           ],
         ),
       ),
@@ -734,5 +735,5 @@ String _money(String value) {
 
 String _clock(String value) {
   if (value.length < 16) return value;
-  return '${value.substring(0, 10).replaceAll('-', '/')}  ${value.substring(11, 16)}';
+  return shopNumericDateTime(value);
 }

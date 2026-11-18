@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/pdf_arabic.dart';
 import '../domain/debt_rules.dart';
@@ -102,13 +103,7 @@ Future<Uint8List> buildDebtStatementPdf(DebtStatement s) async {
         line('الحالة', debtStatusLabels[s.status]!),
         line('السبب', s.reason),
         if (s.reference != null) line('المرجع المسجل', s.reference!),
-        line(
-          'وقت اللقطة بالمحل',
-          s.snapshotAtShop.replaceFirst('T', ' '),
-          ltr: true,
-        ),
-        line('المنطقة الزمنية', s.timeZone, ltr: true),
-        line('وقت الخادم UTC', s.snapshotAt.toIso8601String(), ltr: true),
+        line('وقت اللقطة', shopNumericDateTime(s.snapshotAtShop)),
         pw.SizedBox(height: 10),
         pw.Container(
           padding: const pw.EdgeInsets.all(10),
@@ -157,7 +152,7 @@ Future<Uint8List> buildDebtStatementPdf(DebtStatement s) async {
             for (final e in s.history)
               pw.TableRow(
                 children: [
-                  cell(e.atShop.replaceFirst('T', ' '), ltr: true),
+                  cell(shopNumericDateTime(e.atShop)),
                   cell(
                     '${e.label}\n${e.actorName}${e.actorNameCurrent ? ' (الاسم الحالي)' : ''}'
                     '${e.reason == null ? '' : '\n${e.reason}'}'

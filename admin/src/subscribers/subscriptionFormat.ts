@@ -67,16 +67,16 @@ export function formatExactCount(value: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
+// Owner rule (2026-11-17): the ordinary clock. Twelve hours with ص/م, and no
+// time-zone name beside it. The instant is still shown in the viewer's zone.
 const instantFormat: Intl.DateTimeFormatOptions = {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
-  hour: '2-digit',
+  hour: 'numeric',
   minute: '2-digit',
-  second: '2-digit',
-  hourCycle: 'h23',
+  hour12: true,
   numberingSystem: 'latn',
-  timeZoneName: 'long',
 }
 
 export function browserDisplayTimeZone(): string {

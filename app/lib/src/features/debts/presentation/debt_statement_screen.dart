@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../application/debt_statement_flow.dart';
 import '../application/debt_statement_gateway.dart';
@@ -253,9 +254,7 @@ class _DebtStatementScreenState extends State<DebtStatementScreen>
                     Text(
                       '${statementSource(s.sourceKind)} • المتبقي: ${statementAmount(s, s.remaining)}',
                     ),
-                    Text(
-                      'وقت اللقطة بالمحل: \u2066${s.snapshotAtShop.replaceFirst('T', ' ')}\u2069',
-                    ),
+                    Text('وقت اللقطة: ${shopDateTime(s.snapshotAtShop)}'),
                   ],
                   const Text(statementScope),
                   const SizedBox(height: AppTokens.spaceMd),
@@ -328,7 +327,7 @@ class _DebtStatementScreenState extends State<DebtStatementScreen>
                           ListTile(
                             title: Text(e.label),
                             subtitle: Text(
-                              '${e.actorName} • \u2066${e.atShop}\u2069\n${statementAmount(s, e.cancelled > BigInt.zero ? e.cancelled : e.amount)}${e.reason == null ? '' : '\n${e.reason}'}',
+                              '${e.actorName} • ${shopDateTime(e.atShop)}\n${statementAmount(s, e.cancelled > BigInt.zero ? e.cancelled : e.amount)}${e.reason == null ? '' : '\n${e.reason}'}',
                             ),
                           ),
                       ],

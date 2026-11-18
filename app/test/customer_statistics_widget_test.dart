@@ -195,7 +195,10 @@ void main() {
             scrollable: find.byType(Scrollable).first,
           );
           expect(find.textContaining('مرتجع شراء العميل'), findsOneWidget);
-          expect(find.textContaining('2026-10-14 00:30:00'), findsWidgets);
+          expect(
+            find.textContaining('14 أكتوبر 2026، \u206612:30\u2069 ص'),
+            findsWidgets,
+          );
           await _capture(t, key, 'activity-$suffix');
           await t.scrollUntilVisible(
             find.textContaining('آخر تحديث للملف:'),

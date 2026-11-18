@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/shop_clock.dart';
 import '../domain/financial_day_report.dart';
 
 /// Shared complete operation detail for daily and weekly reports.
@@ -33,7 +34,7 @@ class ReportTransactionCard extends StatelessWidget {
       child: ExpansionTile(
         key: PageStorageKey(scopeKey),
         title: Text('${t.label} • \u2066${t.sequence}\u2069'),
-        subtitle: Text('${t.stateLabel}\n\u2066${t.atShop}\u2069'),
+        subtitle: Text('${t.stateLabel}\n${shopDateTime(t.atShop)}'),
         childrenPadding: const EdgeInsets.all(16),
         expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

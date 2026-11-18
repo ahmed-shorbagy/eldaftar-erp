@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import '../../../theme/amount_format.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
@@ -203,6 +204,5 @@ String _method(Object? value) => switch (value) {
 
 String _displayTime(Object? value) {
   if (value is! String || value.length < 16) return '—';
-  return '${value.substring(0, 10).replaceAll('-', '/')} '
-      '${value.substring(11, 16)}';
+  return shopNumericDateTime(value);
 }

@@ -65,7 +65,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           _loading = false;
           _empty = true;
           _error = false;
-          _message = 'أكد الأرصدة الافتتاحية أولاً لإنشاء وسائل الدفع الأربع.';
+          _message = 'افتح الدفتر اليومي أولًا لإنشاء وسائل الدفع الأربع.';
         });
         return;
       }

@@ -50,6 +50,7 @@ for (const name of [
   'repairs_custody.sql',
   'pending_invoices_open_day.sql',
   'ledger_home_day_reset.sql',
+  'opening_home_feed.sql',
   'repair_fee_collection.sql',
   'debts.sql',
   'customers.sql',

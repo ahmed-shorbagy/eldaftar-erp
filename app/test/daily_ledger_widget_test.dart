@@ -470,7 +470,7 @@ void main() {
       await pumpScreen(
         tester,
         account: shop(ShopEntitlement.active),
-        gateway: ScriptGateway(),
+        gateway: ScriptGateway()..ledgerView = confirmedLedger(),
         store: MemoryStore(),
       );
       await tester.pumpAndSettle();
@@ -486,7 +486,7 @@ void main() {
   testWidgets('ledger has no guidance and refresh reads the real ledger', (
     tester,
   ) async {
-    final gateway = ScriptGateway();
+    final gateway = ScriptGateway()..ledgerView = confirmedLedger();
     final guide = GuideMemoryStore();
     await pumpScreen(
       tester,
@@ -540,12 +540,23 @@ void main() {
     );
     expect(view.totalCashPounds, '90071992547410.00');
   });
-  testWidgets('review then pending then the confirmed ledger', (tester) async {
+  // Owner feedback of 2026-11-17 (ADR 0049): there is no opening-balances
+  // form. A new shop's ledger opens directly.
+  testWidgets('a new shop opens straight on the ledger with no form', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
     final gateway = ScriptGateway();
+    gateway.confirmHook = () {
+      gateway.ledgerView = confirmedLedger();
+      return const ConfirmCommitted(
+        operationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        businessDayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        businessDate: '2026-09-26',
+        replayed: false,
+      );
+    };
     final store = MemoryStore();
-    final status = Completer<StatusResult>();
-    gateway.confirmHook = () async => const ConfirmUnknown();
-    gateway.statusHook = () => status.future;
     await pumpScreen(
       tester,
       account: shop(ShopEntitlement.active),
@@ -553,73 +564,78 @@ void main() {
       store: store,
     );
     await tester.pumpAndSettle();
-    expect(find.text('إعداد الأرصدة الافتتاحية'), findsOneWidget);
-    await tester.enterText(find.byKey(const Key('cash-cash')), '10000');
-    await show(tester, const Key('stock-grams-0'));
-    await tester.enterText(find.byKey(const Key('stock-grams-0')), '5');
-    await show(tester, const Key('stock-count-0'));
-    await tester.enterText(find.byKey(const Key('stock-count-0')), '3');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-    expect(find.text('إجمالي النقد'), findsOneWidget);
-    expect(find.text('صافي النقد'), findsNothing);
-    expect(find.text('10,000'), findsWidgets);
-    expect(find.text('5.00 جرام'), findsWidgets);
-    expect(find.text('10,000'), findsWidgets);
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.pump();
-    expect(find.text('بانتظار تأكيد الحفظ'), findsOneWidget);
-    expect(gateway.confirmCalls, 1);
-    gateway.ledgerView = confirmedLedger();
-    status.complete(
-      const StatusCompleted('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
-    );
-    await tester.pumpAndSettle();
+
     expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
-    expect(find.text('إجمالي النقدية'), findsOneWidget);
-    expect(find.textContaining('10,000'), findsWidgets);
-    await show(tester, const Key('ledger-other-movements'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ledger-other-movements')));
-    await tester.pumpAndSettle();
-    expect(find.text('رصيد افتتاحي'), findsWidgets);
-    expect(find.text('26 سبتمبر 2026، 03:30:00'), findsNothing);
-    expect(find.textContaining('\u20663:30\u2069 ص'), findsWidgets);
-    expect(find.textContaining('T'), findsNothing);
+    expect(find.text('10,000'), findsWidgets);
     expect(gateway.confirmCalls, 1);
+    expect(gateway.payloads.single['stock'], isEmpty);
+    expect(gateway.payloads.single['scrap'], isEmpty);
+    expect(store.saved, isNull);
+    // Nothing of the old setup screen is left.
+    expect(find.textContaining('الأرصدة الافتتاحية'), findsNothing);
+    expect(find.byKey(const Key('cash-cash')), findsNothing);
+    expect(find.byKey(const Key('review-zero')), findsNothing);
+    expect(find.byKey(const Key('review-values')), findsNothing);
+    expect(find.byKey(const Key('confirm-opening')), findsNothing);
+    expect(find.byKey(const Key('add-stock')), findsNothing);
+    expect(find.textContaining('مشغولات'), findsNothing);
+    expect(find.textContaining('منازل'), findsNothing);
   });
 
-  testWidgets('a rapid double tap sends one confirm', (tester) async {
+  testWidgets('staff of an unopened shop wait and see no form', (tester) async {
     final gateway = ScriptGateway();
-    final release = Completer<ConfirmResult>();
-    gateway.confirmHook = () => release.future;
     await pumpScreen(
       tester,
-      account: shop(ShopEntitlement.active),
+      account: const ShopAccount(
+        id: shopId,
+        name: 'متجر تجريبي',
+        role: 'employee',
+        entitlement: ShopEntitlement.active,
+      ),
       gateway: gateway,
       store: MemoryStore(),
     );
     await tester.pumpAndSettle();
-    await show(tester, const Key('review-zero'));
-    await tester.tap(find.byKey(const Key('review-zero')));
+
+    expect(find.byKey(const Key('ledger-opening-owner-only')), findsOneWidget);
+    expect(find.text('لم يفتح صاحب المحل الدفتر بعد.'), findsOneWidget);
+    expect(gateway.confirmCalls, 0);
+    expect(find.byKey(const Key('ledger-open-retry')), findsNothing);
+    expect(find.byKey(const Key('cash-cash')), findsNothing);
+  });
+
+  testWidgets('a failed opening offers the owner a retry that opens the '
+      'ledger', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final gateway = ScriptGateway()
+      ..confirmResult = const ConfirmRejected('overflow');
+    final store = MemoryStore();
+    await pumpScreen(
+      tester,
+      account: shop(ShopEntitlement.active),
+      gateway: gateway,
+      store: store,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.pump();
-    expect(gateway.confirmCalls, 1);
-    gateway.ledgerView = confirmedLedger();
-    release.complete(
-      const ConfirmCommitted(
+    expect(find.byKey(const Key('ledger-open-failed')), findsOneWidget);
+    expect(find.byKey(const Key('cash-cash')), findsNothing);
+    final first = gateway.confirmCalls;
+
+    gateway.confirmHook = () {
+      gateway.ledgerView = confirmedLedger();
+      return const ConfirmCommitted(
         operationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
         businessDayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         businessDate: '2026-09-26',
         replayed: false,
-      ),
-    );
+      );
+    };
+    await tester.tap(find.byKey(const Key('ledger-open-retry')));
     await tester.pumpAndSettle();
-    expect(gateway.confirmCalls, 1);
+
+    expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
+    expect(gateway.confirmCalls, first + 1);
+    expect(gateway.keys.toSet(), hasLength(1), reason: 'the same key');
   });
 
   testWidgets(
@@ -635,13 +651,10 @@ void main() {
         gateway: gateway,
         store: MemoryStore(),
       );
-      await tester.pumpAndSettle();
-      await show(tester, const Key('review-zero'));
-      await tester.tap(find.byKey(const Key('review-zero')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('confirm-opening')));
       await tester.pump();
-      expect(find.text('بانتظار تأكيد الحفظ'), findsOneWidget);
+      await tester.pump();
+      expect(find.byKey(const Key('ledger-loading')), findsOneWidget);
+      expect(find.byKey(const Key('cash-cash')), findsNothing);
       expect(gateway.confirmCalls, 1);
       gateway.ledgerView = confirmedLedger();
       status.complete(
@@ -683,90 +696,6 @@ void main() {
     expect(gateway.keys.single, '99999999-9999-4999-8999-999999999999');
     expect(gateway.payloads.single, draft.toCanonicalJson());
     expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
-  });
-
-  testWidgets('a validation error keeps the draft and the same key', (
-    tester,
-  ) async {
-    final gateway = ScriptGateway()
-      ..confirmResult = const ConfirmRejected('invalid_input');
-    final store = MemoryStore();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('cash-cash')), '12.50');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.pumpAndSettle();
-    expect(find.text('البيانات المدخلة غير صالحة'), findsOneWidget);
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('cash-cash')))
-          .controller
-          ?.text,
-      '12.50',
-    );
-    await tester.enterText(find.byKey(const Key('cash-cash')), '13.50');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.pumpAndSettle();
-    expect(gateway.keys, [
-      '99999999-9999-4999-8999-999999999999',
-      '99999999-9999-4999-8999-999999999999',
-    ]);
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('cash-cash')))
-          .controller
-          ?.text,
-      '13.50',
-    );
-  });
-
-  testWidgets('a half-filled row is rejected before review', (tester) async {
-    final gateway = ScriptGateway();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: MemoryStore(),
-    );
-    await tester.pumpAndSettle();
-    await show(tester, const Key('stock-grams-0'));
-    await tester.enterText(find.byKey(const Key('stock-grams-0')), '1');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    expect(find.text('أكمل الصف أو اتركه فارغًا'), findsOneWidget);
-    expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
-    expect(gateway.confirmCalls, 0);
-  });
-
-  testWidgets('zero balances open review and do not post by themselves', (
-    tester,
-  ) async {
-    final gateway = ScriptGateway();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: MemoryStore(),
-    );
-    await tester.pumpAndSettle();
-    await show(tester, const Key('review-zero'));
-    await tester.tap(find.byKey(const Key('review-zero')));
-    await tester.pumpAndSettle();
-    expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-    expect(find.text('0'), findsWidgets);
-    expect(gateway.confirmCalls, 0);
   });
 
   testWidgets('a pending shop makes no ledger read and no confirm', (
@@ -815,55 +744,76 @@ void main() {
     expect(gateway.ledgerCalls, 1);
     expect(find.text('الاشتراك منتهٍ. العرض للقراءة فقط.'), findsOneWidget);
     expect(find.text('منتهي - للقراءة فقط'), findsOneWidget);
-    expect(find.text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.'), findsOneWidget);
-    expect(find.byKey(const Key('confirm-opening')), findsNothing);
-    expect(find.byKey(const Key('review-zero')), findsNothing);
+    expect(find.byKey(const Key('ledger-not-opened')), findsOneWidget);
+    expect(gateway.confirmCalls, 0);
+    expect(find.byKey(const Key('ledger-open-retry')), findsNothing);
   });
 
-  testWidgets('another session confirmation appears after refresh', (
+  testWidgets('staff see the ledger once the owner has opened it', (
     tester,
   ) async {
+    SharedPreferences.setMockInitialValues({});
+    const employee = ShopAccount(
+      id: shopId,
+      name: 'متجر تجريبي',
+      role: 'employee',
+      entitlement: ShopEntitlement.active,
+    );
     final gateway = ScriptGateway();
     final store = MemoryStore();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-    );
+    await pumpScreen(tester, account: employee, gateway: gateway, store: store);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('cash-cash')), '10');
+    expect(find.byKey(const Key('ledger-opening-owner-only')), findsOneWidget);
+
+    // The owner opens the ledger on another device.
+    gateway.ledgerView = confirmedLedger();
     await pumpScreen(
       tester,
-      account: shop(ShopEntitlement.active),
+      account: employee,
       gateway: gateway,
       store: store,
       generation: 1,
     );
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('cash-cash')))
-          .controller
-          ?.text,
-      '10',
-    );
-    gateway.ledgerView = confirmedLedger();
+
+    expect(find.byKey(const Key('ledger-opening-owner-only')), findsNothing);
+    expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
+    expect(gateway.confirmCalls, 0);
+  });
+
+  testWidgets('a failed read after the confirm offers a retry that opens the '
+      'ledger', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    // The server acknowledged the opening; the read that followed is stale.
+    final store = MemoryStore()
+      ..saved = PendingOpening(
+        idempotencyKey: '99999999-9999-4999-8999-999999999999',
+        payload: const {},
+        disposition: PendingDisposition.acknowledged,
+        operationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      );
+    final gateway = ScriptGateway();
     await pumpScreen(
       tester,
       account: shop(ShopEntitlement.active),
       gateway: gateway,
       store: store,
-      generation: 2,
     );
     await tester.pumpAndSettle();
-    expect(find.text('10,000'), findsWidgets);
-    await show(tester, const Key('ledger-other-movements'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ledger-other-movements')));
-    await tester.pumpAndSettle();
-    expect(find.text('رصيد افتتاحي'), findsWidgets);
+    expect(find.text('تعذر تحديث الدفتر. أعد المحاولة.'), findsOneWidget);
     expect(find.byKey(const Key('confirm-opening')), findsNothing);
+    final retry = find.byKey(const Key('opening-refresh-retry'));
+    expect(retry, findsOneWidget);
+    expect(find.text('إعادة المحاولة'), findsOneWidget);
+
+    gateway.ledgerView = confirmedLedger();
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+
+    expect(find.text('تعذر تحديث الدفتر. أعد المحاولة.'), findsNothing);
+    expect(find.text('10,000'), findsWidgets);
+    expect(gateway.confirmCalls, 0);
+    expect(store.saved, isNull);
   });
 
   testWidgets(
@@ -967,60 +917,6 @@ void main() {
     expect(find.textContaining('لم يعد لديك وصول'), findsOneWidget);
   });
 
-  testWidgets('a parent refresh keeps an open review', (tester) async {
-    final gateway = ScriptGateway();
-    final store = MemoryStore();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('cash-cash')), '12.50');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-      generation: 1,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-    expect(find.text('12.50'), findsWidgets);
-    expect(gateway.confirmCalls, 0);
-  });
-
-  testWidgets('expiry removes confirm and keeps the draft', (tester) async {
-    final gateway = ScriptGateway();
-    final store = MemoryStore();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('cash-cash')), '12.50');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.expired),
-      gateway: gateway,
-      store: store,
-    );
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('confirm-opening')), findsNothing);
-    expect(find.text('الاشتراك منتهٍ. العرض للقراءة فقط.'), findsOneWidget);
-    expect(gateway.confirmCalls, 0);
-  });
-
   testWidgets('sign-out during confirm does not surface a stale error', (
     tester,
   ) async {
@@ -1034,11 +930,7 @@ void main() {
       gateway: gateway,
       store: store,
     );
-    await tester.pumpAndSettle();
-    await show(tester, const Key('review-zero'));
-    await tester.tap(find.byKey(const Key('review-zero')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirm-opening')));
+    await tester.pump();
     await tester.pump();
     expect(gateway.confirmCalls, 1);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -1053,62 +945,6 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
     expect(store.saved, isNotNull);
-  });
-
-  testWidgets('a rejected draft is restored with the same key', (tester) async {
-    final gateway = ScriptGateway()
-      ..confirmResult = const ConfirmRejected('invalid_input');
-    final store = MemoryStore();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-    );
-    await tester.pumpAndSettle();
-    await show(tester, const Key('stock-grams-0'));
-    await tester.enterText(find.byKey(const Key('stock-grams-0')), '1.250');
-    await show(tester, const Key('stock-count-0'));
-    await tester.enterText(find.byKey(const Key('stock-count-0')), '2');
-    await show(tester, const Key('scrap-grams-0'));
-    await tester.enterText(find.byKey(const Key('scrap-grams-0')), '0.500');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.pumpAndSettle();
-    final key = store.saved?.idempotencyKey;
-    await tester.pumpWidget(const SizedBox.shrink());
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: store,
-    );
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('stock-grams-0')))
-          .controller
-          ?.text,
-      '1.250',
-    );
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('stock-count-0')))
-          .controller
-          ?.text,
-      '2',
-    );
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('scrap-grams-0')))
-          .controller
-          ?.text,
-      '0.500',
-    );
-    expect(store.saved?.idempotencyKey, key);
-    expect(gateway.confirmCalls, 1);
   });
 
   testWidgets('switching the signed-in user drops the previous shop figures', (
@@ -1169,42 +1005,6 @@ void main() {
     await auth.controller.close();
   });
 
-  testWidgets('a max-width review line wraps at 320 pixels', (tester) async {
-    tester.view.physicalSize = const Size(320, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final gateway = ScriptGateway();
-    await pumpScreen(
-      tester,
-      account: shop(ShopEntitlement.active),
-      gateway: gateway,
-      store: MemoryStore(),
-    );
-    await tester.pumpAndSettle();
-    await show(tester, const Key('stock-grams-0'));
-    await tester.enterText(
-      find.byKey(const Key('stock-grams-0')),
-      '9223372036854775.807',
-    );
-    await show(tester, const Key('stock-count-0'));
-    await tester.enterText(
-      find.byKey(const Key('stock-count-0')),
-      '9223372036854775807',
-    );
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    expect(
-      find.textContaining(
-        '9,223,372,036,854,775.81 جرام (9,223,372,036,854,775,807 ملليجرام)',
-      ),
-      findsWidgets,
-    );
-    expect(find.text('9223372036854775807'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('a server expiry on a confirmed ledger is read only', (
     tester,
   ) async {
@@ -1223,7 +1023,7 @@ void main() {
     expect(find.byKey(const Key('review-zero')), findsNothing);
   });
 
-  testWidgets('revocation during unknown recovery hides review amounts', (
+  testWidgets('revocation during unknown recovery shows access lost', (
     tester,
   ) async {
     final gateway = ScriptGateway()
@@ -1237,15 +1037,8 @@ void main() {
       store: store,
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('cash-cash')), '12.50');
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirm-opening')));
-    await tester.pumpAndSettle();
     expect(find.text('غير مسموح'), findsOneWidget);
-    expect(find.text('12.50'), findsNothing);
-    expect(find.byKey(const Key('confirm-opening')), findsNothing);
+    expect(find.byKey(const Key('ledger-open-retry')), findsNothing);
     expect(gateway.confirmCalls, 1);
     expect(store.saved?.disposition, PendingDisposition.unresolved);
   });

@@ -1,7 +1,5 @@
 import '../../invoice_message/application/message_contract.dart';
 import '../../debts/application/debt_native_contract.dart';
-import '../../../theme/cash_input.dart';
-import '../../../theme/amount_format.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -38,11 +36,8 @@ import '../application/idempotency_key.dart';
 import '../application/pending_opening_store.dart';
 import '../application/pending_financial_command.dart';
 import '../data/pending_financial_command.dart';
-import '../domain/opening_catalog.dart';
 import '../domain/financial_draft.dart';
-import '../domain/opening_draft.dart';
 import '../domain/opening_issue.dart';
-import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
 import 'daily_ledger_controller.dart';
 import 'confirmed_ledger_dashboard.dart';
@@ -55,7 +50,6 @@ import 'cash_transfer_screen.dart';
 import 'scrap_to_stock_screen.dart';
 import 'ledger_app_bar.dart';
 import '../application/ledger_trade_change.dart';
-import 'ledger_form_fields.dart';
 import 'opening_copy.dart';
 
 class DailyLedgerScreen extends StatefulWidget {
@@ -241,6 +235,10 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
         !const {
           LedgerPhase.confirmed,
           LedgerPhase.refreshFailed,
+          // Staff waiting for the owner, and an opening whose reply was lost,
+          // both resolve on the next sync without a restart.
+          LedgerPhase.notOpened,
+          LedgerPhase.pending,
         }.contains(_controller?.phase)) {
       return;
     }
@@ -280,6 +278,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
       userId: userId,
       shopId: widget.shop.id,
       shopIsActive: widget.shop.entitlement == ShopEntitlement.active,
+      canOpen: _access.openDay,
       newKey: widget.newKey,
     );
     controller.addListener(_onController);
@@ -1348,7 +1347,7 @@ class _LedgerBody extends StatelessWidget {
   final DailyLedgerController controller;
   final bool hideShopBalances;
 
-  /// Only the owner enters opening balances; staff wait for them.
+  /// Only the owner opens the shop's ledger; staff wait for them.
   final bool canEnterOpening;
   final bool expired;
   final FinancialDayState? day;
@@ -1391,30 +1390,18 @@ class _LedgerBody extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         switch (controller.phase) {
-          LedgerPhase.form =>
-            controller.readOnly
-                ? const Text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.')
-                : !canEnterOpening
-                ? const Text(
-                    'لم يُدخل مالك المحل الأرصدة الافتتاحية بعد.',
-                    key: Key('ledger-opening-owner-only'),
+          LedgerPhase.notOpened =>
+            canEnterOpening
+                ? _NotOpenedNotice(
+                    onRetry: controller.canRetryOpen
+                        ? controller.retryOpen
+                        : null,
                   )
-                : _EntryForm(controller: controller),
-          LedgerPhase.review => _Review(
-            controller: controller,
-            showActions: !controller.readOnly,
-          ),
-          LedgerPhase.pending => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _PendingNotice(),
-              if (controller.reviewDraft != null) ...[
-                const SizedBox(height: 12),
-                _Review(controller: controller, showActions: false),
-              ],
-            ],
-          ),
+                : const Text(
+                    'لم يفتح صاحب المحل الدفتر بعد.',
+                    key: Key('ledger-opening-owner-only'),
+                  ),
+          LedgerPhase.pending => _PendingNotice(onRetry: controller.refresh),
           LedgerPhase.confirmed => ConfirmedLedgerDashboard(
             ledger: controller.ledger,
             shopId: controller.shopId,
@@ -1440,10 +1427,13 @@ class _LedgerBody extends StatelessWidget {
             hideShopBalances: hideShopBalances,
             ownerControls: canEnterOpening,
           ),
-          LedgerPhase.refreshFailed => const _RefreshFailedNotice(),
+          LedgerPhase.refreshFailed => _RefreshFailedNotice(
+            onRetry: controller.refresh,
+          ),
           LedgerPhase.accessDenied => const SizedBox.shrink(),
           LedgerPhase.expiredEmpty => const Text(
-            'لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.',
+            'لم يُفتح دفتر هذا المحل بعد.',
+            key: Key('ledger-not-opened'),
           ),
           LedgerPhase.failed => const SizedBox.shrink(),
           LedgerPhase.loading => const SizedBox.shrink(),
@@ -1453,572 +1443,60 @@ class _LedgerBody extends StatelessWidget {
   }
 }
 
-class _EntryForm extends StatelessWidget {
-  const _EntryForm({required this.controller});
+/// The owner's ledger did not open on the first try. There is no form to
+/// fill: the only action is to try again.
+class _NotOpenedNotice extends StatelessWidget {
+  const _NotOpenedNotice({required this.onRetry});
 
-  final DailyLedgerController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('إعداد الأرصدة الافتتاحية', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 6),
-        Text(
-          'أدخل النقد والذهب، ثم راجع العملية قبل التأكيد.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 20),
-        _EntrySection(
-          icon: Icons.account_balance_wallet_outlined,
-          title: 'النقدية',
-          description: 'الرصيد الحالي لكل وسيلة دفع ',
-          child: Column(
-            children: [
-              for (final method in CashMethod.canonicalOrder) ...[
-                _AmountField(
-                  label: cashMethodLabel(method),
-                  controller: controller.cash[method]!,
-                  fieldKey: Key('cash-${method.code}'),
-                  locked: controller.fieldsLocked,
-                ),
-                if (method != CashMethod.canonicalOrder.last)
-                  const SizedBox(height: 16),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _EntrySection(
-          icon: Icons.scale_outlined,
-          title: 'المخزون',
-          description: 'حدد الصنف والعيار والعدد والوزن بدقة ثلاثة منازل',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var index = 0; index < controller.stock.length; index++) ...[
-                _StockRow(
-                  entry: controller.stock[index],
-                  index: index,
-                  controller: controller,
-                ),
-                const SizedBox(height: 16),
-              ],
-              OutlinedButton.icon(
-                key: const Key('add-stock'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-                onPressed: controller.fieldsLocked ? null : controller.addStock,
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة صنف'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _EntrySection(
-          icon: Icons.inventory_2_outlined,
-          title: 'الكسر',
-          description: 'سجل الوزن لكل عيار على حدة',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var index = 0; index < controller.scrap.length; index++) ...[
-                _ScrapRow(
-                  entry: controller.scrap[index],
-                  index: index,
-                  controller: controller,
-                ),
-                const SizedBox(height: 16),
-              ],
-              OutlinedButton.icon(
-                key: const Key('add-scrap'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-                onPressed: controller.fieldsLocked ? null : controller.addScrap,
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة كسر'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        FilledButton(
-          key: const Key('review-values'),
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-          onPressed: controller.fieldsLocked ? null : controller.reviewEntered,
-          child: const Text('مراجعة الأرصدة'),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton(
-          key: const Key('review-zero'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-          ),
-          onPressed: controller.fieldsLocked ? null : controller.reviewZeros,
-          child: const Text('تأكيد أرصدة صفرية'),
-        ),
-      ],
-    );
-  }
-}
-
-class _EntrySection extends StatelessWidget {
-  const _EntrySection({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.child,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final Widget child;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: theme.colorScheme.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              description,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AmountField extends StatelessWidget {
-  const _AmountField({
-    required this.label,
-    required this.controller,
-    required this.fieldKey,
-    required this.locked,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final Key fieldKey;
-  final bool locked;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      key: fieldKey,
-      controller: controller,
-      inputFormatters: const [CashInputFormatter()],
-      readOnly: locked,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      textDirection: TextDirection.ltr,
-      decoration: ledgerFieldDecoration(context, label: label, helper: ''),
-    );
-  }
-}
-
-class _StockRow extends StatelessWidget {
-  const _StockRow({
-    required this.entry,
-    required this.index,
-    required this.controller,
-  });
-
-  final StockEntry entry;
-  final int index;
-  final DailyLedgerController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final karats = orderedKarats(entry.category.karats);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        LedgerFieldPair(
-          first: DropdownButtonFormField<StockCategory>(
-            key: Key('stock-category-$index'),
-            initialValue: entry.category,
-            isExpanded: true,
-            decoration: ledgerFieldDecoration(context, label: 'الصنف'),
-            items: [
-              for (final category in openingCategoryChoices)
-                DropdownMenuItem(
-                  value: category,
-                  child: Text(stockCategoryLabel(category)),
-                ),
-            ],
-            onChanged: controller.fieldsLocked
-                ? null
-                : (value) {
-                    if (value != null) {
-                      controller.setStockCategory(entry, value);
-                    }
-                  },
-          ),
-          second: DropdownButtonFormField<int>(
-            key: ValueKey(
-              'stock-karat-$index-${entry.category.code}-${entry.karat}',
-            ),
-            initialValue: entry.karat,
-            isExpanded: true,
-            decoration: ledgerFieldDecoration(context, label: 'العيار'),
-            items: [
-              for (final karat in karats)
-                DropdownMenuItem(value: karat, child: Text('$karat')),
-            ],
-            onChanged: controller.fieldsLocked
-                ? null
-                : (value) {
-                    if (value != null) controller.setStockKarat(entry, value);
-                  },
-          ),
-        ),
-        const SizedBox(height: 12),
-        LedgerFieldPair(
-          first: TextField(
-            key: Key('stock-grams-$index'),
-            controller: entry.grams,
-            readOnly: controller.fieldsLocked,
-            textDirection: TextDirection.ltr,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: ledgerFieldDecoration(
-              context,
-              label: 'الوزن بالجرام',
-              helper: 'حتى ثلاث منازل',
-            ),
-          ),
-          second: TextField(
-            key: Key('stock-count-$index'),
-            controller: entry.count,
-            readOnly: controller.fieldsLocked,
-            textDirection: TextDirection.ltr,
-            keyboardType: TextInputType.number,
-            decoration: ledgerFieldDecoration(context, label: 'العدد'),
-          ),
-        ),
-        if (controller.stock.length > 1)
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton(
-              onPressed: controller.fieldsLocked
-                  ? null
-                  : () => controller.removeStock(entry),
-              child: const Text('حذف الصف'),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ScrapRow extends StatelessWidget {
-  const _ScrapRow({
-    required this.entry,
-    required this.index,
-    required this.controller,
-  });
-
-  final ScrapEntry entry;
-  final int index;
-  final DailyLedgerController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return LedgerFieldPair(
-      first: DropdownButtonFormField<int>(
-        key: Key('scrap-karat-$index'),
-        initialValue: entry.karat,
-        isExpanded: true,
-        decoration: ledgerFieldDecoration(context, label: 'عيار الكسر'),
-        items: [
-          for (final karat in scrapKaratChoices)
-            DropdownMenuItem(value: karat, child: Text('$karat')),
-        ],
-        onChanged: controller.fieldsLocked
-            ? null
-            : (value) {
-                if (value != null) controller.setScrapKarat(entry, value);
-              },
-      ),
-      second: TextField(
-        key: Key('scrap-grams-$index'),
-        controller: entry.grams,
-        readOnly: controller.fieldsLocked,
-        textDirection: TextDirection.ltr,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: ledgerFieldDecoration(
-          context,
-          label: 'وزن الكسر بالجرام',
-          helper: 'حتى ثلاث منازل',
-        ),
-      ),
-    );
-  }
-}
-
-class _Review extends StatelessWidget {
-  const _Review({required this.controller, required this.showActions});
-
-  final DailyLedgerController controller;
-  final bool showActions;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final draft = controller.reviewDraft;
-    if (draft == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('مراجعة الأرصدة الافتتاحية', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        const Text(
-          'يؤكد هذا الإجراء الأرصدة الافتتاحية مرة واحدة، ولا يُعاد تأكيده.',
-        ),
-        const SizedBox(height: 12),
-        Card(
-          color: theme.colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'النقد والذهب بعد العملية',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _ReviewEffectLine(
-                  icon: Icons.scale_outlined,
-                  label: 'الذهب في المخزون والكسر',
-                  value: '${_totalGold(draft)} جرام',
-                ),
-                const SizedBox(height: 8),
-                _ReviewEffectLine(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: 'النقدية بكل الوسائل',
-                  value: _totalCash(draft) ?? '—',
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text('النقد', style: theme.textTheme.titleSmall),
-        for (final method in CashMethod.canonicalOrder)
-          _ReviewLine(
-            label: cashMethodLabel(method),
-            amount: displayPounds(draft.cash[method].poundsText),
-          ),
-        if (_totalCash(draft) case final total?)
-          _ReviewLine(label: 'إجمالي النقد', amount: total),
-        if (draft.stock.isNotEmpty)
-          Text('المخزون', style: theme.textTheme.titleSmall),
-        for (final row in draft.stock) ...[
-          _ReviewLine(
-            label: '${stockCategoryLabel(row.category)} عيار ${row.karat}',
-            amount: displayGoldEffect(row.milligrams.value),
-          ),
-          _ReviewLine(label: 'العدد', amount: row.count.wire),
-        ],
-        if (draft.scrap.isNotEmpty)
-          Text('الكسر', style: theme.textTheme.titleSmall),
-        for (final row in draft.scrap)
-          _ReviewLine(
-            label: 'كسر عيار ${row.karat}',
-            amount: displayGoldEffect(row.milligrams.value),
-          ),
-        if (showActions) ...[
-          const SizedBox(height: 16),
-          FilledButton(
-            key: const Key('confirm-opening'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-            ),
-            onPressed: controller.fieldsLocked
-                ? null
-                : controller.confirmReview,
-            child: const Text('تأكيد الأرصدة الافتتاحية'),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            key: const Key('back-to-edit'),
-            onPressed: controller.fieldsLocked ? null : controller.backToEdit,
-            child: const Text('رجوع للتعديل'),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ReviewEffectLine extends StatelessWidget {
-  const _ReviewEffectLine({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.colorScheme.onPrimaryContainer;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final labelWidget = Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20, color: color),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(color: color),
-              ),
-            ),
-          ],
-        );
-        final valueWidget = Directionality(
-          textDirection: TextDirection.ltr,
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            softWrap: true,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        );
-        if (constraints.maxWidth < 360) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [labelWidget, const SizedBox(height: 4), valueWidget],
-          );
-        }
-        return Row(
-          children: [
-            Expanded(child: labelWidget),
-            const SizedBox(width: 8),
-            Flexible(child: valueWidget),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _ReviewLine extends StatelessWidget {
-  const _ReviewLine({required this.label, required this.amount});
-
-  final String label;
-  final String amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(flex: 2, child: Text(label)),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: Text(amount, textAlign: TextAlign.end),
-            ),
-          ),
-        ],
-      ),
+    return AppBanner(
+      tone: MessageTone.warning,
+      title: 'تعذر فتح الدفتر',
+      titleKey: const Key('ledger-open-failed'),
+      message: 'تحقق من الاتصال ثم أعد المحاولة.',
+      actionLabel: 'إعادة المحاولة',
+      actionKey: const Key('ledger-open-retry'),
+      onAction: onRetry,
     );
   }
 }
 
 class _PendingNotice extends StatelessWidget {
-  const _PendingNotice();
+  const _PendingNotice({required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return const AppBanner(
+    return AppBanner(
       tone: MessageTone.pending,
-      title: 'بانتظار تأكيد الحفظ',
-      titleKey: Key('opening-pending'),
+      title: 'جارٍ فتح الدفتر',
+      titleKey: const Key('opening-pending'),
+      message: 'بانتظار تأكيد الخادم.',
+      actionLabel: 'إعادة المحاولة',
+      actionKey: const Key('opening-pending-retry'),
+      onAction: onRetry,
     );
   }
 }
 
 class _RefreshFailedNotice extends StatelessWidget {
-  const _RefreshFailedNotice();
+  const _RefreshFailedNotice({required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return const AppBanner(
+    return AppBanner(
       tone: MessageTone.warning,
-      title: 'تم تأكيد الأرصدة الافتتاحية',
-      message: 'تعذر تحديث الدفتر بعد التأكيد.',
+      title: 'تم فتح الدفتر',
+      message: 'تعذر تحديث الدفتر. أعد المحاولة.',
+      actionLabel: 'إعادة المحاولة',
+      actionKey: const Key('opening-refresh-retry'),
+      onAction: onRetry,
     );
   }
-}
-
-String? _totalCash(OpeningDraft draft) {
-  final sum = PostgresInteger.checkedSum([
-    for (final method in CashMethod.canonicalOrder) draft.cash[method].value,
-  ]);
-  if (sum == null) return null;
-  final parsed = Piastres.parseWire(sum.toString());
-  if (parsed is! Accepted<Piastres>) return null;
-  return displayPounds(parsed.value.poundsText);
-}
-
-String _totalGold(OpeningDraft draft) {
-  final total = [
-    ...draft.stock.map((row) => row.milligrams.value),
-    ...draft.scrap.map((row) => row.milligrams.value),
-  ].fold(BigInt.zero, (sum, value) => sum + value);
-  return displayGrams(total.toString());
 }

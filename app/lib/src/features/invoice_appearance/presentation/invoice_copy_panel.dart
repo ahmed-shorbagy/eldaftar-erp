@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/application/confirmed_operation_pdf.dart';
 import '../../daily_ledger/application/financial_gateway.dart';
@@ -213,7 +214,7 @@ class _InvoiceCopyPanelState extends State<InvoiceCopyPanel> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('نسخة موسومة · إصدار ${item.edition}'),
-                _digits('وقت إنشاء النسخة: ${item.createdAtShop}'),
+                Text('وقت إنشاء النسخة: ${shopDateTime(item.createdAtShop)}'),
                 const Text(
                   'وقت العملية يظهر داخل المعاينة منفصلًا عن وقت النسخة.',
                 ),
@@ -492,8 +493,8 @@ class _InvoiceCopyPanelState extends State<InvoiceCopyPanel> {
       title: 'نسخة موسومة · إصدار ${copy.edition}',
       facts: [
         Text('رقم العملية ${copy.shopSequence}'),
-        _digits('وقت العملية: ${copy.occurredAtShop}'),
-        _digits('وقت إنشاء النسخة: ${copy.createdAtShop}'),
+        Text('وقت العملية: ${shopDateTime(copy.occurredAtShop)}'),
+        Text('وقت إنشاء النسخة: ${shopDateTime(copy.createdAtShop)}'),
         Text('مراجعة المظهر ${copy.appearance.revision}'),
         const Text('هذه معاينة. المعاينة ليست حفظًا أو مشاركة أو طباعة.'),
       ],

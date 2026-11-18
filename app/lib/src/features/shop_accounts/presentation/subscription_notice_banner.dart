@@ -1,3 +1,4 @@
+import '../../../theme/shop_instant.dart';
 import 'package:flutter/material.dart';
 
 import '../domain/shop_account.dart';
@@ -10,7 +11,7 @@ abstract final class SubscriptionNoticeCopy {
   static const dismissPending = 'جارٍ إخفاء التنبيه…';
 
   static String renewalBody(String expiryText) =>
-      'ينتهي الاشتراك قريبًا. الكتابة متاحة حتى \u2066$expiryText\u2069 حسب توقيت الخادم. جدّد الرمز قبل الانتهاء.';
+      'ينتهي الاشتراك قريبًا. الكتابة متاحة حتى $expiryText. جدّد الرمز قبل الانتهاء.';
 
   static const expiredBody =
       'انتهى الاشتراك. يمكنك إخفاء هذا التنبيه؛ العرض يبقى للقراءة فقط حتى التجديد.';
@@ -19,15 +20,10 @@ abstract final class SubscriptionNoticeCopy {
       'تبقّى أقل من ٣٠ يومًا على نهاية مدة الاحتفاظ في \u2066$retentionEndsOn\u2069. التجديد قبل هذا الموعد يعيد الكتابة. البيانات تبقى محفوظة، وهذا التنبيه لا يحذفها.';
 }
 
-String subscriptionNoticeExpiryText(DateTime expiresAt) {
-  final utc = expiresAt.toUtc();
-  final y = utc.year.toString().padLeft(4, '0');
-  final m = utc.month.toString().padLeft(2, '0');
-  final d = utc.day.toString().padLeft(2, '0');
-  final h = utc.hour.toString().padLeft(2, '0');
-  final min = utc.minute.toString().padLeft(2, '0');
-  return '$y-$m-$d $h:$min UTC';
-}
+/// The expiry as the owner reads a clock: device zone, twelve hours, no zone
+/// name. The server still decides when writing stops.
+String subscriptionNoticeExpiryText(DateTime expiresAt) =>
+    shopInstantText(expiresAt);
 
 class SubscriptionNoticeBanner extends StatelessWidget {
   const SubscriptionNoticeBanner({

@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -99,14 +100,20 @@ Future<Uint8List> _buildFinancialPdf(_ReportPdfSource report) async {
             text('الفترة تتضمن يومًا ماليًا مفتوحًا؛ الأرقام حتى وقت اللقطة.'),
         ] else ...[
           pair('اليوم المالي', report.daily!.day.date),
-          pair('فتح اليوم حسب توقيت المتجر', report.daily!.day.openedAtShop),
+          pair(
+            'فتح اليوم',
+            shopNumericDateTimeLtr(report.daily!.day.openedAtShop),
+          ),
           text(
             report.daily!.day.status == 'open'
                 ? 'حالة اليوم: مفتوح — حتى وقت إعداد التقرير'
                 : 'حالة اليوم: مغلق',
           ),
         ],
-        pair('وقت إعداد اللقطة حسب توقيت المتجر', report.generatedAtShop),
+        pair(
+          'وقت إعداد اللقطة',
+          shopNumericDateTimeLtr(report.generatedAtShop),
+        ),
         text(reportScope),
         pw.SizedBox(height: 10),
         text('الإجماليات بالجنيه', size: 14),
@@ -216,7 +223,7 @@ Future<Uint8List> _buildFinancialPdf(_ReportPdfSource report) async {
           if (report.weekly != null) ...[
             pw.NewPage(freeSpace: 180),
             pair('اليوم المالي', day.day.date),
-            pair('فتح اليوم', day.day.openedAtShop),
+            pair('فتح اليوم', shopNumericDateTimeLtr(day.day.openedAtShop)),
             text(day.day.status == 'open' ? 'اليوم مفتوح' : 'اليوم مغلق'),
             pair('صافي المبيعات', reportMoney(day.value('net_sales'))),
             pair('صافي المشتريات', reportMoney(day.value('net_purchases'))),
@@ -241,7 +248,7 @@ Future<Uint8List> _buildFinancialPdf(_ReportPdfSource report) async {
                         if (report.weekly != null)
                           pair('اليوم المالي', day.day.date),
                         pair('رقم العملية', t.sequence),
-                        pair('توقيت المتجر', t.atShop),
+                        pair('الوقت', shopNumericDateTimeLtr(t.atShop)),
                         text(t.stateLabel),
                       ],
                     ),

@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
@@ -373,14 +374,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                             : 'اليوم مغلق',
                       ),
                       Text(
-                        'فتح اليوم حسب توقيت المتجر: \u2066${report.day.openedAtShop}\u2069',
+                        'فتح اليوم: ${shopDateTime(report.day.openedAtShop)}',
                       ),
                       Text(
                         report.shopName,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
-                        'وقت اللقطة حسب توقيت المتجر: \u2066${report.generatedAtShop}\u2069',
+                        'وقت اللقطة: ${shopDateTime(report.generatedAtShop)}',
                       ),
                       Text(reportScope),
                       const SizedBox(height: 12),

@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
@@ -370,9 +371,7 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
                       label: const Text('اختيار آخر يوم في الأسبوع'),
                     ),
                     const Text(weeklyReportScope),
-                    Text(
-                      'وقت اللقطة حسب توقيت المتجر: \u2066${report.generatedAtShop}\u2069',
-                    ),
+                    Text('وقت اللقطة: ${shopDateTime(report.generatedAtShop)}'),
                     if (report.containsOpenDay)
                       const Text(
                         'الفترة تتضمن يومًا ماليًا مفتوحًا؛ الأرقام حتى وقت اللقطة.',
@@ -447,7 +446,7 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
                             'اليوم المالي: \u2066${day.day.date}\u2069',
                           ),
                           subtitle: Text(
-                            '${day.day.status == 'open' ? 'مفتوح' : 'مغلق'} • \u2066${day.day.openedAtShop}\u2069',
+                            '${day.day.status == 'open' ? 'مفتوح' : 'مغلق'} • ${shopDateTime(day.day.openedAtShop)}',
                           ),
                           expandedCrossAxisAlignment:
                               CrossAxisAlignment.stretch,

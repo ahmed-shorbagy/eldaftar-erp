@@ -257,7 +257,10 @@ void main() {
     await tester.tap(find.text('عميل الإصلاح'));
     await tester.pumpAndSettle();
     expect(find.textContaining('الوزن الأصلي'), findsOneWidget);
-    expect(find.textContaining('12 أكتوبر 2026، 10:00:00'), findsWidgets);
+    expect(
+      find.textContaining('12 أكتوبر 2026، \u206610:00\u2069 ص'),
+      findsWidgets,
+    );
     await tester.tap(find.byKey(const Key('repair-handover-open')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('repair-collection-none')));

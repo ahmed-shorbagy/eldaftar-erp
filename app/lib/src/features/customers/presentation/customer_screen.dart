@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_messages.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/keyboard_dismiss.dart';
@@ -45,8 +46,7 @@ String customerError(String? code) => switch (code) {
     'تعذر تحديث ملف العميل وإحصائياته. البيانات المعروضة قد تكون قديمة؛ أعد المحاولة.',
   _ => 'تعذر إتمام الطلب. تحقق من الاتصال وأعد المحاولة.',
 };
-String customerDate(String value) =>
-    '\u2066${value.replaceFirst('T', ' ').split('.').first}\u2069';
+String customerDate(String value) => shopDateTime(value);
 const _events = {
   'created': 'إنشاء ملف العميل',
   'edited': 'تعديل الاسم وأرقام الهاتف',

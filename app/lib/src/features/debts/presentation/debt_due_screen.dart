@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
@@ -675,7 +676,7 @@ class _DebtDueScreenState extends State<DebtDueScreen>
     ),
     if (_page != null)
       Text(
-        'تاريخ المحل: ${dueDateText(_page!.localDate)}\nوقت القراءة بتوقيت المحل: \u2066${_page!.snapshotAtShop.replaceFirst('T', ' ')}\u2069',
+        'تاريخ المحل: ${dueDateText(_page!.localDate)}\nوقت القراءة: ${shopDateTime(_page!.snapshotAtShop)}',
       ),
     if (_staleList) ...[
       const Text(
@@ -794,9 +795,7 @@ class _DebtDueScreenState extends State<DebtDueScreen>
                 title: Text(
                   '${dueDateText(e.oldDate)} ← ${dueDateText(e.newDate)}',
                 ),
-                subtitle: Text(
-                  '${e.actorName} · \u2066${e.atShop.replaceFirst('T', ' ')}\u2069',
-                ),
+                subtitle: Text('${e.actorName} · ${shopDateTime(e.atShop)}'),
               ),
           ],
         ),

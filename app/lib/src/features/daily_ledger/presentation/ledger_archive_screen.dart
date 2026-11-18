@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../../reports/application/report_gateway.dart';
 import '../../reports/domain/financial_day_report.dart';
@@ -10,13 +11,14 @@ import 'financial_operation_screen.dart';
 import 'ledger_date_screen.dart';
 import 'opening_copy.dart';
 
-/// U18: «مقفول · فُتح 09:30 · أُقفل 21:15». A close after midnight names its
+/// U18: «مقفول · فُتح 9:30 ص · أُقفل 9:15 م». A close after midnight names its
 /// date; an older server without a close time shows the opening only.
 String archiveDaySubtitle(ReportDay day) {
-  final opened = 'مقفول · فُتح ${day.openedAtShop.substring(11, 16)}';
+  final opened =
+      'مقفول · فُتح ${shopClockOf(day.openedAtShop) ?? day.openedAtShop.substring(11, 16)}';
   final closed = day.closedAtShop;
   if (closed == null) return opened;
-  final time = closed.substring(11, 16);
+  final time = shopClockOf(closed) ?? closed.substring(11, 16);
   final closedDate = closed.substring(0, 10);
   return closedDate == day.openedAtShop.substring(0, 10)
       ? '$opened · أُقفل $time'

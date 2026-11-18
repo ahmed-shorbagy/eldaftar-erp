@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../theme/app_tokens.dart';
+import '../../../theme/shop_clock.dart';
+import '../../../theme/shop_instant.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
 import '../../daily_ledger/application/pending_financial_command.dart';
 import '../application/debt_gateway.dart';
@@ -12,6 +14,14 @@ import '../application/debt_reminder_coordinator.dart';
 import '../application/debt_reminder_device.dart';
 import '../domain/debt_rules.dart';
 import 'debt_due_screen.dart';
+
+/// A stored reminder time (`HH:MM`) on the ordinary clock, or [none].
+String _reminderClock(String? time, String none) {
+  if (time == null) return none;
+  final match = RegExp(r'^(\d{2}):(\d{2})').firstMatch(time);
+  if (match == null) return time;
+  return shopClock(int.parse(match.group(1)!), int.parse(match.group(2)!));
+}
 
 String deviceReminderText(DeviceReminderState s) => switch (s) {
   DeviceReminderState.disabled => 'تذكيرات هذا الجهاز معطلة.',
@@ -510,15 +520,10 @@ class _DebtNativeScreenState extends State<DebtNativeScreen>
                     '${dueSource(r.due.summary.sourceKind)} · المتبقي: ${dueAmount(r.due)}${r.due.summary.karat == null ? '' : ' · عيار ${r.due.summary.karat}'}',
                   ),
                   Text('تاريخ الاستحقاق: ${dueDateText(r.due.date)}'),
-                  Text('توقيت المحل: \u2066${r.due.timeZone}\u2069'),
                   Text(
-                    'الوقت المحفوظ: \u2066${r.time ?? 'بلا تذكير'}\u2069',
+                    'الوقت المحفوظ: ${_reminderClock(r.time, 'بلا تذكير')}',
                     key: const Key('native-saved-time'),
                   ),
-                  if (r.triggerAt != null)
-                    Text(
-                      'الوقت العالمي: \u2066${r.triggerAt!.toIso8601String()}\u2069',
-                    ),
                   if (!r.timeValid)
                     Text(deviceReminderText(DeviceReminderState.invalidTime)),
                   if (r.time != null &&
@@ -532,11 +537,11 @@ class _DebtNativeScreenState extends State<DebtNativeScreen>
                   if (_review != null) ...[
                     const Text('مراجعة وقت التذكير', key: Key('native-review')),
                     Text(
-                      'السابق: \u2066${r.time ?? 'بلا تذكير'}\u2069 · الجديد: \u2066${_review!.time ?? 'إزالة التذكير'}\u2069',
+                      'السابق: ${_reminderClock(r.time, 'بلا تذكير')} · الجديد: ${_reminderClock(_review!.time, 'إزالة التذكير')}',
                     ),
                     if (_review!.triggerAt != null)
                       Text(
-                        'الموعد العالمي بعد تحويل الخادم: \u2066${_review!.triggerAt!.toIso8601String()}\u2069',
+                        'موعد التذكير: ${shopInstantText(_review!.triggerAt!, r.due.timeZone)}',
                       ),
                     const Text(
                       'الأثر على النقد والذهب والمخزون والأمانة والفواتير: صفر. حفظ الوقت لا يؤكد جدولة الجهاز أو عرض التنبيه.',
@@ -632,10 +637,10 @@ class _DebtNativeScreenState extends State<DebtNativeScreen>
                         for (final e in d.history)
                           ListTile(
                             title: Text(
-                              '\u2066${e.oldTime ?? 'بلا وقت'}\u2069 ← \u2066${e.newTime ?? 'بلا وقت'}\u2069',
+                              '${_reminderClock(e.oldTime, 'بلا وقت')} ← ${_reminderClock(e.newTime, 'بلا وقت')}',
                             ),
                             subtitle: Text(
-                              '${e.actor} · \u2066${e.atShop.replaceFirst('T', ' ')}\u2069 · ${r.due.timeZone}\nتاريخ وتوقيت الموعد عند الحفظ: \u2066${e.date ?? 'بلا تاريخ'}\u2069 · ${e.zone}',
+                              '${e.actor} · ${shopDateTime(e.atShop)}\nتاريخ الموعد عند الحفظ: ${e.date == null ? 'بلا تاريخ' : shopDate(e.date!)}',
                             ),
                           ),
                       ],

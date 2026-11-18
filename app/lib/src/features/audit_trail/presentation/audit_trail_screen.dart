@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/shop_instant.dart';
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../domain/audit_trail.dart';
 
@@ -18,8 +20,7 @@ abstract final class AuditTrailCopy {
   static const accessLost =
       'انتهت صلاحية الوصول إلى السجل. سجّل الدخول بحساب مالك المتجر.';
   static const unknownActor = 'الاسم غير متاح';
-  static const serverTime = 'توقيت الخادم';
-  static const shopTime = 'توقيت المتجر';
+  static const time = 'الوقت';
   static const sequence = 'تسلسل العملية';
   static const operation = 'رقم العملية';
 
@@ -223,12 +224,11 @@ class _AuditTrailScreenState extends State<AuditTrailScreen> {
           padding: const EdgeInsets.only(bottom: AppTokens.spaceMd),
           child: Text(
             key: const Key('audit-snapshot'),
-            'آخر تحديث للقائمة: ${_ltr(_clock(_snapshotAt!))}',
+            'آخر تحديث للقائمة: ${shopInstantText(_snapshotAt!, _timeZone)}',
             style: theme.textTheme.labelMedium,
           ),
         ),
-      for (final entry in _entries)
-        _AuditCard(entry: entry, timeZone: _timeZone),
+      for (final entry in _entries) _AuditCard(entry: entry),
       if (_accessLost)
         const Padding(
           padding: EdgeInsets.only(top: AppTokens.spaceMd),
@@ -275,25 +275,14 @@ class _AuditTrailScreenState extends State<AuditTrailScreen> {
         ),
     ];
   }
-
-  String _clock(DateTime utc) {
-    final value = utc.toUtc();
-    final y = value.year.toString().padLeft(4, '0');
-    final m = value.month.toString().padLeft(2, '0');
-    final d = value.day.toString().padLeft(2, '0');
-    final h = value.hour.toString().padLeft(2, '0');
-    final min = value.minute.toString().padLeft(2, '0');
-    return '$y-$m-$d $h:$min UTC';
-  }
 }
 
 String _ltr(String value) => '\u2066$value\u2069';
 
 class _AuditCard extends StatelessWidget {
-  const _AuditCard({required this.entry, required this.timeZone});
+  const _AuditCard({required this.entry});
 
   final AuditTrailEntry entry;
-  final String timeZone;
 
   @override
   Widget build(BuildContext context) {
@@ -320,10 +309,8 @@ class _AuditCard extends StatelessWidget {
             const SizedBox(height: AppTokens.spaceSm),
             Text(actor),
             const SizedBox(height: AppTokens.spaceSm),
-            Text('${AuditTrailCopy.shopTime}: ${_ltr(entry.createdAtShop)}'),
             Text(
-              '${AuditTrailCopy.serverTime}: ${_ltr(_utc(entry.createdAt))} ($timeZone)',
-              textDirection: TextDirection.rtl,
+              '${AuditTrailCopy.time}: ${shopDateTime(entry.createdAtShop)}',
             ),
             if (entry.shopSequence != null) ...[
               const SizedBox(height: AppTokens.spaceSm),
@@ -336,16 +323,5 @@ class _AuditCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _utc(DateTime value) {
-    final utc = value.toUtc();
-    final y = utc.year.toString().padLeft(4, '0');
-    final m = utc.month.toString().padLeft(2, '0');
-    final d = utc.day.toString().padLeft(2, '0');
-    final h = utc.hour.toString().padLeft(2, '0');
-    final min = utc.minute.toString().padLeft(2, '0');
-    final s = utc.second.toString().padLeft(2, '0');
-    return '$y-$m-$d $h:$min:$s UTC';
   }
 }

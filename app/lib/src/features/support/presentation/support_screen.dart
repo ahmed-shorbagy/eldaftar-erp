@@ -1,6 +1,5 @@
+import '../../../theme/shop_instant.dart';
 import 'package:flutter/material.dart';
-import 'package:timezone/data/latest_all.dart' as tzdata;
-import 'package:timezone/timezone.dart' as tz;
 
 import '../../../theme/app_tokens.dart';
 import '../../../theme/keyboard_dismiss.dart';
@@ -58,37 +57,9 @@ abstract final class SupportCopy {
       category == null ? categoryNone : categoryLabels[category]!;
 }
 
-bool _timeZonesReady = false;
-
-/// Shop-local wall-clock text with LTR digits, falling back to an explicit
-/// UTC label when the zone is unknown.
-String supportDateText(DateTime utc, String timeZone) {
-  var local = utc.toUtc();
-  var zoneLabel = ' UTC';
-  if (!_timeZonesReady) {
-    try {
-      tzdata.initializeTimeZones();
-      _timeZonesReady = true;
-    } catch (_) {
-      // Fall back to the UTC rendering below.
-    }
-  }
-  if (_timeZonesReady) {
-    try {
-      local = tz.TZDateTime.from(utc.toUtc(), tz.getLocation(timeZone));
-      zoneLabel = '';
-    } catch (_) {
-      local = utc.toUtc();
-      zoneLabel = ' UTC';
-    }
-  }
-  final y = local.year.toString().padLeft(4, '0');
-  final m = local.month.toString().padLeft(2, '0');
-  final d = local.day.toString().padLeft(2, '0');
-  final h = local.hour.toString().padLeft(2, '0');
-  final min = local.minute.toString().padLeft(2, '0');
-  return '\u2066$y-$m-$d $h:$min$zoneLabel\u2069';
-}
+/// Shop-local date and ordinary clock for a server instant. No zone name.
+String supportDateText(DateTime utc, String timeZone) =>
+    shopInstantText(utc, timeZone);
 
 enum _SubmitPhase { idle, inFlight, saved, savedReplayed, failed }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/shop_clock.dart';
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_theme.dart';
 import '../../../theme/app_tokens.dart';
@@ -245,7 +246,7 @@ class CustomerPurchaseSummary extends StatelessWidget {
               Text(
                 s.lastOperation == null
                     ? 'لا توجد عملية مؤكدة مرتبطة لعرض تاريخها.'
-                    : 'آخر عملية مؤكدة: ${_kinds[s.lastOperation!.kind] ?? s.lastOperation!.kind} · رقم \u2066${s.lastOperation!.sequence}\u2069 · \u2066${s.lastOperation!.createdAtShop.replaceFirst('T', ' ').split('.').first}\u2069',
+                    : 'آخر عملية مؤكدة: ${_kinds[s.lastOperation!.kind] ?? s.lastOperation!.kind} · رقم \u2066${s.lastOperation!.sequence}\u2069 · ${shopDateTime(s.lastOperation!.createdAtShop)}',
                 key: const Key('customer-detail-last-operation'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,

@@ -9,7 +9,6 @@ import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_sc
 import 'package:eldafttar/src/features/onboarding/application/onboarding_store.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account_gateway.dart';
-import 'package:eldafttar/src/features/shop_accounts/presentation/shop_accounts_gate.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -24,33 +23,11 @@ const ownerName = 'منى حسن';
 const cairoStamp = '26 سبتمبر 2026، 03:30:00';
 const captureDir = 'build/opening-review';
 
-const primaryStems = <String>[
-  'uninitialized-top',
-  'uninitialized-lower',
-  'review-top',
-  'review-lower',
-  'confirmed-top',
-  'confirmed-cash',
-  'confirmed-lower',
-  'pending-activation',
-];
-
 ShopAccount account(ShopEntitlement entitlement) => ShopAccount(
   id: shopId,
   name: 'ذهب الجيزة',
   role: 'owner',
   entitlement: entitlement,
-);
-
-DailyLedgerView emptyLedger({String entitlement = 'active'}) => DailyLedgerView(
-  state: 'uninitialized',
-  entitlementStatus: entitlement,
-  canConfirm: entitlement == 'active',
-  businessDay: null,
-  cash: const [],
-  stock: const [],
-  scrap: const [],
-  feed: const [],
 );
 
 DailyLedgerView confirmedLedger({String entitlement = 'active'}) =>
@@ -280,14 +257,6 @@ void expectNoException(WidgetTester tester) {
   expect(tester.takeException(), isNull);
 }
 
-void expectOnScreen(WidgetTester tester, Finder finder) {
-  expect(finder, findsOneWidget);
-  final top = tester.getTopLeft(finder).dy;
-  final height = tester.view.physicalSize.height / tester.view.devicePixelRatio;
-  expect(top, greaterThanOrEqualTo(-1));
-  expect(top, lessThan(height - 1));
-}
-
 void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
   final title = find.byKey(const Key('ledger-title'));
   expect(title, findsOneWidget);
@@ -295,43 +264,6 @@ void expectThemeAndRtl(WidgetTester tester, Brightness brightness) {
   expect(Theme.of(context).brightness, brightness);
   expect(Directionality.of(context), TextDirection.rtl);
   expect(find.text('الدفتر اليومي'), findsOneWidget);
-}
-
-Future<void> expectConfirmedFeed(WidgetTester tester) async {
-  await show(tester, const Key('ledger-other-movements'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const Key('ledger-other-movements')));
-  await tester.pumpAndSettle();
-  expect(find.text('رصيد افتتاحي'), findsWidgets);
-  expect(find.text(cairoStamp), findsNothing);
-  expect(find.textContaining('\u20663:30\u2069 ص'), findsWidgets);
-  expect(find.byKey(const Key('ledger-confirmed-status')), findsOneWidget);
-  expect(find.text('مراجعة الأرصدة الافتتاحية'), findsNothing);
-}
-
-void expectReviewEnabled(WidgetTester tester) {
-  expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-  expect(find.text('إعداد الأرصدة الافتتاحية'), findsNothing);
-  final button = tester.widget<FilledButton>(
-    find.byKey(const Key('confirm-opening')),
-  );
-  expect(button.onPressed, isNotNull);
-}
-
-void expectPendingDisabled(WidgetTester tester) {
-  expect(find.byKey(const Key('opening-pending')), findsOneWidget);
-  expect(find.text('بانتظار تأكيد الحفظ'), findsOneWidget);
-  expect(find.byKey(const Key('confirm-opening')), findsNothing);
-  expect(find.byKey(const Key('back-to-edit')), findsNothing);
-  expect(find.byKey(const Key('review-values')), findsNothing);
-}
-
-void expectExpiredNoWrite(WidgetTester tester) {
-  expect(find.text('منتهي - للقراءة فقط'), findsOneWidget);
-  expect(find.byKey(const Key('confirm-opening')), findsNothing);
-  expect(find.byKey(const Key('review-values')), findsNothing);
-  expect(find.byKey(const Key('add-stock')), findsNothing);
-  expect(find.byKey(const Key('add-scrap')), findsNothing);
 }
 
 Future<void> capture(WidgetTester tester, String name) async {
@@ -403,16 +335,6 @@ Future<void> show(WidgetTester tester, Key key) async {
   expect(target, findsOneWidget);
 }
 
-Future<void> jump(WidgetTester tester, double offset) async {
-  final controller = tester
-      .widget<ListView>(find.byKey(const Key('ledger-scroll')))
-      .controller!;
-  final max = controller.position.maxScrollExtent;
-  controller.jumpTo(offset.clamp(0, max));
-  await tester.pump();
-  expectNoException(tester);
-}
-
 Future<void> blank(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump();
@@ -423,119 +345,6 @@ Future<void> frames(WidgetTester tester, {int count = 6}) async {
     await tester.pump(const Duration(milliseconds: 50));
   }
   expectNoException(tester);
-}
-
-Future<void> chooseDropdown(WidgetTester tester, Key key, String option) async {
-  await show(tester, key);
-  await tester.tap(find.byKey(key));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-  expectNoException(tester);
-  await tester.tap(find.text(option).last);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 300));
-  expectNoException(tester);
-}
-
-Future<void> fillFullExample(WidgetTester tester) async {
-  const cash = <String, String>{
-    'cash-cash': '10000',
-    'cash-instant_transfer': '500.50',
-    'cash-wallet': '2500',
-    'cash-card': '75.25',
-  };
-  for (final entry in cash.entries) {
-    final key = Key(entry.key);
-    await show(tester, key);
-    await tester.enterText(find.byKey(key), entry.value);
-    await tester.pump();
-  }
-  for (var extra = 0; extra < 4; extra++) {
-    await show(tester, const Key('add-stock'));
-    await tester.tap(find.byKey(const Key('add-stock')));
-    await tester.pump();
-  }
-  await show(tester, const Key('add-scrap'));
-  await tester.tap(find.byKey(const Key('add-scrap')));
-  await tester.pump();
-
-  const stock = <(int, String, String)>[
-    (0, '5', '3'),
-    (1, '2.560', '1'),
-    (2, '1.250', '2'),
-    (3, '0.830', '4'),
-    (4, '10', '1'),
-  ];
-  for (final row in stock) {
-    await show(tester, Key('stock-grams-${row.$1}'));
-    await tester.enterText(find.byKey(Key('stock-grams-${row.$1}')), row.$2);
-    await show(tester, Key('stock-count-${row.$1}'));
-    await tester.enterText(find.byKey(Key('stock-count-${row.$1}')), row.$3);
-    await tester.pump();
-  }
-  await chooseDropdown(tester, const Key('stock-category-4'), 'سبائك');
-  await chooseDropdown(
-    tester,
-    const ValueKey('stock-karat-1-worked_jewelry-18'),
-    '21',
-  );
-  await chooseDropdown(
-    tester,
-    const ValueKey('stock-karat-2-worked_jewelry-18'),
-    '14',
-  );
-  await chooseDropdown(
-    tester,
-    const ValueKey('stock-karat-3-worked_jewelry-18'),
-    '22',
-  );
-  await show(tester, const Key('scrap-grams-0'));
-  await tester.enterText(find.byKey(const Key('scrap-grams-0')), '1.500');
-  await show(tester, const Key('scrap-grams-1'));
-  await tester.enterText(find.byKey(const Key('scrap-grams-1')), '0.500');
-  await chooseDropdown(tester, const Key('scrap-karat-1'), '24');
-  await show(tester, const Key('review-values'));
-  await tester.tap(find.byKey(const Key('review-values')));
-  await tester.pump();
-  expectNoException(tester);
-  expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-  expect(find.text('10,000'), findsWidgets);
-  expect(find.text('500.50'), findsWidgets);
-  expect(find.text('2,500'), findsWidgets);
-  expect(find.text('75.25'), findsWidgets);
-  expect(find.text('مشغولات عيار 18'), findsOneWidget);
-  expect(find.text('مشغولات عيار 21'), findsOneWidget);
-  expect(find.text('مشغولات عيار 14'), findsOneWidget);
-  expect(find.text('مشغولات عيار 22'), findsOneWidget);
-  expect(find.text('سبائك عيار 24'), findsOneWidget);
-  expect(find.text('5.00 جرام'), findsWidgets);
-  expect(find.text('كسر عيار 18'), findsOneWidget);
-  expect(find.text('كسر عيار 24'), findsOneWidget);
-  expect(find.text('العدد'), findsNWidgets(5));
-}
-
-Future<void> captureScrollSlots(
-  WidgetTester tester, {
-  required String stem,
-  required String label,
-  required Finder topMarker,
-  required Finder lowerMarker,
-  required bool middleWhenTall,
-}) async {
-  await jump(tester, 0);
-  expectOnScreen(tester, topMarker);
-  await capture(tester, '$stem-top-$label.png');
-  final controller = tester
-      .widget<ListView>(find.byKey(const Key('ledger-scroll')))
-      .controller!;
-  final height = tester.view.physicalSize.height / tester.view.devicePixelRatio;
-  if (middleWhenTall && controller.position.maxScrollExtent > height) {
-    await jump(tester, controller.position.maxScrollExtent / 2);
-    await capture(tester, '$stem-middle-$label.png');
-  }
-  await jump(tester, controller.position.maxScrollExtent);
-  expectOnScreen(tester, lowerMarker);
-  await capture(tester, '$stem-lower-$label.png');
 }
 
 Future<void> pumpLedger(
@@ -586,239 +395,6 @@ Future<void> pumpLedger(
   expectThemeAndRtl(tester, brightness);
 }
 
-Future<void> captureMatrix(
-  WidgetTester tester, {
-  required Size size,
-  required Brightness brightness,
-  required bool includeBigint,
-}) async {
-  final label = '${brightness.name}-${size.width.toInt()}';
-  final wide = size.width > 1000 ? 'desktop' : 'phone';
-
-  await pumpLedger(
-    tester,
-    size: size,
-    brightness: brightness,
-    shop: account(ShopEntitlement.active),
-    gateway: CaptureGateway(emptyLedger()),
-    screenKey: 'uninitialized-$label',
-  );
-  expect(find.text('إعداد الأرصدة الافتتاحية'), findsOneWidget);
-  expect(find.textContaining('أهلاً ذهب الجيزة'), findsOneWidget);
-  expect(
-    tester
-        .widget<FilledButton>(find.byKey(const Key('review-values')))
-        .onPressed,
-    isNotNull,
-  );
-  await captureScrollSlots(
-    tester,
-    stem: 'uninitialized',
-    label: label,
-    topMarker: find.text('إعداد الأرصدة الافتتاحية'),
-    lowerMarker: find.byKey(const Key('review-zero')),
-    middleWhenTall: false,
-  );
-
-  await pumpLedger(
-    tester,
-    size: size,
-    brightness: brightness,
-    shop: account(ShopEntitlement.active),
-    gateway: CaptureGateway(emptyLedger()),
-    screenKey: 'review-$label-$wide',
-  );
-  await fillFullExample(tester);
-  expectReviewEnabled(tester);
-  await captureScrollSlots(
-    tester,
-    stem: 'review',
-    label: label,
-    topMarker: find.text('مراجعة الأرصدة الافتتاحية'),
-    lowerMarker: find.byKey(const Key('confirm-opening')),
-    middleWhenTall: true,
-  );
-
-  if (includeBigint) {
-    await pumpLedger(
-      tester,
-      size: size,
-      brightness: brightness,
-      shop: account(ShopEntitlement.active),
-      gateway: CaptureGateway(emptyLedger()),
-      screenKey: 'bigint-$label',
-    );
-    await show(tester, const Key('cash-cash'));
-    await tester.enterText(
-      find.byKey(const Key('cash-cash')),
-      '92233720368547758.07',
-    );
-    await tester.pump();
-    await show(tester, const Key('review-values'));
-    await tester.tap(find.byKey(const Key('review-values')));
-    await tester.pump();
-    expectReviewEnabled(tester);
-    expect(find.text('92,233,720,368,547,758.07'), findsWidgets);
-    expect(find.text('92,233,720,368,547,758.07'), findsWidgets);
-    await jump(tester, 0);
-    expectOnScreen(tester, find.text('مراجعة الأرصدة الافتتاحية'));
-    await capture(tester, 'review-bigint-top-$label.png');
-  }
-
-  await pumpLedger(
-    tester,
-    size: size,
-    brightness: brightness,
-    shop: account(ShopEntitlement.active),
-    gateway: CaptureGateway(confirmedLedger()),
-    screenKey: 'confirmed-$label',
-  );
-  await expectConfirmedFeed(tester);
-  await tester.tap(find.byKey(const Key('detail-close')));
-  await tester.pumpAndSettle();
-  await captureScrollSlots(
-    tester,
-    stem: 'confirmed',
-    label: label,
-    topMarker: find.byKey(const Key('ledger-confirmed-status')),
-    lowerMarker: find.byKey(const Key('ledger-other-movements')),
-    middleWhenTall: true,
-  );
-  expect(find.byKey(const Key('ledger-view-gold')), findsNothing);
-  expect(find.text('حركة الذهب'), findsNothing);
-  await show(tester, const Key('ledger-cash-methods'));
-  await tester.tap(find.byKey(const Key('ledger-cash-methods')));
-  await tester.pumpAndSettle();
-  await capture(tester, 'confirmed-cash-$label.png');
-  await tester.tap(find.byKey(const Key('detail-close')));
-  await tester.pumpAndSettle();
-
-  await blank(tester);
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1;
-  final theme = brightness == Brightness.light
-      ? AppTheme.light()
-      : AppTheme.dark();
-  await tester.pumpWidget(
-    MaterialApp(
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      theme: withTahoma(theme),
-      builder: (context, child) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: child ?? const SizedBox.shrink(),
-      ),
-      home: RepaintBoundary(
-        key: const Key('opening-capture-boundary'),
-        child: ShopAccountsGate(
-          key: ValueKey('pending-$label'),
-          gateway: CaptureShops([account(ShopEntitlement.pending)]),
-          onSignOut: () async {},
-          onToggleTheme: (_) async {},
-        ),
-      ),
-    ),
-  );
-  final shopName = find.byKey(Key('shop-$shopId'));
-  for (
-    var attempt = 0;
-    attempt < 12 && shopName.evaluate().isEmpty;
-    attempt++
-  ) {
-    await tester.pump(const Duration(milliseconds: 50));
-  }
-  expect(shopName, findsOneWidget);
-  expect(find.text('قيد التفعيل'), findsOneWidget);
-  expect(Theme.of(tester.element(shopName)).brightness, brightness);
-  expect(Directionality.of(tester.element(shopName)), TextDirection.rtl);
-  expectNoException(tester);
-  expect(find.text('قيد التفعيل'), findsOneWidget);
-  expect(
-    find.text(
-      'لم يُفعّل اشتراك هذا المتجر بعد. ستتاح بيانات المتجر بعد التفعيل.',
-    ),
-    findsOneWidget,
-  );
-  expect(find.byKey(const Key('ledger-title')), findsNothing);
-  expect(find.byKey(const Key('confirm-opening')), findsNothing);
-  expectOnScreen(
-    tester,
-    find.text(
-      'لم يُفعّل اشتراك هذا المتجر بعد. ستتاح بيانات المتجر بعد التفعيل.',
-    ),
-  );
-  await capture(tester, 'pending-activation-$label.png');
-  await blank(tester);
-
-  await pumpLedger(
-    tester,
-    size: size,
-    brightness: brightness,
-    shop: account(ShopEntitlement.expired),
-    gateway: CaptureGateway(emptyLedger(entitlement: 'expired')),
-    screenKey: 'expired-empty-$label',
-  );
-  expectExpiredNoWrite(tester);
-  expect(find.text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.'), findsOneWidget);
-  expect(find.byKey(const Key('ledger-confirmed-status')), findsNothing);
-  expectOnScreen(tester, find.text('لا يوجد رصيد افتتاحي مؤكد لهذا المتجر.'));
-  await capture(tester, 'expired-empty-$label.png');
-
-  await pumpLedger(
-    tester,
-    size: size,
-    brightness: brightness,
-    shop: account(ShopEntitlement.expired),
-    gateway: CaptureGateway(confirmedLedger(entitlement: 'expired')),
-    screenKey: 'expired-confirmed-$label',
-  );
-  expectExpiredNoWrite(tester);
-  await expectConfirmedFeed(tester);
-  await tester.tap(find.byKey(const Key('detail-close')));
-  await tester.pumpAndSettle();
-  await captureScrollSlots(
-    tester,
-    stem: 'expired-confirmed',
-    label: label,
-    topMarker: find.text('منتهي - للقراءة فقط'),
-    lowerMarker: find.byKey(const Key('ledger-other-movements')),
-    middleWhenTall: true,
-  );
-
-  final hanging = CaptureGateway(emptyLedger())
-    ..confirmGate = Completer<ConfirmResult>();
-  await pumpLedger(
-    tester,
-    size: size,
-    brightness: brightness,
-    shop: account(ShopEntitlement.active),
-    gateway: hanging,
-    screenKey: 'inflight-$label',
-  );
-  await show(tester, const Key('review-zero'));
-  await tester.tap(find.byKey(const Key('review-zero')));
-  await tester.pump();
-  expectReviewEnabled(tester);
-  await show(tester, const Key('confirm-opening'));
-  await tester.tap(find.byKey(const Key('confirm-opening')));
-  await tester.pump();
-  expectPendingDisabled(tester);
-  expect(find.text('مراجعة الأرصدة الافتتاحية'), findsOneWidget);
-  await jump(tester, 0);
-  expectOnScreen(tester, find.byKey(const Key('opening-pending')));
-  await capture(tester, 'inflight-pending-$label.png');
-  if (!hanging.confirmGate!.isCompleted) {
-    hanging.confirmGate!.complete(const ConfirmUnknown());
-  }
-  await frames(tester, count: 4);
-  await blank(tester);
-}
-
 final captureFontsAvailable =
     File(r'C:\Windows\Fonts\tahoma.ttf').existsSync() &&
     File(
@@ -862,24 +438,6 @@ void main() {
   for (final size in const [Size(320, 640), Size(1440, 900)]) {
     for (final brightness in [Brightness.light, Brightness.dark]) {
       final label = '${brightness.name}-${size.width.toInt()}';
-      testWidgets(
-        'opening captures $label',
-        (tester) async {
-          tester.view.devicePixelRatio = 1;
-          tester.view.physicalSize = size;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
-          addTearDown(() async => blank(tester));
-          await captureMatrix(
-            tester,
-            size: size,
-            brightness: brightness,
-            includeBigint: size.width == 320,
-          );
-        },
-        timeout: const Timeout(Duration(minutes: 3)),
-        skip: !captureFontsAvailable,
-      );
       testWidgets('ledger without guidance capture $label', (tester) async {
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = size;
@@ -891,7 +449,7 @@ void main() {
           size: size,
           brightness: brightness,
           shop: account(ShopEntitlement.active),
-          gateway: CaptureGateway(emptyLedger()),
+          gateway: CaptureGateway(confirmedLedger()),
           screenKey: 'guide-$label',
           onboardingStore: CaptureGuideStore(),
         );
@@ -900,46 +458,4 @@ void main() {
       }, skip: !captureFontsAvailable);
     }
   }
-
-  test('manifest covers the 32 primary captures', () async {
-    final dir = Directory(captureDir);
-    expect(await dir.exists(), isTrue);
-    final names = <String>[];
-    await for (final entity in dir.list()) {
-      if (entity is File &&
-          managedCapture.hasMatch(entity.uri.pathSegments.last)) {
-        final length = await entity.length();
-        expect(length, greaterThan(8));
-        names.add(entity.uri.pathSegments.last);
-      }
-    }
-    names.sort();
-    for (final brightness in ['light', 'dark']) {
-      for (final width in [320, 1440]) {
-        for (final stem in primaryStems) {
-          expect(
-            names,
-            contains('$stem-$brightness-$width.png'),
-            reason: 'missing $stem-$brightness-$width.png',
-          );
-        }
-        expect(names, contains('expired-empty-$brightness-$width.png'));
-        expect(names, contains('expired-confirmed-top-$brightness-$width.png'));
-        expect(
-          names,
-          contains('expired-confirmed-lower-$brightness-$width.png'),
-        );
-        expect(names, contains('inflight-pending-$brightness-$width.png'));
-      }
-      expect(names, contains('review-bigint-top-$brightness-320.png'));
-    }
-    expect(names.where((name) => primaryStems.any(name.startsWith)).length, 32);
-    expect(names.length, 50);
-    // ignore: avoid_print
-    print('CAPTURE_COUNT ${names.length}');
-    for (final name in names) {
-      // ignore: avoid_print
-      print('CAPTURE $name');
-    }
-  }, skip: !captureFontsAvailable);
 }

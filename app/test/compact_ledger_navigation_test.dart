@@ -249,11 +249,11 @@ void main() {
     () {
       expect(
         formatCompactServerTimestamp('2026-10-05T01:30:00'),
-        '5 أكتوبر · 01:30',
+        '5 أكتوبر · \u20661:30\u2069 ص',
       );
       expect(
         formatCompactServerTimestamp('2026-10-04T23:59:59'),
-        '4 أكتوبر · 23:59',
+        '4 أكتوبر · \u206611:59\u2069 م',
       );
       expect(formatCompactServerTimestamp('—'), '—');
     },

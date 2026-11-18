@@ -1,3 +1,5 @@
+import '../../../theme/shop_clock.dart';
+
 /// Exact server report values. No Flutter, transport or storage dependencies.
 class ReportDay {
   const ReportDay(
@@ -13,7 +15,7 @@ class ReportDay {
   /// servers (U18).
   final String? closedAtShop;
   String get label =>
-      '$date • ${status == 'open' ? 'مفتوح' : 'مغلق'} • ${openedAtShop.substring(11)}';
+      '$date • ${status == 'open' ? 'مفتوح' : 'مغلق'} • ${shopClockOf(openedAtShop) ?? openedAtShop.substring(11)}';
 }
 
 class ReportGold {

@@ -154,7 +154,7 @@ void main() {
         ..['time_zone'] = 'Asia/Riyadh'
         ..['occurred_at'] = '2026-10-31T23:30:00Z'
         ..['occurred_at_shop'] = '2026-11-01T02:30:00';
-      expect(messageValues(source)['operation_time'], '1 نوفمبر 2026، 02:30');
+      expect(messageValues(source)['operation_time'], '1 نوفمبر 2026، 2:30 ص');
       source.remove('occurred_at_shop');
       source['occurred_at_cairo'] = '2026-11-01T01:30:00';
       expect(() => messageValues(source), throwsA(isA<MessageValidation>()));
@@ -193,7 +193,7 @@ void main() {
       expect(values['item_count'], '2');
       expect(values['paid'], '');
       expect(values['obligation'], '');
-      expect(values['operation_time'], '18 أكتوبر 2026، 10:30');
+      expect(values['operation_time'], '18 أكتوبر 2026، 10:30 ص');
       expect(values.keys.toSet(), messageTokens.keys.toSet());
       (op['payload'] as Map)['items'] = [
         for (final k in [14, 18, 21, 22, 24]) ...[

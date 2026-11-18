@@ -1,6 +1,7 @@
 import 'message_display.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import '../../daily_ledger/application/idempotency_key.dart';
@@ -417,7 +418,7 @@ class _MessageSettingsScreenState extends State<MessageSettingsScreen>
                     ),
                   if (_saved?.atShop != null)
                     Text(
-                      'وقت حفظ القالب: \u2066${_saved!.atShop!.replaceAll('T', ' ')}\u2069 (\u2066${_saved!.zone}\u2069)',
+                      'وقت حفظ القالب: ${shopDateTime(_saved!.atShop!)}',
                       textDirection: TextDirection.rtl,
                     ),
                   if (_notice != null)

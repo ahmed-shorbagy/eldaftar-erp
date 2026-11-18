@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/pdf_arabic.dart';
 import '../../reports/domain/financial_day_report.dart';
@@ -44,7 +45,7 @@ Future<Uint8List> buildPeriodAnalyticsPdf(PeriodAnalytics report) async {
             '${analyticsPeriodLabel(report.periodKind)}: ${report.startDate} / ${report.endDate}',
             digits: true,
           ),
-          text('وقت اللقطة ${report.generatedAtShop}', digits: true),
+          text('وقت اللقطة ${shopNumericDateTime(report.generatedAtShop)}'),
           pw.Divider(),
         ],
       ),

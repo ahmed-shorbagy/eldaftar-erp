@@ -1,3 +1,4 @@
+import '../../../theme/shop_clock.dart';
 import '../../../theme/amount_format.dart';
 import '../../customers/domain/customer_rules.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
@@ -287,7 +288,7 @@ String messageOperationTime(Map<String, Object?> source) {
     'نوفمبر',
     'ديسمبر',
   ];
-  return '${date.day} ${months[date.month - 1]} ${date.year}، ${local.substring(11, 16)}';
+  return '${date.day} ${months[date.month - 1]} ${date.year}، ${shopClock(date.hour, date.minute, isolate: false)}';
 }
 
 String? messageWhatsappPhone(Object? raw) {

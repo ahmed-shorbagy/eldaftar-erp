@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/opening_flow.dart';
 import 'package:eldafttar/src/features/daily_ledger/application/opening_gateway.dart';
-import 'package:eldafttar/src/features/daily_ledger/domain/opening_catalog.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -51,49 +50,39 @@ void main() {
     },
   );
 
-  test(
-    'confirm during refresh retains review and can submit afterward',
-    () async {
-      final gateway = RefreshGateway();
-      final controller = DailyLedgerController(
-        gateway: gateway,
-        store: fixtures.MemoryStore(),
-        userId: fixtures.userId,
-        shopId: fixtures.shopId,
-        shopIsActive: true,
-      );
-      addTearDown(controller.dispose);
-      await controller.start();
-      controller.cash[CashMethod.cash]!.text = '1.25';
-      controller.reviewEntered();
-      expect(controller.phase, LedgerPhase.review);
+  test('a refresh while the ledger is opening sends one confirm', () async {
+    final gateway = RefreshGateway();
+    final opened = Completer<ConfirmResult>();
+    gateway.confirmHook = () => opened.future;
+    final controller = DailyLedgerController(
+      gateway: gateway,
+      store: fixtures.MemoryStore(),
+      userId: fixtures.userId,
+      shopId: fixtures.shopId,
+      shopIsActive: true,
+    );
+    addTearDown(controller.dispose);
+    await controller.start();
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.phase, LedgerPhase.loading);
+    expect(gateway.confirmCalls, 1);
 
-      gateway.deferredRead = Completer<DailyLedgerView>();
-      final refresh = controller.refresh();
-      await Future<void>.delayed(Duration.zero);
-      await controller.confirmReview();
-      expect(gateway.confirmCalls, 0);
-      expect(controller.phase, LedgerPhase.review);
-      expect(controller.fieldsLocked, isFalse);
+    // A sync tick arrives before the server answers.
+    await controller.refresh();
+    expect(gateway.confirmCalls, 1);
 
-      gateway.deferredRead!.complete(fixtures.uninitializedLedger());
-      await refresh;
-      gateway.deferredRead = null;
-      expect(controller.cash[CashMethod.cash]!.text, '1.25');
-      expect(controller.reviewDraft!.cash[CashMethod.cash].wire, '125');
-
-      gateway.confirmHook = () {
-        gateway.ledgerView = fixtures.sampleLedger();
-        return const ConfirmCommitted(
-          operationId: '33333333-3333-4333-8333-333333333333',
-          businessDayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-          businessDate: '2026-09-26',
-          replayed: false,
-        );
-      };
-      await controller.confirmReview();
-      expect(gateway.confirmCalls, 1);
-      expect(controller.phase, LedgerPhase.confirmed);
-    },
-  );
+    gateway.ledgerView = fixtures.sampleLedger();
+    opened.complete(
+      const ConfirmCommitted(
+        operationId: '33333333-3333-4333-8333-333333333333',
+        businessDayId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        businessDate: '2026-09-26',
+        replayed: false,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(gateway.confirmCalls, 1);
+    expect(controller.phase, LedgerPhase.confirmed);
+  });
 }

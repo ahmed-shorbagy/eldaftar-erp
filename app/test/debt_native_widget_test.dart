@@ -93,7 +93,11 @@ void main() {
       await t.pumpAndSettle();
       await nativeReview(t);
       expect(g.sent, isEmpty);
-      expect(find.textContaining('2026-10-14T14:00:00.000Z'), findsOneWidget);
+      expect(
+        find.textContaining('موعد التذكير: 14 أكتوبر 2026'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('.000Z'), findsNothing);
       expect(find.byKey(const Key('native-review')), findsOneWidget);
       await nativeTap(t, 'native-confirm');
       expect(g.sent.length, 1);
@@ -259,11 +263,14 @@ void main() {
       );
       await t.tap(history);
       await t.pumpAndSettle();
-      expect(find.textContaining('2026-10-13 08:00:00'), findsOneWidget);
       expect(
-        find.textContaining('تاريخ وتوقيت الموعد عند الحفظ:'),
+        find.textContaining('13 أكتوبر 2026، \u20668:00\u2069 ص'),
         findsOneWidget,
       );
+      expect(find.textContaining('تاريخ الموعد عند الحفظ:'), findsOneWidget);
+      // Owner rule (2026-11-17): no time-zone names on screen.
+      expect(find.textContaining('Africa/'), findsNothing);
+      expect(find.textContaining('Asia/'), findsNothing);
     },
   );
   for (final width in [320.0, 390.0, 1440.0]) {

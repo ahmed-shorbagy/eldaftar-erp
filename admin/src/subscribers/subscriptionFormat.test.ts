@@ -43,12 +43,10 @@ function instantParts(value: string, timeZone: string) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
+    hour12: true,
     numberingSystem: 'latn',
-    timeZoneName: 'long',
   }).formatToParts(new Date(value))
 }
 
@@ -56,21 +54,15 @@ function part(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTyp
   return parts.find((item) => item.type === type)?.value ?? ''
 }
 
-test('UTC and Cairo dates cross local midnight and name the zone', () => {
+test('UTC and Cairo dates cross local midnight', () => {
   const utcParts = instantParts(crossingInstant, 'UTC')
   const cairoParts = instantParts(crossingInstant, 'Africa/Cairo')
   const utc = formatServerInstant(crossingInstant, 'UTC')
   const cairo = formatServerInstant(crossingInstant, 'Africa/Cairo')
   expect(part(utcParts, 'day')).toBe('21')
   expect(part(cairoParts, 'day')).toBe('22')
-  expect(part(utcParts, 'hour')).not.toBe(part(cairoParts, 'hour'))
   expect(utc).toContain(part(utcParts, 'day'))
-  expect(utc).toContain(part(utcParts, 'hour'))
-  expect(utc).toContain(part(utcParts, 'timeZoneName'))
   expect(cairo).toContain(part(cairoParts, 'day'))
-  expect(cairo).toContain(part(cairoParts, 'hour'))
-  expect(cairo).toContain(part(cairoParts, 'timeZoneName'))
-  expect(utc).not.toContain(part(cairoParts, 'timeZoneName'))
   expect(utc).not.toBe(cairo)
   expect(utc).not.toMatch(/[٠-٩]/)
   expect(cairo).not.toMatch(/[٠-٩]/)
@@ -78,18 +70,40 @@ test('UTC and Cairo dates cross local midnight and name the zone', () => {
   expect(formatServerInstant('not-a-date', 'Africa/Cairo')).toBe('تاريخ غير صالح')
 })
 
+// Owner rule of 2026-11-17: «الساعة ٢ تبقى الساعة ٢», and no zone name.
+test('times use the twelve-hour clock with ص/م and never name a time zone', () => {
+  const afternoon = formatServerInstant('2026-11-17T12:05:00.000Z', 'Africa/Cairo')
+  expect(afternoon).toContain('2:05')
+  expect(afternoon).toContain('م')
+  expect(afternoon).not.toContain('14')
+  const morning = formatServerInstant('2026-11-17T07:30:00.000Z', 'Africa/Cairo')
+  expect(morning).toContain('9:30')
+  expect(morning).toContain('ص')
+  const midnight = formatServerInstant('2026-11-17T22:00:00.000Z', 'Africa/Cairo')
+  expect(midnight).toContain('12:00')
+  expect(midnight).toContain('ص')
+  const noon = formatServerInstant('2026-11-17T10:00:00.000Z', 'Africa/Cairo')
+  expect(noon).toContain('12:00')
+  expect(noon).toContain('م')
+  for (const text of [afternoon, morning, midnight, noon, formatServerInstant(crossingInstant, 'UTC')]) {
+    expect(text).not.toContain('توقيت')
+    expect(text).not.toContain('أوروبا')
+    expect(text).not.toMatch(/UTC|GMT/)
+    expect(text).not.toMatch(/:\d{2}:\d{2}/)
+  }
+})
+
 test('the default display zone follows the browser zone', () => {
   const original = Intl.DateTimeFormat.prototype.resolvedOptions
   const spy = vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function mockZone(this: Intl.DateTimeFormat) {
     const resolved = original.call(this)
-    if (resolved.timeZoneName === undefined) return { ...resolved, timeZone: 'Pacific/Auckland' }
+    if (resolved.hour === undefined) return { ...resolved, timeZone: 'Pacific/Auckland' }
     return resolved
   })
   try {
     const formatted = formatServerInstant(crossingInstant)
     expect(formatted).toBe(formatServerInstant(crossingInstant, 'Pacific/Auckland'))
     expect(formatted).not.toBe(formatServerInstant(crossingInstant, 'UTC'))
-    expect(formatted).toContain('توقيت')
   } finally {
     spy.mockRestore()
   }

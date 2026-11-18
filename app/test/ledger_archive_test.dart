@@ -183,13 +183,18 @@ void main() {
       );
       // U18: the close time; a close after midnight names its date.
       expect(
-        find.text('مقفول · فُتح 18:00 · أُقفل 9 نوفمبر 2026 01:10'),
+        find.text(
+          'مقفول · فُتح \u20666:00\u2069 م · أُقفل 9 نوفمبر 2026 \u20661:10\u2069 ص',
+        ),
         findsOneWidget,
       );
       // Two sessions closed on 2026-11-08 are two entries.
-      expect(find.text('مقفول · فُتح 09:30 · أُقفل 17:45'), findsOneWidget);
+      expect(
+        find.text('مقفول · فُتح \u20669:30\u2069 ص · أُقفل \u20665:45\u2069 م'),
+        findsOneWidget,
+      );
       // An older server without a close time keeps the opening only.
-      expect(find.text('مقفول · فُتح 08:00'), findsOneWidget);
+      expect(find.text('مقفول · فُتح \u20668:00\u2069 ص'), findsOneWidget);
       expect(find.byKey(const Key('ledger-archive-2')), findsOneWidget);
       final tiles = find.byType(ListTile);
       expect(
