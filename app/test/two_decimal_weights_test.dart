@@ -1,8 +1,6 @@
 // FB-002 / ADR 0050: every weight is entered and shown with two decimals.
 // Storage stays integer milligrams.
 
-import 'dart:io';
-
 import 'package:eldafttar/src/features/customers/domain/customer_statistics.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart';
 import 'package:eldafttar/src/features/daily_ledger/domain/ledger_compensation.dart';
@@ -186,25 +184,6 @@ void main() {
     });
   });
 
-  test('no screen asks for three decimals or prints milligrams', () {
-    final banned = <Pattern>[
-      'ملليجرام',
-      'ثلاث خانات',
-      'ثلاثة أرقام عشرية',
-      'منزلتين',
-      'ثلاث منازل',
-      'decimalPlaces: 3',
-      'toStringAsFixed(3)',
-      RegExp(r"padLeft\(3, '0'\)\}.{0,40}(جرام|جم)"),
-    ];
-    final offenders = <String>[];
-    for (final file in Directory('lib').listSync(recursive: true)) {
-      if (file is! File || !file.path.endsWith('.dart')) continue;
-      final source = file.readAsStringSync();
-      for (final pattern in banned) {
-        if (source.contains(pattern)) offenders.add('${file.path}: $pattern');
-      }
-    }
-    expect(offenders, isEmpty);
-  });
+  // The scan that keeps the rejected wording out of `app/lib` and `admin/src`
+  // is in owner_terms_guard_test.dart, with every other rejected term.
 }

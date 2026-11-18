@@ -2,8 +2,6 @@
 // shown anywhere. A row with no item name reads «عيار 21»; headings and choice
 // lists say «أصناف».
 
-import 'dart:io';
-
 import 'package:eldafttar/src/features/daily_ledger/domain/opening_catalog.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/ledger_balance_sections.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/opening_copy.dart';
@@ -12,8 +10,6 @@ import 'package:eldafttar/src/features/inventory/domain/inventory_models.dart';
 import 'package:eldafttar/src/features/inventory/presentation/inventory_copy.dart';
 import 'package:eldafttar/src/features/reports/domain/financial_week_report.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-const _rejected = 'مشغول';
 
 void main() {
   test('a row with a karat and no item name reads the karat alone', () {
@@ -74,29 +70,6 @@ void main() {
     expect(bullion, 'يزيد المتاح للبيع: 10.00 جرام سبائك عيار 24.');
   });
 
-  test('the rejected word appears in no screen text', () {
-    // The ledger parser keeps the server's wire label to check the read. It
-    // is never shown.
-    const wire = "  'worked_jewelry': 'مشغولات',";
-    final offenders = <String>[];
-    for (final root in ['lib', '../admin/src']) {
-      final directory = Directory(root);
-      if (!directory.existsSync()) continue;
-      for (final file in directory.listSync(recursive: true)) {
-        if (file is! File) continue;
-        if (!RegExp(r'\.(dart|ts|tsx)$').hasMatch(file.path)) continue;
-        final lines = file.readAsLinesSync();
-        for (var index = 0; index < lines.length; index++) {
-          if (!lines[index].contains(_rejected)) continue;
-          final wireLabel =
-              file.path
-                  .replaceAll('\\', '/')
-                  .endsWith('daily_ledger/data/daily_ledger_codec.dart') &&
-              lines[index] == wire;
-          if (!wireLabel) offenders.add('${file.path}:${index + 1}');
-        }
-      }
-    }
-    expect(offenders, isEmpty);
-  });
+  // The scan that keeps the rejected wording out of `app/lib` and `admin/src`
+  // is in owner_terms_guard_test.dart, with every other rejected term.
 }

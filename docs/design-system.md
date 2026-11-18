@@ -1,5 +1,9 @@
 # ElDafttar UI theme contract
 
+## The owner's words — 2026-11-18
+
+Every label, message, PDF and admin text uses the shop owner's words. Before writing or changing any Arabic text, read the [owner glossary](owner-glossary.md): it lists each term he rejected, his word for it with its source, and the terms still waiting for his word. Never show a term from the data model, and do not invent a word where the glossary has none; ask. `app/test/owner_terms_guard_test.dart` scans `app/lib` and `admin/src` and fails on a banned term, naming the file and line. A term joins the banned list only when its replacement is on the screens.
+
 ## Weights — 2026-11-18
 
 Every gold weight is entered and shown with two decimals: fields, cards, tables, reviews, confirmations, PDFs, the invoice, and message text ([ADR 0050](adr/0050-two-decimal-weights.md)). No third decimal, no milligram figure, and no decimal-places hint under a field. Flutter formats through `displayGrams` / `displayMilligrams` in `app/lib/src/theme/amount_format.dart` and reads fields through `GramInputFormatter` and `readGramField` in `app/lib/src/theme/gram_input.dart`; a new screen uses these and adds no formatter of its own. Weights stay integer milligrams in storage. An older weight stored with a third decimal rounds half away from zero for display, and typing a recorded weight as it is shown means that whole weight. The admin dashboard shows no weights.

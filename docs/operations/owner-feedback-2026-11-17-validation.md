@@ -247,6 +247,63 @@ Debug build from the working tree, the second test shop, dark theme.
 - «إضافة بيع» review: «خواتم · عيار 18», «1 قطعة», «2.50 جرام». Not confirmed.
 - Not seen on the device: the sold and bought weight sheets, the day count, debts, the trader screens, reports, the invoice, and «وزن الأصناف». They are covered by tests and by the source scan. Light theme and desktop width were not re-inspected; no layout changed.
 
+## M1, part 5. The owner glossary and the guard (handoff step 3)
+
+Date: 2026-11-18 (third session). Tests and documentation only. No file under `app/lib`, `admin/` or `supabase/` changed: no screen text, no migration, nothing deployed. Committed on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged.
+
+Started from a clean tree on `owner-feedback-2026-11-17` at `ae8c6ec`.
+
+### What was added
+
+- [docs/owner-glossary.md](../owner-glossary.md): each term the owner rejected, where the app still shows it, his word, the source of that word, and its state. Section 2 drafts the open rows as questions for him. Section 3 lists words found in the app that he has not rejected, as proposals. It is linked from `docs/design-system.md` (a new first section, «The owner's words») and from the handoff.
+- `app/test/owner_terms_guard_test.dart` (16 tests): one list of banned terms, each with its reason; two exact allowed lines; one list of waiting terms. It scans `app/lib` and `admin/src` and names the file and line of an offender.
+- The source scans at the end of `jewelry_wording_test.dart` and `two_decimal_weights_test.dart` moved into the guard, so the list is in one place. Their other tests are unchanged. A test in the guard runs the wording both scans used to stop («مشغولات عيار 21», «ثلاث خانات، مثل 1.255», «ثلاثة أرقام عشرية كحد أقصى», «حتى منزلتين عشريتين», «حتى ثلاث منازل», «(1,255 ملليجرام)», `toStringAsFixed(3)`, `decimalPlaces: 3`, the three-digit pad) through the new rules. The guard is stricter than they were in four ways: the weight wording is checked in `admin/src` too, vowel marks and the tatweel are removed before matching, an offender is reported by line, and an allowed line must still exist.
+
+### How each candidate term was sorted
+
+The handoff's rule: a term is banned only when its replacement is in place. Every candidate was searched in `app/lib` and `admin/src`.
+
+| Group | Terms |
+| --- | --- |
+| Gone from the screens, banned now | «مشغولات» (as before, one wire line allowed); «الصيانة» ([ADR 0044](../adr/0044-owner-answers-2026-11-10.md) C-D7; not on the handoff's list); milligram spellings; decimal-places hints («منازل», «منزلة», «منزلتين», «ثلاث خانات», «عشري» in any form); third-decimal formatter calls in `app/lib`; zone names beside a time («توقيت الخادم», «توقيت المتجر», «التوقيت العالمي», «الوقت العالمي», «توقيت شرق أوروبا») with the formatter options that print them (`timeZoneName`, `hourCycle`, `hour12: false`); «UTC» or «GMT» on a line of Arabic text |
+| Still shown, his word known, assigned to step 4 | «التجار والأمانات» (3 lines), «الديون» as the page name (19), «العطل» (4), «وصف القطعة» (1), «الحيازة» in repairs (5), «باقي أرقام الدفتر» (1) |
+| Still shown, his word known, a plain swap, waiting on the developer | «عملات» as the coin category label, to «جنيهات»: `debt_copy.dart`, `inventory_copy.dart`, `branded_invoice_document.dart` (the invoice), `financial_week_report.dart` («عملات ذهبية»), and the list nouns in `inventory_forms.dart` and `inventory_screen.dart`. Not made. |
+| Still shown, his word not recorded or the page is to be redesigned | «حيازة» outside repairs (5), «أمانة» (33), «كشف أمانة» (4), «بانتظار الاعتراف» and «اعتراف» (14), «متاح للبيع» (7), «دفعات» (15), «فئة سبيكة اسمية» and «اسمي» (21), the coin catalog lines «نوع العملة» (6), the bare word «توقيت» (3), repairs «أرشفة» (10) |
+| Not in the source | «إضافة صف» (FB-004). Not banned: what he rejected there is not established. |
+
+Terms rejected in one sense only are matched in that sense, and the glossary says how: «أمانة» and «أمانات» as whole words («بأمان» is left alone), «الديون» with the article («ديون» the noun is left alone), «دفعة» and «دفعات» («الدفع» is left alone), «عشري» but not «عشرين», «UTC» on a line of Arabic text but not the zone id in code. Two could not be banned by word: the repairs «أرشفة» (customers, debts and payment methods archive too) and the bare «توقيت» (the owner writes «التوقيت» himself for the time of day; the three lines left are reminder messages and one admin hint, not zone labels).
+
+The waiting terms are in the guard as a second list. When the last line that shows one is removed, the test fails until the term is moved to the banned list. Step 4 will meet this at each rename; that is intended.
+
+### Proof that the guard fails
+
+Scratch edits, undone afterwards with `git checkout`:
+
+- `'worked_jewelry': 'مشغولات'` put back in `debt_copy.dart`, «الصيانة» added to `repair_copy.dart`, and the admin hint in `admin/src/broadcasts/copy.ts` changed to «توقيت الخادم UTC، …». The run failed four tests, each naming its line, for example `app/lib/src/features/debts/presentation/debt_copy.dart:38: 'worked_jewelry': 'مشغولات',` and `admin/src/broadcasts/copy.ts:38: startsAtHelp: 'توقيت الخادم UTC، خلال 90 يومًا.',`.
+- «وصف القطعة» renamed in `repair_screen.dart`: the run failed with «وصف القطعة» (was waiting on handoff step 4: «اسم الصنف») and the instruction to move it to the banned list.
+
+### Gates
+
+- `dart format lib test`: no changes left. `dart analyze` (whole app): no issues.
+- `flutter test` (full suite): **1991 passed** (1977 before, less the two scans that moved, plus the 16 tests of the guard).
+- `git diff --check`: clean.
+- The full run rewrote the invoice PNG captures under `docs/reviews/invoice-branding-2026-10-21/pdf/` and the Windows generated files; both were restored.
+- React, TypeScript and SQL gates: not run. `admin/` and `supabase/` are untouched. The guard reads `admin/src` from the Flutter test.
+- Documentation: links in the glossary, the design guide and the handoff were checked to resolve; the glossary holds no customer data, credentials or contract details.
+
+### Device check
+
+None. No screen text changed, so there was nothing to see on the emulator.
+
+### Not done
+
+- No screen was changed. Every rejected term that was on a screen at `ae8c6ec` is still there; the glossary says what each waits on.
+- The six «عملات» swaps wait for the developer's word.
+- The words in the glossary's section 3 are the assistant's findings («النقد» against his «النقدية», «المتجر» against «المحل», «الخادم», «يوم العمل» and others). None is banned or changed.
+- The voice notes and the 24-item summary are not in the repository. Sources for FB items cite the plan and the handoff, not his recorded words.
+- `inventoryGuideSteps`, `traderGuideSteps` and the `InventoryGuide` widget are unused since the guides were removed. They were left in place; their text holds waiting terms, so it has to go before those terms can be banned.
+- Handoff steps 4, 5 and 6 were not started.
+
 ## Still open in M1
 
-The banned-terms test for the remaining terms and the glossary. Before the owner build: his answer on where starting cash and gold are entered, and his word on «أصناف» and the two figure labels.
+Nothing in M1 itself. Before the owner build: his answer on where starting cash and gold are entered, his word on «أصناف» and the two figure labels, and the developer's word on the six «عملات» swaps.
