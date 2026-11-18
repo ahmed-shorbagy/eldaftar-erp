@@ -304,7 +304,7 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
           group.purchaseMovements.toString(),
         ),
         for (final day in report.days)
-          for (final t in day.transactions)
+          for (final t in day.listedTransactions)
             for (final item in t.items.where(
               (i) =>
                   i.category == group.category &&
@@ -476,9 +476,9 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
                               'صافي حركة النقد',
                               reportMoney(day.value('net_cash')),
                             ),
-                            if (day.transactions.isEmpty)
+                            if (day.listedTransactions.isEmpty)
                               const Text('لا توجد عمليات لهذا اليوم المالي.'),
-                            for (final t in day.transactions)
+                            for (final t in day.listedTransactions)
                               ReportTransactionCard(
                                 transaction: t,
                                 scopeKey:

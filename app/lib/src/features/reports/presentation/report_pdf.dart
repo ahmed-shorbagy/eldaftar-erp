@@ -26,8 +26,10 @@ class _ReportPdfSource {
       ? daily!.day.date
       : '${weekly!.startDate} / ${weekly!.endDate}';
   List<FinancialDayReport> get days => weekly?.days ?? [daily!];
+
+  /// The listed operations; unnamed ones count only in the totals.
   Iterable<ReportTransaction> get transactions =>
-      days.expand((d) => d.transactions);
+      days.expand((d) => d.listedTransactions);
   List<ReportGold> get gold => weekly?.gold ?? daily!.gold;
   BigInt value(String key) => (weekly?.summary ?? daily!.summary)[key]!;
 }
@@ -229,10 +231,10 @@ Future<Uint8List> _buildFinancialPdf(_ReportPdfSource report) async {
             pair('صافي المشتريات', reportMoney(day.value('net_purchases'))),
             pair('المصروفات', reportMoney(day.value('expenses'))),
             pair('صافي حركة النقد', reportMoney(day.value('net_cash'))),
-            if (day.transactions.isEmpty)
+            if (day.listedTransactions.isEmpty)
               text('لا توجد عمليات لهذا اليوم المالي.'),
           ],
-          for (final t in day.transactions) ...[
+          for (final t in day.listedTransactions) ...[
             pw.NewPage(freeSpace: 160),
             pw.Table(
               columnWidths: const {0: pw.FlexColumnWidth()},
@@ -244,7 +246,7 @@ Future<Uint8List> _buildFinancialPdf(_ReportPdfSource report) async {
                       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                       children: [
                         pw.Divider(color: accent),
-                        text(t.label, size: 12),
+                        text(t.label!, size: 12),
                         if (report.weekly != null)
                           pair('اليوم المالي', day.day.date),
                         pair('رقم العملية', t.sequence),

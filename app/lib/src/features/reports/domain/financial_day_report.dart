@@ -59,7 +59,16 @@ class ReportTransaction {
     required this.inventory,
     this.sourceId,
   });
-  final String id, sequence, kind, label, state, atShop, description;
+  final String id, sequence, kind, state, atShop, description;
+
+  /// The server's Arabic name for the operation, or null for kinds it does
+  /// not name (stock moves, trader receipts, reversals). Such a row still
+  /// counts in every total and check, but is not listed (see [listed]).
+  final String? label;
+
+  /// Whether the row appears in the report's list and PDF, as in the daily
+  /// ledger: only operations the server names are listed.
+  bool get listed => label != null;
   final String? sourceId;
   final BigInt originalTotal, sale, purchase, expense, cash, openingCash;
   final List<ReportItem> items;
@@ -89,7 +98,13 @@ class FinancialDayReport {
   final ReportDay day;
   final Map<String, BigInt> summary;
   final List<ReportGold> gold;
+
+  /// Every operation of the day, for totals and integrity checks.
   final List<ReportTransaction> transactions;
+
+  /// The operations the report lists and prints.
+  List<ReportTransaction> get listedTransactions =>
+      transactions.where((t) => t.listed).toList(growable: false);
   BigInt value(String key) => summary[key]!;
 }
 

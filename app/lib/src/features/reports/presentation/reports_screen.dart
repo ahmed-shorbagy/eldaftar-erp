@@ -309,10 +309,11 @@ class _ReportsScreenState extends State<ReportsScreen>
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text(
+                  Text(
                     'تقرير يوم مالي',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  const SizedBox(height: AppTokens.spaceSm),
                   if (widget.gateway is WeeklyReportGateway)
                     OutlinedButton.icon(
                       key: const Key('reports-open-weekly'),
@@ -325,13 +326,20 @@ class _ReportsScreenState extends State<ReportsScreen>
                     const LinearProgressIndicator(),
                     const Text('جارٍ تحميل التقرير المؤكد…'),
                   ] else if (_error != null) ...[
+                    // The message stood flush against the buttons above and
+                    // below it.
+                    const SizedBox(height: AppTokens.spaceMd),
                     Text(_error!),
+                    const SizedBox(height: AppTokens.spaceSm),
                     FilledButton(
                       onPressed: _load,
                       child: const Text('إعادة المحاولة'),
                     ),
                   ] else if (_days?.isEmpty ?? true)
-                    const Text('لا توجد أيام مالية مسجلة بعد.')
+                    const Padding(
+                      padding: EdgeInsets.only(top: AppTokens.spaceMd),
+                      child: Text('لا توجد أيام مالية مسجلة بعد.'),
+                    )
                   else ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -440,9 +448,10 @@ class _ReportsScreenState extends State<ReportsScreen>
                         'السجل الكامل الداعم للإجماليات',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      if (report.transactions.isEmpty)
+                      if (report.listedTransactions.isEmpty)
                         const Text('لا توجد عمليات لهذا اليوم المالي.'),
-                      for (final t in report.transactions) _transaction(t),
+                      for (final t in report.listedTransactions)
+                        _transaction(t),
                     ],
                   ],
                   if (_message != null && report == null)

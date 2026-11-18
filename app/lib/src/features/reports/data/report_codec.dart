@@ -66,7 +66,9 @@ FinancialDayReport parseFinancialDayReport(Object? raw) {
       id: _string(r['id']),
       sequence: _string(r['sequence']),
       kind: _string(r['kind']),
-      label: _string(r['label']),
+      // Stock moves, trader receipts and reversals arrive with no label. A
+      // missing label used to fail the whole report («تعذر تحميل التقرير»).
+      label: r['label'] == null ? null : _string(r['label']),
       state: _string(r['state']),
       atShop: _string(r['at_shop']),
       description: _string(r['description']),
