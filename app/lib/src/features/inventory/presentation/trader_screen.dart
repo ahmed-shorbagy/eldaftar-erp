@@ -553,7 +553,10 @@ class _TraderScreenState extends State<TraderScreen> {
           focusNode: _searchFocus,
           maxLength: 120,
           textInputAction: TextInputAction.search,
-          decoration: ledgerFieldDecoration(context, label: 'بحث عن تاجر'),
+          decoration: ledgerFieldDecoration(
+            context,
+            label: 'بحث عن تاجر',
+          ).copyWith(counterText: ''),
           onSubmitted: (_) => _load(),
         ),
         const SizedBox(height: 8),

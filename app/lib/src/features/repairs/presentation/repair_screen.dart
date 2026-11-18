@@ -1457,6 +1457,7 @@ class _RepairScreenState extends State<RepairScreen> {
       controller: row.amount,
       inputFormatters: const [CashInputFormatter()],
       textDirection: TextDirection.ltr,
+      textAlign: TextAlign.right,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: const InputDecoration(labelText: 'المبلغ'),
     );

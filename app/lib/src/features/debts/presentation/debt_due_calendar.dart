@@ -166,6 +166,7 @@ class _DebtDueCalendarDialogState extends State<DebtDueCalendarDialog> {
                           key: const Key('due-calendar-input'),
                           controller: _text,
                           textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.right,
                           decoration: const InputDecoration(
                             labelText: 'تاريخ الاستحقاق',
                             helperText: 'سنة-شهر-يوم',

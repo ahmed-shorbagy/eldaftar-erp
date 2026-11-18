@@ -408,6 +408,9 @@ void main() {
       200,
       scrollable: _pageScroll,
     );
+    // Fully on screen: the forms got shorter when short-field counters went.
+    await tester.ensureVisible(find.byKey(const Key('command-review')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('command-review')));
     await tester.pumpAndSettle();
     expect(
@@ -442,6 +445,9 @@ void main() {
       200,
       scrollable: _pageScroll,
     );
+    // Fully on screen: the forms got shorter when short-field counters went.
+    await tester.ensureVisible(find.byKey(const Key('command-review')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('command-review')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -492,6 +498,9 @@ void main() {
       200,
       scrollable: _pageScroll,
     );
+    // Fully on screen: the forms got shorter when short-field counters went.
+    await tester.ensureVisible(find.byKey(const Key('command-review')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('command-review')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -643,6 +652,9 @@ void main() {
       200,
       scrollable: _pageScroll,
     );
+    // Fully on screen: the forms got shorter when short-field counters went.
+    await tester.ensureVisible(find.byKey(const Key('command-review')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('command-review')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('add-grams')), '11');

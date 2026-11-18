@@ -382,7 +382,7 @@ class _ClosingStaffScreenState extends State<ClosingStaffScreen>
                       decoration: ledgerFieldDecoration(
                         context,
                         label: 'اسم الموظف',
-                      ),
+                      ).copyWith(counterText: ''),
                     ),
                     const SizedBox(height: 12),
                     TextField(

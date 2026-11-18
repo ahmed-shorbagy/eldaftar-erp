@@ -206,15 +206,31 @@ class InventoryItemGridView extends StatelessWidget {
         else
           LayoutBuilder(
             builder: (context, constraints) {
-              final cellsWidth = visible.length * (cellWidth + cellGap);
-              final fits = constraints.maxWidth - cellsWidth >= minNameWidth;
+              // Columns grow with the phone's font size, so «عيار 21» and
+              // «عدد · وزن» keep one line each at 130 %.
+              final scaled = MediaQuery.textScalerOf(
+                context,
+              ).scale(cellWidth).clamp(cellWidth, 96.0);
+              final available = constraints.maxWidth;
+              final cellsWidth = visible.length * (scaled + cellGap);
+              final fits = available - cellsWidth >= minNameWidth;
+              // Spare width is shared: the name column takes at most 40 %, and
+              // the karat columns widen, so the numbers sit near their names
+              // instead of at the far edge of the table.
               final nameWidth = fits
-                  ? constraints.maxWidth - cellsWidth
+                  ? (available * 0.4).clamp(
+                      minNameWidth,
+                      available - cellsWidth,
+                    )
                   : minNameWidth;
+              final cell = fits
+                  ? (available - nameWidth) / visible.length - cellGap
+                  : scaled;
               final table = _Table(
                 grid: grid,
                 karats: visible,
                 nameWidth: nameWidth,
+                cellWidth: cell,
                 onCell: onCell,
               );
               if (fits) return table;
@@ -245,12 +261,14 @@ class _Table extends StatelessWidget {
     required this.grid,
     required this.karats,
     required this.nameWidth,
+    required this.cellWidth,
     required this.onCell,
   });
 
   final InventoryItemGrid grid;
   final List<int> karats;
   final double nameWidth;
+  final double cellWidth;
   final void Function(String itemName, int karat) onCell;
 
   @override
@@ -258,7 +276,6 @@ class _Table extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final border = AppSemanticColors.of(context).tableBorder;
-    const cellWidth = InventoryItemGridView.cellWidth;
 
     Widget row({
       required Key key,
@@ -335,10 +352,14 @@ class _Table extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Text(
-                    'عدد · وزن',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'عدد · وزن',
+                      maxLines: 1,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -380,8 +401,10 @@ class _Table extends StatelessWidget {
           name: Text('كسر', style: theme.textTheme.bodyMedium),
           cells: [
             for (final karat in karats)
+              // An empty cell reads «0.00», as in the item rows above, so the
+              // row is not a blank band.
               grid.scrapByKarat[karat] == null
-                  ? const SizedBox()
+                  ? value(count: '—', grams: '0.00')
                   : value(
                       count: '—',
                       grams: displayGrams(grid.scrapByKarat[karat]!.toString()),
@@ -400,7 +423,7 @@ class _Table extends StatelessWidget {
           cells: [
             for (final karat in karats)
               grid.totals[karat] == null
-                  ? const SizedBox()
+                  ? value(count: '0', grams: '0.00', bold: true)
                   : value(
                       count: countOf(grid.totals[karat]!),
                       grams: displayGrams(

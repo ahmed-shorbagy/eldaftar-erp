@@ -757,6 +757,7 @@ class _DebtDueScreenState extends State<DebtDueScreen>
             key: const Key('due-date-field'),
             controller: _date,
             textDirection: TextDirection.ltr,
+            textAlign: TextAlign.right,
             enabled: _writes,
             decoration: const InputDecoration(
               labelText: 'تاريخ الاستحقاق',

@@ -1177,9 +1177,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
           tilePadding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceMd,
           ),
+          // The first child may be a field whose label floats above its
+          // border; with no top inset the tile clipped it («بحث في الكتالوج»).
           childrenPadding: const EdgeInsets.fromLTRB(
             AppTokens.spaceMd,
-            0,
+            AppTokens.spaceMd,
             AppTokens.spaceMd,
             AppTokens.spaceMd,
           ),

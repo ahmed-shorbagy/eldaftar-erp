@@ -8,6 +8,7 @@ import '../application/ledger_line_items.dart';
 import '../../../theme/app_banner.dart';
 import '../../../theme/app_messages.dart';
 import '../../../theme/app_theme.dart';
+import '../../../theme/app_tokens.dart';
 import '../../../theme/detail_surface.dart';
 import '../../../theme/feedback_copy.dart';
 import '../../../theme/message_tone.dart';
@@ -84,6 +85,7 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
   static const _sections = ['metrics', 'activity'];
   LedgerMetricLayout _metricLayout = migrateLedgerMetricLayout(null);
   bool _showReturns = true;
+  int _metricPage = 0;
   final _visible = <String, bool>{
     for (final section in _sections) section: true,
   };
@@ -390,24 +392,92 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
           );
           if (needed > width) width = needed;
         }
-        return SingleChildScrollView(
-          key: const Key('ledger-metric-strip'),
-          scrollDirection: Axis.horizontal,
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final id in shown)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: SizedBox(
-                      width: width,
-                      child: _metricTile(id, values[id]!),
-                    ),
+        // Whole tiles only, as on «الجرد الفوري»: each tile is an exact share
+        // of the width, pages snap to whole tiles, and dots show the page. A
+        // fixed tile width used to slice the third tile at the screen edge.
+        var visible = size.maxWidth >= 600 ? 3 : 2;
+        while (visible > 1 && size.maxWidth / visible < width) {
+          visible--;
+        }
+        final slot = size.maxWidth / visible;
+        final pages = (shown.length / visible).ceil();
+        final page = _metricPage.clamp(0, pages - 1);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.metrics.axis != Axis.horizontal) {
+                  return false;
+                }
+                final next = (notification.metrics.pixels / size.maxWidth)
+                    .round()
+                    .clamp(0, pages - 1);
+                if (next != _metricPage) setState(() => _metricPage = next);
+                return false;
+              },
+              child: SingleChildScrollView(
+                key: const Key('ledger-metric-strip'),
+                scrollDirection: Axis.horizontal,
+                physics: const PageScrollPhysics(),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final id in shown)
+                        SizedBox(
+                          width: slot,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTokens.spaceSm / 2,
+                            ),
+                            child: _metricTile(id, values[id]!),
+                          ),
+                        ),
+                    ],
                   ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                // Balances the settings button so the dots stay centred.
+                const SizedBox(width: 48),
+                Expanded(
+                  child: Row(
+                    key: const Key('ledger-metric-pages'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (pages > 1)
+                        for (var i = 0; i < pages; i++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: i == page
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(
+                                        context,
+                                      ).colorScheme.outlineVariant,
+                              ),
+                              child: const SizedBox(width: 8, height: 8),
+                            ),
+                          ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: const Key('ledger-customize'),
+                  tooltip: 'إعدادات الملخص',
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 20,
+                  onPressed: () => _details('إعدادات الملخص', _customization),
+                  icon: const Icon(Icons.settings_outlined),
+                ),
               ],
             ),
-          ),
+          ],
         );
       },
     );
@@ -473,7 +543,14 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
       textDirection: TextDirection.rtl,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    final headerWidth = header.width + (hasAction ? 110 : 62);
+    // The label wraps onto a second line, so a tile needs room for a few of
+    // its letters beside the icon and the arrow, not the whole label on one
+    // line. Asking for the whole line left one tile per page at 130 %.
+    final labelRoom = header.width.clamp(
+      0.0,
+      MediaQuery.textScalerOf(context).scale(48),
+    );
+    final headerWidth = labelRoom + (hasAction ? 110 : 62);
     header.dispose();
     return [width, headerWidth, minimum].reduce((a, b) => a > b ? a : b);
   }
@@ -525,21 +602,6 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                 KeyedSubtree(
                   key: const Key('ledger-confirmed-status'),
                   child: _metrics(view),
-                ),
-                Row(
-                  children: [
-                    const Spacer(),
-                    IconButton(
-                      key: const Key('ledger-customize'),
-                      tooltip: 'إعدادات الملخص',
-                      visualDensity: VisualDensity.compact,
-                      iconSize: 20,
-                      alignment: AlignmentDirectional.centerEnd,
-                      onPressed: () =>
-                          _details('إعدادات الملخص', _customization),
-                      icon: const Icon(Icons.settings_outlined),
-                    ),
-                  ],
                 ),
                 if (widget.dayClosed &&
                     !(view.dayReset &&
@@ -619,6 +681,9 @@ class _ConfirmedLedgerDashboardState extends State<ConfirmedLedgerDashboard> {
                 child: const Text('عرض حركة الدفتر'),
               ),
             ),
+          // Room under the last card for the floating «إجراءات سريعة» button
+          // (56 px and its margin), so it never covers a row or a link.
+          const SizedBox(key: Key('ledger-fab-clearance'), height: 80),
         ],
       ),
     );

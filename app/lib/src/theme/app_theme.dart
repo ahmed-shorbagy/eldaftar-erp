@@ -115,6 +115,16 @@ abstract final class AppTheme {
           FontWeight.w700,
         ),
       ),
+      // A value at the end of a list row (a weight, an amount) reads at body
+      // size in bold, like the figures elsewhere. Material's default is its
+      // smallest label style, which made the key number the faintest text.
+      listTileTheme: ListTileThemeData(
+        leadingAndTrailingTextStyle: role(
+          text.titleMedium,
+          AppTokens.bodySize,
+          FontWeight.w700,
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surfaceContainerLow,

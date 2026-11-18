@@ -314,6 +314,7 @@ class _StaffCountReviewScreenState extends State<StaffCountReviewScreen> {
                           decimal: true,
                         ),
                         textDirection: TextDirection.ltr,
+                        textAlign: TextAlign.right,
                         decoration: ledgerFieldDecoration(
                           context,
                           label: cashMethodLabel(method),

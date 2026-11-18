@@ -141,6 +141,7 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
                   decimal: true,
                 ),
                 textDirection: TextDirection.ltr,
+                textAlign: TextAlign.right,
                 autocorrect: false,
                 enableSuggestions: false,
                 inputFormatters: const [GramInputFormatter()],

@@ -874,6 +874,7 @@ class _DebtScreenState extends State<DebtScreen> {
                 ? [const CashInputFormatter()]
                 : [const GramInputFormatter()],
             textDirection: TextDirection.ltr,
+            textAlign: TextAlign.right,
             validator: (value) {
               final parsed = _unit == DebtUnit.money
                   ? Piastres.parsePounds(cashInputValue(value ?? ''))
@@ -1195,6 +1196,7 @@ class _DebtScreenState extends State<DebtScreen> {
               key: const Key('debt-settle-amount'),
               controller: _settleAmount,
               textDirection: TextDirection.ltr,
+              textAlign: TextAlign.right,
               inputFormatters: money
                   ? [const CashInputFormatter()]
                   : [const GramInputFormatter()],
@@ -1255,6 +1257,7 @@ class _DebtScreenState extends State<DebtScreen> {
         key: Key('debt-tender-$index'),
         controller: _tenders[index].amount,
         textDirection: TextDirection.ltr,
+        textAlign: TextAlign.right,
         inputFormatters: [const CashInputFormatter()],
         decoration: const InputDecoration(labelText: 'المبلغ'),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1312,6 +1315,7 @@ class _DebtScreenState extends State<DebtScreen> {
                 ),
                 inputFormatters: const [GramInputFormatter()],
                 textDirection: TextDirection.ltr,
+                textAlign: TextAlign.right,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),

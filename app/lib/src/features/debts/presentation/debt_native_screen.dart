@@ -576,6 +576,7 @@ class _DebtNativeScreenState extends State<DebtNativeScreen>
                         controller: _time,
                         enabled: _writes,
                         textDirection: TextDirection.ltr,
+                        textAlign: TextAlign.right,
                         keyboardType: TextInputType.datetime,
                         decoration: const InputDecoration(
                           labelText: 'وقت التذكير الاختياري',

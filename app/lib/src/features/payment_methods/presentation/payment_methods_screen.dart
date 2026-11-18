@@ -209,7 +209,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             decoration: ledgerFieldDecoration(
                               context,
                               label: 'الاسم الظاهر',
-                            ),
+                            ).copyWith(counterText: ''),
                             maxLength: 40,
                           ),
                           SwitchListTile(

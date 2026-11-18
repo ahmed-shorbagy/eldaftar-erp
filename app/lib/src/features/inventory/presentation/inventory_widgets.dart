@@ -223,6 +223,7 @@ Widget inventoryField({
     maxLength: maxLength,
     keyboardType: resolvedKeyboard,
     textDirection: cashAmount || numeric ? TextDirection.ltr : null,
+    textAlign: TextAlign.right,
     autocorrect: numeric ? false : true,
     enableSuggestions: numeric ? false : true,
     // Every decimal field that is not cash is a weight.
@@ -232,7 +233,14 @@ Widget inventoryField({
         ? const [GramInputFormatter()]
         : null,
     textInputAction: action,
-    decoration: ledgerFieldDecoration(context, label: label, hint: hint),
+    // A number or a short name needs no «0/200» under it; the count only
+    // helps on long free text such as a reason. Hiding it also keeps the
+    // space between fields even.
+    decoration: ledgerFieldDecoration(
+      context,
+      label: label,
+      hint: hint,
+    ).copyWith(counterText: numeric || maxLength <= 200 ? '' : null),
   );
 }
 

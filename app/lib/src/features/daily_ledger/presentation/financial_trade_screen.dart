@@ -638,10 +638,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           maxLength: 120,
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
+          // No «0/120» under a short name: the pair's two fields stay level.
           decoration: ledgerFieldDecoration(
             context,
             label: 'اسم الرسوم الأخرى',
-          ),
+          ).copyWith(counterText: ''),
         ),
       ),
       const SizedBox(height: 12),
@@ -2193,7 +2194,10 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                     });
                   },
                 ),
-              const SizedBox(height: 12),
+              // Only under a category line; without one the item name follows
+              // the heading directly instead of after an empty band.
+              if (widget.kind == FinancialKind.scrapSale || row.customName)
+                const SizedBox(height: 12),
               if (row.name.text.isEmpty)
                 Text(
                   'لم يُختر الصنف بعد. اختره من الأصناف أعلاه.',
@@ -2224,6 +2228,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                           )
                         : null,
                     textDirection: TextDirection.ltr,
+                    textAlign: TextAlign.right,
                     keyboardType: TextInputType.number,
                     textInputAction: TextInputAction.next,
                     onSubmitted: (_) => FocusScope.of(context).nextFocus(),
@@ -2240,6 +2245,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                     inputFormatters: const [GramInputFormatter()],
                     focusNode: index == 0 ? _gramsFocus : null,
                     textDirection: TextDirection.ltr,
+                    textAlign: TextAlign.right,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -2258,6 +2264,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   inputFormatters: const [GramInputFormatter()],
                   focusNode: index == 0 ? _gramsFocus : null,
                   textDirection: TextDirection.ltr,
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -2316,6 +2323,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                     focusNode: row.priceFocus,
                     onChanged: (_) => setState(_syncTenderFromLinePrices),
                     textDirection: TextDirection.ltr,
+                    textAlign: TextAlign.right,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -2343,7 +2351,14 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     final row = _tenders[index];
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+        // The top inset leaves room for the floating «وسيلة الدفع» label, which
+        // touched the card border at 8 px. The text side starts at 16 px.
+        padding: EdgeInsetsDirectional.fromSTEB(
+          16,
+          20,
+          _tenders.length > 1 ? 4 : 16,
+          16,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2374,6 +2389,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   focusNode: index == 0 ? _tenderFocus : null,
                   onChanged: (_) => setState(() {}),
                   textDirection: TextDirection.ltr,
+                  textAlign: TextAlign.right,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -2484,6 +2500,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 Text('الأصناف', style: theme.textTheme.titleSmall),
               for (final item in draft.items)
                 ListTile(
+                  // Level with «الأصناف» / «طريقة الدفع» above it.
+                  contentPadding: EdgeInsets.zero,
                   title: Text('${item['item_name']} · عيار ${item['karat']}'),
                   subtitle: Text(
                     [
@@ -2509,6 +2527,8 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
               ],
               for (final tender in draft.tenders)
                 ListTile(
+                  // Level with «الأصناف» / «طريقة الدفع» above it.
+                  contentPadding: EdgeInsets.zero,
                   title: Text(
                     cashMethodLabel(
                       CashMethod.canonicalOrder.firstWhere(

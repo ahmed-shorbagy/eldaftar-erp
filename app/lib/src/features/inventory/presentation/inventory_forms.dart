@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_tokens.dart';
 import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/presentation/ledger_form_fields.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
@@ -2493,8 +2494,13 @@ class OlderPageControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final older = nextCursor != null;
+    // Room below as well as above: the next field's label floats over its
+    // border and used to touch this line.
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(
+        top: AppTokens.spaceSm,
+        bottom: AppTokens.spaceMd,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
