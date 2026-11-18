@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../features/daily_ledger/application/opening_gateway.dart';
 import '../features/daily_ledger/application/pending_opening_store.dart';
 import '../features/daily_ledger/presentation/daily_ledger_screen.dart';
-import '../features/daily_ledger/presentation/ledger_more_balances.dart';
 import '../features/onboarding/application/onboarding_store.dart';
 import '../features/invoice_appearance/application/apply_shop_logo_to_invoice.dart';
 import '../features/invoice_appearance/data/logo_upload_store.dart';
@@ -556,21 +555,6 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
                 ),
                 const SizedBox(height: AppTokens.spaceMd),
                 ..._morePages(),
-                if (!widget.shop.isEmployee) ...[
-                  const SizedBox(height: AppTokens.spaceMd),
-                  Text('الأرقام والمخزون', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: AppTokens.spaceSm),
-                  LedgerMoreBalances(
-                    key: ValueKey(
-                      'more-${widget.shop.id}-${widget.userId}-${widget.refreshGeneration}',
-                    ),
-                    shop: widget.shop,
-                    gateway: widget.gateway,
-                    userId: widget.userId,
-                    refreshGeneration: widget.refreshGeneration,
-                    syncTicks: widget.syncTicks,
-                  ),
-                ],
                 if (widget.shop.isOwner) ...[
                   const SizedBox(height: AppTokens.spaceLg),
                   _settingsGroup(
@@ -815,7 +799,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         }, key: const Key('workspace-analytics')),
       if (widget.shop.isOwner && widget.traderBuilder != null)
         _link(
-          'التجار والأمانات',
+          'الحسابات',
           Icons.storefront_outlined,
           _openTraders,
           key: const Key('workspace-traders'),
@@ -829,7 +813,7 @@ class _ShopWorkspaceState extends State<ShopWorkspace> {
         ),
       if (widget.shop.isOwner && widget.debtBuilder != null)
         _link(
-          'الديون',
+          'النوتة',
           Icons.account_balance_wallet_outlined,
           _openDebts,
           key: const Key('workspace-debts'),

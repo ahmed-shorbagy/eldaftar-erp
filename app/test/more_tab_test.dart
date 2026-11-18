@@ -1,9 +1,21 @@
 import 'package:eldafttar/src/features/audit_trail/domain/audit_trail.dart';
+import 'package:eldafttar/src/features/daily_ledger/application/daily_ledger_view.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/shell/shop_workspace.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'daily_ledger_capture_test.dart' show confirmedLedger;
+import 'daily_ledger_widget_test.dart' show MemoryStore;
+import 'financial_trade_screen_test.dart' show FakeFinancialGateway;
+
+class _ConfirmedLedger extends FakeFinancialGateway {
+  @override
+  Future<DailyLedgerView> ledger({required String callerUserId}) async =>
+      confirmedLedger();
+}
 
 class _EmptyAudit implements AuditTrailGateway {
   @override
@@ -39,6 +51,7 @@ Future<void> _pump(
   required ShopAccount shop,
   Size size = const Size(390, 900),
   bool withPages = true,
+  Brightness brightness = Brightness.light,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -47,17 +60,24 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale('ar'),
-      theme: AppTheme.light(),
+      theme: brightness == Brightness.light
+          ? AppTheme.light()
+          : AppTheme.dark(),
       home: Directionality(
         textDirection: TextDirection.rtl,
         child: ShopWorkspace(
           shop: shop,
+          // A confirmed ledger with stock, scrap and cash, so a figure would
+          // show if «المزيد» still read one.
+          gateway: _ConfirmedLedger(),
+          store: MemoryStore(),
+          userId: 'owner-1',
           onSignOut: () async {},
           onToggleTheme: (_) async {},
           analyticsBuilder: withPages ? (_) => _page('التحليلات') : null,
-          traderBuilder: withPages ? (_) => _page('التجار') : null,
+          traderBuilder: withPages ? (_) => _page('الحسابات') : null,
           repairBuilder: withPages ? (_) => _page('المرمات') : null,
-          debtBuilder: withPages ? (_) => _page('الديون') : null,
+          debtBuilder: withPages ? (_) => _page('النوتة') : null,
           closingStaffBuilder: withPages ? (_) => _page('فريق العد') : null,
           reportsBuilder: (_) => const Scaffold(body: Text('صفحة التقارير')),
           auditTrailGateway: withPages ? _EmptyAudit() : null,
@@ -69,6 +89,61 @@ Future<void> _pump(
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  // Owner feedback 2026-11-17 (handoff step 4): the old app's page names.
+  testWidgets('المزيد names the pages «الحسابات» and «النوتة»', (tester) async {
+    await _pump(tester, shop: _shop(role: 'owner'));
+    await tester.tap(find.byKey(const Key('workspace-nav-4')));
+    await tester.pumpAndSettle();
+    final traders = find.byKey(const Key('workspace-traders'));
+    final debts = find.byKey(const Key('workspace-debts'));
+    expect(
+      find.descendant(of: traders, matching: find.text('الحسابات')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: debts, matching: find.text('النوتة')),
+      findsOneWidget,
+    );
+    expect(find.text('التجار والأمانات'), findsNothing);
+    expect(find.text('الديون'), findsNothing);
+  });
+
+  // Owner feedback 2026-11-17 (handoff step 4): «المزيد» lists pages and
+  // settings only, in both themes.
+  for (final brightness in Brightness.values) {
+    testWidgets('المزيد shows no ledger or inventory figures ($brightness)', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        shop: _shop(role: 'owner'),
+        brightness: brightness,
+      );
+      await tester.tap(find.byKey(const Key('workspace-nav-4')));
+      await tester.pumpAndSettle();
+      expect(find.text('الصفحات'), findsOneWidget);
+      for (final gone in [
+        'الأرقام والمخزون',
+        'باقي أرقام الدفتر',
+        'المخزون والكسر',
+        'لا توجد أرصدة مؤكدة لهذا المحل.',
+      ]) {
+        expect(find.text(gone), findsNothing, reason: gone);
+      }
+      expect(find.byKey(const Key('more-inventory-scrap')), findsNothing);
+      expect(find.byKey(const Key('more-cash-methods')), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => '${widget.key}'.contains('more-metric-'),
+        ),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('owner sees every former drawer page and no menu', (
     tester,
   ) async {

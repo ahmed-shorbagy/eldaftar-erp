@@ -9,7 +9,6 @@ import 'package:eldafttar/src/features/daily_ledger/domain/financial_draft.dart'
 import 'package:eldafttar/src/features/daily_ledger/presentation/daily_ledger_screen.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/financial_trade_screen.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/ledger_date_screen.dart';
-import 'package:eldafttar/src/features/daily_ledger/presentation/ledger_more_balances.dart';
 import 'package:eldafttar/src/features/daily_ledger/presentation/ledger_trade_change_screen.dart';
 import 'package:eldafttar/src/features/shop_accounts/domain/shop_account.dart';
 import 'package:eldafttar/src/theme/app_theme.dart';
@@ -21,7 +20,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'daily_ledger_capture_test.dart' show confirmedLedger;
 import 'daily_ledger_widget_test.dart' show MemoryStore;
-import 'ledger_more_balances_test.dart' show LiveMoreGateway;
 import 'ledger_revision_test_support.dart';
 import 'auth_capture_test.dart' show CaptureAuth;
 
@@ -218,32 +216,7 @@ void main() {
           await t.ensureVisible(find.byKey(const Key('ledger-scrap-karat-22')));
           await shot('scrap-settings');
           await tap(find.byKey(const Key('detail-close')));
-          await t.pumpWidget(
-            host(
-              Scaffold(
-                body: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: LedgerMoreBalances(
-                        shop: const ShopAccount(
-                          id: revisionShop,
-                          name: 'مجوهرات كذا',
-                          role: 'owner',
-                          entitlement: ShopEntitlement.active,
-                        ),
-                        gateway: LiveMoreGateway(view),
-                        userId: revisionUser,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-          await shot('karat-more');
+          // «المزيد» no longer shows ledger figures (owner feedback 2026-11-17).
           final g = RevisionGateway();
           await t.pumpWidget(
             host(

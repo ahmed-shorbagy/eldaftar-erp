@@ -820,7 +820,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ],
         ),
         _operationGroup(
-          title: 'التجار والأمانات',
+          title: 'الحسابات',
           children: [
             _action('استلام ذهب', const Key('inventory-receipt'), null, () {
               _open(

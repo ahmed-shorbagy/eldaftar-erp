@@ -689,8 +689,7 @@ class _RepairScreenState extends State<RepairScreen> {
     final confirmed = await showAppConfirm(
       context,
       title: 'تغيير الحالة إلى «${repairStatusLabel(status)}»؟',
-      message:
-          'تبقى القطعة في الحيازة. لا يتغير المخزون القابل للبيع ولا النقد.',
+      message: 'لا يتغير المخزون القابل للبيع ولا النقد.',
       confirmLabel: 'تأكيد',
     );
     if (!confirmed || !mounted) return;
@@ -872,7 +871,7 @@ class _RepairScreenState extends State<RepairScreen> {
           textInputAction: TextInputAction.search,
           decoration: const InputDecoration(
             labelText: 'بحث في المرمات',
-            helperText: 'الاسم أو الهاتف أو القطعة أو العطل',
+            helperText: 'الاسم أو الهاتف أو المنتج أو متطلبات التصليح',
             helperMaxLines: 2,
           ),
           onSubmitted: (_) => _loadList(),
@@ -959,7 +958,7 @@ class _RepairScreenState extends State<RepairScreen> {
             defaultCountry: ShopPhoneCountryCache.forShop(widget.shopId),
           ),
         ),
-        _field(_item, 'وصف القطعة', key: const Key('repair-item')),
+        _field(_item, 'المنتج', key: const Key('repair-item')),
         _field(
           _grams,
           'الوزن بالجرام',
@@ -982,7 +981,7 @@ class _RepairScreenState extends State<RepairScreen> {
             validator: (value) => value == null ? 'اختر العيار.' : null,
           ),
         ),
-        _field(_issue, 'العطل', key: const Key('repair-issue')),
+        _field(_issue, 'متطلبات التصليح', key: const Key('repair-issue')),
         _field(
           _notes,
           'ملاحظات الاستلام',
@@ -1016,17 +1015,16 @@ class _RepairScreenState extends State<RepairScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('العميل: ${command.customerName}'),
-        Text('القطعة: ${command.itemDescription}'),
+        Text('المنتج: ${command.itemDescription}'),
         // U12: the weight once, exactly as entered.
         Text(
           'الوزن: ${repairWeight(command.measuredMilligrams)}',
           key: const Key('repair-review-weight'),
         ),
         Text('العيار: ${command.karat}'),
-        Text('العطل: ${command.issue}'),
+        Text('متطلبات التصليح: ${command.issue}'),
         Text('الأجرة التقديرية: ${repairMoney(command.estimatedFeePiastres)}'),
         const SizedBox(height: AppTokens.spaceMd),
-        const Text('تزيد الحيازة بهذا الوزن مرة واحدة.'),
         const Text('المخزون القابل للبيع: 0'),
         const Text('النقد: 0'),
         if (_reviewStale) _staleReview(),
@@ -1064,7 +1062,7 @@ class _RepairScreenState extends State<RepairScreen> {
         Text(item.itemDescription),
         Text('العيار ${item.karat}'),
         Text('الوزن: ${repairWeight(item.measuredMilligrams)}'),
-        Text('العطل: ${item.issue}'),
+        Text('متطلبات التصليح: ${item.issue}'),
         Text(
           'ملاحظات الاستلام: ${detail.intakeNotes.isEmpty ? '—' : detail.intakeNotes}',
         ),
@@ -1081,7 +1079,6 @@ class _RepairScreenState extends State<RepairScreen> {
               'تحصيل ${repairMoney(collection.piastres)} · ${formatServerCairoTimestamp(collection.createdAtShop)}',
             ),
         ],
-        Text(item.custodyHeld ? 'الحيازة قائمة' : 'الحيازة مُحررة'),
         Text('وقت الاستلام: ${formatServerCairoTimestamp(item.intakeAtShop)}'),
         if (detail.cancellationReason != null)
           Text('سبب الإلغاء: ${detail.cancellationReason}'),
@@ -1498,7 +1495,7 @@ class _RepairScreenState extends State<RepairScreen> {
         Text('الأجرة النهائية: ${repairMoney(command.finalFeePiastres)}'),
         Text('المحصّل: ${repairMoney(command.collectedPiastres)}'),
         Text('المتبقي على المرمة: ${repairMoney(command.outstandingPiastres)}'),
-        Text('تحرير الحيازة: ${repairWeight(command.custodyMilligrams)}'),
+        Text('الوزن: ${repairWeight(command.custodyMilligrams)}'),
         const Text('المخزون القابل للبيع: 0'),
         if (command.collectedPiastres == BigInt.zero)
           const Text('لا يُسجّل نقد ولا حركة في دفتر اليوم.')
@@ -1531,9 +1528,7 @@ class _RepairScreenState extends State<RepairScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'يلغي السجل النشط ويرجع القطعة للعميل. تُحرر الحيازة مرة واحدة ولا تُحصّل أجرة.',
-        ),
+        const Text('يلغي السجل النشط ويرجع القطعة للعميل ولا تُحصّل أجرة.'),
         const SizedBox(height: AppTokens.spaceSm),
         TextField(
           key: const Key('repair-cancel-reason'),

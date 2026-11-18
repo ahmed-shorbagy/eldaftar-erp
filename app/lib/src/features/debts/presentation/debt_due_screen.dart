@@ -563,7 +563,7 @@ class _DebtDueScreenState extends State<DebtDueScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(_source == null ? 'مواعيد الديون' : 'موعد الاستحقاق'),
+      title: Text(_source == null ? 'مواعيد النوتة' : 'موعد الاستحقاق'),
     ),
     body: SafeArea(
       child: Align(

@@ -1754,7 +1754,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
       const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Text(
-          'لا يتغير النقد أو الذهب أو المخزون أو الديون. بيانات العملية والفاتورة الأصلية تبقى محفوظة.',
+          'لا يتغير النقد أو الذهب أو المخزون أو النوتة. بيانات العملية والفاتورة الأصلية تبقى محفوظة.',
         ),
       ),
       _action(

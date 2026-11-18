@@ -521,7 +521,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
           () => _financialError = customer
               ? 'يوجد طلب عميل محفوظ. افتح العملاء للتحقق منه.'
               : debt
-              ? 'يوجد طلب ديون محفوظ. افتح الديون من المزيد للتحقق منه.'
+              ? 'يوجد طلب ديون محفوظ. افتح النوتة من المزيد للتحقق منه.'
               : 'يوجد طلب مرمة محفوظ. افتح المرمات من المزيد للتحقق منه.',
         );
         return;
@@ -1180,7 +1180,7 @@ class _DailyLedgerScreenState extends State<DailyLedgerScreen>
                                                   debtDueKind ||
                                               _financialPending!.kind ==
                                                   debtNativeKind))
-                                    ? 'متابعة طلب الديون'
+                                    ? 'متابعة طلب النوتة'
                                     : customerRpcs.containsKey(
                                         _financialPending!.kind,
                                       )

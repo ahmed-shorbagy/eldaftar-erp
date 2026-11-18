@@ -55,12 +55,12 @@ String debtIssueText(DebtIssue issue) => switch (issue) {
 };
 
 String debtFailureText(String code) => switch (code) {
-  'shop_not_active' => 'الحساب منتهٍ. يمكن قراءة الديون فقط.',
+  'shop_not_active' => 'الحساب منتهٍ. يمكن قراءة النوتة فقط.',
   'stale_debt' => 'تغيّر الرصيد. أعد فتح الدين قبل التأكيد.',
   'stale_day' => 'تغيّر يوم العمل. أعد المراجعة قبل التأكيد.',
   'day_closed' => 'يوم العمل مغلق. افتح اليوم قبل سداد يحرك النقد أو الذهب.',
   'settlement_exceeds_obligation' => 'السداد أكبر من المتبقي.',
-  'duplicate_debt' => 'يوجد دين مطابق. افتح السجل القائم من قائمة الديون.',
+  'duplicate_debt' => 'يوجد دين مطابق. افتح السجل القائم من النوتة.',
   'duplicate_reference' => 'هذا المرجع مستخدم من قبل.',
   'payload_mismatch' => 'طلب الحفظ لا يطابق المحاولة السابقة.',
   'ledger_effect_required' => debtIssueText(DebtIssue.ledgerEffectRequired),

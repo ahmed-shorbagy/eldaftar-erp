@@ -536,7 +536,7 @@ class _TraderScreenState extends State<TraderScreen> {
   Widget build(BuildContext context) {
     final detail = _detail;
     return InventoryPage(
-      title: 'التجار والأمانات',
+      title: 'الحسابات',
       children: [
         if (_loading) const LinearProgressIndicator(),
         if (_message != null) ...[

@@ -159,10 +159,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Owner feedback 2026-11-17: the page is «النوتة», as in the old app.
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('النوتة')),
+      findsOneWidget,
+    );
+    expect(find.text('الديون'), findsNothing);
     expect(find.text('طرف تاريخي'), findsOneWidget);
     expect(find.text('بحث'), findsOneWidget);
     await tester.tap(find.byKey(Key('debt-item-$sourceId')));
     await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('debt-back')),
+        matching: find.text('النوتة'),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('debt-remaining')), findsOneWidget);
     expect(find.textContaining('المتبقي'), findsOneWidget);
     expect(find.text('تسجيل دين'), findsOneWidget);

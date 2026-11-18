@@ -557,6 +557,20 @@ void main() {
     expect(inventory.posts, 0);
     expect(locker.value, isNull);
     expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);
+    // Owner feedback 2026-11-17: the trader action group is «الحسابات».
+    await tester.scrollUntilVisible(
+      find.text('الحسابات'),
+      300,
+      scrollable: _pageScroll,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(ExpansionTile),
+        matching: find.text('الحسابات'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('التجار والأمانات'), findsNothing);
   });
 
   testWidgets('search works directly without guidance', (tester) async {
@@ -672,6 +686,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // Owner feedback 2026-11-17: the page is «الحسابات», as in the old app.
+    expect(find.text('الحسابات'), findsWidgets);
+    expect(find.text('التجار والأمانات'), findsNothing);
     expect(find.byKey(const Key('trader-pending-banner')), findsOneWidget);
     expect(
       find.textContaining('أوزان لم يتم إضافتها إلى المخزون'),

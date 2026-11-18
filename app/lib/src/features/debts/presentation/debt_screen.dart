@@ -623,7 +623,7 @@ class _DebtScreenState extends State<DebtScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('الديون')),
+      appBar: AppBar(title: const Text('النوتة')),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -641,7 +641,7 @@ class _DebtScreenState extends State<DebtScreen> {
               children: [
                 if (_readOnly)
                   Text(
-                    'الحساب للقراءة فقط. يمكن عرض الديون دون تسجيل أو سداد.',
+                    'الحساب للقراءة فقط. يمكن عرض النوتة دون تسجيل أو سداد.',
                     style: theme.textTheme.bodyMedium,
                   ),
                 if (_foreignPending != null)
@@ -708,7 +708,7 @@ class _DebtScreenState extends State<DebtScreen> {
     return [
       if (widget.gateway is DebtDueGateway)
         _button(
-          'مواعيد الديون',
+          'مواعيد النوتة',
           _dueOpening ? null : () => _openDue(),
           key: const Key('debt-reminders'),
         ),
@@ -791,7 +791,7 @@ class _DebtScreenState extends State<DebtScreen> {
   }
 
   List<Widget> _declareForm() => [
-    _back('الديون', () => setState(() => _stage = _Stage.list)),
+    _back('النوتة', () => setState(() => _stage = _Stage.list)),
     Form(
       key: _formKey,
       child: Column(
@@ -926,7 +926,7 @@ class _DebtScreenState extends State<DebtScreen> {
     if (detail == null) return const [Text('اختر دينًا من القائمة.')];
     final item = detail.summary;
     return [
-      _back('الديون', () => setState(() => _stage = _Stage.list)),
+      _back('النوتة', () => setState(() => _stage = _Stage.list)),
       Text(item.partyName, style: Theme.of(context).textTheme.titleLarge),
       Text(
         '${debtDirectionLabels[item.direction]} · ${debtUnitLabels[item.unit]}${item.karat == null ? '' : ' · عيار ${item.karat}'}',
@@ -1485,7 +1485,7 @@ class _DebtScreenState extends State<DebtScreen> {
     final saved = _saved;
     return [
       AppOutcome(
-        title: 'تم حفظ طلب الديون',
+        title: 'تم حفظ طلب النوتة',
         titleKey: const Key('debt-success'),
         subtitle: saved == null
             ? 'أكد الخادم الحفظ.'
@@ -1502,7 +1502,7 @@ class _DebtScreenState extends State<DebtScreen> {
       ),
       if (saved != null) _effectLines(saved.effect),
       const SizedBox(height: AppTokens.spaceMd),
-      _button('العودة إلى الديون', () {
+      _button('العودة إلى النوتة', () {
         setState(() => _stage = _Stage.list);
         _load();
       }, key: const Key('debt-done')),
@@ -1521,7 +1521,7 @@ class _DebtScreenState extends State<DebtScreen> {
                 ? 'طلب ديون بانتظار تأكيد الحفظ'
                 : 'طلب ديون محفوظ ولم يُؤكد بعد',
           ),
-          _button('متابعة طلب الديون', _retry, key: const Key('debt-retry')),
+          _button('متابعة طلب النوتة', _retry, key: const Key('debt-retry')),
         ],
       ),
     ),

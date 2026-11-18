@@ -166,8 +166,8 @@ final class LocalDebtNotificationPort implements DebtNotificationPort {
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'debt_reminders_v1',
-          'مواعيد الديون',
-          channelDescription: 'تذكير اختياري بمواعيد الديون',
+          'مواعيد النوتة',
+          channelDescription: 'تذكير اختياري بمواعيد النوتة',
           importance: Importance.high,
           priority: Priority.high,
           visibility: NotificationVisibility.private,

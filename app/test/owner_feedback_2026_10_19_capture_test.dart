@@ -128,9 +128,6 @@ void main() {
             await tap(find.text('المزيد').last);
           }
           await shot('more');
-          await tap(find.byKey(const Key('more-inventory-scrap')));
-          await shot('inventory');
-          await tap(find.byKey(const Key('detail-close')));
           await t.pumpWidget(
             host(
               FinancialOperationScreen(

@@ -374,7 +374,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         AppMessages.warning(
           context,
           'التذكير غير متاح لهذا الحساب',
-          body: 'افتح الديون لمراجعة المستحقات.',
+          body: 'افتح النوتة لمراجعة المستحقات.',
           id: 'debt-reminder-tap',
         );
         return;
@@ -410,7 +410,7 @@ class _ShopAccountsGateState extends State<ShopAccountsGate>
         AppMessages.warning(
           context,
           'تعذر فتح التذكير الآن',
-          body: 'افتح الديون عند عودة الاتصال.',
+          body: 'افتح النوتة عند عودة الاتصال.',
           id: 'debt-reminder-tap',
         );
       }

@@ -32,7 +32,13 @@ RegExp _definite(String forms) =>
     RegExp('(?<!$_letter)[وف]?(?:[بك]?ال|لل)(?:$forms)(?!$_letter)');
 
 class _Banned {
-  const _Banned(this.term, this.pattern, this.reason, {this.dartOnly = false});
+  const _Banned(
+    this.term,
+    this.pattern,
+    this.reason, {
+    this.dartOnly = false,
+    this.under = '',
+  });
 
   /// The term as the glossary writes it.
   final String term;
@@ -41,6 +47,10 @@ class _Banned {
 
   /// A Dart call, looked for in `app/lib` only.
   final bool dartOnly;
+
+  /// A term banned in one folder only, as a path from the repository root.
+  /// Empty: everywhere.
+  final String under;
 }
 
 class _Allowed {
@@ -117,6 +127,41 @@ final _banned = <_Banned>[
     'FB-001: these formatter options print «توقيت شرق أوروبا» and a '
         '24-hour clock.',
   ),
+  _Banned(
+    'التجار والأمانات',
+    'التجار والأمانات',
+    'Handoff step 4: the page is «الحسابات», as in the old app.',
+  ),
+  _Banned(
+    'الديون',
+    _definite('ديون'),
+    'Handoff step 4: the page is «النوتة», as in the old app. «ديون» the '
+        'plain noun is not matched.',
+  ),
+  _Banned(
+    'العطل',
+    _definite('عطل'),
+    'Handoff step 4: the repair field is «متطلبات التصليح», as on the old '
+        'repair card.',
+  ),
+  _Banned(
+    'وصف القطعة',
+    'وصف القطعة',
+    'Handoff step 4: the repair field is «المنتج», as on the old repair card '
+        "(the developer's choice of 2026-11-18).",
+  ),
+  _Banned(
+    'باقي أرقام الدفتر',
+    'باقي أرقام الدفتر',
+    'Handoff step 4: «المزيد» lists pages and settings only.',
+  ),
+  _Banned(
+    'الحيازة',
+    _word('حيازة'),
+    'Handoff step 4: repairs have nothing to do with the shop stock; the '
+        'old page says so and shows no custody wording.',
+    under: 'app/lib/src/features/repairs/',
+  ),
 ];
 
 const _allowed = <_Allowed>[
@@ -138,23 +183,10 @@ const _allowed = <_Allowed>[
 
 final _waiting = <_Waiting>[
   _Waiting(
-    'التجار والأمانات',
-    'التجار والأمانات',
-    'handoff step 4: the page is «الحسابات»',
-  ),
-  _Waiting('الديون', _definite('ديون'), 'handoff step 4: the page is «النوتة»'),
-  _Waiting('العطل', _definite('عطل'), 'handoff step 4: «متطلبات التصليح»'),
-  _Waiting('وصف القطعة', 'وصف القطعة', 'handoff step 4: «اسم الصنف»'),
-  _Waiting(
-    'باقي أرقام الدفتر',
-    'باقي أرقام الدفتر',
-    'handoff step 4: the block leaves «المزيد»',
-  ),
-  _Waiting(
     'حيازة',
     _word('حيازة'),
-    'handoff step 4 in repairs; the «الجرد الفوري» and «الحسابات» page '
-        'reviews elsewhere',
+    'the «الجرد الفوري» and «الحسابات» page reviews (banned in repairs since '
+        'handoff step 4)',
   ),
   _Waiting(
     'أمانة',
@@ -241,7 +273,10 @@ bool _isAllowed(_Banned term, _Line line) => _allowed.any(
 
 List<String> _offenders(_Banned term) => [
   for (final line in term.dartOnly ? _app : [..._app, ..._admin])
-    if (_has(term.pattern, line.text) && !_isAllowed(term, line)) '$line',
+    if (line.file.startsWith(term.under) &&
+        _has(term.pattern, line.text) &&
+        !_isAllowed(term, line))
+      '$line',
 ];
 
 _Banned _rule(String term) => _banned.singleWhere((rule) => rule.term == term);
@@ -348,14 +383,34 @@ void main() {
     test('a waiting term is matched in the rejected sense only', () {
       expect(waiting('أمانة', "'النقد والذهب والأمانة'"), isTrue);
       expect(waiting('أمانة', "'لعكس العملية بأمان.'"), isFalse);
-      expect(waiting('الديون', "'افتح الديون من المزيد'"), isTrue);
-      expect(waiting('الديون', "'لا توجد ديون في هذا العرض.'"), isFalse);
       expect(waiting('عملات', "'نوع العملة'"), isTrue);
       expect(waiting('عملات', "'عمليات اليوم'"), isFalse);
       expect(waiting('دفعات', "'بحث في الدفعات'"), isTrue);
       expect(waiting('دفعات', "'طرق الدفع'"), isFalse);
-      expect(waiting('العطل', "'العطل: \${item.issue}'"), isTrue);
-      expect(waiting('العطل', "'تذكيرات هذا الجهاز معطلة.'"), isFalse);
+    });
+
+    test('the step 4 page names and repair words, in the rejected sense', () {
+      expect(banned('الديون', "'افتح الديون من المزيد'"), isTrue);
+      expect(banned('الديون', "'العودة إلى الديون'"), isTrue);
+      expect(banned('الديون', "'تذكير اختياري بمواعيد الديون'"), isTrue);
+      expect(banned('الديون', "'لا توجد ديون في هذا العرض.'"), isFalse);
+      expect(banned('الديون', "'يوجد طلب ديون محفوظ.'"), isFalse);
+      expect(banned('العطل', "'العطل: \${item.issue}'"), isTrue);
+      expect(banned('العطل', "'تذكيرات هذا الجهاز معطلة.'"), isFalse);
+      expect(banned('التجار والأمانات', "title: 'التجار والأمانات',"), isTrue);
+      expect(banned('وصف القطعة', "_field(_item, 'وصف القطعة')"), isTrue);
+      expect(banned('باقي أرقام الدفتر', "Text('باقي أرقام الدفتر')"), isTrue);
+    });
+
+    test('«الحيازة» is banned in repairs only', () {
+      final rule = _rule('الحيازة');
+      expect(rule.under, 'app/lib/src/features/repairs/');
+      expect(banned('الحيازة', "'تزيد الحيازة بهذا الوزن مرة واحدة.'"), isTrue);
+      expect(banned('الحيازة', "'تحرير الحيازة: 1.26 جرام'"), isTrue);
+      // The folder is real, so the rule is not reading an empty set.
+      expect(_app.any((line) => line.file.startsWith(rule.under)), isTrue);
+      // Elsewhere the word still waits on its page reviews.
+      expect(_open('حيازة').pattern, isNotNull);
     });
 
     test('a spelling with vowel marks is read without them', () {

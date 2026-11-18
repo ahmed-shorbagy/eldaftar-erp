@@ -341,3 +341,56 @@ Debug build from the working tree on `emulator-5554`, against development, Arabi
 ## Still open in M1
 
 Nothing in M1 itself. Before the owner build: his answer on where starting cash and gold are entered, and his word on «أصناف» and the two figure labels.
+
+## M2. Page names and «المزيد» (handoff step 4)
+
+Date: 2026-11-18 (fourth session). Flutter client text and one removed block of «المزيد». No server change, no migration, nothing deployed, no new screen or button. Started from a clean tree on `owner-feedback-2026-11-17` at `5dc97bb`. Not committed: the work waits for the developer's word.
+
+None of the renamed labels is sent by the server or read back from it: a search of `supabase/` finds them only as fixture names in `supabase/tests/debts.sql` and `debts_concurrency.mjs`. The wire label in `daily_ledger_codec.dart` is untouched. The Android reminder channel keeps its id `debt_reminders_v1`; only its shown name and description change, so installed reminders keep working.
+
+### Change
+
+| What | Before | Now | Lines |
+| --- | --- | --- | --- |
+| Trader page | «التجار والأمانات» | «الحسابات» | 3: the «المزيد» link, the page title, the action group on «الجرد الفوري» |
+| Debts page | «الديون» | «النوتة» | 19 in 8 files: the page title and two back links, «العودة إلى النوتة», the «المزيد» link, «مواعيد النوتة» (button, page title, phone notification channel name and description), «متابعة طلب النوتة» (debts page and ledger), «تم حفظ طلب النوتة», «افتح النوتة من المزيد للتحقق منه.», the two account-gate messages, «يمكن قراءة النوتة فقط.», «يمكن عرض النوتة دون تسجيل أو سداد.», «افتح السجل القائم من النوتة.», and the customer-delete review («… أو المخزون أو النوتة.»). «دين» and «ديون» as plain nouns stay («يوجد طلب ديون محفوظ.»). |
+| Repair request | «العطل» | «متطلبات التصليح» | 4: the field, the search hint, the review line, the detail line |
+| Repair item | «وصف القطعة», review «القطعة: …» | «المنتج», review «المنتج: …»; the search hint lists «المنتج» | 3. The developer chose «المنتج» (old repair card) over the handoff's «اسم الصنف» on 2026-11-18. |
+| «الحيازة» in repairs | 5 lines | Status confirmation «لا يتغير المخزون القابل للبيع ولا النقد.»; «تزيد الحيازة بهذا الوزن مرة واحدة.» removed; «الحيازة قائمة / مُحررة» removed (the status line above says the same: the server keeps custody held exactly while a repair is received, in progress or ready); handover «الوزن: …» (the developer's choice); cancel «يلغي السجل النشط ويرجع القطعة للعميل ولا تُحصّل أجرة.» | 5 |
+| «المزيد» | Pages, then «الأرقام والمخزون» with «باقي أرقام الدفتر», the remaining figures, the karat choice and «المخزون والكسر», then settings | Pages, then settings | `ledger_more_balances.dart` deleted; its use in `shop_workspace.dart` removed. The other summary figures can still be chosen for the six ledger tiles and show under «المزيد من الملخص» in the dated view; stock and scrap are on «الجرد الفوري». The «المخزون والكسر» sheet (`LedgerGoldBreakdown`) now has no entry point; it was left in the source. |
+
+### The guard
+
+`app/test/owner_terms_guard_test.dart`: «التجار والأمانات», «الديون» (with the article only), «العطل», «وصف القطعة» and «باقي أرقام الدفتر» moved from `_waiting` to `_banned`, each with a one-line reason. «الحيازة» is banned in `app/lib/src/features/repairs/` only, through a new optional folder scope on a banned term; «حيازة» elsewhere stays waiting on the «الجرد الفوري» and «الحسابات» page reviews. No allowed line was added and no existing rule changed. Two new tests show what the new rules catch and leave alone («يوجد طلب ديون محفوظ.» and «معطلة» are not matched), and that the repairs folder the scoped rule reads exists. The glossary rows are marked Replaced to match.
+
+Proof that the guard fails, with scratch edits undone afterwards: «وصف القطعة» put back in the intake field, «تحرير الحيازة: …» on the handover review, and «الديون» on the «المزيد» link. The run failed three tests, each naming its line, for example `app/lib/src/shell/shop_workspace.dart:816: 'الديون',`, and passed again after the restore.
+
+### Tests and gates
+
+- New regression tests: `more_tab_test.dart` (the «المزيد» links read «الحسابات» and «النوتة»; with a confirmed ledger behind it, «المزيد» shows no figure, heading or «المخزون والكسر», in light and dark); `repair_widget_test.dart` (intake labels, search hint and review in the owner's words; detail and status confirmation without «الحيازة»; the handover review shows «الوزن: 1.26 جرام» and the cancel text is the new one); `debt_widget_test.dart` (title and back link «النوتة»); `inventory_widget_test.dart` (trader page title and the action group «الحسابات»). The «المزيد» tests were run against the old code and failed there.
+- Updated: `debt_pending_navigation_test.dart` asserts «متابعة طلب النوتة». Removed with the widget: `ledger_more_balances_test.dart` (3 tests) and the «المزيد» balances test of `auth_ledger_review_regression_test.dart`. Two capture tests that run only with a compile flag lost the step that opened the removed block (`owner_feedback_2026_10_19_capture_test.dart`, `owner_ledger_functions_capture_test.dart`); their earlier captures are left as they are.
+- `dart format lib test`: no changes left. `dart analyze` (whole app): no issues.
+- `flutter test` (full suite): **2002 passed** (1993 before: less 4 tests removed with the widget, plus 3 in `more_tab_test.dart`, 2 in `repair_widget_test.dart`, and 8 in the guard: six banned-term checks and two rule tests).
+- `git diff --check`: clean. The full run rewrote the invoice PNG captures under `docs/reviews/invoice-branding-2026-10-21/pdf/` and the Windows generated files; both were restored.
+- React, TypeScript and SQL gates: not run. `admin/` and `supabase/` are untouched; the guard reads `admin/src` from the Flutter test.
+- Documentation: the glossary, the design guide, the handoff and the plan were updated; their links resolve and they hold no customer data, credentials or contract details.
+
+### Device check (Android emulator)
+
+Debug build from the working tree on `emulator-5554`, against development, Arabic RTL, the second test shop of 2026-11-18.
+
+- «المزيد», dark and light: «الصفحات» lists «الدفاتر», «التقارير», «التحليلات», «الحسابات», «المرمات», «النوتة», «فريق عد التقفيل», «سجل العمليات»; «إعدادات المتجر» follows directly. No figure block in either theme; the cards, dividers and text read clearly in both.
+- «الحسابات» and «النوتة» open with those titles; «مواعيد النوتة» opens with that title.
+- «المرمات»: the search hint reads «الاسم أو الهاتف أو المنتج أو متطلبات التصليح»; «استلام مرمة» shows «المنتج» and «متطلبات التصليح»; the review reads «المنتج: ring», «متطلبات التصليح: solder», «الوزن: 1.25 جرام» and no «الحيازة». It was not confirmed; nothing was saved.
+- «الجرد الفوري»: the action group reads «الحسابات».
+- FB-004: «صنف جديد», «إضافة مخزون» and the «الكتالوج» block were opened and read. «إضافة صف» is not there. The only «صف» is the list line «المعروض 1 منتجات. لا يوجد مؤشر لصف أقدم.». Nothing was changed or banned for it; the glossary asks the owner (question 12).
+- Not seen on the device: the repair detail, status confirmation, handover and cancel screens (the test shop has no repair, and none was created), the ledger and account-gate messages that name «النوتة» (they need a pending debt request or a lost connection), the phone notification channel name, and desktop width. They are covered by the widget tests and the guard. The emulator was left in the dark theme it started in.
+
+### Not done
+
+- Reports inside «الدفاتر» (handoff question 4): not moved; the owner decides.
+- Every term the glossary marks as waiting on a page review, including «حيازة» outside repairs, is unchanged. «المخزون القابل للبيع: 0» stays in the repair reviews; whether it goes is asked with the old page's note (question 9).
+- The unused guide text in `inventory_copy.dart` is unchanged; no rename needed it.
+- `LedgerGoldBreakdown` has no entry point after «المزيد» lost its sheet; it was not deleted.
+- New owner questions are drafted in the [owner glossary](../owner-glossary.md), section 2, questions 8 to 12. Nothing was sent.
+- Handoff steps 5 and 6 were not started.

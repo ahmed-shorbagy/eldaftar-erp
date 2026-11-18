@@ -237,6 +237,105 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  // Owner feedback 2026-11-17 (handoff step 4): «المنتج» as on the old
+  // repair card, «متطلبات التصليح», and no «الحيازة» on any repair screen.
+  testWidgets("repairs speak the owner's words from intake to handover", (
+    tester,
+  ) async {
+    bool shows(String word) => find
+        .byWidgetPredicate(
+          (widget) =>
+              (widget is Text && (widget.data ?? '').contains(word)) ||
+              (widget is InputDecorator &&
+                  [
+                    widget.decoration.labelText,
+                    widget.decoration.helperText,
+                    widget.decoration.hintText,
+                  ].any((text) => (text ?? '').contains(word))),
+        )
+        .evaluate()
+        .isNotEmpty;
+    void ownerWordsOnly() {
+      for (final word in ['الحيازة', 'العطل', 'وصف القطعة']) {
+        expect(shows(word), isFalse, reason: word);
+      }
+    }
+
+    final gateway = FakeRepairs(summary: sample(status: 'received'));
+    await pumpRepair(tester, gateway: gateway, locker: MemoryLocker());
+    expect(shows('الاسم أو الهاتف أو المنتج أو متطلبات التصليح'), isTrue);
+    ownerWordsOnly();
+
+    await tester.tap(find.byKey(const Key('repair-new')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('repair-item')),
+        matching: find.text('المنتج'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('repair-issue')),
+        matching: find.text('متطلبات التصليح'),
+      ),
+      findsOneWidget,
+    );
+    ownerWordsOnly();
+    await tester.enterText(
+      find.byKey(const Key('repair-customer-name')),
+      'عميل الإصلاح',
+    );
+    await tester.enterText(find.byKey(const Key('repair-item')), 'خواتم');
+    await tester.enterText(find.byKey(const Key('repair-grams')), '1.25');
+    await tester.tap(find.byKey(const Key('repair-karat')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('21').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('repair-issue')), 'لحام');
+    await tester.tap(find.byKey(const Key('repair-intake-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('المنتج: خواتم'), findsOneWidget);
+    expect(find.text('متطلبات التصليح: لحام'), findsOneWidget);
+    expect(find.text('الوزن: 1.25 جرام'), findsOneWidget);
+    ownerWordsOnly();
+    expect(gateway.posts, 0);
+  });
+
+  testWidgets('repair detail, status, cancel and handover carry no «الحيازة»', (
+    tester,
+  ) async {
+    bool shows(String word) => find
+        .byWidgetPredicate(
+          (widget) => widget is Text && (widget.data ?? '').contains(word),
+        )
+        .evaluate()
+        .isNotEmpty;
+    void ownerWordsOnly() {
+      for (final word in ['الحيازة', 'العطل', 'وصف القطعة']) {
+        expect(shows(word), isFalse, reason: word);
+      }
+    }
+
+    final gateway = FakeRepairs(summary: sample(status: 'received'));
+    await pumpRepair(tester, gateway: gateway, locker: MemoryLocker());
+    await tester.tap(find.text('عميل الإصلاح'));
+    await tester.pumpAndSettle();
+    expect(find.text('متطلبات التصليح: مفصص'), findsOneWidget);
+    ownerWordsOnly();
+    await tester.ensureVisible(
+      find.byKey(const Key('repair-status-in-progress')),
+    );
+    await tester.tap(find.byKey(const Key('repair-status-in-progress')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('لا يتغير المخزون القابل للبيع ولا النقد.'),
+      findsOneWidget,
+    );
+    ownerWordsOnly();
+  });
+
   testWidgets('empty intake validates on submit and does not send', (
     tester,
   ) async {
@@ -271,6 +370,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('لا يُسجّل نقد'), findsOneWidget);
     expect(find.text('المخزون القابل للبيع: 0'), findsOneWidget);
+    // Owner feedback 2026-11-17: the piece's weight, without «الحيازة».
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('repair-handover-summary')),
+        matching: find.text('الوزن: 1.26 جرام'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('الحيازة'), findsNothing);
     expect(gateway.posts, 0);
     await tester.tap(find.byKey(const Key('repair-handover-confirm')));
     await tester.pumpAndSettle();
@@ -294,6 +402,11 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('repair-cancel')));
     await tester.tap(find.byKey(const Key('repair-cancel')));
     await tester.pumpAndSettle();
+    expect(
+      find.text('يلغي السجل النشط ويرجع القطعة للعميل ولا تُحصّل أجرة.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('الحيازة'), findsNothing);
     await tester.tap(find.byKey(const Key('repair-cancel-confirm')));
     await tester.pumpAndSettle();
     expect(gateway.posts, 0);
