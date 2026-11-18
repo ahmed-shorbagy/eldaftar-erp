@@ -37,6 +37,14 @@ void main() {
     expect(reportCategory('worked_jewelry'), 'أصناف');
   });
 
+  test('coins are «جنيهات» in every list, as in the daily ledger', () {
+    expect(stockCategoryLabel(StockCategory.coin), 'جنيهات');
+    expect(goldCategoryLabel('coin'), 'جنيهات');
+    expect(inventoryCategoryLabel('coin'), 'جنيهات');
+    expect(debtCategoryLabels['coin'], 'جنيهات');
+    expect(reportCategory('coin'), 'جنيهات');
+  });
+
   test('a stock addition is reviewed by weight and karat', () {
     final weight = effectCopy(
       InventoryEffect(

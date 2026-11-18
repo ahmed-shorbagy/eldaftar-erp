@@ -37,7 +37,7 @@ const debtMethodLabels = <String, String>{
 const debtCategoryLabels = <String, String>{
   'worked_jewelry': 'أصناف',
   'bullion': 'سبائك',
-  'coin': 'عملات',
+  'coin': 'جنيهات',
   'scrap': 'كسر',
 };
 

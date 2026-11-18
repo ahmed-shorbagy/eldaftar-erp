@@ -992,7 +992,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             OlderPageControl(
               count: _coins.length,
-              noun: 'عملات',
+              noun: 'جنيهات',
               nextCursor: _coinCursor,
               onOlder: () => _moreCatalog(_MoreCatalog.coins),
               controlKey: const Key('inventory-coins-older'),

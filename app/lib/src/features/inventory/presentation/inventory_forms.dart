@@ -248,7 +248,7 @@ class _InventoryAdditionFormState extends State<InventoryAdditionForm>
           ),
           OlderPageControl(
             count: _coins.length,
-            noun: 'عملات',
+            noun: 'جنيهات',
             nextCursor: _coinCursor,
             onOlder: () => _moreCoins(false),
             controlKey: const Key('add-coins-older'),

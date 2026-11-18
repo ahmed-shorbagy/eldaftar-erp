@@ -234,7 +234,7 @@ final class BrandedInvoiceLine {
     const labels = {
       'worked_jewelry': '',
       'bullion': 'سبائك',
-      'coin': 'عملات',
+      'coin': 'جنيهات',
       'scrap': 'كسر',
     };
     final category = raw['category'];

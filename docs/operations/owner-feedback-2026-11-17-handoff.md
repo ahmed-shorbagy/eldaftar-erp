@@ -90,7 +90,7 @@ The category name is never shown; jewelry appears by item name. Where a row has 
 
 Done on 2026-11-18 in the third session; see the validation record, «M1, part 5», and the [owner glossary](../owner-glossary.md). The note below is kept as the record of what was asked. Of its list, only the terms already gone from the screens are banned. The rest are in the guard's waiting list: when a later step removes the last line that shows one, `owner_terms_guard_test.dart` fails until the term is moved to the banned list.
 
-Open for the developer: six plain swaps of «عملات» to «جنيهات» (the category label in debts, inventory, the invoice and the weekly report, and two list nouns) were listed for his permission and not made; and the glossary's section 3 holds words found in the app that the owner has not rejected, for him to confirm or drop.
+The developer approved six plain swaps of «عملات» to «جنيهات» on 2026-11-18 (the category label in debts, inventory, the invoice and the weekly report, and two list nouns); they are made. The coin catalog lines («نوع العملة») still say «عملة» and wait for the «الجرد الفوري» page review. Open for the developer: the glossary's section 3 holds words found in the app that the owner has not rejected, for him to confirm or drop.
 
 A glossary of the owner's terms under `docs/`, and a test that fails when a banned term appears in `app/lib` or `admin/src`. Banned so far: مشغولات، حيازة، أمانة (as custody), بانتظار الاعتراف، متاح للبيع، دفعات، عملة (for coins; he says جنيهات), العطل، وصف القطعة، الديون as a page name, كشف أمانة، فئة سبيكة اسمية، «منازل» hints, «توقيت», «UTC». Add each term only once its replacement is in place, or the test fails on day one.
 

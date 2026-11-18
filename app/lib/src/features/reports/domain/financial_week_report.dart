@@ -53,7 +53,7 @@ class FinancialWeekReport {
 String reportCategory(String category) => switch (category) {
   'worked_jewelry' => 'أصناف',
   'bullion' => 'سبائك',
-  'coin' => 'عملات ذهبية',
+  'coin' => 'جنيهات',
   'scrap' => 'كسر ذهب',
   'other' => 'أصناف أخرى',
   _ => 'صنف مسجّل',

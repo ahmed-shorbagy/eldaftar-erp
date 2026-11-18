@@ -167,6 +167,32 @@ void main() {
     expect(cameraFacts.height, lessThanOrEqualTo(logoMaxDimension));
   });
 
+  test('a coin line prints «جنيهات» as its kind on the invoice', () {
+    final source = _source();
+    (source['payload'] as Map)['items'] = [
+      {
+        'item_name': 'جنيه',
+        'category': 'coin',
+        'karat': 21,
+        'milligrams': '8000',
+        'count': '1',
+        'line_price_piastres': null,
+      },
+    ];
+    final document = BrandedInvoiceDocument.fromConfirmed(
+      source: source,
+      edition: 1,
+      contentSha256: 'ab' * 32,
+      appearanceRevision: 0,
+      template: InvoiceTemplate.header,
+      accent: InvoiceAccent.brown,
+      renderVersion: 1,
+      copyCreatedAtUtc: '2026-10-17T10:00:00.000000Z',
+      copyCreatedAtShop: '2026-10-17T12:00:00',
+    );
+    expect(document.lines.single.categoryLabel, 'جنيهات');
+  });
+
   test(
     'branded document keeps source fields and rejects a broken line',
     () async {

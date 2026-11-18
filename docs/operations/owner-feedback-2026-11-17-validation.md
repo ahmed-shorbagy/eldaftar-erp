@@ -267,7 +267,7 @@ The handoff's rule: a term is banned only when its replacement is in place. Ever
 | --- | --- |
 | Gone from the screens, banned now | «مشغولات» (as before, one wire line allowed); «الصيانة» ([ADR 0044](../adr/0044-owner-answers-2026-11-10.md) C-D7; not on the handoff's list); milligram spellings; decimal-places hints («منازل», «منزلة», «منزلتين», «ثلاث خانات», «عشري» in any form); third-decimal formatter calls in `app/lib`; zone names beside a time («توقيت الخادم», «توقيت المتجر», «التوقيت العالمي», «الوقت العالمي», «توقيت شرق أوروبا») with the formatter options that print them (`timeZoneName`, `hourCycle`, `hour12: false`); «UTC» or «GMT» on a line of Arabic text |
 | Still shown, his word known, assigned to step 4 | «التجار والأمانات» (3 lines), «الديون» as the page name (19), «العطل» (4), «وصف القطعة» (1), «الحيازة» in repairs (5), «باقي أرقام الدفتر» (1) |
-| Still shown, his word known, a plain swap, waiting on the developer | «عملات» as the coin category label, to «جنيهات»: `debt_copy.dart`, `inventory_copy.dart`, `branded_invoice_document.dart` (the invoice), `financial_week_report.dart` («عملات ذهبية»), and the list nouns in `inventory_forms.dart` and `inventory_screen.dart`. Not made. |
+| Still shown, his word known, a plain swap, waiting on the developer | «عملات» as the coin category label, to «جنيهات»: `debt_copy.dart`, `inventory_copy.dart`, `branded_invoice_document.dart` (the invoice), `financial_week_report.dart` («عملات ذهبية»), and the list nouns in `inventory_forms.dart` and `inventory_screen.dart`. Not made in this step. *Made later the same day; see the next section.* |
 | Still shown, his word not recorded or the page is to be redesigned | «حيازة» outside repairs (5), «أمانة» (33), «كشف أمانة» (4), «بانتظار الاعتراف» and «اعتراف» (14), «متاح للبيع» (7), «دفعات» (15), «فئة سبيكة اسمية» and «اسمي» (21), the coin catalog lines «نوع العملة» (6), the bare word «توقيت» (3), repairs «أرشفة» (10) |
 | Not in the source | «إضافة صف» (FB-004). Not banned: what he rejected there is not established. |
 
@@ -298,12 +298,46 @@ None. No screen text changed, so there was nothing to see on the emulator.
 ### Not done
 
 - No screen was changed. Every rejected term that was on a screen at `ae8c6ec` is still there; the glossary says what each waits on.
-- The six «عملات» swaps wait for the developer's word.
+- The six «عملات» swaps wait for the developer's word. *Approved and made later the same day; see the next section.*
 - The words in the glossary's section 3 are the assistant's findings («النقد» against his «النقدية», «المتجر» against «المحل», «الخادم», «يوم العمل» and others). None is banned or changed.
 - The voice notes and the 24-item summary are not in the repository. Sources for FB items cite the plan and the handoff, not his recorded words.
 - `inventoryGuideSteps`, `traderGuideSteps` and the `InventoryGuide` widget are unused since the guides were removed. They were left in place; their text holds waiting terms, so it has to go before those terms can be banned.
 - Handoff steps 4, 5 and 6 were not started.
 
+## M1, part 6. Coins read «جنيهات» in six labels
+
+Date: 2026-11-18 (third session). Flutter client text only. No layout, navigation or behaviour change, no migration, nothing deployed. Committed on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged. The developer approved these six swaps on 2026-11-18 after they were listed in part 5. «جنيهات» is the owner's word: the old app's table row and type list, «قسم الجنيهات» in the requirements, and [ADR 0044](../adr/0044-owner-answers-2026-11-10.md) C-D2 and C-D8. The daily ledger already said «جنيهات».
+
+### Change
+
+| File | Before | Now | Where it shows |
+| --- | --- | --- | --- |
+| `debts/presentation/debt_copy.dart` | «عملات» | «جنيهات» | The category of a gold debt's receipt and lot lines |
+| `inventory/presentation/inventory_copy.dart` | «عملات» | «جنيهات» | The «الفئة» list of the inventory forms, the inventory filter, stock effect lines |
+| `invoice_appearance/domain/branded_invoice_document.dart` | «عملات» | «جنيهات» | The kind line under a coin item on the invoice |
+| `reports/domain/financial_week_report.dart` | «عملات ذهبية» | «جنيهات» | The category group of the weekly report and its PDF |
+| `inventory/presentation/inventory_forms.dart` | «عملات» | «جنيهات» | The count line under the coin list of the add-stock form: «المعروض 3 جنيهات. …», «جنيهات أقدم» |
+| `inventory/presentation/inventory_screen.dart` | «عملات» | «جنيهات» | The same count line in the catalog block of «الجرد الفوري» |
+
+Not changed: the six coin catalog lines («نوع العملة», «نوع عملة», «هوية العملة 3», «— عملة 3»). They have no plain swap and wait for the «الجرد الفوري» page review, so «عملة» stays in the guard's waiting list and is not banned yet. The glossary row and the handoff say so.
+
+### Tests and gates
+
+- New in `jewelry_wording_test.dart`: coins are «جنيهات» in every label function (ledger, inventory, debts, weekly report). New in `invoice_appearance_test.dart`: a coin line carries «جنيهات» as its kind on the invoice. No existing test asserted the old word.
+- `dart format lib test`: no changes left. `dart analyze` (whole app): no issues.
+- `flutter test` (full suite): **1993 passed** (1991 before, plus 2 new).
+- `git diff --check`: clean. The files the full run rewrites were restored.
+- React, TypeScript and SQL gates: not run. `admin/` and `supabase/` are untouched.
+
+### Device and render check
+
+Debug build from the working tree on `emulator-5554`, against development, Arabic RTL, dark theme, the second test shop of 2026-11-18.
+
+- «الجرد الفوري», «إضافة مخزون»: the «الفئة» list reads «أصناف», «سبائك», «جنيهات», «كسر», and the field shows «جنيهات» once chosen. Nothing was saved.
+- «الجرد الفوري», «الكتالوج»: the count line reads «المعروض 0 جنيهات. لا يوجد مؤشر لصف أقدم.». The button under it still reads «نوع عملة», as expected.
+- The invoice: the capture test's purchase invoice with a coin line was read before it was restored. The kind line under the item reads «جنيهات».
+- Not seen on the device: the gold-debt receipt list, the weekly report group and its PDF, and a stock effect line for coins; the test shop has no coins, debts or report data. They are covered by the new label tests. Light theme and desktop width were not inspected; no layout changed.
+
 ## Still open in M1
 
-Nothing in M1 itself. Before the owner build: his answer on where starting cash and gold are entered, his word on «أصناف» and the two figure labels, and the developer's word on the six «عملات» swaps.
+Nothing in M1 itself. Before the owner build: his answer on where starting cash and gold are entered, and his word on «أصناف» and the two figure labels.

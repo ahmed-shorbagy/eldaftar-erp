@@ -176,8 +176,7 @@ final _waiting = <_Waiting>[
   _Waiting(
     'عملات',
     _word('عملة|عملات'),
-    'the developer on six label swaps to «جنيهات», then the «الجرد الفوري» '
-        'page review',
+    'the «الجرد الفوري» page review, for the coin catalog lines',
   ),
   _Waiting(
     'فئة سبيكة اسمية',

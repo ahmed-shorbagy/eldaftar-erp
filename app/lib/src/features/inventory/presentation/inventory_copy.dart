@@ -8,7 +8,7 @@ import '../domain/inventory_models.dart';
 String inventoryCategoryLabel(String category) => switch (category) {
   'worked_jewelry' => 'أصناف',
   'bullion' => 'سبائك',
-  'coin' => 'عملات',
+  'coin' => 'جنيهات',
   'scrap' => 'كسر',
   _ => category,
 };
