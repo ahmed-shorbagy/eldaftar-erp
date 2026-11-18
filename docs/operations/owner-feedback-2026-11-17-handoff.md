@@ -22,7 +22,7 @@ Read the voice notes yourself when they matter; do not rely on the summary alone
 
 ## 2. Where the work stands
 
-Nothing is committed. Everything below is in the working tree on `main`, on top of `51ab2d9`. Nothing was deployed: no migration and no Edge Function changed. No release build exists, so the owner's phone still has the broken version.
+The work below is committed as `cb318d8` on the local branch `owner-feedback-2026-11-17`, on top of `51ab2d9` from `main`. It is not pushed and not merged into `main`. Nothing was deployed: no migration and no Edge Function changed. No release build exists, so the owner's phone still has the broken version.
 
 | Item | State | Evidence |
 | --- | --- | --- |
@@ -60,9 +60,9 @@ A draft reply to him is in the plan, section 8. It was not sent. It mentions ent
 
 ## 4. What to do next, in order
 
-### Step 0. Commit what exists
+### Step 0. Start from the committed branch
 
-The working tree holds three finished, tested changes. Ask the developer to commit before starting, in three commits if practical: the FB-005 fix with its tests, the clock change, and the opening-form removal with ADR 0049. Per `AGENTS.md`, review the diff and rerun the gates before committing.
+The three finished changes (the FB-005 fix, the clock, and the opening-form removal with ADR 0049) are in one commit on `owner-feedback-2026-11-17`. Check `git status` and `git log --oneline -3` first. Ask the developer whether to keep working on that branch or merge it into `main` first; do not push or merge without his word. Per `AGENTS.md`, review the diff and rerun the gates before each new commit.
 
 ### Step 1. Two-decimal weights (FB-002)
 
@@ -121,4 +121,4 @@ Plan sections 4 (M3 to M8) and 5. Each page: an Arabic sheet (old screen, curren
 >
 > Rules: build only what the owner asked for and stop to ask when something he did not ask for is needed; use his wording, checked against `docs/reference/old-app-2026-11-10/`; follow `AGENTS.md`.
 >
-> Start with step 0 (tell me what is uncommitted and wait for my word to commit), then step 1, two-decimal weights, including the `AGENTS.md` amendment I approved. Test on the Android emulator as described in section 5. Record each step in the validation record. Do not start the page-by-page work in step 6 until I bring the owner's answers to the open questions in section 3.
+> Start with step 0 (confirm the branch and commit you are on and tell me if anything is uncommitted), then step 1, two-decimal weights, including the `AGENTS.md` amendment I approved. Test on the Android emulator as described in section 5. Record each step in the validation record. Do not start the page-by-page work in step 6 until I bring the owner's answers to the open questions in section 3.
