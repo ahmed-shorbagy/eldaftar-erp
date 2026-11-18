@@ -397,7 +397,7 @@ Debug build from the working tree on `emulator-5554`, against development, Arabi
 
 ## Phone fit and alignment (before the owner build)
 
-Date: 2026-11-18 (fourth session). Asked by the developer after the step 4 device check: text that overflowed or sat out of line in tables, fields and the ledger's summary tiles, handled for the whole app before the first owner build. Flutter layout only. No wording, server, migration or deploy change. Not committed: the work waits for the developer's word.
+Date: 2026-11-18 (fourth session). Asked by the developer after the step 4 device check: text that overflowed or sat out of line in tables, fields and the ledger's summary tiles, handled for the whole app before the first owner build. Flutter layout only. No wording, server, migration or deploy change. Committed as `360804f` on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged.
 
 Scope agreed with the developer: start with «الجرد الفوري» tables, forms and fields, and «الدفتر» with its tiles, then the rest of the app; hold up at the default font and at 130 %.
 
@@ -449,7 +449,7 @@ Scope agreed with the developer: start with «الجرد الفوري» tables, 
 
 ## Fix: «التقارير» did not open on a day with a stock move
 
-Date: 2026-11-18 (fourth session). Flutter client only. No server change, migration or deploy. Not committed: the work waits for the developer's word. The developer marked it critical for the owner build.
+Date: 2026-11-18 (fourth session). Flutter client only. No server change, migration or deploy. Committed as `0c72b83` on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged. The developer marked it critical for the owner build.
 
 ### Cause, confirmed on development `xchapwvmvoefriqcxtvn`
 
