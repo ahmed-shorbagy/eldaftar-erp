@@ -637,7 +637,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
       lines: const [
         BrandedInvoiceLine(
           category: 'worked_jewelry',
-          categoryLabel: 'مشغولات',
+          categoryLabel: '',
           karat: 21,
           milligrams: '1000',
           gramsText: '1.00',

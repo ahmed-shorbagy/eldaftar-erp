@@ -6,6 +6,7 @@ import '../../../theme/app_tokens.dart';
 import '../../../theme/pdf_arabic.dart';
 import '../application/inventory_gateway.dart';
 import 'inventory_copy.dart';
+import '../../daily_ledger/presentation/opening_copy.dart';
 
 /// Bookkeeping custody statement. It is not a legal title or an approval.
 Future<Uint8List> buildTraderStatementPdf({
@@ -100,7 +101,7 @@ Future<Uint8List> buildTraderStatementPdf({
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 8),
             child: pdfText(
-              '${inventoryCategoryLabel(bucket.category)} عيار ${bucket.karat}: '
+              '${karatRowLabel(inventoryCategoryLabel(bucket.category), bucket.category, bucket.karat)}: '
               'الأصل ${gramsOf(bucket.originalMilligrams)} جرام، '
               'الحالي ${gramsOf(bucket.currentMilligrams)} جرام'
               '${bucket.currentCount == null ? '' : '، العدد ${bucket.currentCount}'}',

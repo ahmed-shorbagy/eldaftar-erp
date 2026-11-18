@@ -11,6 +11,7 @@ import '../domain/financial_day_report.dart';
 import '../domain/financial_week_report.dart';
 import 'report_pdf.dart';
 import 'report_transaction_card.dart';
+import '../../daily_ledger/presentation/opening_copy.dart';
 
 class WeeklyReportsScreen extends StatefulWidget {
   const WeeklyReportsScreen({
@@ -282,7 +283,14 @@ class _WeeklyReportsScreenState extends State<WeeklyReportsScreen>
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('${reportCategory(group.category)} • عيار ${group.karat}'),
+          Text(
+            karatRowLabel(
+              reportCategory(group.category),
+              group.category,
+              group.karat,
+              separator: ' • ',
+            ),
+          ),
           _value('المباع بالجرام', reportGrams(group.sold)),
           _value('المشترى بالجرام', reportGrams(group.bought)),
         ],

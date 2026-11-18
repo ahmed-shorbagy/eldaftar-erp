@@ -30,7 +30,7 @@ class InventoryInsightsStrip extends StatelessWidget {
       LedgerMetricTile(
         key: const Key('inventory-insight-worked'),
         compact: true,
-        label: 'وزن المشغولات',
+        label: 'وزن الأصناف',
         value: displayGrams(insights.workedMilligrams.toString()),
         unit: 'جرام',
         icon: Icons.diamond_outlined,

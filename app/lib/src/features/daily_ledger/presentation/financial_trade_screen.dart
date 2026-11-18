@@ -2487,8 +2487,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   title: Text('${item['item_name']} · عيار ${item['karat']}'),
                   subtitle: Text(
                     [
+                      // Jewelry is known by its item name above; only bullion
+                      // and coins carry their kind here.
                       item['category'] == 'scrap'
                           ? 'كسر'
+                          : item['category'] == 'worked_jewelry'
+                          ? '${item['count']} قطعة'
                           : '${stockCategoryLabel(StockCategory.byCode(item['category'] as String)!)} · ${item['count']} قطعة',
                       // U3: per-line price when «سعر لكل صنف» is on.
                       if (item['line_price_piastres'] case final String price)
@@ -2720,7 +2724,7 @@ String _serverCopy(String code) => switch (code) {
   'purchase_must_be_paid' =>
     'يجب دفع سعر الشراء كاملًا. تأكد أن مجموع طرق الدفع يساوي الإجمالي.',
   'purchase_jewelry_is_scrap' =>
-    'المشغولات المشتراة تُسجَّل كسرًا. حدّث التطبيق وأعد المحاولة.',
+    'الأصناف المشتراة تُسجَّل كسرًا. حدّث التطبيق وأعد المحاولة.',
   'line_price_mismatch' => 'أسعار الأصناف لا تساوي الإجمالي.',
   _ => 'تعذر تأكيد العملية. راجع البيانات والاتصال ثم حاول مرة أخرى.',
 };

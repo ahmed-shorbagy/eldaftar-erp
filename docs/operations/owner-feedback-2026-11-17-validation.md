@@ -209,6 +209,44 @@ Debug build from the working tree, the second test shop, which was in the broken
 - One launch did not: the first rebuild after the fix, built while the full test suite was compiling, still showed «تعذر إتمام العملية.» although the server answered the read with 200. It was not reproduced in the ten launches after it and its cause was not found.
 - With the ledger open, the weights check that the defect had blocked was done: in «إضافة بيع», typing 2.505 leaves 2.50, and the review reads «2.50 جرام» and «ينقص مخزون خواتم عيار 18: 2.50 جرام · 1 قطعة». The sale was not confirmed.
 
+## M1, part 4. «مشغولات» is not shown (FB-003)
+
+Date: 2026-11-18. Flutter client and the design guide. No migration, nothing deployed. Committed on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged. `admin/` never used the word.
+
+### Wording
+
+The owner's instruction is that the word goes and work is by item names. Where that left a choice, the developer decided on 2026-11-18; the owner has not confirmed these three choices.
+
+| Where | Before | Now | Source |
+| --- | --- | --- | --- |
+| A line that already shows the item name (sale and purchase review, operation detail, edit review, debt lot and receipt lines, the lot table, the invoice) | «خواتم · عيار 18» with «مشغولات» beside or under it | The item name alone. Bullion, coins and scrap keep their kind word. | Owner: by item names |
+| A row with a karat and no item name (stock effect lines, the unnamed day count, exchange and edit effects, trader totals and their PDF, weekly report groups) | «مشغولات عيار 21» | «عيار 21» | Developer's choice. The old app's «عيار 18» and «عيار 21» figures already mean jewelry. |
+| Headings and choice lists (the «الفئة» list in the inventory forms, the inventory filter, the sold and bought weight sheets, the ledger stock groups, the gold-debt receipt list, the category column of the weekly report PDF) | «مشغولات», «مشغولات ذهبية» | «أصناف» | Developer's choice, after «الأصناف حسب العيار» on the inventory page |
+| Inventory figures | «وزن المشغولات», «اجمالي الوزنة 21 (مشغولات + سبائك)» | «وزن الأصناف», «اجمالي الوزنة 21» | Developer's choice; the second is the old app's label |
+| Message an outdated build can receive | «المشغولات المشتراة تُسجَّل كسرًا. …» | «الأصناف المشتراة تُسجَّل كسرًا. …» | Follows the «أصناف» choice; not put to the developer separately |
+
+### Change
+
+- `karatRowLabel` in `opening_copy.dart` writes rows that have a karat and no item name. The label functions for headings and lists (`stockCategoryLabel`, `goldCategoryLabel`, `inventoryCategoryLabel`, `debtCategoryLabels`, `reportCategory`, and the private ones in the operation, exchange and edit screens) return «أصناف».
+- The ledger's stock groups took their heading from the server's label. They now take it from `goldCategoryLabel`.
+- The server still sends «مشغولات» as `label_ar` of jewelry stock rows, and older builds expect it. The parser keeps that one wire constant to check the read; no screen prints it. No server change was made.
+- Not changed: «عملات» for coins in inventory, debts and the invoice, which is on the banned list for step 3; and the lot filter, the category lists and the other inventory blocks the plan removes in the «الجرد الفوري» page review.
+
+### Tests and gates
+
+- New `app/test/jewelry_wording_test.dart` (5 tests): the karat-only row; bullion, coins and scrap keep their names; every list label is «أصناف»; the stock addition review lines; a scan of `app/lib` and `admin/src` that fails on the word anywhere except the parser's wire constant.
+- Six existing test files asserted the old word and now assert the rule: the bought-weight sheet heading, the inventory total label, the invoice line, the edit review line, the outdated-build message, and the weekly report group.
+- `dart format`: no changes left. `dart analyze` (whole app): no issues. `flutter test` (full suite): **1977 passed** (1972 before, plus 5 new). `git diff --check`: clean.
+
+### Device check (Android emulator)
+
+Debug build from the working tree, the second test shop, dark theme.
+
+- «الجرد الفوري»: the filter reads «أصناف»; the lot row reads the item name with nothing under it; the figures read «اجمالي الوزنة 21» and «اجمالي الوزنة 21 (مع الكسر)».
+- «إضافة مخزون»: «الفئة» reads «أصناف»; the review reads «يزيد المتاح للبيع: 3.50 جرام عيار 21.» and «يزيد عدد المتاح للبيع (عيار 21): 1.». Not confirmed.
+- «إضافة بيع» review: «خواتم · عيار 18», «1 قطعة», «2.50 جرام». Not confirmed.
+- Not seen on the device: the sold and bought weight sheets, the day count, debts, the trader screens, reports, the invoice, and «وزن الأصناف». They are covered by tests and by the source scan. Light theme and desktop width were not re-inspected; no layout changed.
+
 ## Still open in M1
 
-Removing «مشغولات» and the banned-terms test and glossary. Before the owner build: his answer on where starting cash and gold are entered.
+The banned-terms test for the remaining terms and the glossary. Before the owner build: his answer on where starting cash and gold are entered, and his word on «أصناف» and the two figure labels.

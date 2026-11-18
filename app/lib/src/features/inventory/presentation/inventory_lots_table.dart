@@ -50,8 +50,8 @@ class InventoryLotsTable extends StatelessWidget {
                         child: Align(
                           alignment: AlignmentDirectional.centerStart,
                           child: Text(
-                            '${lot.legacyAggregate ? 'رصيد سابق مجمّع — ' : ''}${lot.displayName}\n'
-                            '${inventoryCategoryLabel(lot.category)}'
+                            '${lot.legacyAggregate ? 'رصيد سابق مجمّع — ' : ''}${lot.displayName}'
+                            '${lot.category == 'worked_jewelry' ? '' : '\n${inventoryCategoryLabel(lot.category)}'}'
                             '${lotIdentityCopy(lot).isEmpty ? '' : '\n${lotIdentityCopy(lot)}'}',
                           ),
                         ),

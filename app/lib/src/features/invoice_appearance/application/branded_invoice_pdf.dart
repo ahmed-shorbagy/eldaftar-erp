@@ -386,10 +386,11 @@ final class _Body {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pdfText(line.itemName, style: const pw.TextStyle(fontSize: 10.5)),
-              pdfText(
-                line.categoryLabel,
-                style: pw.TextStyle(color: style.muted, fontSize: 8),
-              ),
+              if (line.categoryLabel.isNotEmpty)
+                pdfText(
+                  line.categoryLabel,
+                  style: pw.TextStyle(color: style.muted, fontSize: 8),
+                ),
             ],
           ),
         ),

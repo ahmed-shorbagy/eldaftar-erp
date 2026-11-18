@@ -182,7 +182,8 @@ void main() {
         copyCreatedAtShop: '2026-10-17T12:00:00',
         slogan: 'ذهب أمين',
       );
-      expect(document.lines.single.categoryLabel, 'مشغولات');
+      // FB-003: jewelry prints by its item name alone.
+      expect(document.lines.single.categoryLabel, isEmpty);
       expect(document.lines.single.gramsText, '1.83');
       expect(document.lines.single.karat, 18);
       expect(document.purchasePaidPiastres, '104002');

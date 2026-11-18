@@ -376,7 +376,7 @@ void main() {
             await tester.pumpAndSettle();
           }
 
-          await revealAndTap(find.text('مشغولات ذهبية • عيار 21'));
+          await revealAndTap(find.text('عيار 21'));
           expect(find.text('حركات البيع، شاملة المرتجعات'), findsWidgets);
           await capture('group');
           await revealAndTap(

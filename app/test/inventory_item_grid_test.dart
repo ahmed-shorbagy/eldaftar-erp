@@ -477,7 +477,7 @@ void main() {
     // Jewelry and bullion only, Σ(mg × karat) ÷ 21 rounded half-up to
     // centigrams: (4250×18 + 54730×21 + 8000×24) ÷ 21 = 67.5157 g → 67.520.
     final without = figures.firstWhere((f) => f.id == 'weight_21');
-    expect(without.label, 'اجمالي الوزنة 21 (مشغولات + سبائك)');
+    expect(without.label, 'اجمالي الوزنة 21');
     expect(without.milligrams, BigInt.from(67520));
     final withScrap = figures.firstWhere((f) => f.id == 'weight_21_with_scrap');
     expect(withScrap.milligrams, without.milligrams + BigInt.from(100000));
@@ -533,7 +533,7 @@ void main() {
                   figures: [
                     InventoryFigure(
                       id: 'weight_21',
-                      label: 'اجمالي الوزنة 21 (مشغولات + سبائك)',
+                      label: 'اجمالي الوزنة 21',
                       milligrams: BigInt.from(12345670),
                     ),
                     InventoryFigure(

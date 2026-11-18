@@ -313,10 +313,8 @@ void main() {
       final gateway = RevisionGateway()
         ..heldPost = Completer<FinancialCommandResult>();
       await pumpReview(t, gateway);
-      expect(
-        find.textContaining('المخزون · مشغولات · عيار 21'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('المخزون · عيار 21'), findsOneWidget);
+      expect(find.textContaining('مشغولات'), findsNothing);
       expect(find.textContaining('نقص \u2066100'), findsOneWidget);
       // U6: a zero purchase-payable change is not shown on a sale.
       expect(find.byKey(const Key('trade-change-payable')), findsNothing);

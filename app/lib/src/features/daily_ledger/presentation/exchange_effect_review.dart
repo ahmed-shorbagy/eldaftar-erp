@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/amount_format.dart';
 import '../domain/financial_draft.dart';
 import '../domain/ledger_compensation.dart';
+import 'opening_copy.dart';
 
 class ExchangeEffectReview extends StatelessWidget {
   const ExchangeEffectReview({
@@ -55,7 +56,7 @@ class ExchangeEffectReview extends StatelessWidget {
     String money(BigInt value) =>
         '\u2066${displayPounds(signedPoundsText(value))}\u2069';
     String metal(MetalEffect row) =>
-        '${_category(row.category)} · عيار ${row.karat}: ${_weightLabel(row.milligrams)}${row.count == null ? '' : ' · ${_pieceLabel(row.count!)} قطعة'}';
+        '${karatRowLabel(_category(row.category), row.category, row.karat, separator: ' · ')}: ${_weightLabel(row.milligrams)}${row.count == null ? '' : ' · ${_pieceLabel(row.count!)} قطعة'}';
     return Card(
       key: const Key('exchange-effects'),
       child: Padding(
@@ -111,7 +112,7 @@ class ExchangeEffectReview extends StatelessWidget {
 }
 
 String _category(String code) => switch (code) {
-  'worked_jewelry' => 'مشغولات',
+  'worked_jewelry' => 'أصناف',
   'bullion' => 'سبائك',
   'coin' => 'جنيهات',
   'scrap' => 'كسر',
@@ -157,7 +158,7 @@ class ConfirmedCompensationEffects extends StatelessWidget {
                 for (final line in raw['buckets'] as List)
                   if (line is Map)
                     Text(
-                      '${_category(line['category'] as String)} عيار ${line['karat']}: ${_weightLabel(BigInt.parse(line['milligrams'] as String))}${line['count'] == null ? '' : ' · ${_pieceLabel(BigInt.parse(line['count'] as String))} قطعة'}',
+                      '${karatRowLabel(_category(line['category'] as String), line['category'], line['karat'])}: ${_weightLabel(BigInt.parse(line['milligrams'] as String))}${line['count'] == null ? '' : ' · ${_pieceLabel(BigInt.parse(line['count'] as String))} قطعة'}',
                     ),
               ],
           ],

@@ -173,12 +173,8 @@ class LedgerGoldBreakdown extends StatelessWidget {
     final groups = <String, List<({int karat, String grams, String? count})>>{};
     final labels = <String, String>{};
     for (final line in view.stock) {
-      labels.putIfAbsent(
-        line.category,
-        () => line.labelAr.isNotEmpty
-            ? line.labelAr
-            : goldCategoryLabel(line.category),
-      );
+      // The server's own label for jewelry is not shown (FB-003).
+      labels.putIfAbsent(line.category, () => goldCategoryLabel(line.category));
       groups.putIfAbsent(line.category, () => []).add((
         karat: line.karat,
         grams: line.grams,
@@ -252,7 +248,7 @@ class LedgerGoldBreakdown extends StatelessWidget {
 }
 
 String goldCategoryLabel(String category) => switch (category) {
-  'worked_jewelry' || 'jewelry' => 'مشغولات',
+  'worked_jewelry' || 'jewelry' => 'أصناف',
   'bullion' => 'سبائك',
   'coin' => 'جنيهات',
   'scrap' => 'كسر',

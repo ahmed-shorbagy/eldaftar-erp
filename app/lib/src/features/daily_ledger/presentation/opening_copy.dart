@@ -29,8 +29,23 @@ String openingFailureCopy(String? code) => switch (code) {
 
 String cashMethodLabel(CashMethod method) => PaymentMethodCatalog.label(method);
 
+/// A stock row that has a karat and no item name: «سبائك عيار 24», «كسر عيار
+/// 21». Jewelry carries no kind word and reads «عيار 21» alone, as the old
+/// app's figures do (FB-003). [kindLabel] is used for every other kind.
+String karatRowLabel(
+  String kindLabel,
+  Object? category,
+  Object? karat, {
+  String separator = ' ',
+}) => category == 'worked_jewelry'
+    ? 'عيار $karat'
+    : '$kindLabel$separator'
+          'عيار $karat';
+
+/// The kind word for headings and choice lists. Jewelry is «أصناف»; the word
+/// the owner rejected is never shown.
 String stockCategoryLabel(StockCategory category) => switch (category) {
-  StockCategory.workedJewelry => 'مشغولات',
+  StockCategory.workedJewelry => 'أصناف',
   StockCategory.bullion => 'سبائك',
   StockCategory.coin => 'جنيهات',
 };

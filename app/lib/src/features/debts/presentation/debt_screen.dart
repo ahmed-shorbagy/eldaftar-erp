@@ -1284,7 +1284,9 @@ class _DebtScreenState extends State<DebtScreen> {
               key: Key('debt-lot-pick-${lot.id}'),
               value: _pickedLots.contains(lot.id),
               title: Text(
-                '${lot.displayName} · ${debtCategoryLabels[lot.category] ?? lot.category}',
+                lot.category == 'worked_jewelry'
+                    ? lot.displayName
+                    : '${lot.displayName} · ${debtCategoryLabels[lot.category] ?? lot.category}',
               ),
               subtitle: Text(debtGold(lot.milligrams)),
               onChanged: (checked) {
@@ -1402,7 +1404,7 @@ class _DebtScreenState extends State<DebtScreen> {
           ),
       if (settlement.receipt != null)
         Text(
-          'استلام ذهب مملوك للمحل: ${debtCategoryLabels[settlement.receipt!.category]} · ${settlement.receipt!.productName} · ${debtGold(settlement.receipt!.milligrams)}${settlement.receipt!.count == null ? '' : ' · عدد ${settlement.receipt!.count}'}',
+          'استلام ذهب مملوك للمحل: ${settlement.receipt!.category == 'worked_jewelry' ? '' : '${debtCategoryLabels[settlement.receipt!.category]} · '}${settlement.receipt!.productName} · ${debtGold(settlement.receipt!.milligrams)}${settlement.receipt!.count == null ? '' : ' · عدد ${settlement.receipt!.count}'}',
         ),
       for (final line in settlement.deliveries ?? const <DebtDelivery>[])
         Text(

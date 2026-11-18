@@ -230,8 +230,9 @@ final class BrandedInvoiceLine {
   final String? linePricePiastres;
 
   factory BrandedInvoiceLine._parse(Map<String, Object?> raw) {
+    // Jewelry prints by its item name alone; it has no kind line.
     const labels = {
-      'worked_jewelry': 'مشغولات',
+      'worked_jewelry': '',
       'bullion': 'سبائك',
       'coin': 'عملات',
       'scrap': 'كسر',

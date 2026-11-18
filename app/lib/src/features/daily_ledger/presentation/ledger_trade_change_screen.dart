@@ -8,6 +8,7 @@ import '../application/opening_gateway.dart';
 import '../application/pending_financial_command.dart';
 import '../application/idempotency_key.dart';
 import '../data/pending_financial_command.dart';
+import 'opening_copy.dart';
 
 /// Server-calculated net effects must be reviewed before a durable command exists.
 class LedgerTradeChangeScreen extends StatefulWidget {
@@ -254,7 +255,7 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'المخزون · ${_category(raw['category'])} · عيار ${raw['karat']}: ${signed(raw['delta_milligrams'] as String, gold: true)} · \u2066${raw['delta_count']}\u2069 قطعة',
+                          'المخزون · ${karatRowLabel(_category(raw['category']), raw['category'], raw['karat'], separator: ' · ')}: ${signed(raw['delta_milligrams'] as String, gold: true)} · \u2066${raw['delta_count']}\u2069 قطعة',
                         ),
                       ),
                     for (final raw in effects['scrap'] as List)
@@ -402,7 +403,7 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
       Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(
-          '${raw['item_name']} · ${_category(raw['category'])} · عيار ${raw['karat']} · ${displayGoldEffect(BigInt.parse(raw['milligrams'] as String))}${raw['count'] == null ? '' : ' · ${raw['count']} قطعة'}',
+          '${raw['item_name']}${raw['category'] == 'worked_jewelry' ? '' : ' · ${_category(raw['category'])}'} · عيار ${raw['karat']} · ${displayGoldEffect(BigInt.parse(raw['milligrams'] as String))}${raw['count'] == null ? '' : ' · ${raw['count']} قطعة'}',
         ),
       ),
     for (final raw in (payload['tenders'] as List? ?? const []))
@@ -440,7 +441,7 @@ class _LedgerTradeChangeScreenState extends State<LedgerTradeChangeScreen> {
 }
 
 String _category(Object? value) => switch (value) {
-  'worked_jewelry' => 'مشغولات',
+  'worked_jewelry' => 'أصناف',
   'bullion' => 'سبائك',
   'coin' => 'جنيهات',
   'scrap' => 'كسر',

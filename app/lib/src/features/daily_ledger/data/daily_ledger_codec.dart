@@ -7,6 +7,8 @@ import '../domain/payment_method_catalog.dart';
 import '../domain/postgres_integer.dart';
 import '../domain/quantities.dart';
 
+// The server's wire labels, checked here and never shown. Screens take their
+// words from goldCategoryLabel (FB-003).
 const _stockLabels = <String, String>{
   'worked_jewelry': 'مشغولات',
   'bullion': 'سبائك',

@@ -288,7 +288,9 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('ledger-metric-purchase_gold')));
     await tester.pumpAndSettle();
-    expect(find.text('مشغولات'), findsOneWidget);
+    // FB-003: the jewelry group is headed «أصناف».
+    expect(find.text('أصناف'), findsOneWidget);
+    expect(find.text('مشغولات'), findsNothing);
     expect(find.text('سبائك'), findsOneWidget);
     expect(find.text('جنيهات'), findsOneWidget);
     expect(find.text('كسر'), findsOneWidget);

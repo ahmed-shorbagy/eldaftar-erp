@@ -651,7 +651,16 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                       for (final row in counts['stock'] as List) ...[
                         const SizedBox(height: 8),
                         Text(
-                          '${stockCategoryLabel(StockCategory.byCode((row as Map)['category'] as String)!)} · عيار ${row['karat']}',
+                          karatRowLabel(
+                            stockCategoryLabel(
+                              StockCategory.byCode(
+                                (row as Map)['category'] as String,
+                              )!,
+                            ),
+                            row['category'],
+                            row['karat'],
+                            separator: ' · ',
+                          ),
                         ),
                         const SizedBox(height: 12),
                         LedgerFieldPair(

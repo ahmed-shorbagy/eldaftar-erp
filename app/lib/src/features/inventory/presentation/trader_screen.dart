@@ -21,6 +21,7 @@ import 'inventory_copy.dart';
 import 'inventory_forms.dart';
 import 'inventory_widgets.dart';
 import 'trader_statement_pdf.dart';
+import '../../daily_ledger/presentation/opening_copy.dart';
 
 typedef TraderPdfShare = Future<void> Function(Uint8List bytes);
 
@@ -656,7 +657,11 @@ class _TraderScreenState extends State<TraderScreen> {
           for (final bucket in detail.buckets)
             ListTile(
               title: Text(
-                '${inventoryCategoryLabel(bucket.category)} عيار ${bucket.karat}',
+                karatRowLabel(
+                  inventoryCategoryLabel(bucket.category),
+                  bucket.category,
+                  bucket.karat,
+                ),
               ),
               subtitle: Text(
                 'الأصل ${gramsOf(bucket.originalMilligrams)} — الحالي ${gramsOf(bucket.currentMilligrams)}'
@@ -681,7 +686,7 @@ class _TraderScreenState extends State<TraderScreen> {
                 key: Key('trader-receipt-${receipt.id}'),
                 child: ListTile(
                   title: Text(
-                    '${inventoryCategoryLabel(receipt.category)} عيار ${receipt.karat}'
+                    '${karatRowLabel(inventoryCategoryLabel(receipt.category), receipt.category, receipt.karat)}'
                     '${receipt.productName.isEmpty ? '' : ' — ${receipt.productName}'}',
                   ),
                   subtitle: Text(

@@ -561,7 +561,7 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                   'نقص الكسر: ${_grams(details['milligrams'])} جرام · عيار ${details['karat'] ?? '—'}',
                                 ),
                                 Text(
-                                  'زاد المخزون: ${_grams(details['milligrams'])} جرام · ${details['count'] ?? '—'} قطعة · ${_category(details['category'])}',
+                                  'زاد المخزون: ${_grams(details['milligrams'])} جرام · ${details['count'] ?? '—'} قطعة${details['category'] == 'worked_jewelry' ? '' : ' · ${_category(details['category'])}'}',
                                 ),
                                 Text('الصنف: ${details['item_name'] ?? '—'}'),
                                 const Text('لم تتغير النقدية.'),
@@ -600,7 +600,8 @@ class _FinancialOperationScreenState extends State<FinancialOperationScreen> {
                                     Text(
                                       '${entry['item_name'] ?? 'صنف'} · عيار ${entry['karat'] ?? '—'}',
                                     ),
-                                    Text(_category(entry['category'])),
+                                    if (entry['category'] != 'worked_jewelry')
+                                      Text(_category(entry['category'])),
                                     Text(
                                       '${_grams(entry['milligrams'])} جرام${entry['count'] == null ? '' : ' · ${entry['count']} قطعة'}',
                                     ),
@@ -836,7 +837,7 @@ String _transferMethodLabel(Map details, String side) {
 }
 
 String _category(Object? value) => switch (value) {
-  'worked_jewelry' => 'مشغولات',
+  'worked_jewelry' => 'أصناف',
   'bullion' => 'سبائك',
   'coin' => 'جنيهات ذهب',
   'scrap' => 'كسر',

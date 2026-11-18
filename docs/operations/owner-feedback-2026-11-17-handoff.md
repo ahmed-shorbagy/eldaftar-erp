@@ -30,7 +30,7 @@ The work below is committed as `cb318d8` on the local branch `owner-feedback-202
 | **FB-001** clock | Done, app and admin | 12-hour with ص/م, no seconds, no zone name. One formatter: `app/lib/src/theme/shop_clock.dart` and `shop_instant.dart`; admin `subscriptionFormat.ts`. Seen on the emulator in «الدفاتر» and «سجل العمليات». |
 | **FB-006** opening-balances screen | Done | Form removed. A new shop opens on the ledger; the owner's app confirms a zero opening by itself. Emulator: a second new shop opened directly. |
 | **FB-002** two-decimal weights | Done on 2026-11-18 (second session), committed on the branch, not pushed | [ADR 0050](../adr/0050-two-decimal-weights.md). One formatter and one input; `AGENTS.md`, ADR 0004 and ADR 0047 D7 amended. See the validation record for tests and the emulator check. |
-| **FB-003** «مشغولات» | Not started, except that the opening form that showed it is gone | |
+| **FB-003** «مشغولات» | Done on 2026-11-18 (second session) | The word is shown nowhere. Rows with no item name read «عيار 21»; lists and headings say «أصناف». See the validation record, «M1, part 4». |
 | Banned-terms test and glossary | Not started | |
 | M2 names and «المزيد» | Not started | |
 | M3 onward, page by page | Not started | Needs the owner's sign-off per page |
@@ -53,6 +53,7 @@ Do not build any of these before he answers. Collect them for one message or the
 4. **«التقارير» and «التحليلات» (FB-020, FB-024).** Proposal: move reports inside «الدفاتر» and keep «التحليلات» for charts.
 5. **Repairs archive (FB-019).** Replace archive with delete and a confirmation, as in the old app.
 6. **Which page first** in the page-by-page review. Proposal: «الجرد الفوري».
+7. **«أصناف» and two figure labels.** With «مشغولات» gone, lists and headings that need a word say «أصناف», and the inventory figures read «وزن الأصناف» and «اجمالي الوزنة 21». The developer chose these on 2026-11-18. Ask him whether they are his words.
 
 He has not seen two engineering choices that follow from his request: the automatic zero opening, and the wording «لم يفتح صاحب المحل الدفتر بعد.» for staff. Show them with the first build.
 
@@ -76,6 +77,8 @@ Done on 2026-11-18 in the second session; see the validation record, «M1, part 
 - The invoice in `docs/reviews` shows «10.000 جم»; the invoice PDF is in scope.
 
 ### Step 2. «مشغولات» (FB-003)
+
+Done on 2026-11-18 in the second session; see the validation record, «M1, part 4». The notes below are kept as the record of what was asked.
 
 The word is the display label of stock category `worked_jewelry`. Sites: `invoice_appearance_screen.dart:640`, `branded_invoice_document.dart:234`, `financial_week_report.dart:54`, `debt_copy.dart:38`, `inventory_copy.dart:9`, `daily_ledger_codec.dart:11`, `financial_operation_screen.dart`, `exchange_effect_review.dart`, `ledger_balance_sections.dart`, `ledger_trade_change_screen.dart`, `opening_copy.dart`, `financial_trade_screen.dart` (an error message), and two figure labels: «وزن المشغولات» in `inventory_item_grid_view.dart` and «اجمالي الوزنة 21 (مشغولات + سبائك)» in `inventory_item_grid.dart`. Line numbers moved; search for the word.
 

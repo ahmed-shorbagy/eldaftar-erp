@@ -6,7 +6,7 @@ import '../../daily_ledger/presentation/opening_copy.dart';
 import '../domain/inventory_models.dart';
 
 String inventoryCategoryLabel(String category) => switch (category) {
-  'worked_jewelry' => 'مشغولات',
+  'worked_jewelry' => 'أصناف',
   'bullion' => 'سبائك',
   'coin' => 'عملات',
   'scrap' => 'كسر',
@@ -119,7 +119,7 @@ String effectCopy(InventoryEffect effect) {
   }
   if (effect.unit == EffectUnit.count) {
     final category = inventoryCategoryLabel(effect.category ?? '');
-    return '$direction عدد $where ($category عيار ${effect.karat}): $amount.';
+    return '$direction عدد $where (${karatRowLabel(category, effect.category, effect.karat)}): $amount.';
   }
   final grams = gramsOf(amount);
   if (effect.bucket == 'gold_payable') {
@@ -128,7 +128,7 @@ String effectCopy(InventoryEffect effect) {
         : 'يفتح مستحقاً بالذهب عيار ${effect.karat}: $grams جرام، دون مستحق .';
   }
   final category = inventoryCategoryLabel(effect.category ?? '');
-  return '$direction $where: $grams جرام $category عيار ${effect.karat}.';
+  return '$direction $where: $grams جرام ${karatRowLabel(category, effect.category, effect.karat)}.';
 }
 
 String _bucketLabel(String bucket) => switch (bucket) {

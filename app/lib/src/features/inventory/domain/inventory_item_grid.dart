@@ -358,7 +358,7 @@ List<InventoryFigure> inventoryFigures(
     ),
     InventoryFigure(
       id: 'weight_21',
-      label: 'اجمالي الوزنة 21 (مشغولات + سبائك)',
+      label: 'اجمالي الوزنة 21',
       milligrams: workedAndBullion21,
     ),
     InventoryFigure(
