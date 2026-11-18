@@ -344,7 +344,7 @@ Nothing in M1 itself. Before the owner build: his answer on where starting cash 
 
 ## M2. Page names and «المزيد» (handoff step 4)
 
-Date: 2026-11-18 (fourth session). Flutter client text and one removed block of «المزيد». No server change, no migration, nothing deployed, no new screen or button. Started from a clean tree on `owner-feedback-2026-11-17` at `5dc97bb`. Not committed: the work waits for the developer's word.
+Date: 2026-11-18 (fourth session). Flutter client text and one removed block of «المزيد». No server change, no migration, nothing deployed, no new screen or button. Started from a clean tree on `owner-feedback-2026-11-17` at `5dc97bb`. Committed as `5e0a812` on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged.
 
 None of the renamed labels is sent by the server or read back from it: a search of `supabase/` finds them only as fixture names in `supabase/tests/debts.sql` and `debts_concurrency.mjs`. The wire label in `daily_ledger_codec.dart` is untouched. The Android reminder channel keeps its id `debt_reminders_v1`; only its shown name and description change, so installed reminders keep working.
 
