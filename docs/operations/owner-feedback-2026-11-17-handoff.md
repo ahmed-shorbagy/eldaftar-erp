@@ -112,7 +112,7 @@ Plan sections 4 (M3 to M8) and 5. Each page: an Arabic sheet (old screen, curren
 
 ## 6. Seen and not fixed
 
-- **«إضافة مخزون» makes the daily ledger unreadable** (found 2026-11-18, second session). An `inventory_addition` row in the open day's feed has no label and the client parser throws. Details and the reproduction are in the validation record, «M1, part 3». Needs a decision on wording before a fix. The second test shop is in this state; the first is not.
+- **«إضافة مخزون» makes the daily ledger unreadable** (found 2026-11-18, second session). An `inventory_addition` row in the open day's feed has no label and the client parser throws. Details and the reproduction are in the validation record, «M1, part 3». Fixed the same day in the app: rows the server gives no ledger label are left out of the ledger. See the validation record, «Fix: stock operations no longer break the daily ledger». One launch after the fix still failed and was not reproduced; watch for it.
 - The audit card's last line shows a date whose digits reorder in Arabic («11-11-2026» for 2026-11-11).
 - The debt reminder screen still carries technical wording beyond the clock. It belongs to the «النوتة» page milestone.
 - `InvoiceCopyPanel` has no entry point in the app (ADR 0041 D5) but was kept in step with the clock rule.

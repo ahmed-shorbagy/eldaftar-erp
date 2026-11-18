@@ -557,6 +557,44 @@ LedgerScrapLine _scrapLine(Object? row) {
   );
 }
 
+/// Ledger lines this build shows, with the label the server sends for each.
+const _feedLabels = {
+  'opening_balances_confirmed': 'رصيد افتتاحي',
+  'opening_balances': 'رصيد افتتاحي',
+  'sale': 'بيع',
+  'purchase': 'شراء',
+  'expense': 'مصروف',
+  'purchase_settlement': 'سداد شراء',
+  'cash_transfer': 'تحويل نقدية',
+  'scrap_sale': 'بيع كسر',
+  'scrap_to_stock': 'تحويل كسر إلى مخزون',
+  'sale_return': 'مرتجع بيع',
+  'purchase_return': 'مرتجع شراء',
+  'customer_return': 'مرتجع',
+  'ledger_correction': 'تسوية فرق الجرد',
+  'exchange': 'استبدال',
+  'close_day': 'تقفيل اليومية',
+  'open_day': 'فتح اليومية',
+  'daily_note': 'ملاحظة يومية',
+  'repair_fee': 'أجرة مرمة',
+  'repair_fee_collection': 'تحصيل متبقي مرمة',
+  // Server kinds since 2026-10-13 (ledger_operation_label); a debt or gold
+  // obligation row in the feed must not make the whole ledger unreadable.
+  'debt_settlement': 'سداد دين',
+  'gold_obligation_acquisition': 'استلام ذهب مقابل التزام',
+  'gold_obligation_settlement': 'سداد التزام ذهب',
+};
+
+/// Operations the server gives no ledger label: stock added, removed or
+/// corrected from «الجرد الفوري», trader receipts, and the reversal an edit
+/// or delete leaves behind. They are not ledger lines and are left out, as
+/// in the old app's daily ledger. Parsing one used to fail the whole read.
+bool _unlistedFeedRow(Object? row) =>
+    row is Map &&
+    row['label_ar'] == null &&
+    row['kind'] is String &&
+    !_feedLabels.containsKey(row['kind']);
+
 /// One ledger response holds at most 200 lines. That bound is not the history.
 List<LedgerFeedLine> _feed(
   Object? value, {
@@ -571,7 +609,10 @@ List<LedgerFeedLine> _feed(
   } else if (value.isNotEmpty) {
     throw const FormatException('feed');
   }
-  return [for (final row in value) _feedLine(row)];
+  return [
+    for (final row in value)
+      if (!_unlistedFeedRow(row)) _feedLine(row),
+  ];
 }
 
 LedgerFeedLine _feedLine(Object? row) {
@@ -615,32 +656,6 @@ LedgerFeedLine _feedLine(Object? row) {
   final occurredAt = row['occurred_at'];
   final cairo = row['occurred_at_cairo'];
   final hasNote = row.containsKey('has_note') ? row['has_note'] : false;
-  const labels = {
-    'opening_balances_confirmed': 'رصيد افتتاحي',
-    'opening_balances': 'رصيد افتتاحي',
-    'sale': 'بيع',
-    'purchase': 'شراء',
-    'expense': 'مصروف',
-    'purchase_settlement': 'سداد شراء',
-    'cash_transfer': 'تحويل نقدية',
-    'scrap_sale': 'بيع كسر',
-    'scrap_to_stock': 'تحويل كسر إلى مخزون',
-    'sale_return': 'مرتجع بيع',
-    'purchase_return': 'مرتجع شراء',
-    'customer_return': 'مرتجع',
-    'ledger_correction': 'تسوية فرق الجرد',
-    'exchange': 'استبدال',
-    'close_day': 'تقفيل اليومية',
-    'open_day': 'فتح اليومية',
-    'daily_note': 'ملاحظة يومية',
-    'repair_fee': 'أجرة مرمة',
-    'repair_fee_collection': 'تحصيل متبقي مرمة',
-    // Server kinds since 2026-10-13 (ledger_operation_label); a debt or gold
-    // obligation row in the feed must not make the whole ledger unreadable.
-    'debt_settlement': 'سداد دين',
-    'gold_obligation_acquisition': 'استلام ذهب مقابل التزام',
-    'gold_obligation_settlement': 'سداد التزام ذهب',
-  };
   final shopSequence = row['shop_sequence'];
   final shopTime = row['occurred_at_shop'];
   final dailyNote = row.containsKey('is_daily_note')
@@ -689,7 +704,7 @@ LedgerFeedLine _feedLine(Object? row) {
     throw const FormatException('feed summary');
   }
   if (kind is! String ||
-      label != labels[kind] ||
+      label != _feedLabels[kind] ||
       operationId is! String ||
       actor is! String ||
       occurredAt is! String ||
@@ -845,6 +860,7 @@ LedgerOperationPage parseLedgerOperationPage(
   }
   final lines = <LedgerFeedLine>[];
   for (final row in items) {
+    if (_unlistedFeedRow(row)) continue;
     if (row is! Map ||
         !row.containsKey('shop_sequence') ||
         !row.containsKey('occurred_at_shop') ||

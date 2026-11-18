@@ -178,7 +178,36 @@ After the test addition, the «الدفتر» tab of that shop shows «تعذر 
 - Cause, confirmed: `get_daily_ledger_home_v2` returns the addition in the open day's feed as `kind: inventory_addition` with `label_ar: null` (read as the shop owner on development, rolled back). The client's feed parser (`daily_ledger_codec.dart`, the `labels` map) does not know that kind and passes the null label on as a string, which throws a type error. A probe test with that row in the standard v2 payload reproduced it; the probe was not kept.
 - Effect: any shop that adds, and probably removes or corrects, stock from «الجرد الفوري» loses its daily ledger while that operation is in the open day's feed. Same family as FB-005: the home feed now carries every operation kind of the day.
 - Why it matters now: «إضافة مخزون» is the only way to enter starting gold since the opening form was removed, and the handoff proposes it to the owner.
-- Not fixed, because the fix needs a decision: which wording each inventory operation gets in «حركة الدفتر», or whether such rows are left out of the feed. The second test shop stays in this state as the reproduction.
+- Not fixed, because the fix needs a decision: which wording each inventory operation gets in «حركة الدفتر», or whether such rows are left out of the feed. The second test shop stays in this state as the reproduction. *Fixed later the same day; see the next section.*
+
+## Fix: stock operations no longer break the daily ledger
+
+Date: 2026-11-18. Flutter client only. No migration, nothing deployed. Committed on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged. Decided by the developer on 2026-11-18: leave these rows out of the daily ledger, as in the old app, whose «الدفتر اليومي» lists only sales and purchases. The owner has not been asked; if he wants stock additions listed, that belongs to the «الدفتر اليومي» page review, with his wording.
+
+### Cause
+
+The open day's feed carries every operation of the day. `private.ledger_operation_label` returns null for ten operation kinds, checked on development against the kinds the table allows: `inventory_addition`, `inventory_removal`, `inventory_correction`, `inventory_conversion`, `inventory_receipt`, `inventory_recognition`, `ownership_transfer`, `receipt_manual_allocation`, `expense_reversal`, `customer_return_reversal`. The client parser passed the null label on as a string and threw, so the whole ledger read failed. The last two are the rows an edit or delete of an expense or a customer return leaves behind, so those actions broke the ledger the same way.
+
+### Change
+
+`app/lib/src/features/daily_ledger/data/daily_ledger_codec.dart`: a feed row whose kind this build does not list and whose label the server left null is skipped, in the home read and in the paged read. Everything else stays strict: a listed kind without its label, an unknown kind that carries a label, and a malformed row are still refused. The operations stay on the server and in «سجل العمليات»; the stock they changed shows in «الجرد الفوري».
+
+Checked before the change: the feed is merged by operation id and paged by the server's cursor, with no check that sequences are contiguous, and the day close does not read the feed. One limit: a catch-up page made only of skipped rows stops that catch-up early; it would take a hundred such operations in a row.
+
+### Tests and gates
+
+- New `app/test/ledger_feed_unlisted_kinds_test.dart` (16 tests): the row development returned for the addition; each of the ten kinds is left out and the other rows are kept; a day with only such rows reads as an empty ledger; the paged read leaves them out and keeps its cursor; the three strict cases above still throw. Before the fix the first case threw a type error (probe run on the unfixed code).
+- The response development returned for the affected shop was run through the fixed parser and read as one feed row and one stock row. That check was a throwaway and is not kept.
+- `dart format`: no changes left. `dart analyze` (whole app): no issues. `flutter test` (full suite): **1972 passed**. `git diff --check`: clean.
+
+### Device check (Android emulator)
+
+Debug build from the working tree, the second test shop, which was in the broken state.
+
+- «الدفتر» opens on «يوم العمل 18 نوفمبر 2026» with the sale and purchase books. «حركة الدفتر» lists «رصيد افتتاحي» only. «المزيد» shows «باقي أرقام الدفتر» again.
+- The clean build opened the ledger on its first launch and on six more after a force stop. Three launches of the same code with one temporary log line also opened it.
+- One launch did not: the first rebuild after the fix, built while the full test suite was compiling, still showed «تعذر إتمام العملية.» although the server answered the read with 200. It was not reproduced in the ten launches after it and its cause was not found.
+- With the ledger open, the weights check that the defect had blocked was done: in «إضافة بيع», typing 2.505 leaves 2.50, and the review reads «2.50 جرام» and «ينقص مخزون خواتم عيار 18: 2.50 جرام · 1 قطعة». The sale was not confirmed.
 
 ## Still open in M1
 
