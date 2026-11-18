@@ -11,7 +11,7 @@ void main() {
     name: 'خواتم',
   );
 
-  test('sale keeps integer piastres and three-decimal gram precision', () {
+  test('sale keeps integer piastres and integer milligrams', () {
     final result = FinancialDraft.compose(
       kind: FinancialKind.sale,
       totalPounds: '4200.25',
@@ -135,7 +135,7 @@ void main() {
     const scrap = FinancialItemInput(
       category: 'scrap',
       karat: 21,
-      grams: '0.375',
+      grams: '0.37',
       count: '',
       name: 'كسر',
     );
@@ -150,7 +150,7 @@ void main() {
     );
     expect(valid.isValid, isTrue);
     expect(valid.draft!.toJson()['kind'], 'scrap_sale');
-    expect(valid.draft!.items.single['milligrams'], '375');
+    expect(valid.draft!.items.single['milligrams'], '370');
     expect(valid.draft!.items.single['count'], isNull);
     final wrongStock = FinancialDraft.compose(
       kind: FinancialKind.scrapSale,

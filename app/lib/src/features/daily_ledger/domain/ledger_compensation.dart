@@ -1,5 +1,6 @@
 import 'opening_catalog.dart';
 import 'postgres_integer.dart';
+import 'quantities.dart' show twoDecimalGrams;
 
 /// Pure review math for audited corrections, partial returns, and exchanges.
 /// Amounts stay integer piastres, milligrams, and piece counts.
@@ -658,13 +659,7 @@ String signedPoundsText(BigInt piastres) {
   return negative ? '-$text' : text;
 }
 
-String signedGramsText(BigInt milligrams) {
-  final negative = milligrams.isNegative;
-  final whole = milligrams.abs() ~/ BigInt.from(1000);
-  final fraction = (milligrams.abs() % BigInt.from(1000)).toInt();
-  final text = '$whole.${fraction.toString().padLeft(3, '0')}';
-  return negative ? '-$text' : text;
-}
+String signedGramsText(BigInt milligrams) => twoDecimalGrams(milligrams);
 
 CompensationResult<List<MetalEffect>> _pairedDeltas(
   List<MetalEffect> counted,

@@ -77,7 +77,9 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
             canonicalNumericEntry(text, decimalPlaces: places) ?? text;
         cells[(row.name, karat)] = (
           normalized(_counts[key]?.text ?? '', 0),
-          _showWeights ? normalized(_grams[key]?.text ?? '', 3) : '',
+          _showWeights
+              ? normalized(_grams[key]?.text ?? '', gramDecimalPlaces)
+              : '',
         );
       }
     }
@@ -92,13 +94,7 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
     }
     final scrap = <Map<String, Object?>>[];
     for (final entry in _scrap.entries) {
-      final scrapText = canonicalNumericEntry(
-        entry.value.text,
-        decimalPlaces: 3,
-      );
-      final grams = scrapText == null || scrapText.isEmpty
-          ? const Rejected<Milligrams>(OpeningIssueCode.invalidInput)
-          : Milligrams.parseGrams(scrapText);
+      final grams = readGramField(entry.value.text);
       if (grams is! Accepted<Milligrams>) {
         setState(() => _error = 'أدخل وزن الكسر لكل عيار؛ هذا الوزن مطلوب.');
         return;
@@ -147,7 +143,7 @@ class _PhysicalCountEditorState extends State<PhysicalCountEditor> {
                 textDirection: TextDirection.ltr,
                 autocorrect: false,
                 enableSuggestions: false,
-                inputFormatters: const [GramInputFormatter(decimalPlaces: 3)],
+                inputFormatters: const [GramInputFormatter()],
                 decoration: ledgerFieldDecoration(
                   context,
                   label: 'الوزن بالجرام',

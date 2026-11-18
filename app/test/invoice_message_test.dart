@@ -189,7 +189,7 @@ void main() {
       expect(values['sequence'], '73');
       expect(values['kind'], 'بيع');
       expect(values['total'], '1,234.50');
-      expect(values['grams_18'], '3.705');
+      expect(values['grams_18'], '3.71');
       expect(values['item_count'], '2');
       expect(values['paid'], '');
       expect(values['obligation'], '');
@@ -202,7 +202,7 @@ void main() {
         ],
       ];
       for (final k in [14, 18, 21, 22, 24]) {
-        expect(messageValues(op)['grams_$k'], '9007199254741.000');
+        expect(messageValues(op)['grams_$k'], '9007199254741.00');
       }
     },
   );

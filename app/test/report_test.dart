@@ -63,8 +63,8 @@ void main() {
       expect(r.value('repair_count'), BigInt.zero);
       expect(reportMoney(r.value('opening_cash')), '90,071,992,547,409.93');
       expect(reportMoney(r.value('net_cash')), '-101.23');
-      expect(reportGrams(r.gold[2].sold), '2.001');
-      expect(reportGrams(r.gold[0].bought), '1.234');
+      expect(reportGrams(r.gold[2].sold), '2.00');
+      expect(reportGrams(r.gold[0].bought), '1.23');
     },
   );
   test(

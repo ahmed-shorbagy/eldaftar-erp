@@ -1,5 +1,6 @@
 import '../../../theme/amount_format.dart';
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import '../../../theme/app_confirm.dart';
 import 'package:flutter/material.dart';
@@ -919,7 +920,7 @@ class _RepairScreenState extends State<RepairScreen> {
                       Text(item.itemDescription),
                       Text(
                         '${repairStatusLabel(item.status)} · عيار ${item.karat} · '
-                        '${repairWeight(item.measuredMilligrams, exact: false)}',
+                        '${repairWeight(item.measuredMilligrams)}',
                       ),
                       if (item.outstandingPiastres > BigInt.zero)
                         Text('متبقي ${repairMoney(item.outstandingPiastres)}'),
@@ -963,7 +964,6 @@ class _RepairScreenState extends State<RepairScreen> {
           _grams,
           'الوزن بالجرام',
           key: const Key('repair-grams'),
-          hint: 'ثلاث خانات، مثل 1.255',
           keyboard: const TextInputType.numberWithOptions(decimal: true),
         ),
         // U12: same spacing as the text fields above and below.
@@ -1019,7 +1019,7 @@ class _RepairScreenState extends State<RepairScreen> {
         Text('القطعة: ${command.itemDescription}'),
         // U12: the weight once, exactly as entered.
         Text(
-          'الوزن: ${repairWeight(command.measuredMilligrams, exact: true)}',
+          'الوزن: ${repairWeight(command.measuredMilligrams)}',
           key: const Key('repair-review-weight'),
         ),
         Text('العيار: ${command.karat}'),
@@ -1063,10 +1063,7 @@ class _RepairScreenState extends State<RepairScreen> {
         Text(repairStatusLabel(item.status)),
         Text(item.itemDescription),
         Text('العيار ${item.karat}'),
-        Text(
-          'الوزن الظاهر: ${repairWeight(item.measuredMilligrams, exact: false)}',
-        ),
-        Text('الوزن الأصلي: ${repairGramsExact(item.measuredMilligrams)}'),
+        Text('الوزن: ${repairWeight(item.measuredMilligrams)}'),
         Text('العطل: ${item.issue}'),
         Text(
           'ملاحظات الاستلام: ${detail.intakeNotes.isEmpty ? '—' : detail.intakeNotes}',
@@ -1501,9 +1498,7 @@ class _RepairScreenState extends State<RepairScreen> {
         Text('الأجرة النهائية: ${repairMoney(command.finalFeePiastres)}'),
         Text('المحصّل: ${repairMoney(command.collectedPiastres)}'),
         Text('المتبقي على المرمة: ${repairMoney(command.outstandingPiastres)}'),
-        Text(
-          'تحرير الحيازة: ${repairWeight(command.custodyMilligrams, exact: true)}',
-        ),
+        Text('تحرير الحيازة: ${repairWeight(command.custodyMilligrams)}'),
         const Text('المخزون القابل للبيع: 0'),
         if (command.collectedPiastres == BigInt.zero)
           const Text('لا يُسجّل نقد ولا حركة في دفتر اليوم.')
@@ -1649,8 +1644,11 @@ class _RepairScreenState extends State<RepairScreen> {
       keyboardType: keyboard,
       inputFormatters: identical(controller, _estimate)
           ? const [CashInputFormatter()]
+          : identical(controller, _grams)
+          ? const [GramInputFormatter()]
           : null,
-      textDirection: identical(controller, _estimate)
+      textDirection:
+          identical(controller, _estimate) || identical(controller, _grams)
           ? TextDirection.ltr
           : null,
       maxLines: maxLines,

@@ -9,20 +9,32 @@ void main() {
         customerName: '  عميل الإصلاح  ',
         customerPhone: '01001234567',
         itemDescription: 'خواتم',
-        gramsText: '1.255',
+        gramsText: '1.25',
         karat: 21,
         issue: 'مفصص',
         intakeNotes: 'ملاحظة',
         estimatedPounds: '150',
       );
       final command = (reviewed as RepairAccepted<RepairIntakeCommand>).value;
-      expect(command.measuredMilligrams, BigInt.from(1255));
+      expect(command.measuredMilligrams, BigInt.from(1250));
       expect(command.estimatedFeePiastres, BigInt.from(15000));
       expect(command.stockMilligrams, BigInt.zero);
       expect(command.cashPiastres, BigInt.zero);
       expect(command.payload()['estimated_fee_piastres'], '15000');
-      expect(repairRoundingHidesMilligrams(command.measuredMilligrams), isTrue);
-      expect(repairRoundingHidesMilligrams(BigInt.from(1260)), isFalse);
+      // FB-002: a weight is entered with at most two decimals.
+      expect(
+        RepairRules.reviewIntake(
+          customerName: 'عميل',
+          customerPhone: '',
+          itemDescription: 'خواتم',
+          gramsText: '1.255',
+          karat: 21,
+          issue: 'مفصص',
+          intakeNotes: '',
+          estimatedPounds: '',
+        ),
+        isA<RepairRejected<RepairIntakeCommand>>(),
+      );
 
       final omitted = RepairRules.reviewIntake(
         customerName: 'عميل',

@@ -499,7 +499,7 @@ LedgerStockLine _stockLine(Object? row) {
   final pieces = PieceCount.parseWire(count);
   if (weight is! Accepted<Milligrams> ||
       pieces is! Accepted<PieceCount> ||
-      weight.value.gramsText != grams ||
+      weight.value.exactGramsText != grams ||
       pieces.value.wire != count ||
       (weight.value.value == BigInt.zero) !=
           (pieces.value.value == BigInt.zero)) {
@@ -546,7 +546,7 @@ LedgerScrapLine _scrapLine(Object? row) {
     throw const FormatException('scrap');
   }
   final weight = Milligrams.parseWire(milligrams);
-  if (weight is! Accepted<Milligrams> || weight.value.gramsText != grams) {
+  if (weight is! Accepted<Milligrams> || weight.value.exactGramsText != grams) {
     throw const FormatException('scrap');
   }
   return LedgerScrapLine(

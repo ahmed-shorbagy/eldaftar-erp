@@ -37,10 +37,6 @@ const repairCashMethods = <String>[
   'card',
 ];
 
-/// True when two-decimal gram display would hide a stored milligram.
-bool repairRoundingHidesMilligrams(BigInt milligrams) =>
-    milligrams.abs() % BigInt.from(10) != BigInt.zero;
-
 enum RepairCollectionMode { all, part, none }
 
 final class RepairTender {

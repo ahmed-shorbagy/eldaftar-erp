@@ -160,7 +160,7 @@ Future<void> prepareSettlement(
   await tester.pumpAndSettle();
   await tester.enterText(
     find.byKey(const Key('debt-settle-amount')),
-    gateway.mode == 'money' ? '5' : '1.255',
+    gateway.mode == 'money' ? '5' : '1.25',
   );
   await tester.enterText(
     find.byKey(const Key('debt-settle-reason')),
@@ -181,7 +181,7 @@ Future<void> prepareSettlement(
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('debt-lot-grams-${f.key}')),
-      '1.255',
+      '1.25',
     );
   }
   await tester.ensureVisible(find.byKey(const Key('debt-submit')));
@@ -199,7 +199,8 @@ void main() {
       expect(find.byKey(const Key('debt-review')), findsOneWidget);
       expect(find.textContaining('المتبقي بعد السداد'), findsOneWidget);
       if (mode != 'money') {
-        expect(find.textContaining('1,255 ملليجرام'), findsWidgets);
+        expect(find.textContaining('1.25'), findsWidgets);
+        expect(find.textContaining('ملليجرام'), findsNothing);
         expect(
           find.textContaining(
             mode == 'gold-in' ? 'استلام ذهب مملوك' : 'تسليم من المخزون المملوك',
@@ -213,7 +214,7 @@ void main() {
       expect(gateway.submits, 1);
       expect(find.byKey(const Key('debt-success')), findsOneWidget);
       final payload = gateway.sent!.body['p_payload'] as Map;
-      expect(payload['amount'], mode == 'money' ? '500' : '1255');
+      expect(payload['amount'], mode == 'money' ? '500' : '1250');
       expect(
         payload['karat'],
         mode == 'money'

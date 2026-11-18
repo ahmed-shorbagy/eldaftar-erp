@@ -337,7 +337,7 @@ void main() {
     expect(pdfArabic('ريال'), 'ريال');
   });
 
-  test('karat weight totals are exact milligram sums', () {
+  test('karat weight totals are milligram sums shown with two decimals', () {
     final document = BrandedInvoiceDocument.fromConfirmed(
       source: {
         'operation_id': brandOperation,
@@ -378,9 +378,9 @@ void main() {
         for (final row in document.weightByKarat)
           '${row.karat}:${row.gramsText}',
       ],
-      ['21:1.831', '18:2.560'],
+      ['21:1.83', '18:2.56'],
     );
-    expect(document.totalGramsText, '4.391');
+    expect(document.totalGramsText, '4.39');
     expect(document.titleLabel, 'فاتورة بيع');
   });
 }

@@ -270,12 +270,9 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
       row.originalMilligrams = raw['milligrams'] as String;
       final weight = Milligrams.parseWire(row.originalMilligrams!);
       if (weight is Accepted<Milligrams>) {
-        // O4: two decimals like new entry; a stored third decimal stays
-        // visible so the recorded weight is never rounded silently.
-        final text = weight.value.gramsText;
-        row.grams.text = weight.value.value % BigInt.from(10) == BigInt.zero
-            ? text.substring(0, text.length - 1)
-            : text;
+        // Two decimals like new entry. A weight left as shown keeps what
+        // was recorded (see [FinancialItemInput.recordedMilligrams]).
+        row.grams.text = gramFieldText(weight.value.value);
       }
       row.count.text = raw['count'] as String? ?? '1';
       row.price.text = pounds(raw['line_price_piastres']);
@@ -501,15 +498,12 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
     }
     if (widget.kind != FinancialKind.expense) {
       for (final row in _items) {
-        final grams = gramEntryValue(row.grams.text, decimalPlaces: 2);
+        final grams = canonicalNumericEntry(
+          row.grams.text,
+          decimalPlaces: gramDecimalPlaces,
+        );
         if (grams == null) {
-          final inherited = Milligrams.parseGrams(row.grams.text);
-          if (row.originalMilligrams != null &&
-              inherited is Accepted<Milligrams> &&
-              inherited.value.wire == row.originalMilligrams) {
-            continue;
-          }
-          setState(() => _error = 'أدخل الوزن بمنزلتين عشريتين كحد أقصى.');
+          setState(() => _error = 'راجع اسم الصنف والعدد والوزن.');
           return;
         }
         row.grams.text = grams;
@@ -541,6 +535,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
             count: item.count.text,
             name: item.name.text,
             linePricePounds: cashInputValue(item.price.text),
+            recordedMilligrams: item.originalMilligrams,
           ),
       ],
       tenders: [
@@ -1640,9 +1635,11 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
           line.name.text = entry.$2.suggestion.label;
           line.count.text = entry.$2.count.wire;
           line.countFromPicker = true;
-          line.grams.text =
-              gramEntryValue(entry.$2.milligrams.gramsText, decimalPlaces: 2) ??
-              entry.$2.milligrams.gramsText;
+          // A suggested weight is written short, as before: «17», «8.5».
+          line.grams.text = entry.$2.milligrams.gramsText.replaceFirst(
+            RegExp(r'\.?0+$'),
+            '',
+          );
           if (entry.$1 > 0) _items.insert(position + entry.$1, line);
           created.add(line);
         }
@@ -1960,7 +1957,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
 
   String? _gramsFromMilligrams(BigInt milligrams) {
     final parsed = Milligrams.parseWire(milligrams.toString());
-    return parsed is Accepted<Milligrams> ? parsed.value.gramsText : null;
+    return parsed is Accepted<Milligrams> ? parsed.value.exactGramsText : null;
   }
 
   List<Widget> _paymentFields(ThemeData theme) => [
@@ -2240,7 +2237,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                   second: TextField(
                     key: Key('trade-grams-$index'),
                     controller: row.grams,
-                    inputFormatters: [GramInputFormatter(decimalPlaces: 2)],
+                    inputFormatters: const [GramInputFormatter()],
                     focusNode: index == 0 ? _gramsFocus : null,
                     textDirection: TextDirection.ltr,
                     keyboardType: const TextInputType.numberWithOptions(
@@ -2258,7 +2255,7 @@ class _FinancialTradeScreenState extends State<FinancialTradeScreen> {
                 TextField(
                   key: Key('trade-grams-$index'),
                   controller: row.grams,
-                  inputFormatters: [GramInputFormatter(decimalPlaces: 2)],
+                  inputFormatters: const [GramInputFormatter()],
                   focusNode: index == 0 ? _gramsFocus : null,
                   textDirection: TextDirection.ltr,
                   keyboardType: const TextInputType.numberWithOptions(

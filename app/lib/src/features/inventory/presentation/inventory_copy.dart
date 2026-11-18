@@ -121,10 +121,7 @@ String effectCopy(InventoryEffect effect) {
     final category = inventoryCategoryLabel(effect.category ?? '');
     return '$direction عدد $where ($category عيار ${effect.karat}): $amount.';
   }
-  final parsed = Milligrams.parseWire(amount.toString());
-  final grams = parsed is Accepted<Milligrams>
-      ? parsed.value.gramsText
-      : amount.toString();
+  final grams = gramsOf(amount);
   if (effect.bucket == 'gold_payable') {
     return effect.delta.isNegative
         ? 'ينقص المستحق بالذهب عيار ${effect.karat}: $grams جرام، دون حركة نقد.'
@@ -144,14 +141,8 @@ String _bucketLabel(String bucket) => switch (bucket) {
   _ => bucket,
 };
 
-String gramsOf(BigInt milligrams) {
-  final parsed = Milligrams.parseWire(
-    milligrams.isNegative ? milligrams.abs().toString() : milligrams.toString(),
-  );
-  if (parsed is! Accepted<Milligrams>) return milligrams.toString();
-  final text = parsed.value.gramsText;
-  return milligrams.isNegative ? '-$text' : text;
-}
+/// Inventory weights go through the shared two-decimal rule.
+String gramsOf(BigInt milligrams) => displayMilligrams(milligrams, minus: '-');
 
 String poundsOf(BigInt piastres) {
   final parsed = Piastres.parseWire(piastres.toString());

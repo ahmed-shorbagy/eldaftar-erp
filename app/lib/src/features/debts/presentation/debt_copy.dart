@@ -91,10 +91,7 @@ String debtMoney(BigInt piastres, {bool exact = false}) {
   return '\u2066$shown\u2069';
 }
 
-String debtGold(BigInt milligrams, {bool exact = false}) {
-  if (exact) return '\u2066${displayGoldEffect(milligrams)}\u2069';
-  final shown = displayGrams(milligrams.toString());
-  return '\u2066$shown\u2069 جرام';
-}
+String debtGold(BigInt milligrams) =>
+    '\u2066${displayMilligrams(milligrams)}\u2069 جرام';
 
 String debtSignedCount(BigInt count) => count.toString();

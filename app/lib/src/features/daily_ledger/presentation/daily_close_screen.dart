@@ -286,7 +286,9 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
               canonicalNumericEntry(text, decimalPlaces: places) ?? text;
           cells[(row.name, karat)] = (
             normalized(_cellCounts[key]?.text ?? '', 0),
-            _showWeights ? normalized(_cellGrams[key]?.text ?? '', 3) : '',
+            _showWeights
+                ? normalized(_cellGrams[key]?.text ?? '', gramDecimalPlaces)
+                : '',
           );
         }
       }
@@ -304,17 +306,15 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
       for (final row in expected['stock'] as List) {
         final item = row as Map;
         final fields = _stock['${item['category']}:${item['karat']}']!;
-        final gramsText = canonicalNumericEntry(
-          fields[0].text,
-          decimalPlaces: 3,
-        );
         final countText = canonicalNumericEntry(
           fields[1].text,
           decimalPlaces: 0,
         );
-        final grams = gramsText == null || gramsText.isEmpty
-            ? null
-            : Milligrams.parseGrams(gramsText);
+        // Typing the book weight as it is shown counts as that weight.
+        final grams = readGramField(
+          fields[0].text,
+          recorded: BigInt.tryParse('${item['milligrams']}'),
+        );
         final count = countText == null || countText.isEmpty
             ? null
             : PieceCount.parseWire(countText);
@@ -333,13 +333,10 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
     final scrap = <Map<String, Object?>>[];
     for (final row in expected['scrap'] as List) {
       final item = row as Map;
-      final scrapText = canonicalNumericEntry(
+      final grams = readGramField(
         _scrap[item['karat']]!.text,
-        decimalPlaces: 3,
+        recorded: BigInt.tryParse('${item['milligrams']}'),
       );
-      final grams = scrapText == null || scrapText.isEmpty
-          ? null
-          : Milligrams.parseGrams(scrapText);
       if (grams is! Accepted<Milligrams>) {
         setState(() => _error = 'أدخل وزن الكسر الفعلي لكل عيار.');
         return;
@@ -671,9 +668,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
-                            inputFormatters: const [
-                              GramInputFormatter(decimalPlaces: 3),
-                            ],
+                            inputFormatters: const [GramInputFormatter()],
                             decoration: ledgerFieldDecoration(
                               context,
                               label: 'الوزن بالجرام',
@@ -724,9 +719,7 @@ class _DailyCloseScreenState extends State<DailyCloseScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        inputFormatters: const [
-                          GramInputFormatter(decimalPlaces: 3),
-                        ],
+                        inputFormatters: const [GramInputFormatter()],
                         decoration: ledgerFieldDecoration(
                           context,
                           label: 'الوزن بالجرام',

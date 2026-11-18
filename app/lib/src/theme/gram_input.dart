@@ -1,5 +1,11 @@
 import 'package:flutter/services.dart';
 
+import '../features/daily_ledger/domain/opening_issue.dart';
+import '../features/daily_ledger/domain/quantities.dart';
+
+/// Every weight is entered with at most two decimals.
+const gramDecimalPlaces = 2;
+
 String? gramEntryValue(String input, {required int decimalPlaces}) {
   final digits = StringBuffer();
   for (final rune in input.runes) {
@@ -32,9 +38,33 @@ String? canonicalNumericEntry(String input, {required int decimalPlaces}) {
   return text;
 }
 
-/// Entry precision only. Persisted milligrams and historical invoices stay exact.
+/// Text for a weight field that starts from a recorded weight.
+String gramFieldText(BigInt milligrams) => twoDecimalGrams(milligrams);
+
+/// Reads a weight field: at most two decimals, Arabic or ASCII digits.
+///
+/// A field that still shows [gramFieldText] of [recorded] returns the recorded
+/// weight itself. An older weight stored with a third decimal is then not
+/// changed by a field nobody edited, and a full return of it still matches.
+DomainResult<Milligrams> readGramField(String text, {BigInt? recorded}) {
+  final entry = canonicalNumericEntry(text, decimalPlaces: gramDecimalPlaces);
+  if (entry == null || entry.isEmpty) {
+    return const Rejected(OpeningIssueCode.invalidInput);
+  }
+  final parsed = Milligrams.parseGrams(entry);
+  if (recorded == null ||
+      recorded.isNegative ||
+      parsed is! Accepted<Milligrams>) {
+    return parsed;
+  }
+  return Milligrams.parseWire(
+    matchRecordedWeight(parsed.value.value, recorded).toString(),
+  );
+}
+
+/// The one weight input rule: two decimals. Counts reuse it with zero.
 class GramInputFormatter extends TextInputFormatter {
-  const GramInputFormatter({this.decimalPlaces = 3});
+  const GramInputFormatter({this.decimalPlaces = gramDecimalPlaces});
   final int decimalPlaces;
 
   @override

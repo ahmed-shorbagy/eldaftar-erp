@@ -259,7 +259,10 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
       setState(() => _message = 'اختر الصنف.');
       return;
     }
-    final weight = Milligrams.parseGrams(_grams.text.trim());
+    final weight = readGramField(
+      _grams.text,
+      recorded: _availableWeight(_karat),
+    );
     final count = PieceCount.parseWire(_count.text.trim());
     if (weight is! Accepted<Milligrams> ||
         count is! Accepted<PieceCount> ||
@@ -510,10 +513,6 @@ class _ScrapToStockScreenState extends State<ScrapToStockScreen> {
                               context: context,
                               controller: _grams,
                               label: 'الوزن بالجرام',
-                              helper: 'حتى منزلتين عشريتين',
-                              inputFormatters: const [
-                                GramInputFormatter(decimalPlaces: 2),
-                              ],
                               textInputAction: TextInputAction.next,
                             ),
                             second: ledgerCountField(

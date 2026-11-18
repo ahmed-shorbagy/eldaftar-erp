@@ -1,4 +1,5 @@
 import '../../../theme/shop_clock.dart';
+import '../../daily_ledger/domain/quantities.dart' show twoDecimalGrams;
 
 /// Exact server report values. No Flutter, transport or storage dependencies.
 class ReportDay {
@@ -102,7 +103,7 @@ String reportExact(BigInt amount, int decimals) {
 }
 
 String reportMoney(BigInt n) => reportExact(n, 2);
-String reportGrams(BigInt n) => reportExact(n, 3);
+String reportGrams(BigInt n) => twoDecimalGrams(n, grouped: true);
 String reportMethod(String method) => switch (method) {
   'cash' => 'كاش',
   'instant_transfer' => 'إنستا باي',

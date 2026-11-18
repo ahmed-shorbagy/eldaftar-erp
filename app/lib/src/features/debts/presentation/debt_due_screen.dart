@@ -24,7 +24,7 @@ String dueDateText(DebtCalendarDate? d) =>
     d == null ? 'بلا موعد' : '\u2066${d.wire}\u2069';
 String dueAmount(DebtDueRow r) => r.summary.unit == DebtUnit.money
     ? '${debtMoney(r.summary.remaining)} نقد'
-    : '\u2066${r.summary.remaining ~/ BigInt.from(1000)}.${(r.summary.remaining % BigInt.from(1000)).toString().padLeft(3, '0')}\u2069 جرام';
+    : debtGold(r.summary.remaining);
 String dueSource(DebtSourceKind kind) => switch (kind) {
   DebtSourceKind.standalone => 'دين مستقل',
   DebtSourceKind.purchaseCashPayable => 'رصيد شراء',

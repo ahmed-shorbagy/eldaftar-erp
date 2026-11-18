@@ -31,14 +31,28 @@ void main() {
       direction: DebtDirection.owedToShop,
       unit: DebtUnit.gold,
       karat: 21,
-      amountText: '1.255',
+      amountText: '1.25',
       partyName: 'عميل',
       contactPhone: '+201000000000',
       reason: 'ذهب',
       externalReference: '',
     );
     final received = (gold as DebtAccepted<DebtDeclaration>).value;
-    expect(received.amount, BigInt.from(1255));
+    expect(received.amount, BigInt.from(1250));
+    // FB-002: a weight is entered with at most two decimals.
+    expect(
+      debtDeclaration(
+        direction: DebtDirection.owedToShop,
+        unit: DebtUnit.gold,
+        karat: 21,
+        amountText: '1.255',
+        partyName: 'عميل',
+        contactPhone: '+201000000000',
+        reason: 'ذهب',
+        externalReference: '',
+      ),
+      isA<DebtRejected<DebtDeclaration>>(),
+    );
     expect(received.externalReference, isNull);
     expect(received.effect.goldMilligrams, BigInt.zero);
   });
@@ -145,6 +159,35 @@ void main() {
       receipt: null,
     );
     expect((tooMuch as DebtRejected).issue, DebtIssue.exceedsRemaining);
+
+    // ADR 0050: 1.075 g stored reads 1.08. Entering 1.08 settles all of it.
+    DebtRulesResult<DebtSettlement> older(String amountText) => debtSettlement(
+      sourceKind: DebtSourceKind.standalone,
+      sourceId: sourceId,
+      direction: DebtDirection.shopOwes,
+      unit: DebtUnit.gold,
+      karat: 21,
+      remaining: BigInt.from(1075),
+      recordVersion: BigInt.one,
+      amountText: amountText,
+      ledgerEffect: DebtLedgerEffect.none,
+      reason: 'سداد قديم',
+      settlementReference: reference,
+      dayId: null,
+      dayVersion: null,
+      tenders: null,
+      deliveries: null,
+      receipt: null,
+    );
+    expect(
+      (older('1.08') as DebtAccepted<DebtSettlement>).value.amount,
+      BigInt.from(1075),
+    );
+    expect(
+      (older('1.00') as DebtAccepted<DebtSettlement>).value.amount,
+      BigInt.from(1000),
+    );
+    expect((older('1.09') as DebtRejected).issue, DebtIssue.exceedsRemaining);
 
     final scrapOut = debtSettlement(
       sourceKind: DebtSourceKind.goldObligation,

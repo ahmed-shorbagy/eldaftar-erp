@@ -377,7 +377,10 @@ DebtRulesResult<DebtSettlement> debtSettlement({
   if (purity is DebtRejected<int?>) return DebtRejected(purity.issue);
   final amount = _amount(unit, amountText);
   if (amount is DebtRejected<BigInt>) return DebtRejected(amount.issue);
-  final parsedAmount = (amount as DebtAccepted<BigInt>).value;
+  final entered = (amount as DebtAccepted<BigInt>).value;
+  final parsedAmount = unit == DebtUnit.gold
+      ? matchRecordedWeight(entered, remaining)
+      : entered;
   if (parsedAmount > remaining) {
     return const DebtRejected(DebtIssue.exceedsRemaining);
   }

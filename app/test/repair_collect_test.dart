@@ -78,7 +78,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('عميل الإصلاح'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('الوزن الأصلي'), findsOneWidget);
+    expect(find.textContaining('الوزن: '), findsOneWidget);
   }
 
   testWidgets('a ready repair has no collect button', (tester) async {

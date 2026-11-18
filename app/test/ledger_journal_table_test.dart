@@ -60,11 +60,8 @@ void main() {
       expect(items.first.grams, '1.255');
       expect(displayPounds('1200000.25'), '1,200,000.25');
       expect(displayGoldEffect(BigInt.from(1830)), '1.83 جرام');
-      expect(
-        displayGoldEffect(BigInt.from(1255)),
-        '1.26 جرام (1,255 ملليجرام)',
-      );
-      expect(displayGoldEffect(BigInt.from(4)), '0.00 جرام (4 ملليجرام)');
+      expect(displayGoldEffect(BigInt.from(1255)), '1.26 جرام');
+      expect(displayGoldEffect(BigInt.from(4)), '0.00 جرام');
     },
   );
 

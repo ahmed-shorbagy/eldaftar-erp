@@ -1,4 +1,5 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_banner.dart';
@@ -224,8 +225,11 @@ Widget inventoryField({
     textDirection: cashAmount || numeric ? TextDirection.ltr : null,
     autocorrect: numeric ? false : true,
     enableSuggestions: numeric ? false : true,
+    // Every decimal field that is not cash is a weight.
     inputFormatters: cashAmount
         ? [CashInputFormatter(signed: resolvedKeyboard.signed == true)]
+        : resolvedKeyboard.decimal == true
+        ? const [GramInputFormatter()]
         : null,
     textInputAction: action,
     decoration: ledgerFieldDecoration(context, label: label, hint: hint),

@@ -183,7 +183,7 @@ void main() {
         slogan: 'ذهب أمين',
       );
       expect(document.lines.single.categoryLabel, 'مشغولات');
-      expect(document.lines.single.gramsText, '1.830');
+      expect(document.lines.single.gramsText, '1.83');
       expect(document.lines.single.karat, 18);
       expect(document.purchasePaidPiastres, '104002');
       expect(document.obligationPiastres, '8000');

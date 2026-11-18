@@ -226,7 +226,7 @@ void main() {
         await _fillIntake(tester);
         await tester.tap(find.byKey(const Key('repair-intake-submit')));
         await tester.pumpAndSettle();
-        expect(find.textContaining('1,255 ملليجرام'), findsOneWidget);
+        expect(find.text('الوزن: 1.25 جرام'), findsOneWidget);
         await _capture(tester, capture, 'review-$suffix');
       });
 
@@ -249,7 +249,7 @@ void main() {
                       'customer_name': 'عميل',
                       'customer_phone': '',
                       'item_description': 'خواتم',
-                      'measured_milligrams': '1255',
+                      'measured_milligrams': '1250',
                       'karat': 21,
                       'issue': 'مفصص',
                       'intake_notes': '',
@@ -403,7 +403,7 @@ Future<void> _fillIntake(WidgetTester tester) async {
     'عميل الإصلاح',
   );
   await tester.enterText(find.byKey(const Key('repair-item')), 'خواتم');
-  await tester.enterText(find.byKey(const Key('repair-grams')), '1.255');
+  await tester.enterText(find.byKey(const Key('repair-grams')), '1.25');
   await tester.tap(find.byKey(const Key('repair-karat')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('21').last);

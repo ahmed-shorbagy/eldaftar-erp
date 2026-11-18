@@ -486,7 +486,12 @@ class _InventoryRemovalFormState extends State<InventoryRemovalForm>
           lines: [
             (
               lot: selected,
-              milligrams: readGrams(_grams.text) ?? BigInt.zero,
+              milligrams:
+                  readGrams(
+                    _grams.text,
+                    recorded: selected.remainingMilligrams,
+                  ) ??
+                  BigInt.zero,
               count: selected.tracksCount ? readCount(_count.text) : null,
             ),
           ],
@@ -855,7 +860,9 @@ class _InventoryConversionFormState extends State<InventoryConversionForm>
           source: lot,
           destinationCategory: _destination,
           itemName: _name.text,
-          milligrams: readGrams(_grams.text) ?? BigInt.zero,
+          milligrams:
+              readGrams(_grams.text, recorded: lot.remainingMilligrams) ??
+              BigInt.zero,
           sourceCount: lot.tracksCount ? readCount(_sourceCount.text) : null,
           destinationCount: _destination == 'scrap'
               ? null
@@ -1253,7 +1260,9 @@ class _InventoryRecognitionFormState extends State<InventoryRecognitionForm>
           day: day,
           reason: _reason.text,
           receipt: selected,
-          milligrams: readGrams(_grams.text) ?? BigInt.zero,
+          milligrams:
+              readGrams(_grams.text, recorded: selected.remainingMilligrams) ??
+              BigInt.zero,
           count: selected.category == 'scrap' ? null : readCount(_count.text),
         );
       },
@@ -1666,7 +1675,9 @@ class _OwnershipTransferFormState extends State<OwnershipTransferForm>
           day: day,
           reason: _reason.text,
           receipt: selected,
-          milligrams: readGrams(_grams.text) ?? BigInt.zero,
+          milligrams:
+              readGrams(_grams.text, recorded: selected.remainingMilligrams) ??
+              BigInt.zero,
           count: selected.category == 'scrap' ? null : readCount(_count.text),
           obligation: obligation,
         );
@@ -2050,7 +2061,9 @@ class _GoldSettlementFormState extends State<GoldSettlementForm>
           deliveries: [
             DeliveryDraft(
               lot: lot,
-              milligrams: readGrams(_grams.text) ?? BigInt.zero,
+              milligrams:
+                  readGrams(_grams.text, recorded: lot.remainingMilligrams) ??
+                  BigInt.zero,
               count: lot.tracksCount ? readCount(_count.text) : null,
             ),
           ],
@@ -2773,7 +2786,9 @@ class _ExplicitLotSaleFormState extends State<ExplicitLotSaleForm>
         return reviewExplicitLotSale(
           day: day,
           lot: selected,
-          milligrams: readGrams(_grams.text) ?? BigInt.zero,
+          milligrams:
+              readGrams(_grams.text, recorded: selected.remainingMilligrams) ??
+              BigInt.zero,
           count: selected.tracksCount ? readCount(_count.text) : null,
           totalPiastres: total,
           tenders: [TenderDraft(method: _method, piastres: paid)],

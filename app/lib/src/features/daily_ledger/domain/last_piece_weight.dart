@@ -4,6 +4,7 @@
 
 import '../../inventory/domain/inventory_item_grid.dart';
 import 'jewelry_items.dart';
+import 'quantities.dart' show twoDecimalGrams;
 
 final class LastPieceWeightNotice {
   const LastPieceWeightNotice({
@@ -51,7 +52,10 @@ List<LastPieceWeightNotice> lastPieceWeightNotices(
     if (cell == null || !cell.countKnown) continue;
     if (cell.count <= BigInt.zero || cell.milligrams <= BigInt.zero) continue;
     if (cell.count != entry.value.$1) continue;
-    if (cell.milligrams == entry.value.$2) continue;
+    // A difference below what two decimals show is not put to the owner.
+    if (twoDecimalGrams(cell.milligrams) == twoDecimalGrams(entry.value.$2)) {
+      continue;
+    }
     notices.add(
       LastPieceWeightNotice(
         itemName: entry.key.$1,

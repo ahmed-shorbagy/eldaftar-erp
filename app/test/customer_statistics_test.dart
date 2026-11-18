@@ -11,12 +11,13 @@ import 'customer_http_test.dart' show gateway, response;
 import 'customer_statistics_fixtures.dart';
 
 void main() {
-  test('milligrams retain three decimals beyond binary integer precision', () {
-    expect(customerGrams(BigInt.from(1)), '0.001');
-    expect(customerGrams(BigInt.from(1000)), '1.000');
+  test('grams show two decimals beyond binary integer precision', () {
+    expect(customerGrams(BigInt.from(1)), '0.00');
+    expect(customerGrams(BigInt.from(5)), '0.01');
+    expect(customerGrams(BigInt.from(1000)), '1.00');
     expect(
       customerGrams(BigInt.parse('9007199254740993')),
-      '9,007,199,254,740.993',
+      '9,007,199,254,740.99',
     );
     expect(() => customerGrams(BigInt.from(-1)), throwsArgumentError);
   });

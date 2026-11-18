@@ -411,7 +411,7 @@ void main() {
     await tester.tap(find.byKey(const Key('command-review')));
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('يزيد المتاح للبيع: 10.000 جرام'),
+      find.textContaining('يزيد المتاح للبيع: 10.00 جرام'),
       findsOneWidget,
     );
     expect(find.textContaining('تم حفظ العملية بنجاح'), findsNothing);

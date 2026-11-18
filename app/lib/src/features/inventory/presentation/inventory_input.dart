@@ -1,9 +1,12 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
 
-BigInt? readGrams(String text) {
-  final parsed = Milligrams.parseGrams(text.trim());
+/// A weight field. [recorded] is the remaining weight of the chosen lot or
+/// receipt, so entering what the screen shows moves all of it.
+BigInt? readGrams(String text, {BigInt? recorded}) {
+  final parsed = readGramField(text, recorded: recorded);
   if (parsed is! Accepted<Milligrams> || parsed.value.value == BigInt.zero) {
     return null;
   }
@@ -31,7 +34,7 @@ BigInt? readSignedGrams(String text) {
   final negative = trimmed.startsWith('-');
   final body = negative ? trimmed.substring(1) : trimmed;
   final magnitude =
-      readGrams(body) ?? (body == '0' || body == '0.000' ? BigInt.zero : null);
+      readGrams(body) ?? (body == '0' || body == '0.00' ? BigInt.zero : null);
   if (magnitude == null) return null;
   return negative ? -magnitude : magnitude;
 }

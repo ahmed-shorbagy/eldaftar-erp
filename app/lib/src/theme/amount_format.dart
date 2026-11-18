@@ -1,3 +1,5 @@
+import '../features/daily_ledger/domain/quantities.dart' show twoDecimalGrams;
+
 /// Display formatting only. Values remain exact decimal strings/integers.
 ///
 /// Money is never abbreviated. Whole thousands are comma-grouped and a
@@ -11,10 +13,11 @@ String displayPounds(String exact) {
   return '${negative ? '−' : ''}$grouped${fraction == '00' ? '' : '.$fraction'}';
 }
 
-/// Two-decimal gold display. Stored and entered grams stay at three decimals.
+/// The one display rule for gold weight: grams with two decimals, grouped.
 ///
-/// A dotted value is grams (`1.255`). An integer is milligrams (`1255`).
-/// The third decimal rounds half away from zero using integer division only.
+/// A dotted value is grams (`1.25`). An integer is milligrams (`1250`).
+/// Storage stays integer milligrams; a stored third decimal rounds half away
+/// from zero through [twoDecimalGrams].
 String displayGrams(String exact) {
   final negative = exact.startsWith('-');
   final body = negative ? exact.substring(1) : exact;
@@ -29,25 +32,19 @@ String displayGrams(String exact) {
   } else {
     return exact;
   }
-  final rounded = _roundMilligramsToCentigrams(milligrams);
-  final whole = rounded ~/ BigInt.from(100);
-  final fraction = (rounded % BigInt.from(100)).toInt();
-  return '${negative && rounded != BigInt.zero ? '−' : ''}${_groupThousands(whole.toString())}.${fraction.toString().padLeft(2, '0')}';
+  return displayMilligrams(negative ? -milligrams : milligrams);
 }
 
-BigInt _roundMilligramsToCentigrams(BigInt milligrams) {
-  final quotient = milligrams ~/ BigInt.from(10);
-  final remainder = milligrams % BigInt.from(10);
-  if (remainder >= BigInt.from(5)) return quotient + BigInt.one;
-  return quotient;
+/// [displayGrams] for a signed milligram amount. PDFs and messages pass an
+/// ASCII [minus]; screens keep the typographic one.
+String displayMilligrams(BigInt milligrams, {String minus = '−'}) {
+  final text = twoDecimalGrams(milligrams, grouped: true);
+  return text.startsWith('-') ? '$minus${text.substring(1)}' : text;
 }
 
-/// Keeps two-decimal grams while revealing a rounding difference at confirmation.
-String displayGoldEffect(BigInt milligrams) {
-  final grams = '${displayGrams(milligrams.toString())} جرام';
-  if (milligrams.abs() % BigInt.from(10) == BigInt.zero) return grams;
-  return '$grams (${_groupThousands(milligrams.toString())} ملليجرام)';
-}
+/// A weight with its unit, as shown on reviews and confirmations.
+String displayGoldEffect(BigInt milligrams) =>
+    '${displayMilligrams(milligrams)} جرام';
 
 String _groupThousands(String digits) =>
     digits.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');

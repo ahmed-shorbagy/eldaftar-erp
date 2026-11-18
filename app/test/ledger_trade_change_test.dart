@@ -559,7 +559,7 @@ void main() {
     expect(gateway.keys, isEmpty);
   });
   testWidgets(
-    'prefilled edit preserves original three-decimal gold and details without posting a new trade',
+    'prefilled edit shows two decimals, preserves original three-decimal gold and details, and posts no new trade',
     (t) async {
       final gateway = RevisionGateway();
       Map<String, Object?>? replacement;
@@ -585,7 +585,7 @@ void main() {
             .widget<TextField>(find.byKey(const Key('trade-grams-0')))
             .controller!
             .text,
-        '1.255',
+        '1.26',
       );
       await t.ensureVisible(find.byKey(const Key('trade-review')));
       await t.tap(find.byKey(const Key('trade-review')));

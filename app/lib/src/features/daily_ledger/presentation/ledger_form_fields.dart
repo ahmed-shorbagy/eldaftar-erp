@@ -103,8 +103,7 @@ TextField ledgerGramsField({
     textInputAction: textInputAction,
     autocorrect: false,
     enableSuggestions: false,
-    inputFormatters:
-        inputFormatters ?? const [GramInputFormatter(decimalPlaces: 3)],
+    inputFormatters: inputFormatters ?? const [GramInputFormatter()],
     decoration: ledgerFieldDecoration(context, label: label, helper: helper),
     onChanged: onChanged,
     onSubmitted: onSubmitted,
@@ -221,7 +220,7 @@ class ClosingCountCell extends StatelessWidget {
               ? const TextInputType.numberWithOptions(decimal: true)
               : TextInputType.number,
           inputFormatters: weight
-              ? const [GramInputFormatter(decimalPlaces: 3)]
+              ? const [GramInputFormatter()]
               // Converts Arabic-Indic digits to ASCII first, then caps at 9999.
               : [
                   const GramInputFormatter(decimalPlaces: 0),

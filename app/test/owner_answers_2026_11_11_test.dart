@@ -56,6 +56,20 @@ void main() {
       expect(notices.single.differenceMilligrams, BigInt.from(-300));
     });
 
+    test('a difference two decimals do not show is not announced', () {
+      final older = _grid({
+        'دبل': {21: (1, 1255)},
+      });
+      expect(
+        lastPieceWeightNotices(older, [_item('دبل', 21, 1, 1260)]),
+        isEmpty,
+      );
+      expect(
+        lastPieceWeightNotices(older, [_item('دبل', 21, 1, 1250)]),
+        hasLength(1),
+      );
+    });
+
     test('no notice when pieces remain, weights match, or item unknown', () {
       expect(
         lastPieceWeightNotices(grid, [_item('خواتم', 21, 1, 1800)]),

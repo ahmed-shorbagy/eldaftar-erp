@@ -29,7 +29,7 @@ The work below is committed as `cb318d8` on the local branch `owner-feedback-202
 | **FB-005** ledger blocked after confirming opening balances | Done | Cause confirmed on development. Fixed in `opening_flow.dart`. Emulator: a new shop confirmed zero balances and reached the ledger. |
 | **FB-001** clock | Done, app and admin | 12-hour with ص/م, no seconds, no zone name. One formatter: `app/lib/src/theme/shop_clock.dart` and `shop_instant.dart`; admin `subscriptionFormat.ts`. Seen on the emulator in «الدفاتر» and «سجل العمليات». |
 | **FB-006** opening-balances screen | Done | Form removed. A new shop opens on the ledger; the owner's app confirms a zero opening by itself. Emulator: a second new shop opened directly. |
-| **FB-002** two-decimal weights | Not started | |
+| **FB-002** two-decimal weights | Done on 2026-11-18 (second session), committed on the branch, not pushed | [ADR 0050](../adr/0050-two-decimal-weights.md). One formatter and one input; `AGENTS.md`, ADR 0004 and ADR 0047 D7 amended. See the validation record for tests and the emulator check. |
 | **FB-003** «مشغولات» | Not started, except that the opening form that showed it is gone | |
 | Banned-terms test and glossary | Not started | |
 | M2 names and «المزيد» | Not started | |
@@ -39,7 +39,7 @@ Gates at the end of the session: `dart analyze` clean, `flutter test` 1938 passe
 
 Decisions the developer approved on 2026-11-18:
 
-1. Weights: keep integer milligrams in storage, enter and display two decimals everywhere, and amend `AGENTS.md`, ADR 0004 and ADR 0047 D7 to match. **`AGENTS.md` still says three decimals. Amend it in the same change as the weights work.**
+1. Weights: keep integer milligrams in storage, enter and display two decimals everywhere, and amend `AGENTS.md`, ADR 0004 and ADR 0047 D7 to match. Done on 2026-11-18 (second session): `AGENTS.md` now states the two-decimal rule.
 2. Opening balances: remove the form. Done.
 3. Access to development `xchapwvmvoefriqcxtvn` through the Supabase connector. Working.
 
@@ -65,6 +65,8 @@ A draft reply to him is in the plan, section 8. It was not sent. It mentions ent
 The three finished changes (the FB-005 fix, the clock, and the opening-form removal with ADR 0049) are in one commit on `owner-feedback-2026-11-17`. Check `git status` and `git log --oneline -3` first. Ask the developer whether to keep working on that branch or merge it into `main` first; do not push or merge without his word. Per `AGENTS.md`, review the diff and rerun the gates before each new commit.
 
 ### Step 1. Two-decimal weights (FB-002)
+
+Done on 2026-11-18 in the second session; see the validation record, «M1, part 3». The notes below are kept as the record of what was asked. Open for the developer: confirm the display rule for weights stored earlier with a third decimal (ADR 0050, decision 5).
 
 - Amend the rule first: `AGENTS.md` («Preserve gram precision to three decimal places»), ADR 0004, ADR 0047 D7. Storage stays integer milligrams; no migration.
 - One formatter and one input for grams. Start from `app/lib/src/theme/amount_format.dart` (`displayGrams` already rounds to two decimals; `displayGoldEffect` appends milligrams, which must go).
@@ -110,6 +112,7 @@ Plan sections 4 (M3 to M8) and 5. Each page: an Arabic sheet (old screen, curren
 
 ## 6. Seen and not fixed
 
+- **«إضافة مخزون» makes the daily ledger unreadable** (found 2026-11-18, second session). An `inventory_addition` row in the open day's feed has no label and the client parser throws. Details and the reproduction are in the validation record, «M1, part 3». Needs a decision on wording before a fix. The second test shop is in this state; the first is not.
 - The audit card's last line shows a date whose digits reorder in Arabic («11-11-2026» for 2026-11-11).
 - The debt reminder screen still carries technical wording beyond the clock. It belongs to the «النوتة» page milestone.
 - `InvoiceCopyPanel` has no entry point in the app (ADR 0041 D5) but was kept in step with the clock rule.

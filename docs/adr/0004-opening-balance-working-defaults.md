@@ -24,7 +24,7 @@ The opening command cannot wait for a decision workshop. The user authorized rec
 For this slice only, use the contract in [opening-balance-contract.md](../operations/opening-balance-contract.md):
 
 - One currency, EGP. Store piastres as `bigint`. Display two decimal places. No tax, workmanship, discount, or second currency in the opening command.
-- Store gold as integer milligrams. Display three decimal gram places. Counts are integers. Scrap has no count.
+- Store gold as integer milligrams. Display three decimal gram places. Counts are integers. Scrap has no count. *Amended 2026-11-18 by [ADR 0050](0050-two-decimal-weights.md): weights are entered and displayed with two decimals; storage stays integer milligrams.*
 - The opening catalog is worked jewelry at 14, 18, 21, and 22, bullion at 24, coins at 21, and scrap at 14, 18, 21, 22, and 24. This is an opening-only reading of conflict C3. It does not accept D03 or D04.
 - The owner of an active shop confirms once, including an explicit all-zero confirmation. That confirmation opens one `Africa/Cairo` business day. Close and reopen stay outside the slice, so D08 stays open.
 - Journals balance inside one unit family. Opening clearing is a mechanical offset, not profit or capital.

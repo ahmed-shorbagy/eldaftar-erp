@@ -640,7 +640,7 @@ class _InvoiceAppearanceScreenState extends State<InvoiceAppearanceScreen> {
           categoryLabel: 'مشغولات',
           karat: 21,
           milligrams: '1000',
-          gramsText: '1.000',
+          gramsText: '1.00',
           itemName: 'صنف معاينة',
         ),
       ],

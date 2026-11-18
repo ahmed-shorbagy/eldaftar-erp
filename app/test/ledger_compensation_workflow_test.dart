@@ -224,7 +224,7 @@ Future<void> tap(WidgetTester tester, String key) async {
 }
 
 Future<void> preparePartial(WidgetTester tester) async {
-  await enter(tester, 'partial-grams-0', '1.999');
+  await enter(tester, 'partial-grams-0', '1.99');
   await enter(tester, 'partial-count-0', '1');
   await enter(tester, 'partial-consideration', '30');
   await enter(tester, 'partial-tender', '20');
@@ -308,7 +308,7 @@ void compensationWorkflowTests() {
     expect(gateway.bodies.single['consideration_piastres'], '3000');
     expect((gateway.bodies.single['items'] as List).single, {
       'item_index': '0',
-      'milligrams': '1999',
+      'milligrams': '1990',
       'count': '1',
     });
     expect(gateway.bodies.single['tenders'], [

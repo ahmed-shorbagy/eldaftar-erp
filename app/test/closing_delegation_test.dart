@@ -361,13 +361,13 @@ void main() {
         '5',
       );
       await delegateTap(t, find.byKey(const Key('close-weights-toggle')));
-      await t.enterText(find.byKey(const Key('close-weight-0-21')), '١٫٥٠٠');
+      await t.enterText(find.byKey(const Key('close-weight-0-21')), '١٫٥٠');
       expect(
         t
             .widget<TextField>(find.byKey(const Key('close-weight-0-21')))
             .controller!
             .text,
-        '1.500',
+        '1.50',
       );
       await t.enterText(find.byKey(const Key('staff-scrap-21')), '٢');
       final scrapField = t.widget<TextField>(

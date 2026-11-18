@@ -468,7 +468,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         await tester.enterText(find.byKey(const Key('add-name')), 'خواتم');
-        await tester.enterText(find.byKey(const Key('add-grams')), '4.998');
+        await tester.enterText(find.byKey(const Key('add-grams')), '4.99');
         await tester.enterText(find.byKey(const Key('add-reason')), 'وزن فعلي');
         await tester.scrollUntilVisible(
           find.byKey(const Key('command-review')),
@@ -483,7 +483,7 @@ void main() {
           scrollable: _pageScroll,
         );
         await _capture(tester, capture, 'addition-review-$suffix');
-        expect(find.textContaining('4.998'), findsWidgets);
+        expect(find.textContaining('4.99'), findsWidgets);
       }, timeout: const Timeout(Duration(minutes: 2)));
 
       testWidgets(

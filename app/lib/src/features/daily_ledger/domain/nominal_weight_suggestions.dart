@@ -36,7 +36,7 @@ final class NominalSelection {
     String countText,
   ) {
     final count = PieceCount.parseWire(countText);
-    final unit = Milligrams.parseGrams(suggestion.grams);
+    final unit = Milligrams.parseExactGrams(suggestion.grams);
     if (count is! Accepted<PieceCount> ||
         count.value.value == BigInt.zero ||
         unit is! Accepted<Milligrams> ||

@@ -80,7 +80,9 @@ void main() {
           expect(s.original, s.settled + s.cancelled + s.remaining);
           expect(s.history.length, 3);
           if (karat != null) {
-            expect(statementAmount(s, s.remaining), contains('10.005'));
+            // 10.005 g stored; two decimals shown (ADR 0050).
+            expect(statementAmount(s, s.remaining), contains('10.01'));
+            expect(statementAmount(s, s.remaining), isNot(contains('10.005')));
           }
         },
       );

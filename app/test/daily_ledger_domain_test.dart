@@ -92,12 +92,13 @@ void main() {
   test('exact gram and pound identities', () {
     final oneEightThree = grams('1.830');
     expect(oneEightThree.value, BigInt.from(1830));
-    expect(oneEightThree.gramsText, '1.830');
+    expect(oneEightThree.gramsText, '1.83');
+    expect(oneEightThree.exactGramsText, '1.830');
     expect(oneEightThree.wire, '1830');
 
     final halfGram = grams('0.500');
     expect(halfGram.value, BigInt.from(500));
-    expect(halfGram.gramsText, '0.500');
+    expect(halfGram.gramsText, '0.50');
 
     final tenThousand = pounds('10000.00');
     expect(tenThousand.value, BigInt.from(1000000));
@@ -133,20 +134,20 @@ void main() {
         'worked_jewelry:21',
       ],
     );
-    expect(draft.stock[2].milligrams.gramsText, '1.250');
+    expect(draft.stock[2].milligrams.gramsText, '1.25');
     expect(draft.stock[2].count.wire, '1');
     expect(draft.stock[3].milligrams.wire, '5000');
-    expect(draft.stock[3].milligrams.gramsText, '5.000');
+    expect(draft.stock[3].milligrams.gramsText, '5.00');
     expect(draft.stock[3].count.wire, '3');
-    expect(draft.stock[4].milligrams.gramsText, '2.560');
-    expect(draft.stock[0].milligrams.gramsText, '8.000');
+    expect(draft.stock[4].milligrams.gramsText, '2.56');
+    expect(draft.stock[0].milligrams.gramsText, '8.00');
     expect(draft.stock[0].count.wire, '2');
-    expect(draft.stock[1].milligrams.gramsText, '8.000');
+    expect(draft.stock[1].milligrams.gramsText, '8.00');
     expect(draft.stock[1].count.wire, '1');
     expect(draft.scrap.map((row) => row.karat).toList(), [14, 21]);
-    expect(draft.scrap[0].milligrams.gramsText, '0.500');
+    expect(draft.scrap[0].milligrams.gramsText, '0.50');
     expect(draft.scrap[1].milligrams.wire, '1000');
-    expect(draft.scrap[1].milligrams.gramsText, '1.000');
+    expect(draft.scrap[1].milligrams.gramsText, '1.00');
   });
 
   test(
@@ -254,6 +255,8 @@ void main() {
     rejected(Piastres.parsePounds('1.251'), OpeningIssueCode.invalidInput);
     rejected(Piastres.parseWire('1.25'), OpeningIssueCode.invalidInput);
     rejected(Milligrams.parseGrams('1.8300'), OpeningIssueCode.invalidInput);
+    rejected(Milligrams.parseGrams('1.831'), OpeningIssueCode.invalidInput);
+    expect(accepted(Milligrams.parseExactGrams('0.125')).wire, '125');
     rejected(Milligrams.parseWire('1.830'), OpeningIssueCode.invalidInput);
     rejected(Piastres.parsePounds('1e2'), OpeningIssueCode.invalidInput);
     rejected(Milligrams.parseGrams('1.5e1'), OpeningIssueCode.invalidInput);

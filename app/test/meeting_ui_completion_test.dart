@@ -94,7 +94,7 @@ void main() {
           ),
         );
         await t.pumpAndSettle();
-        expect(find.text('1.831'), findsNWidgets(2));
+        expect(find.text('1.83'), findsNWidgets(2));
         expect(find.text('غير مسجّل'), findsOneWidget);
         expect(
           Directionality.of(t.element(find.byType(DataTable))),

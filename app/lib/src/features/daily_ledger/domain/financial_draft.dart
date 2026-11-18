@@ -24,11 +24,16 @@ final class FinancialItemInput {
     required this.count,
     required this.name,
     this.linePricePounds,
+    this.recordedMilligrams,
   });
 
   final String category;
   final int karat;
   final String grams;
+
+  /// The weight already recorded for a line being edited, as wire milligrams.
+  /// Entering what the screen shows for it keeps the recorded weight.
+  final String? recordedMilligrams;
   final String count;
   final String name;
   final String? linePricePounds;
@@ -158,7 +163,18 @@ final class FinancialDraft {
           item.name.length > 120) {
         return const FinancialDraftResult._(null, FinancialIssue.invalidItem);
       }
-      final weight = Milligrams.parseGrams(item.grams.trim());
+      var weight = Milligrams.parseGrams(item.grams.trim());
+      final recorded = item.recordedMilligrams == null
+          ? null
+          : Milligrams.parseWire(item.recordedMilligrams!);
+      if (weight is Accepted<Milligrams> && recorded is Accepted<Milligrams>) {
+        weight = Milligrams.parseWire(
+          matchRecordedWeight(
+            weight.value.value,
+            recorded.value.value,
+          ).toString(),
+        );
+      }
       final pieces = isScrap ? null : PieceCount.parseWire(item.count.trim());
       if (weight is! Accepted<Milligrams> ||
           weight.value.value == BigInt.zero ||

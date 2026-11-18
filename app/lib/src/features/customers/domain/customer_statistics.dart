@@ -1,3 +1,5 @@
+import '../../daily_ledger/domain/quantities.dart' show twoDecimalGrams;
+
 const customerKarats = [14, 18, 21, 22, 24];
 
 /// Exact server-derived customer quantities. No client financial aggregation.
@@ -40,9 +42,5 @@ class CustomerStatistics {
 
 String customerGrams(BigInt milligrams) {
   if (milligrams < BigInt.zero) throw ArgumentError.value(milligrams);
-  final whole = (milligrams ~/ BigInt.from(1000)).toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
-  return '$whole.${(milligrams % BigInt.from(1000)).toString().padLeft(3, '0')}';
+  return twoDecimalGrams(milligrams, grouped: true);
 }

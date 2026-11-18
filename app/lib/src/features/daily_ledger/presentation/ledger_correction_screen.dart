@@ -1,4 +1,5 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import 'dart:convert';
 import '../../../theme/amount_format.dart';
@@ -164,7 +165,11 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
       final countedStock = <MetalEffect>[];
       final stockPayload = <Map<String, Object?>>[];
       for (var index = 0; index < _bookStock.length; index++) {
-        final grams = Milligrams.parseGrams(_stockGrams[index].text.trim());
+        // Typing the book weight as it is shown counts as that weight.
+        final grams = readGramField(
+          _stockGrams[index].text,
+          recorded: _wire(_bookStock[index]['milligrams']),
+        );
         final count = PieceCount.parseWire(_stockCounts[index].text.trim());
         if (grams is! Accepted<Milligrams> || count is! Accepted<PieceCount>) {
           setState(() => _message = 'أدخل الوزن والعدد المعدودين لكل صنف.');
@@ -189,7 +194,10 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
       final countedScrap = <MetalEffect>[];
       final scrapPayload = <Map<String, Object?>>[];
       for (var index = 0; index < _bookScrap.length; index++) {
-        final grams = Milligrams.parseGrams(_scrapGrams[index].text.trim());
+        final grams = readGramField(
+          _scrapGrams[index].text,
+          recorded: _wire(_bookScrap[index]['milligrams']),
+        );
         if (grams is! Accepted<Milligrams>) {
           setState(() => _message = 'أدخل وزن الكسر المعدود لكل عيار.');
           return;
@@ -490,6 +498,7 @@ class _LedgerCorrectionScreenState extends State<LedgerCorrectionScreen> {
                       readOnly: locked || !widget.writesEnabled,
                       textDirection: TextDirection.ltr,
                       keyboardType: ledgerDecimalKeyboard,
+                      inputFormatters: const [GramInputFormatter()],
                       autocorrect: false,
                       enableSuggestions: false,
                       decoration: ledgerFieldDecoration(

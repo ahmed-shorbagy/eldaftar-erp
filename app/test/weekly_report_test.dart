@@ -20,8 +20,8 @@ void main() {
     expect(reportMoney(report.value('net_sales')), '1,000.01');
     expect(reportMoney(report.value('net_purchases')), '500.01');
     expect(reportMoney(report.value('net_cash')), '798.77');
-    expect(reportGrams(report.gold[2].sold), '10.001');
-    expect(reportGrams(report.gold[0].bought), '1.230');
+    expect(reportGrams(report.gold[2].sold), '10.00');
+    expect(reportGrams(report.gold[0].bought), '1.23');
     final offset = report.groups.singleWhere(
       (group) => group.category == 'worked_jewelry' && group.karat == 18,
     );

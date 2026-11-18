@@ -4,7 +4,6 @@ import '../application/debt_native_contract.dart';
 import 'debt_native_screen.dart';
 import 'debt_native_time_row.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../theme/amount_format.dart';
 import '../../../theme/app_outcome.dart';
@@ -15,6 +14,7 @@ import '../../daily_ledger/domain/opening_catalog.dart';
 import '../../daily_ledger/domain/opening_issue.dart';
 import '../../daily_ledger/domain/quantities.dart';
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import '../../daily_ledger/presentation/opening_copy.dart';
 import '../../customers/domain/shop_phone_country.dart';
 import '../../customers/presentation/customer_phone_field.dart';
@@ -496,7 +496,10 @@ class _DebtScreenState extends State<DebtScreen> {
         if (lots.where((lot) => lot.id == id).isNotEmpty)
           DebtDelivery(
             lotId: id,
-            milligrams: _grams(_lotGrams[id]?.text ?? ''),
+            milligrams: _grams(
+              _lotGrams[id]?.text ?? '',
+              recorded: lots.firstWhere((lot) => lot.id == id).milligrams,
+            ),
             count: lots.firstWhere((lot) => lot.id == id).scrap
                 ? null
                 : BigInt.tryParse(_lotCounts[id]?.text.trim() ?? ''),
@@ -505,8 +508,8 @@ class _DebtScreenState extends State<DebtScreen> {
     ];
   }
 
-  BigInt _grams(String text) {
-    final parsed = Milligrams.parseGrams(text.trim());
+  BigInt _grams(String text, {BigInt? recorded}) {
+    final parsed = readGramField(text, recorded: recorded);
     return parsed is Accepted<Milligrams> ? parsed.value.value : BigInt.zero;
   }
 
@@ -516,7 +519,10 @@ class _DebtScreenState extends State<DebtScreen> {
         _ledgerEffect == DebtLedgerEffect.none) {
       return null;
     }
-    final parsed = Milligrams.parseGrams(_settleAmount.text.trim());
+    final parsed = readGramField(
+      _settleAmount.text,
+      recorded: detail.summary.remaining,
+    );
     if (parsed is! Accepted<Milligrams>) return null;
     final scrap = _category == 'scrap';
     return DebtReceipt(
@@ -862,14 +868,11 @@ class _DebtScreenState extends State<DebtScreen> {
             controller: _amount,
             decoration: InputDecoration(
               labelText: _unit == DebtUnit.money ? 'المبلغ' : 'الوزن بالجرام',
-              helperText: _unit == DebtUnit.gold
-                  ? 'ثلاثة أرقام عشرية كحد أقصى'
-                  : null,
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: _unit == DebtUnit.money
                 ? [const CashInputFormatter()]
-                : [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                : [const GramInputFormatter()],
             textDirection: TextDirection.ltr,
             validator: (value) {
               final parsed = _unit == DebtUnit.money
@@ -909,7 +912,7 @@ class _DebtScreenState extends State<DebtScreen> {
         key: const Key('debt-review'),
         draft.unit == DebtUnit.money
             ? 'المبلغ: ${debtMoney(draft.amount, exact: true)}'
-            : 'الوزن: ${debtGold(draft.amount, exact: true)}',
+            : 'الوزن: ${debtGold(draft.amount)}',
       ),
       _effectLines(draft.effect),
       _confirmButton('تأكيد التسجيل', () {
@@ -1101,9 +1104,8 @@ class _DebtScreenState extends State<DebtScreen> {
 
   Widget _historyEntry(DebtHistoryEntry event, DebtUnit unit) {
     final payload = event.payload;
-    String amount(BigInt value) => unit == DebtUnit.money
-        ? debtMoney(value)
-        : debtGold(value, exact: true);
+    String amount(BigInt value) =>
+        unit == DebtUnit.money ? debtMoney(value) : debtGold(value);
     final delta = BigInt.tryParse('${payload['amount']}');
     final cancel = BigInt.tryParse(
       '${payload['cancelled_amount'] ?? payload['cancelled_payable_piastres']}',
@@ -1126,7 +1128,7 @@ class _DebtScreenState extends State<DebtScreen> {
         'النقد: ${debtMoney(cash)}',
       if (BigInt.tryParse('${payload['gold_milligrams']}')
           case final BigInt gold when gold != BigInt.zero)
-        'الذهب: ${debtGold(gold, exact: true)}',
+        'الذهب: ${debtGold(gold)}',
       if (payload['reason'] is String) 'السبب: ${payload['reason']}',
     ];
     return ListTile(title: Text(event.label), subtitle: Text(lines.join('\n')));
@@ -1195,7 +1197,7 @@ class _DebtScreenState extends State<DebtScreen> {
               textDirection: TextDirection.ltr,
               inputFormatters: money
                   ? [const CashInputFormatter()]
-                  : [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                  : [const GramInputFormatter()],
               decoration: InputDecoration(
                 labelText: money ? 'مبلغ السداد' : 'وزن السداد بالجرام',
               ),
@@ -1306,6 +1308,8 @@ class _DebtScreenState extends State<DebtScreen> {
                 decoration: const InputDecoration(
                   labelText: 'الوزن بالجرام من هذه القطعة',
                 ),
+                inputFormatters: const [GramInputFormatter()],
+                textDirection: TextDirection.ltr,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -1376,7 +1380,7 @@ class _DebtScreenState extends State<DebtScreen> {
       ),
       if (settlement.karat != null) Text('عيار ${settlement.karat}'),
       Text(
-        'المتبقي بعد السداد: ${settlement.unit == DebtUnit.money ? debtMoney(settlement.expectedRemaining - settlement.amount) : debtGold(settlement.expectedRemaining - settlement.amount, exact: true)}',
+        'المتبقي بعد السداد: ${settlement.unit == DebtUnit.money ? debtMoney(settlement.expectedRemaining - settlement.amount) : debtGold(settlement.expectedRemaining - settlement.amount)}',
       ),
       Text(
         none
@@ -1388,7 +1392,7 @@ class _DebtScreenState extends State<DebtScreen> {
         key: const Key('debt-review'),
         settlement.unit == DebtUnit.money
             ? 'السداد: ${debtMoney(settlement.amount, exact: true)}'
-            : 'السداد: ${debtGold(settlement.amount, exact: true)}',
+            : 'السداد: ${debtGold(settlement.amount)}',
       ),
       _effectLines(settlement.effect),
       if (settlement.tenders != null)
@@ -1398,11 +1402,11 @@ class _DebtScreenState extends State<DebtScreen> {
           ),
       if (settlement.receipt != null)
         Text(
-          'استلام ذهب مملوك للمحل: ${debtCategoryLabels[settlement.receipt!.category]} · ${settlement.receipt!.productName} · ${debtGold(settlement.receipt!.milligrams, exact: true)}${settlement.receipt!.count == null ? '' : ' · عدد ${settlement.receipt!.count}'}',
+          'استلام ذهب مملوك للمحل: ${debtCategoryLabels[settlement.receipt!.category]} · ${settlement.receipt!.productName} · ${debtGold(settlement.receipt!.milligrams)}${settlement.receipt!.count == null ? '' : ' · عدد ${settlement.receipt!.count}'}',
         ),
       for (final line in settlement.deliveries ?? const <DebtDelivery>[])
         Text(
-          'تسليم من المخزون المملوك: ${_context!.lots.firstWhere((lot) => lot.id == line.lotId).displayName} · ${debtGold(line.milligrams, exact: true)}${line.count == null ? '' : ' · عدد ${line.count}'}',
+          'تسليم من المخزون المملوك: ${_context!.lots.firstWhere((lot) => lot.id == line.lotId).displayName} · ${debtGold(line.milligrams)}${line.count == null ? '' : ' · عدد ${line.count}'}',
         ),
       _confirmButton('تأكيد السداد', () {
         _confirm('debt_settle', settlement.toPayload());
@@ -1525,12 +1529,10 @@ class _DebtScreenState extends State<DebtScreen> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text('النقد: ${debtMoney(effect.cashPiastres, exact: true)}'),
-      Text('الذهب: ${debtGold(effect.goldMilligrams, exact: true)}'),
+      Text('الذهب: ${debtGold(effect.goldMilligrams)}'),
       Text('العدد: ${debtSignedCount(effect.goldCount)}'),
-      Text('الأمانة: ${debtGold(effect.custodyMilligrams, exact: true)}'),
-      Text(
-        'المخزون القابل للبيع: ${debtGold(effect.saleableStockMilligrams, exact: true)}',
-      ),
+      Text('الأمانة: ${debtGold(effect.custodyMilligrams)}'),
+      Text('المخزون القابل للبيع: ${debtGold(effect.saleableStockMilligrams)}'),
     ],
   );
 

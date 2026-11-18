@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import '../../../theme/amount_format.dart';
 import '../../../theme/shop_clock.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../theme/pdf_arabic.dart';
@@ -10,14 +11,7 @@ import 'debt_copy.dart';
 
 const statementScope =
     'لقطة محاسبية مؤكدة لدين واحد مع سجله الكامل؛ ليست فاتورة أو إيصال سداد أو إقرارًا قانونيًا.';
-String statementGold(BigInt n) {
-  final a = n.abs();
-  final whole = (a ~/ BigInt.from(1000)).toString().replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => ',',
-  );
-  return '${n.isNegative ? '-' : ''}$whole.${(a % BigInt.from(1000)).toString().padLeft(3, '0')}';
-}
+String statementGold(BigInt n) => displayMilligrams(n, minus: '-');
 
 String statementAmount(DebtStatement s, BigInt n) => s.unit == DebtUnit.money
     ? debtMoney(n)

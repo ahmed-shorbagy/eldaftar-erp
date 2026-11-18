@@ -50,7 +50,7 @@ String repairIssueText(RepairIssue issue) => switch (issue) {
   RepairIssue.invalidInput => 'راجع الحقول المطلوبة.',
   RepairIssue.unsupportedKarat =>
     'العيار يجب أن يكون 14 أو 18 أو 21 أو 22 أو 24.',
-  RepairIssue.weightRequired => 'أدخل وزنًا أكبر من صفر بثلاث خانات عشرية.',
+  RepairIssue.weightRequired => 'أدخل وزنًا أكبر من صفر.',
   RepairIssue.feeRequired => 'أدخل أجرة التسليم.',
   RepairIssue.collectedExceedsFee => 'المحصّل لا يتجاوز الأجرة النهائية.',
   RepairIssue.exceedsOutstanding => 'المبلغ أكبر من المتبقي.',
@@ -88,14 +88,5 @@ String repairMoney(BigInt? piastres) {
   return '\u2066${displayPounds(parsed.value.poundsText)}\u2069';
 }
 
-String repairGramsExact(BigInt milligrams) {
-  final parsed = Milligrams.parseWire(milligrams.toString());
-  if (parsed is! Accepted<Milligrams>) return milligrams.toString();
-  return '${parsed.value.gramsText} جرام';
-}
-
-/// Two decimals in lists. Confirmation adds exact milligrams when rounding hides them.
-String repairWeight(BigInt milligrams, {required bool exact}) {
-  if (exact) return displayGoldEffect(milligrams);
-  return '${displayGrams(milligrams.toString())} جرام';
-}
+/// The repair's weight with its unit.
+String repairWeight(BigInt milligrams) => displayGoldEffect(milligrams);

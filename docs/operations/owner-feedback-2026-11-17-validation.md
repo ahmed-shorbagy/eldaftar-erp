@@ -113,6 +113,73 @@ Date: 2026-11-18. Flutter client only. No migration, nothing deployed, not commi
 
 There is no simple way to enter starting cash. Gold can be added from «الجرد الفوري» with «إضافة مخزون». Cash changes only through sales, purchases, expenses, transfers between methods, and the counted correction at day close. The owner did not ask for a cash button and did not say where starting balances should be entered. «إضافة أو تعديل نقدية» in «الجرد الفوري», as in the old app, could be built on the existing `post_ledger_correction_v1` command. It is not built and will not be until he answers.
 
+## Step 0 of the handoff. Branch state (2026-11-18, second session)
+
+`git status` was clean on `owner-feedback-2026-11-17` at `20f5ae0` (the handoff note) over `cb318d8` (FB-005, the clock, the opening form). Nothing was uncommitted. Work continued on that branch. Nothing was pushed or merged.
+
+## M1, part 3. Two-decimal weights (FB-002)
+
+Date: 2026-11-18. Flutter client, `AGENTS.md`, ADRs and the design guide. No migration, no Edge Function, nothing deployed. Committed on `owner-feedback-2026-11-17` on the developer's word; not pushed or merged. Decision: [ADR 0050](../adr/0050-two-decimal-weights.md).
+
+### Rule change
+
+- `AGENTS.md`: «Preserve gram precision to three decimal places» became: store exact integer milligrams; enter and display every weight with two decimals in every screen, PDF and message; never show a third decimal, a milligram figure, or a decimal-places hint. Approved by the developer on 2026-11-18.
+- ADR 0050 is new. ADR 0004 (display rule) and ADR 0047 D7 carry a dated amendment note that points to it; their original text is kept.
+- `docs/design-system.md`: a «Weights» section at the top, and fifteen sentences that described three decimals or milligram figures were changed.
+
+### Change
+
+- One rounding function, `twoDecimalGrams` (`quantities.dart`), integer arithmetic, half away from zero. Display goes through `displayGrams` / `displayMilligrams` / `displayGoldEffect` (`amount_format.dart`). Fields go through `GramInputFormatter`, `gramFieldText` and `readGramField` (`gram_input.dart`).
+- Formatters folded into it: `customerGrams`, `signedGramsText`, `debtGold`, the inline one in `debt_due_screen.dart`, `statementGold`, `gramsOf`, `repairWeight`, `reportGrams`, `Milligrams.gramsText` (used by the invoice, the operation PDF, the operation, return and correction screens, and the message template). Removed: `repairGramsExact`, `repairRoundingHidesMilligrams`, the `exact:` switches on `debtGold` and `repairWeight`, and the milligram suffix of `displayGoldEffect`.
+- Entry: the domain parse `Milligrams.parseGrams` accepts at most two decimals. Every weight field has the two-decimal formatter, including fields that had none (debt amount, settlement and lot weight, repair weight, the day-correction weight, every inventory form).
+- Removed text: «ثلاث خانات، مثل 1.255» and «أدخل وزنًا أكبر من صفر بثلاث خانات عشرية.» (repairs), «ثلاثة أرقام عشرية كحد أقصى» (debts), «حتى منزلتين عشريتين» (scrap to stock), «أدخل الوزن بمنزلتين عشريتين كحد أقصى.» (sale and purchase), and the «(1,255 ملليجرام)» suffix on confirmations. The repair detail shows one line «الوزن» instead of «الوزن الظاهر» and «الوزن الأصلي».
+- The invoice PDF and image print two decimals («1.83 جم»; total «4.39 جم»). Reports, the weekly report, analytics, the report PDF, the debt statement PDF and the trader statement PDF print two decimals.
+- The admin dashboard shows no weights. `admin/` is untouched.
+
+### Weights stored earlier with a third decimal
+
+Counted on development `xchapwvmvoefriqcxtvn` on 2026-11-18, read-only: three shops created between 2026-09-27 and 2026-10-13 hold them (8 gold postings, 6 gold balances, 6 lot movements, 4 lots, 1 receipt, 6 repairs, 2 gold debts; values such as 1.255 and 65.555). The two test shops of 2026-11-18 hold none.
+
+Display rule applied, for the developer to confirm: nothing is rewritten; such a weight reads rounded half away from zero (1.255 reads 1.26); entering a recorded weight as it reads means that whole weight. So an unrelated edit of an old sale keeps its weight, a full return or settlement of an old line takes all of it, and a day count typed at the shown balance raises no 0.005 g difference. The last-piece banner is not shown for a difference two decimals do not show.
+
+### Tests
+
+- New `app/test/two_decimal_weights_test.dart` (17 tests): rounding, sign, grouping; every formatter gives the same two decimals; no milligram figure; entry of at most two decimals, Arabic digits; the field refuses a third decimal; a recorded third-decimal weight is kept when left as shown and replaced when changed; a new sale line cannot carry a third decimal; a scan of `app/lib` that fails on a three-decimal formatter, a milligram label, or a decimal-places hint.
+- New cases in `owner_answers_2026_11_11_test.dart` (last piece) and `debt_rules_test.dart` (an old gold debt settled in full at its shown weight).
+- Existing tests in 22 files asserted three decimals, milligram text, or typed a third decimal (65 failed before they were changed). They now assert the rule. `ledger_trade_change_test.dart` keeps its check that an edit which leaves an old 1.255 g line alone resends 1255 milligrams, with the field now showing 1.26.
+
+### Gates
+
+- `dart format` on `lib` and `test`: no changes left. `dart analyze` (whole app): no issues.
+- `flutter test` (full suite): **1956 passed** (1938 before, plus 18 new).
+- `git diff --check`: clean.
+- React, TypeScript and SQL gates: not run. `admin/` and `supabase/` are untouched.
+- The full run rewrote the invoice PNG captures under `docs/reviews/invoice-branding-2026-10-21/pdf/` and the Windows generated files; both were restored. The regenerated invoice was read before restoring: lines «1.83 جم» and «2.56 جم», total «4.39 جم».
+
+### Device check (Android emulator)
+
+Debug build from the working tree on `emulator-5554`, against development, Arabic RTL, dark theme, signed in to the second test shop of 2026-11-18.
+
+- «الجرد الفوري», «إضافة مخزون»: typing 5.255 in «الوزن الفعلي بالجرام» leaves 5.25 in the field. The review reads «يزيد المتاح للبيع: 5.25 جرام». The addition was confirmed («تم حفظ العملية بنجاح.») and stays on development as test data: one item of 5.25 g at 21.
+- «الجرد الفوري» after it: the figure «عيار 21» reads 5.25 جرام, «أرصدة الذهب» reads 5.25 جرام, «وزنة التجار الأصلية» reads 0.00 جرام, and the lot row reads 5.25 under «الوزن بالجرام». These rows used three decimals before.
+- «المرمات», «استلام قطعة»: «الوزن بالجرام» has no hint, and typing 1.255 leaves 1.25. Nothing was saved.
+
+### Not done
+
+- Not seen on the device: a sale and its review, the ledger cards, returns, the day count, debts, reports, and the PDFs. The sale path could not be reached because of the defect below. They are covered by the widget and unit tests only. Light theme and desktop width were not re-inspected; no layout changed.
+- No weight stored with a third decimal was viewed on the device; the test shops have none. That rule is covered by tests only.
+- The developer has not yet confirmed the display rule for older third-decimal weights (ADR 0050, decision 5).
+- No release build; building is opt-in under `AGENTS.md`.
+
+### Found during the device check, not fixed: «إضافة مخزون» makes the daily ledger unreadable
+
+After the test addition, the «الدفتر» tab of that shop shows «تعذر إتمام العملية. حاول مجددًا.» and «المزيد» shows «تعذر تحميل أرصدة الدفتر.». It does not come from the weights change.
+
+- Cause, confirmed: `get_daily_ledger_home_v2` returns the addition in the open day's feed as `kind: inventory_addition` with `label_ar: null` (read as the shop owner on development, rolled back). The client's feed parser (`daily_ledger_codec.dart`, the `labels` map) does not know that kind and passes the null label on as a string, which throws a type error. A probe test with that row in the standard v2 payload reproduced it; the probe was not kept.
+- Effect: any shop that adds, and probably removes or corrects, stock from «الجرد الفوري» loses its daily ledger while that operation is in the open day's feed. Same family as FB-005: the home feed now carries every operation kind of the day.
+- Why it matters now: «إضافة مخزون» is the only way to enter starting gold since the opening form was removed, and the handoff proposes it to the owner.
+- Not fixed, because the fix needs a decision: which wording each inventory operation gets in «حركة الدفتر», or whether such rows are left out of the feed. The second test shop stays in this state as the reproduction.
+
 ## Still open in M1
 
-Two-decimal weights, removing «مشغولات», and the banned-terms test and glossary. Before the owner build: his answer on where starting cash and gold are entered.
+Removing «مشغولات» and the banned-terms test and glossary. Before the owner build: his answer on where starting cash and gold are entered.

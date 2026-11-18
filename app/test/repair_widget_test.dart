@@ -195,7 +195,7 @@ Future<void> pumpRepair(
 }
 
 void main() {
-  testWidgets('intake review shows custody and exact milligrams before save', (
+  testWidgets('intake review shows custody and the weight before save', (
     tester,
   ) async {
     final gateway = FakeRepairs();
@@ -208,7 +208,7 @@ void main() {
       'عميل الإصلاح',
     );
     await tester.enterText(find.byKey(const Key('repair-item')), 'خواتم');
-    await tester.enterText(find.byKey(const Key('repair-grams')), '1.255');
+    await tester.enterText(find.byKey(const Key('repair-grams')), '1.25');
     await tester.tap(find.byKey(const Key('repair-karat')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('21').last);
@@ -217,7 +217,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('repair-estimate')), '150');
     await tester.tap(find.byKey(const Key('repair-intake-submit')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('1,255 ملليجرام'), findsOneWidget);
+    expect(find.text('الوزن: 1.25 جرام'), findsOneWidget);
+    expect(find.textContaining('ملليجرام'), findsNothing);
     expect(find.text('المخزون القابل للبيع: 0'), findsOneWidget);
     expect(find.text('النقد: 0'), findsOneWidget);
     expect(gateway.posts, 0);
@@ -228,7 +229,7 @@ void main() {
     expect(locker.saves, 1);
     expect(gateway.posted?.kind, 'repair_intake');
     final payload = gateway.posted!.body['p_payload']! as Map;
-    expect(payload['measured_milligrams'], '1255');
+    expect(payload['measured_milligrams'], '1250');
     expect(payload['estimated_fee_piastres'], '15000');
     // M1: a toast confirms and the owner returns to the list.
     expect(find.text('تم استلام المرمة'), findsOneWidget);
@@ -256,7 +257,8 @@ void main() {
     await pumpRepair(tester, gateway: gateway, locker: MemoryLocker());
     await tester.tap(find.text('عميل الإصلاح'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('الوزن الأصلي'), findsOneWidget);
+    // 1.255 g stored; one weight line with two decimals (ADR 0050).
+    expect(find.text('الوزن: 1.26 جرام'), findsOneWidget);
     expect(
       find.textContaining('12 أكتوبر 2026، \u206610:00\u2069 ص'),
       findsWidgets,
@@ -280,7 +282,8 @@ void main() {
 
     // U12: the owner stays on the repair with a toast.
     expect(find.text('تم تسليم المرمة'), findsOneWidget);
-    expect(find.textContaining('الوزن الأصلي'), findsOneWidget);
+    // 1.255 g stored; one weight line with two decimals (ADR 0050).
+    expect(find.text('الوزن: 1.26 جرام'), findsOneWidget);
 
     gateway.posts = 0;
     gateway.summary = sample(status: 'in_progress');

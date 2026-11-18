@@ -1,4 +1,5 @@
 import '../../../theme/cash_input.dart';
+import '../../../theme/gram_input.dart';
 import '../../../theme/keyboard_dismiss.dart';
 import 'package:flutter/material.dart';
 
@@ -197,7 +198,10 @@ class _PartialReturnScreenState extends State<PartialReturnScreen> {
       final lines = <ReturnLineInput>[];
       for (final field in _lines) {
         if (!field.include) continue;
-        final grams = Milligrams.parseGrams(field.grams.text.trim());
+        final grams = readGramField(
+          field.grams.text,
+          recorded: field.item.remainderMilligrams,
+        );
         if (grams is! Accepted<Milligrams>) {
           setState(() => _message = 'أدخل وزن الصنف المختار بالجرام.');
           return;
